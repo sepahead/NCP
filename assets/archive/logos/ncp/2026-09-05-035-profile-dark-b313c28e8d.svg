@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="48 37 124 124" width="124" height="124" role="img" aria-label="NCP historical profile mark"><title>NCP historical profile mark</title><desc>Archived design extracted from a historical portfolio SVG. This image makes no current product or release claim.</desc><defs><filter id="edgeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4" result="b" />
+      <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <radialGradient id="gateGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#332408" />
+      <stop offset="100%" stop-color="#10131a" />
+    </radialGradient>
+    <filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.38" />
+    </filter>
+    </defs><style>.seat-ring{fill: none; stroke-width: 2.2;}
+.seat-groove{fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1;}
+.seat-hairline{fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1;}
+.seat-gate{fill: url(#gateGrad);}
+.ncp-well{fill: url(#ncpWell); stroke: #111827; stroke-width: 1.1;}
+.ncp-min-lane{fill: none; stroke-linecap: round;}
+.ncp-min-lane-action{stroke: #fbbf24; stroke-width: 1.8;}
+.ncp-min-lane-sense{stroke: #67e8f9; stroke-width: 1.25; stroke-dasharray: 2.5 2.3;}
+.ncp-min-brace{fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;}
+.ncp-min-brace-action{stroke: url(#ncpBrace);}
+.ncp-min-brace-sense{stroke: url(#ncpCyan);}
+.ncp-plane-top{fill: #fde68a;}
+.ncp-plane-right{fill: #67e8f9;}
+.ncp-plane-bottom{fill: #0e7490;}
+.ncp-plane-left{fill: #f59e0b;}
+.ncp-min-knot{fill: none; stroke: #fff7d6; stroke-width: 0.85; stroke-linejoin: round;}
+.ncp-min-void{fill: #050912; stroke: #ffffff; stroke-width: 0.45;}
+.ncp-min-proposal{fill: #fbbf24; stroke: #fff7d6; stroke-width: 0.5;}
+.ncp-min-signal{fill: #083344; stroke: #cffafe; stroke-width: 0.8;}
+.ncp-min-bind{fill: none; stroke: #fff7d6; stroke-width: 0.85; filter: url(#edgeGlow);}
+.ncp-min-receipt{fill: #07111d; stroke: #ffffff; stroke-width: 1.05; stroke-linejoin: round; filter: url(#edgeGlow);}</style><g class="nodes"><g>
+    <defs>
+      <radialGradient id="ncpWell" cx="44%" cy="36%" r="74%"><stop offset="0%" stop-color="#182434" /><stop offset="68%" stop-color="#08111c" /><stop offset="100%" stop-color="#03070c" /></radialGradient>
+      <linearGradient id="ncpBrace" x1="0" y1="81" x2="0" y2="117" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#fff3bd" /><stop offset="44%" stop-color="#fbbf24" /><stop offset="100%" stop-color="#92400e" /></linearGradient>
+      <linearGradient id="ncpCyan" x1="0" y1="81" x2="0" y2="117" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#cffafe" /><stop offset="44%" stop-color="#67e8f9" /><stop offset="100%" stop-color="#0e7490" /></linearGradient>
+    </defs>
+    <defs>
+      <linearGradient id="gateBezel" x1="0" y1="65" x2="0" y2="133" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fde68a" /><stop offset="45%" stop-color="#fbbf24" /><stop offset="100%" stop-color="#92400e" />
+      </linearGradient>
+    </defs>
+    <g filter="url(#nodeShadow)"><circle cx="110" cy="99" r="34" class="seat-gate" /></g>
+    <circle cx="110" cy="99" r="34" stroke="url(#gateBezel)" class="seat-ring" />
+    <circle cx="110" cy="99" r="31.8" class="seat-groove" />
+    <circle cx="110" cy="99" r="35.4" class="seat-hairline" />
+    <circle cx="110" cy="99" r="30.2" class="ncp-well" />
+
+    <path d="M84 99H93" class="ncp-min-lane ncp-min-lane-action" />
+    <path d="M136 99H127" class="ncp-min-lane ncp-min-lane-sense" />
+    <path d="M106 82H101L97 86V93L93 99L97 105V112L101 116H106" class="ncp-min-brace ncp-min-brace-action" />
+    <path d="M114 82H119L123 86V93L127 99L123 105V112L119 116H114" class="ncp-min-brace ncp-min-brace-sense" />
+
+    <polygon points="110,92 113,99 107,99" class="ncp-plane-top" />
+    <polygon points="117,99 110,102 110,96" class="ncp-plane-right" />
+    <polygon points="110,106 107,99 113,99" class="ncp-plane-bottom" />
+    <polygon points="103,99 110,96 110,102" class="ncp-plane-left" />
+    <polygon points="110,92 117,99 110,106 103,99" class="ncp-min-knot" />
+    <polygon points="110,97.5 111.5,99 110,100.5 108.5,99" class="ncp-min-void" />
+
+    <polygon points="85,96.8 87.2,99 85,101.2 82.8,99" class="ncp-min-proposal" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;16 0;16 0;0 0" keyTimes="0;0.10;0.34;0.90;1" dur="8s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.08;0.11;0.42;0.47;1" dur="8s" repeatCount="indefinite" />
+    </polygon>
+    <circle cx="135" cy="99" r="2" class="ncp-min-signal" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;-16 0;-16 0;0 0" keyTimes="0;0.24;0.46;0.90;1" dur="8s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.22;0.25;0.52;0.57;1" dur="8s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="110" cy="99" r="8.4" class="ncp-min-bind" opacity="0">
+      <animate attributeName="r" values="8.4;8.4;11.5;11.5" keyTimes="0;0.54;0.67;1" dur="8s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;0.82;0;0" keyTimes="0;0.53;0.57;0.69;1" dur="8s" repeatCount="indefinite" />
+    </circle>
+    <polygon points="85,96.8 87.3,99 85,101.3 82.8,99" class="ncp-min-receipt" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="16 0;16 0;0 0;0 0;16 0" keyTimes="0;0.68;0.84;0.90;1" dur="8s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.66;0.69;0.85;0.90;1" dur="8s" repeatCount="indefinite" />
+    </polygon>
+    </g>
+  </g></svg>

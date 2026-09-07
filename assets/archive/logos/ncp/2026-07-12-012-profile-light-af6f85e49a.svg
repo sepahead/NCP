@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="188 168 124 124" width="124" height="124" role="img" aria-label="NCP historical profile mark"><title>NCP historical profile mark</title><desc>Archived design extracted from a historical portfolio SVG. This image makes no current product or release claim.</desc><defs><radialGradient id="gateGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#332408" />
+      <stop offset="100%" stop-color="#10131a" />
+    </radialGradient>
+    <filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.38" />
+    </filter>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b" />
+      <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    </defs><style>:root{--hub-accent: #34d399; --cube-accent: #fb923c; --tri-accent: #a78bfa;}
+.seat-ring{fill: none; stroke-width: 2.2;}
+.seat-groove{fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1;}
+.seat-hairline{fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1;}
+.seat-gate{fill: url(#gateGrad);}
+.gate-wire{fill: none; stroke: #fbbf24; stroke-width: 2.6; stroke-linecap: round; opacity: 0.92;}
+.gate-wire-perc{fill: none; stroke: #fbbf24; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 5 4; opacity: 0.6;}
+.gate-bar{fill: #fbbf24; fill-opacity: 0.16; stroke: #fbbf24; stroke-width: 2;}
+.gate-port{fill: #fbbf24;}
+.gate-tick{fill: none; stroke: #fde68a; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;}
+.gate-packet{fill: #fde68a;}
+.gate-packet-perc{fill: #fde68a; opacity: 0.7;}
+:root{--hub-accent: #059669; --cube-accent: #c2410c; --tri-accent: #7c3aed;}</style><g class="nodes"><g>
+    <defs>
+      <linearGradient id="gateBezel" x1="0" y1="196" x2="0" y2="264" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fde68a" /><stop offset="45%" stop-color="#fbbf24" /><stop offset="100%" stop-color="#92400e" />
+      </linearGradient>
+    </defs>
+    <g filter="url(#nodeShadow)"><circle cx="250" cy="230" r="34" class="seat-gate" /></g>
+    <circle cx="250" cy="230" r="34" stroke="url(#gateBezel)" class="seat-ring" />
+    <circle cx="250" cy="230" r="31.8" class="seat-groove" />
+    <circle cx="250" cy="230" r="35.4" class="seat-hairline" />
+    <g filter="url(#soft)" transform="translate(0 0)">
+      <path d="M224 222 H243 M257 222 H276" class="gate-wire-perc" />
+      <path d="M224 238 H243 M257 238 H276" class="gate-wire" />
+      <circle cx="224" cy="222" r="2.2" class="gate-port" />
+      <circle cx="276" cy="222" r="2.2" class="gate-port" />
+      <circle cx="224" cy="238" r="2.2" class="gate-port" />
+      <circle cx="276" cy="238" r="2.2" class="gate-port" />
+      <rect x="247.5" y="214" width="5" height="32" rx="2.5" class="gate-bar">
+        <animate attributeName="fill-opacity" values="0.16;0.32;0.16" dur="2.8s" repeatCount="indefinite" />
+      </rect>
+      <polyline points="246.6,238.6 249.4,241.2 253.2,235.6" class="gate-tick">
+        <animate attributeName="stroke-opacity" values="0.75;0.75;1;0.75;0.75" keyTimes="0;0.5;0.58;0.72;1" dur="2.6s" repeatCount="indefinite" />
+        <animate attributeName="stroke-width" values="1.6;1.6;2.4;1.6;1.6" keyTimes="0;0.52;0.6;0.74;1" dur="2.6s" repeatCount="indefinite" />
+      </polyline>
+      <circle cx="250" cy="222" r="2.6" class="gate-packet-perc">
+        <animate attributeName="cx" values="276;224" dur="1.9s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.7;0.35;0.7;0.5;0.7" dur="1.9s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="240" cy="238" r="3" class="gate-packet">
+        <animate attributeName="cx" values="224;248;248;254;276" keyTimes="0;0.34;0.56;0.62;1" dur="2.6s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="1;1;0.3;1;1" keyTimes="0;0.34;0.56;0.62;1" dur="2.6s" repeatCount="indefinite" />
+      </circle>
+    </g>
+    </g>
+  </g></svg>

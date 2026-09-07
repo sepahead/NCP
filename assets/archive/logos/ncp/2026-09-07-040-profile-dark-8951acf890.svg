@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="298 278 124 124" width="124" height="124" role="img" aria-label="NCP historical profile mark"><title>NCP historical profile mark</title><desc>Archived design extracted from a historical portfolio SVG. This image makes no current product or release claim.</desc><defs><filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.38" />
+    </filter>
+    </defs><style /><g class="nodes"><g>
+      <g filter="url(#nodeShadow)" transform="translate(315 295) scale(.5)">
+  <title id="ncp-mark-title">NCP paired contract rails</title>
+  <desc id="ncp-mark-desc">Opposed contract rails carry an amber request and a distinct blue outcome. Two separated metal rim halves represent independent peers. The open center is an interface, not a central runtime. The exchange repeats slowly; reduced motion keeps the full mark still.</desc>
+  <defs>
+    <radialGradient id="ncp-seat" cx="36%" cy="28%" r="82%">
+      <stop stop-color="#22313c" /><stop offset=".5" stop-color="#111d27" /><stop offset="1" stop-color="#060c13" />
+    </radialGradient>
+    <linearGradient id="ncp-rim" x1="35" y1="26" x2="147" y2="158" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#314550" /><stop offset=".17" stop-color="#adbac0" /><stop offset=".34" stop-color="#526d79" /><stop offset=".52" stop-color="#253743" /><stop offset=".7" stop-color="#819294" /><stop offset=".86" stop-color="#354a56" /><stop offset="1" stop-color="#81918e" />
+    </linearGradient>
+    <linearGradient id="ncp-amber" x1="42" y1="47" x2="108" y2="132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f2dfae" /><stop offset=".28" stop-color="#c6a367" /><stop offset=".55" stop-color="#81613a" /><stop offset=".8" stop-color="#b08a4d" /><stop offset="1" stop-color="#55442d" />
+    </linearGradient>
+    <linearGradient id="ncp-blue" x1="74" y1="46" x2="138" y2="133" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#bed4d9" /><stop offset=".25" stop-color="#83b6c4" /><stop offset=".53" stop-color="#3b778b" /><stop offset=".79" stop-color="#6799a5" /><stop offset="1" stop-color="#254653" />
+    </linearGradient>
+    <linearGradient id="ncp-edge" x1="32" y1="39" x2="136" y2="139" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e3e9e7" stop-opacity=".8" /><stop offset=".45" stop-color="#b0c1c5" stop-opacity=".25" /><stop offset="1" stop-color="#14242d" stop-opacity=".5" />
+    </linearGradient>
+  </defs>
+  <style>
+    .ncp-request-light { animation: ncp-request-light 8s ease-in-out infinite; }
+    .ncp-outcome-light { animation: ncp-outcome-light 8s ease-in-out infinite; }
+    .ncp-request-trace, .ncp-outcome-trace { fill: none; stroke-linecap: round; stroke-dasharray: 10 90; opacity: 0; }
+    .ncp-request-trace { animation: ncp-request-travel 8s linear infinite; }
+    .ncp-outcome-trace { animation: ncp-outcome-travel 8s linear infinite; }
+    @keyframes ncp-request-travel { 0%, 7% { stroke-dashoffset: 10; opacity: 0; } 10% { opacity: .9; } 38% { stroke-dashoffset: -70; opacity: .9; } 43%, 100% { stroke-dashoffset: -70; opacity: 0; } }
+    @keyframes ncp-outcome-travel { 0%, 48% { stroke-dashoffset: 10; opacity: 0; } 51% { opacity: .9; } 79% { stroke-dashoffset: -70; opacity: .9; } 84%, 100% { stroke-dashoffset: -70; opacity: 0; } }
+    @keyframes ncp-request-light { 0%, 48%, 100% { opacity: .4; } 20%, 30% { opacity: 1; } }
+    @keyframes ncp-outcome-light { 0%, 42%, 100% { opacity: .4; } 66%, 76% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .ncp-request-light, .ncp-outcome-light, .ncp-request-trace, .ncp-outcome-trace { animation: none; }
+    }
+  </style>
+  <g id="ncp-housing" fill="none">
+    <path d="M62 22H118L158 62V118L118 158H62L22 118V62Z" fill="url(#ncp-seat)" stroke="#080f16" stroke-width="5" />
+    <path d="M83 22H62L22 62V118L62 158H83 M97 22H118L158 62V118L118 158H97" stroke="url(#ncp-rim)" stroke-width="4.2" stroke-linejoin="bevel" />
+    <path d="M82 27H64L27 64V116L64 153H82 M98 27H116L153 64V116L116 153H98" stroke="#8cabb7" stroke-opacity=".25" stroke-width=".8" />
+    <path d="M84 19V25 M96 19V25 M84 155V161 M96 155V161" stroke="#1a2a34" stroke-width="2" />
+    <path d="M18 78H26V102H18Z M154 78H162V102H154Z" fill="#10202b" stroke="url(#ncp-rim)" stroke-width="1" />
+    <path d="M20 83H24 M20 90H24 M20 97H24" stroke="#b79961" stroke-width="1.8" />
+    <path d="M156 83H160 M156 90H160 M156 97H160" stroke="#729dac" stroke-width="1.8" />
+  </g>
+  <g id="ncp-contract-rails" stroke-linejoin="bevel">
+    <path d="M81 48H64L43 69V111L64 132H81V121H69L55 107V73L69 59H81Z" fill="#070e16" stroke="#070e16" stroke-width="5" transform="translate(0 2)" />
+    <path d="M99 48H116L137 69V111L116 132H99V121H111L125 107V73L111 59H99Z" fill="#070e16" stroke="#070e16" stroke-width="5" transform="translate(0 2)" />
+    <path d="M81 48H64L43 69V111L64 132H81V121H69L55 107V73L69 59H81Z" fill="url(#ncp-amber)" stroke="url(#ncp-edge)" stroke-width=".85" />
+    <path d="M99 48H116L137 69V111L116 132H99V121H111L125 107V73L111 59H99Z" fill="url(#ncp-blue)" stroke="url(#ncp-edge)" stroke-width=".85" />
+    <path d="M78 51H65L47 70V109" fill="none" stroke="#ead8ab" stroke-opacity=".48" stroke-width="1" />
+    <path d="M102 51H115L133 70V109" fill="none" stroke="#c2e1e7" stroke-opacity=".55" stroke-width="1" />
+    <path d="M49 72V110L65 126H78 M131 72V110L115 126H102" fill="none" stroke="#16252c" stroke-opacity=".6" stroke-width="1.4" />
+    <path d="M59 76H82L92 66H112" fill="none" stroke="#151a1e" stroke-width="5" />
+    <path d="M59 76H82L92 66H112" fill="none" stroke="url(#ncp-amber)" stroke-width="2.8" />
+    <path d="M121 104H98L88 114H68" fill="none" stroke="#101b24" stroke-width="5" />
+    <path d="M121 104H98L88 114H68" fill="none" stroke="url(#ncp-blue)" stroke-width="2.8" />
+    <path d="M59 76H82L92 66H112" stroke="#ffe5b4" stroke-width="2.2" class="ncp-request-trace" />
+    <path d="M121 104H98L88 114H68" stroke="#cbf3f7" stroke-width="2.2" class="ncp-outcome-trace" />
+  </g>
+  <g id="ncp-path-identities">
+    <path d="M104 62 108 66 104 70" fill="none" stroke="#eccea0" stroke-width="1.6" />
+    <path d="M76 110 72 114 76 118" fill="none" stroke="#97c5d1" stroke-width="1.6" />
+    <path d="M66 71 71 76 66 81 61 76Z" fill="#1c2326" stroke="#e4bd77" stroke-width="1.2" />
+    <path d="M66 73 69 76 66 79 63 76Z" fill="#f1d395" class="ncp-request-light" />
+    <rect x="108.5" y="99.5" width="9" height="9" rx="1" fill="#10212c" stroke="#8fbccc" stroke-width="1.2" />
+    <path d="M111 106V102H115" fill="none" stroke="#c3e6ec" stroke-width="1.2" class="ncp-outcome-light" />
+  </g>
+</g>
+      </g>
+  </g></svg>

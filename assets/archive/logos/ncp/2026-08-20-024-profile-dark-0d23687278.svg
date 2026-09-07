@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="188 194 124 124" width="124" height="124" role="img" aria-label="NCP historical profile mark"><title>NCP historical profile mark</title><desc>Archived design extracted from a historical portfolio SVG. This image makes no current product or release claim.</desc><defs><filter id="edgeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4" result="b" />
+      <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <radialGradient id="gateGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#332408" />
+      <stop offset="100%" stop-color="#10131a" />
+    </radialGradient>
+    <filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.38" />
+    </filter>
+    </defs><style>.seat-ring{fill: none; stroke-width: 2.2;}
+.seat-groove{fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1;}
+.seat-hairline{fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1;}
+.seat-gate{fill: url(#gateGrad);}
+.gate-well{fill: url(#ncpWell); stroke: #0b111b; stroke-width: 1.2;}
+.gate-index{fill: none; stroke: #fbbf24; stroke-width: 0.75; stroke-opacity: 0.42; stroke-linecap: round;}
+.gate-lane{fill: none; stroke-linecap: round;}
+.gate-lane-perception{stroke: #67e8f9; stroke-width: 1.45; stroke-opacity: 0.78; stroke-dasharray: 3.2 2.6;}
+.gate-lane-action{stroke: #fbbf24; stroke-width: 2.15; stroke-opacity: 0.96;}
+.gate-direction{fill: none; stroke: #dbeafe; stroke-width: 0.85; stroke-opacity: 0.72; stroke-linecap: round; stroke-linejoin: round;}
+.gate-port{stroke-width: 0.7; stroke-linejoin: round;}
+.gate-port-perception{fill: #083344; stroke: #a5f3fc;}
+.gate-port-action{fill: #451a03; stroke: #fde68a;}
+.gate-core{fill: #0a1019; stroke: url(#ncpCore); stroke-width: 1.8; stroke-linejoin: round;}
+.gate-core-rail{fill: none; stroke: #fef3c7; stroke-width: 0.75; stroke-opacity: 0.48; stroke-linecap: round;}
+.gate-core-arrow{fill: none; stroke: #fff7d6; stroke-width: 1; stroke-opacity: 0.82; stroke-linecap: round; stroke-linejoin: round;}
+.gate-kernel{fill: url(#ncpKernel); stroke: #fff7d6; stroke-width: 0.8; stroke-linejoin: round;}
+.gate-kernel-split{fill: none; stroke: #451a03; stroke-width: 1.05; stroke-linecap: round;}
+.gate-kernel-hot{fill: #ffffff; stroke: #fef3c7; stroke-width: 0.45;}
+.gate-packet{stroke-width: 0.45; stroke-linejoin: round;}
+.gate-packet-perception{fill: #cffafe; stroke: #ffffff;}
+.gate-packet-action{fill: #fde68a; stroke: #ffffff;}
+.gate-admit{fill: none; stroke: #fff7d6; stroke-width: 1;}</style><g class="nodes"><g>
+    <defs>
+      <radialGradient id="ncpWell" cx="50%" cy="42%" r="64%">
+        <stop offset="0%" stop-color="#182536" /><stop offset="70%" stop-color="#09111d" /><stop offset="100%" stop-color="#05080d" />
+      </radialGradient>
+      <linearGradient id="ncpCore" x1="0" y1="238" x2="0" y2="274" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#ffe9a3" /><stop offset="35%" stop-color="#fbbf24" /><stop offset="100%" stop-color="#8a3d08" />
+      </linearGradient>
+      <linearGradient id="ncpKernel" x1="244" y1="250" x2="256" y2="262" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fff7d6" /><stop offset="45%" stop-color="#fbbf24" /><stop offset="100%" stop-color="#b45309" />
+      </linearGradient>
+    </defs>
+    <defs>
+      <linearGradient id="gateBezel" x1="0" y1="222" x2="0" y2="290" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fde68a" /><stop offset="45%" stop-color="#fbbf24" /><stop offset="100%" stop-color="#92400e" />
+      </linearGradient>
+    </defs>
+    <g filter="url(#nodeShadow)"><circle cx="250" cy="256" r="34" class="seat-gate" /></g>
+    <circle cx="250" cy="256" r="34" stroke="url(#gateBezel)" class="seat-ring" />
+    <circle cx="250" cy="256" r="31.8" class="seat-groove" />
+    <circle cx="250" cy="256" r="35.4" class="seat-hairline" />
+    <circle cx="250" cy="256" r="30.4" class="gate-well" />
+    <circle cx="250" cy="256" r="26.6" class="gate-index" stroke-dasharray="1 5.4" />
+
+    <path d="M223 247H238 M262 247H277" class="gate-lane gate-lane-perception" />
+    <path d="M223 265H238 M262 265H277" class="gate-lane gate-lane-action" />
+    <path d="M225 244L222 247L225 250 M275 262L278 265L275 268" class="gate-direction" />
+
+    <polygon points="223,243.8 226.2,247 223,250.2 219.8,247" class="gate-port gate-port-perception" />
+    <polygon points="277,243.8 280.2,247 277,250.2 273.8,247" class="gate-port gate-port-perception" />
+    <polygon points="223,261.8 226.2,265 223,268.2 219.8,265" class="gate-port gate-port-action" />
+    <polygon points="277,261.8 280.2,265 277,268.2 273.8,265" class="gate-port gate-port-action" />
+
+    <path d="M242 238H258L262 242V270L258 274H242L238 270V242Z" class="gate-core" />
+    <path d="M242 247H258 M242 265H258" class="gate-core-rail" />
+    <path d="M255 244L251 247L255 250 M245 262L249 265L245 268" class="gate-core-arrow" />
+    <polygon points="250,249.8 256.2,256 250,262.2 243.8,256" class="gate-kernel" />
+    <path d="M250 251.7V260.3" class="gate-kernel-split" />
+    <circle cx="250" cy="256" r="1.35" class="gate-kernel-hot" />
+
+    <polygon points="277,244.9 279.1,247 277,249.1 274.9,247" class="gate-packet gate-packet-perception" filter="url(#edgeGlow)">
+      <animateTransform attributeName="transform" type="translate" values="0 0;-15 0;-15 0;-37 0;-54 0" keyTimes="0;0.28;0.40;0.70;1" dur="7.2s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;1;1;0.55;1;1;0" keyTimes="0;0.04;0.24;0.40;0.72;0.96;1" dur="7.2s" repeatCount="indefinite" />
+    </polygon>
+    <polygon points="223,262.7 225.3,265 223,267.3 220.7,265" class="gate-packet gate-packet-action" filter="url(#edgeGlow)">
+      <animateTransform attributeName="transform" type="translate" values="0 0;15 0;15 0;37 0;54 0" keyTimes="0;0.34;0.56;0.72;1" dur="7.2s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;1;1;0.42;1;1;0" keyTimes="0;0.04;0.30;0.56;0.74;0.96;1" dur="7.2s" repeatCount="indefinite" />
+    </polygon>
+    <circle cx="250" cy="256" r="8.2" class="gate-admit" opacity="0">
+      <animate attributeName="opacity" values="0;0;0.9;0;0" keyTimes="0;0.50;0.58;0.68;1" dur="7.2s" repeatCount="indefinite" />
+      <animate attributeName="r" values="8.2;8.2;10.8;12.5;12.5" keyTimes="0;0.50;0.58;0.68;1" dur="7.2s" repeatCount="indefinite" />
+    </circle>
+    </g>
+  </g></svg>

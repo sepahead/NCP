@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="188 194 124 124" width="124" height="124" role="img" aria-label="NCP historical profile mark"><title>NCP historical profile mark</title><desc>Archived design extracted from a historical portfolio SVG. This image makes no current product or release claim.</desc><defs><filter id="edgeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4" result="b" />
+      <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <radialGradient id="gateGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#332408" />
+      <stop offset="100%" stop-color="#10131a" />
+    </radialGradient>
+    <filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.38" />
+    </filter>
+    </defs><style>.seat-ring{fill: none; stroke-width: 2.2;}
+.seat-groove{fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1;}
+.seat-hairline{fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1;}
+.seat-gate{fill: url(#gateGrad);}
+.ncp-well{fill: url(#ncpWell); stroke: #111827; stroke-width: 1.1;}
+.ncp-generation path{fill: none; stroke: #fbbf24; stroke-width: 0.85; stroke-opacity: 0.42; stroke-dasharray: 11 3 2 3; stroke-linecap: round;}
+.ncp-brace{fill: none; stroke: url(#ncpBrace); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round;}
+.ncp-plane{fill: none; stroke-linecap: round;}
+.ncp-control{stroke: #fde68a; stroke-width: 1.2;}
+.ncp-perception{stroke: #67e8f9; stroke-width: 1.25; stroke-dasharray: 3.1 2.4;}
+.ncp-action{stroke: #fbbf24; stroke-width: 2.1;}
+.ncp-observation{stroke: #a5f3fc; stroke-width: 1.25; stroke-dasharray: 0.8 3.2;}
+.ncp-receipt-lane{fill: none; stroke: #f8fafc; stroke-width: 0.7; stroke-opacity: 0.42; stroke-linecap: round;}
+.ncp-key{stroke-linejoin: round;}
+.ncp-key-control{fill: #422006; stroke: #fef3c7; stroke-width: 0.8;}
+.ncp-key-perception{fill: #071a26; stroke: #a5f3fc; stroke-width: 0.9;}
+.ncp-key-action{fill: #fbbf24; stroke: #fff7d6; stroke-width: 0.75;}
+.ncp-key-observation{fill: #071a26; stroke: #cffafe; stroke-width: 0.9; stroke-dasharray: 1 1.6;}
+.ncp-receipt-home{fill: #07111d; stroke: #ffffff; stroke-width: 0.75; stroke-opacity: 0.72; stroke-linejoin: round;}
+.ncp-knot{fill: #050912; stroke: #fef3c7; stroke-width: 0.7; stroke-opacity: 0.8; stroke-linejoin: round;}
+.ncp-cell{stroke-width: 0.45; stroke-linejoin: round;}
+.ncp-cell-control{fill: #fde68a; stroke: #fff7d6;}
+.ncp-cell-perception{fill: #164e63; stroke: #cffafe;}
+.ncp-cell-action{fill: #f59e0b; stroke: #fff7d6;}
+.ncp-cell-observation{fill: #083344; stroke: #a5f3fc;}
+.ncp-bind-core{fill: #ffffff; stroke: #fde68a; stroke-width: 0.45;}
+.ncp-bind-ring{fill: none; stroke: #fff7d6; stroke-width: 0.9; filter: url(#edgeGlow);}
+.ncp-packet{stroke-width: 0.45; filter: url(#edgeGlow);}
+.ncp-packet-control{fill: #fff7d6; stroke: #ffffff;}
+.ncp-packet-perception{fill: #cffafe; stroke: #ffffff;}
+.ncp-packet-action{fill: #fbbf24; stroke: #ffffff;}
+.ncp-packet-observation{fill: #a5f3fc; stroke: #ffffff;}
+.ncp-receipt{fill: #07111d; stroke: #ffffff; stroke-width: 1.05; stroke-linejoin: round; filter: url(#edgeGlow);}</style><g class="nodes"><g>
+    <defs>
+      <radialGradient id="ncpWell" cx="45%" cy="38%" r="72%">
+        <stop offset="0%" stop-color="#1b2736" /><stop offset="62%" stop-color="#09121e" /><stop offset="100%" stop-color="#03070c" />
+      </radialGradient>
+      <linearGradient id="ncpBrace" x1="0" y1="236" x2="0" y2="276" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fff3bd" /><stop offset="38%" stop-color="#fbbf24" /><stop offset="100%" stop-color="#92400e" />
+      </linearGradient>
+    </defs>
+    <defs>
+      <linearGradient id="gateBezel" x1="0" y1="222" x2="0" y2="290" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fde68a" /><stop offset="45%" stop-color="#fbbf24" /><stop offset="100%" stop-color="#92400e" />
+      </linearGradient>
+    </defs>
+    <g filter="url(#nodeShadow)"><circle cx="250" cy="256" r="34" class="seat-gate" /></g>
+    <circle cx="250" cy="256" r="34" stroke="url(#gateBezel)" class="seat-ring" />
+    <circle cx="250" cy="256" r="31.8" class="seat-groove" />
+    <circle cx="250" cy="256" r="35.4" class="seat-hairline" />
+    <circle cx="250" cy="256" r="30.2" class="ncp-well" />
+
+    <g class="ncp-generation">
+      <path d="M230 237A27.5 27.5 0 0 1 270 237" />
+      <path d="M270 275A27.5 27.5 0 0 1 230 275" />
+      <animateTransform attributeName="transform" type="rotate" values="0 250 256;0 250 256;12 250 256;12 250 256;0 250 256" keyTimes="0;0.61;0.67;0.94;1" dur="8.4s" repeatCount="indefinite" />
+    </g>
+
+    <path d="M246 237H241L237 241V249L233 253L237 257V271L241 275H246" class="ncp-brace" />
+    <path d="M254 237H259L263 241V249L267 253L263 257V271L259 275H254" class="ncp-brace" />
+
+    <path d="M250 230V250" class="ncp-plane ncp-control" />
+    <path d="M276 253H256" class="ncp-plane ncp-perception" />
+    <path d="M224 259H244" class="ncp-plane ncp-action" />
+    <path d="M250 282V262" class="ncp-plane ncp-observation" />
+    <path d="M244 265H228" class="ncp-receipt-lane" />
+
+    <rect x="247.5" y="227.5" width="5" height="5" rx="0.8" class="ncp-key ncp-key-control" />
+    <polygon points="277,250 280,253 277,256 274,253" class="ncp-key ncp-key-perception" />
+    <polygon points="223,255.8 226.2,259 223,262.2 219.8,259" class="ncp-key ncp-key-action" />
+    <circle cx="250" cy="283" r="3" class="ncp-key ncp-key-observation" />
+    <polygon points="228,262.8 230.3,265 228,267.3 225.8,265" class="ncp-receipt-home" />
+
+    <path d="M250 250L254.6 256L250 262L245.4 256Z" class="ncp-knot" />
+    <polygon points="250,249.7 252.2,251.8 250,253.9 247.8,251.8" class="ncp-cell ncp-cell-control" />
+    <polygon points="254.2,253.8 256.4,256 254.2,258.1 252.1,256" class="ncp-cell ncp-cell-perception" />
+    <polygon points="245.8,253.8 247.9,256 245.8,258.1 243.7,256" class="ncp-cell ncp-cell-action" />
+    <polygon points="250,258.1 252.2,260.2 250,262.4 247.8,260.2" class="ncp-cell ncp-cell-observation" />
+    <polygon points="250,254.2 251.8,256 250,257.8 248.2,256" class="ncp-bind-core" />
+    <circle cx="250" cy="256" r="8.1" class="ncp-bind-ring" opacity="0">
+      <animate attributeName="opacity" values="0;0;0.88;0;0" keyTimes="0;0.56;0.63;0.73;1" dur="8.4s" repeatCount="indefinite" />
+      <animate attributeName="r" values="8.1;8.1;11.2;12.6;12.6" keyTimes="0;0.56;0.63;0.73;1" dur="8.4s" repeatCount="indefinite" />
+    </circle>
+
+    <rect x="248.3" y="228.3" width="3.3" height="3.3" rx="0.55" class="ncp-packet ncp-packet-control" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 19.2;0 19.2;0 0" keyTimes="0;0.08;0.22;0.94;1" dur="8.4s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.06;0.09;0.88;0.94;1" dur="8.4s" repeatCount="indefinite" />
+    </rect>
+    <polygon points="277,250.9 279.1,253 277,255.1 274.9,253" class="ncp-packet ncp-packet-perception" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;-19.2 0;-19.2 0;0 0" keyTimes="0;0.20;0.36;0.94;1" dur="8.4s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.18;0.21;0.88;0.94;1" dur="8.4s" repeatCount="indefinite" />
+    </polygon>
+    <polygon points="223,256.8 225.3,259 223,261.3 220.8,259" class="ncp-packet ncp-packet-action" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;19.2 0;19.2 0;0 0" keyTimes="0;0.32;0.48;0.94;1" dur="8.4s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.30;0.33;0.88;0.94;1" dur="8.4s" repeatCount="indefinite" />
+    </polygon>
+    <circle cx="250" cy="283" r="1.8" class="ncp-packet ncp-packet-observation" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 -19.2;0 -19.2;0 0" keyTimes="0;0.44;0.56;0.94;1" dur="8.4s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.42;0.45;0.88;0.94;1" dur="8.4s" repeatCount="indefinite" />
+    </circle>
+
+    <polygon points="228,262.8 230.3,265 228,267.3 225.8,265" class="ncp-receipt" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="16 0;16 0;0 0;0 0;16 0" keyTimes="0;0.72;0.86;0.94;1" dur="8.4s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.70;0.73;0.88;0.94;1" dur="8.4s" repeatCount="indefinite" />
+    </polygon>
+    </g>
+  </g></svg>

@@ -8,6 +8,8 @@
   </picture>
 </p>
 
+<p align="center"><a href="assets/archive/logos/README.md">Logo design archive</a></p>
+
 NCP connects independently owned neural simulations, simulated bodies, capture tools, and monitors through explicit data contracts.
 The first bounded development profile demonstrates exact causal steps and retained outcomes in one local experiment.
 Final product v1 requirements remain open.

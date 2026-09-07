@@ -1,0 +1,267 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="204 184 92 92" width="92" height="92" role="img" aria-label="ncp logo">
+  <defs>
+    <radialGradient id="hubGrad" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#06281d"/>
+      <stop offset="100%" stop-color="#0a1117"/>
+    </radialGradient>
+    <radialGradient id="gateGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#332408"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </radialGradient>
+    <radialGradient id="voxGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#2a0a2e"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </radialGradient>
+    <radialGradient id="galGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#2a0a0a"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </radialGradient>
+    <radialGradient id="hdGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#042f2a"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </radialGradient>
+    <radialGradient id="crebGrad" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#3c4d21"/>
+      <stop offset="62%" stop-color="#26311a"/>
+      <stop offset="100%" stop-color="#161c10"/>
+    </radialGradient>
+    <filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.38"/>
+    </filter>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="edgeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="hdBloom" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="mwBloom" x="-300%" y="-300%" width="700%" height="700%">
+      <feGaussianBlur stdDeviation="1.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="eg0" gradientUnits="userSpaceOnUse" x1="147" y1="230" x2="209" y2="230"><stop offset="0%" stop-color="#bcc6d1"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient>
+    <linearGradient id="eg1" gradientUnits="userSpaceOnUse" x1="287" y1="212.4" x2="411.5" y2="153.1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+    <linearGradient id="eg2" gradientUnits="userSpaceOnUse" x1="286.9" y1="247.9" x2="423.1" y2="314.1"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#9caf88"/></linearGradient>
+    <linearGradient id="eg3" gradientUnits="userSpaceOnUse" x1="214.8" y1="107.9" x2="423.9" y2="126.7"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+    <linearGradient id="eg4" gradientUnits="userSpaceOnUse" x1="608.5" y1="142.9" x2="499.2" y2="133.4"><stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+    <linearGradient id="eg5" gradientUnits="userSpaceOnUse" x1="641.2" y1="224.6" x2="510" y2="156.1"><stop offset="0%" stop-color="#fb923c"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+    <linearGradient id="eg6" gradientUnits="userSpaceOnUse" x1="668.2" y1="329.2" x2="492.8" y2="161.3"><stop offset="0%" stop-color="#fb7185"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+    <linearGradient id="eg7" gradientUnits="userSpaceOnUse" x1="492.2" y1="306.6" x2="664.3" y2="170.3"><stop offset="0%" stop-color="#9caf88"/><stop offset="100%" stop-color="#60a5fa"/></linearGradient>
+    <linearGradient id="eg8" gradientUnits="userSpaceOnUse" x1="498.6" y1="318.2" x2="638.2" y2="268.5"><stop offset="0%" stop-color="#9caf88"/><stop offset="100%" stop-color="#fb923c"/></linearGradient>
+    <linearGradient id="eg9" gradientUnits="userSpaceOnUse" x1="500.9" y1="335.2" x2="603" y2="343.2"><stop offset="0%" stop-color="#9caf88"/><stop offset="100%" stop-color="#fb7185"/></linearGradient>
+    <linearGradient id="eg10" gradientUnits="userSpaceOnUse" x1="110" y1="319" x2="110" y2="267"><stop offset="0%" stop-color="#e879f9"/><stop offset="100%" stop-color="#bcc6d1"/></linearGradient>
+    <linearGradient id="eg11" gradientUnits="userSpaceOnUse" x1="336.9" y1="373" x2="421.1" y2="345"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#9caf88"/></linearGradient>
+    <linearGradient id="eg12" gradientUnits="userSpaceOnUse" x1="446.1" y1="287.2" x2="447.9" y2="292.8"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#9caf88"/></linearGradient>
+    <linearGradient id="eg13" gradientUnits="userSpaceOnUse" x1="398.1" y1="228.3" x2="209.7" y2="124.7"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#34d399"/></linearGradient>
+    <linearGradient id="eg14" gradientUnits="userSpaceOnUse" x1="284.1" y1="207.3" x2="287.9" y2="204.7"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#2dd4bf"/></linearGradient>
+    <linearGradient id="eg15" gradientUnits="userSpaceOnUse" x1="357.3" y1="202.8" x2="398.7" y2="227.2"><stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#ef4444"/></linearGradient>
+    <linearGradient id="eg16" gradientUnits="userSpaceOnUse" x1="360.4" y1="167.5" x2="414.3" y2="147.2"><stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient>
+  </defs>
+  <style>
+    :root { --hub-accent: #34d399; --cube-accent: #fb923c; --tri-accent: #a78bfa; }
+    .cap        { font: 400 11px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #6e7681; }
+    .edge       { opacity: 0.55; }
+    .edge-live  { filter: url(#edgeGlow); }
+    .flow       { fill: none; stroke: #e2faff; stroke-width: 2.4; stroke-dasharray: 1.5 9; stroke-linecap: round; opacity: 0.9; }
+    .flow-rev   { stroke-width: 2; opacity: 0.78; }
+    .chip       { fill: #0d1117; stroke-width: 1.5; }
+    .chip-label { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #c9d1d9; }
+    .hub-fill   { fill: url(#hubGrad); }
+    .hub-ring   { fill: none; stroke: url(#hubBezel); stroke-width: 2.2; }
+    .hub-glow   { fill: none; stroke: #34d399; stroke-width: 6; stroke-opacity: 0.18; filter: url(#soft); }
+    .hub-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #6ee7b7; }
+    .pid-track   { fill: none; stroke: #065f46; stroke-opacity: 0.35; stroke-width: 4; stroke-linecap: round; }
+    .pid-fill    { fill: none; stroke: #34d399; stroke-width: 4; stroke-linecap: round; }
+    .pid-tip-u   { fill: #a7f3d0; }
+    .pid-tip-s   { fill: #d1fae5; }
+    .pid-wg      { fill: none; stroke: #043a2e; stroke-width: 2.4; stroke-linecap: round; }
+    .pid-wg-lit  { fill: none; stroke: #6ee7b7; stroke-width: 0.9; stroke-linecap: round; }
+    .pid-port    { fill: #34d399; }
+    .pid-port-core { fill: #06281d; }
+    .pid-chip    { fill: #d1fae5; }
+    .pid-base    { fill: none; stroke: #6ee7b7; stroke-opacity: 0.3; stroke-width: 1; stroke-linecap: round; }
+    .pid-keystone{ fill: none; stroke: #34d399; stroke-opacity: 0.45; stroke-width: 1.2; stroke-linecap: round; }
+    .pid-flash   { fill: none; stroke: #d1fae5; stroke-width: 1.4; stroke-linecap: round; opacity: 0; }
+    .pid-core-crown { fill: #6ee7b7; }
+    .pid-core-bl { fill: #065f46; }
+    .pid-core-br { fill: #047857; }
+    .pid-core-edge { fill: none; stroke: #a7f3d0; stroke-width: 0.8; stroke-linejoin: round; }
+    .pid-seam    { fill: none; stroke: #d1fae5; stroke-width: 0.7; stroke-opacity: 0.9; stroke-linecap: round; }
+    .pid-facet   { fill: none; stroke: #a7f3d0; stroke-width: 0.5; stroke-opacity: 0.35; }
+    .pid-hot     { fill: #ecfdf5; }
+    .pid-hot-in  { fill: #f0fdf4; }
+    .pid-compute { fill: none; stroke: #6ee7b7; stroke-width: 1; opacity: 0; }
+    .seat-ring     { fill: none; stroke-width: 2.2; }
+    .seat-groove   { fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1; }
+    .seat-hairline { fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1; }
+    .seat-gate     { fill: url(#gateGrad); }
+    .seat-vox      { fill: url(#voxGrad); }
+    .mel-plate    { fill: url(#melPlate); }
+    .mel-rock     { fill: #050302; }
+    .mel-ridge    { fill: none; stroke: #fdba74; stroke-opacity: 0.7; stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; }
+    .mel-facet    { fill: #070302; }
+    .mel-tin      { stroke: #000000; stroke-opacity: 0.4; stroke-width: 0.6; stroke-linejoin: round; }
+    .mel-splat    { fill: url(#melSplat); }
+    .mel-edge     { fill: none; stroke: url(#melBezel); stroke-width: 2.4; stroke-linejoin: miter; }
+    .mel-groove   { fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1; }
+    .mel-hairline { fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1; }
+    .cube-label { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #fdba74; }
+    .logo-label     { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #cdd6e0; }
+    .prz-body     { fill: url(#przGlass); }
+    .prz-edge     { fill: none; stroke: url(#przSilver); stroke-width: 2.4; }
+    .prz-groove   { fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1; }
+    .prz-hairline { fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1; }
+    .prz-hill     { fill: url(#przHill); }
+    .prz-hill-hi  { fill: url(#przHillHi); }
+    .prz-hill-ao  { fill: url(#przHillAo); }
+    .prz-spill    { fill: url(#przSpill); }
+    .prz-crest    { fill: none; stroke: #d8ccff; stroke-width: 1.8; stroke-linecap: round; stroke-opacity: 0.95; }
+    .prz-ray      { fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-opacity: 0.5; }
+    .prz-ray-flow { fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-dasharray: 4 22; stroke-opacity: 0.92; }
+    .prz-blade    { fill: url(#przBlade); stroke: #cbd3db; stroke-width: 0.4; stroke-linejoin: round; }
+    .prz-blade-core { stroke: #f8fafc; stroke-width: 0.8; stroke-linecap: round; stroke-opacity: 0.85; }
+    .prz-blade-glint { stroke: #ffffff; stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: 5 44; stroke-opacity: 0.95; }
+    .prz-foot-hot { fill: #ffffff; }
+    .tri-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #c4b5fd; }
+    .gate-wire      { fill: none; stroke: #fbbf24; stroke-width: 2.6; stroke-linecap: round; opacity: 0.92; }
+    .gate-wire-perc { fill: none; stroke: #fbbf24; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 5 4; opacity: 0.6; }
+    .gate-bar       { fill: #fbbf24; fill-opacity: 0.16; stroke: #fbbf24; stroke-width: 2; }
+    .gate-port      { fill: #fbbf24; }
+    .gate-tick      { fill: none; stroke: #fde68a; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .gate-packet    { fill: #fde68a; }
+    .gate-packet-perc { fill: #fde68a; opacity: 0.7; }
+    .gate-label     { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #fbbf24; text-anchor: middle; }
+    .vox-top    { fill: #e879f9; fill-opacity: 0.6; stroke: #e879f9; stroke-width: 1.3; }
+    .vox-left   { fill: #e879f9; fill-opacity: 0.32; stroke: #e879f9; stroke-width: 1.3; }
+    .vox-right  { fill: #e879f9; fill-opacity: 0.15; stroke: #e879f9; stroke-width: 1.3; }
+    .flag-k     { fill: #181818; }
+    .flag-r     { fill: #d8001d; }
+    .flag-g     { fill: #ffcc00; }
+    .flag-edge  { fill: none; stroke: #ffffff; stroke-opacity: 0.16; stroke-width: 0.6; }
+    .vox-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #f0abfc; }
+    .vox-net    { color: #e879f9; }
+    .vox-code   { fill: none; stroke: #f0abfc; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+    .seat-creb     { fill: url(#crebGrad); }
+    .creb-signal   { fill: none; stroke: #b6cf86; stroke-opacity: 0.7; stroke-width: 1.2; }
+    .creb-tick     { fill: none; stroke: #b6cf86; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .creb-xhair    { fill: none; stroke: #a8c07a; stroke-opacity: 0.7; stroke-width: 1.3; stroke-linecap: round; }
+    .creb-eye-core { fill: #ff6b5e; }
+    .creb-eye-hot  { fill: #fff1f0; }
+    .raven-label { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #9caf88; }
+    .raven-cursor { fill: #9caf88; }
+    .radar-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #38bdf8; }
+    .mw-iris      { fill: #101a26; stroke: #38bdf8; stroke-opacity: 0.25; stroke-width: 1; }
+    .mw-well      { fill: url(#mwWell); }
+    .mw-core      { fill: url(#mwCore); }
+    .mw-aphex     { fill: none; stroke: #e0f2fe; stroke-opacity: 0.45; stroke-width: 0.8; stroke-linejoin: round; }
+    .mw-blade     { fill: none; stroke: #7dd3fc; stroke-opacity: 0.55; stroke-width: 1.2; }
+    .mw-blade-sh  { fill: none; stroke: #05070b; stroke-opacity: 0.7; stroke-width: 1.2; }
+    .mw-inner     { fill: none; stroke: url(#mwBezel); stroke-width: 1.6; stroke-opacity: 0.9; stroke-linecap: round; }
+    .mw-notch     { fill: none; stroke: #bae6fd; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+    .mw-lock      { fill: none; stroke: #ef4444; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+    .mw-lock-dot  { fill: #ff6b5e; }
+    .mw-drone-arm { fill: none; stroke: #7dd3fc; stroke-width: 1.4; stroke-linecap: round; }
+    .mw-rotor     { fill: #12283b; stroke: #7dd3fc; stroke-width: 1.2; }
+    .mw-hub       { fill: #f0f9ff; }
+    .mw-ring      { fill: none; stroke: url(#mwBezel); stroke-width: 2.2; }
+    .mw-groove    { fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1; }
+    .mw-hairline  { fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1; }
+    .seat-gal   { fill: url(#galGrad); }
+    .gal-signal { fill: none; stroke: #ef4444; stroke-opacity: 0.7; stroke-width: 1.1; }
+    .gal-fiber  { fill: none; stroke: #22d3ee; stroke-opacity: 0.75; stroke-width: 1.4; stroke-linecap: round; }
+    .gal-pulse  { fill: none; stroke: #a5f3fc; stroke-opacity: 0.95; stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 3 40; }
+    .gal-port   { fill: #0a121c; stroke: #22d3ee; stroke-opacity: 0.9; stroke-width: 1; }
+    .gal-jack   { fill: #a5f3fc; fill-opacity: 0.85; }
+    .gal-plate  { fill: url(#galPlateG); stroke: #22d3ee; stroke-opacity: 0.9; stroke-width: 1.2; stroke-linejoin: miter; }
+    .gal-crest  { stroke: #22d3ee; stroke-opacity: 0.28; stroke-width: 0.6; stroke-linejoin: miter; }
+    .gal-slit   { fill: #05070b; stroke: #22d3ee; stroke-opacity: 0.55; stroke-width: 0.8; stroke-linejoin: miter; }
+    .gal-hotf   { fill: #ef4444; }
+    .gal-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #ef4444; }
+    .seat-hd         { fill: url(#hdGrad); }
+    .hd-void         { fill: #03211d; }
+    .hd-frame        { fill: url(#haldirArch); stroke: #0f766e; stroke-width: 0.5; stroke-opacity: 0.7; }
+    .hd-reed         { fill: none; stroke: #0f766e; stroke-width: 0.6; stroke-opacity: 0.5; stroke-linecap: round; }
+    .hd-speed        { fill: none; stroke: #5eead4; stroke-width: 0.6; stroke-opacity: 0.4; stroke-linecap: round; }
+    .hd-thresh       { fill: none; stroke: #2dd4bf; stroke-width: 1.6; stroke-linecap: round; stroke-opacity: 0.85; }
+    .hd-beam         { fill: none; stroke: #ef4444; stroke-width: 1.4; stroke-linecap: round; stroke-opacity: 0.92; }
+    .hd-diode        { fill: #ff3b47; }
+    .hd-diode-hot    { fill: #ffe1dd; }
+    .hd-core         { fill: #ef4444; }
+    .hd-core-facet   { fill: #ff9d94; fill-opacity: 0.95; }
+    .hd-core-hot     { fill: #fff1f0; }
+    .hd-coreglow     { fill: url(#hdCoreGlow); }
+    .hd-sun          { fill: none; stroke: #ff6b5e; stroke-width: 0.8; stroke-opacity: 0.85; stroke-linecap: round; }
+    .hd-scan         { fill: #ffd9d4; }
+    .hd-tok-in       { fill: #ff6b5e; }
+    .hd-tok-out      { fill: #fff1f0; }
+    .hd-flash        { fill: #fff1f0; }
+    .haldir-label    { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #2dd4bf; }
+    .wg-rule    { stroke: #30363d; stroke-width: 1; stroke-opacity: 0.55; }
+    .wg-bracket { fill: none; stroke: #fbbf24; stroke-width: 1.5; stroke-linecap: round; stroke-opacity: 0.85; }
+    .panel      { fill: #ffffff; fill-opacity: 0.022; stroke: #ffffff; stroke-opacity: 0.07; }
+    text { paint-order: stroke; stroke: #0d1117; stroke-width: 2.6; stroke-linejoin: round; text-transform: uppercase; letter-spacing: 2.5px; }
+    text { stroke: #ffffff; }
+      :root { --hub-accent: #059669; --cube-accent: #c2410c; --tri-accent: #7c3aed; }
+      .cap { fill: #57606a; }
+      .flow { stroke: #22d3ee; }
+      .chip { fill: #ffffff; }
+      .chip-label { fill: #1f2328; }
+      .hub-glow { stroke: #059669; stroke-opacity: 0.12; }
+      .hub-label { fill: #059669; }
+      .logo-label { fill: #57626f; }
+      .tri-label { fill: #6d28d9; }
+      .gate-label { fill: #b45309; }
+      .cube-label { fill: #c2410c; }
+      .flag-edge { stroke: #000000; stroke-opacity: 0.25; }
+      .vox-label { fill: #c026d3; }
+      .raven-label { fill: #4b5320; }
+      .raven-cursor { fill: #4b5320; }
+      .radar-label { fill: #0284c7; }
+      .gal-label { fill: #dc2626; }
+      .haldir-label { fill: #0d9488; }
+      .wg-rule { stroke: #d0d7de; stroke-opacity: 0.9; }
+      .wg-bracket { stroke: #b45309; }
+      .panel { fill: #0b1f2a; fill-opacity: 0.025; stroke: #0b1f2a; stroke-opacity: 0.08; }
+    @media (prefers-reduced-motion: reduce) { animate, animateTransform { display: none; } }
+  </style>
+  <g>
+    <defs>
+      <linearGradient id="gateBezel" x1="0" y1="196" x2="0" y2="264" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fde68a"/><stop offset="45%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#92400e"/>
+      </linearGradient>
+    </defs>
+    <g filter="url(#nodeShadow)"><circle cx="250" cy="230" r="34" class="seat-gate"/></g>
+    <circle cx="250" cy="230" r="34" stroke="url(#gateBezel)" class="seat-ring"/>
+    <circle cx="250" cy="230" r="31.8" class="seat-groove"/>
+    <circle cx="250" cy="230" r="35.4" class="seat-hairline"/>
+    <g filter="url(#soft)">
+      <path d="M224 222 H243 M257 222 H276" class="gate-wire-perc"/>
+      <path d="M224 238 H243 M257 238 H276" class="gate-wire"/>
+      <circle cx="224" cy="222" r="2.2" class="gate-port"/>
+      <circle cx="276" cy="222" r="2.2" class="gate-port"/>
+      <circle cx="224" cy="238" r="2.2" class="gate-port"/>
+      <circle cx="276" cy="238" r="2.2" class="gate-port"/>
+      <rect x="247.5" y="214" width="5" height="32" rx="2.5" class="gate-bar">
+        <animate attributeName="fill-opacity" values="0.16;0.32;0.16" dur="2.8s" repeatCount="indefinite"/>
+      </rect>
+      <polyline points="246.6,238.6 249.4,241.2 253.2,235.6" class="gate-tick">
+        <animate attributeName="stroke-opacity" values="0.75;0.75;1;0.75;0.75" keyTimes="0;0.5;0.58;0.72;1" dur="2.6s" repeatCount="indefinite"/>
+        <animate attributeName="stroke-width" values="1.6;1.6;2.4;1.6;1.6" keyTimes="0;0.52;0.6;0.74;1" dur="2.6s" repeatCount="indefinite"/>
+      </polyline>
+      <circle cx="250" cy="222" r="2.6" class="gate-packet-perc">
+        <animate attributeName="cx" values="276;224" dur="1.9s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.7;0.35;0.7;0.5;0.7" dur="1.9s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="240" cy="238" r="3" class="gate-packet">
+        <animate attributeName="cx" values="224;248;248;254;276" keyTimes="0;0.34;0.56;0.62;1" dur="2.6s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;1;0.3;1;1" keyTimes="0;0.34;0.56;0.62;1" dur="2.6s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+  </g>
+</svg>

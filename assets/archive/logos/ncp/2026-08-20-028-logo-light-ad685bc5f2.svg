@@ -1,0 +1,392 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="204 210 92 92" width="92" height="92" role="img" aria-label="NCP logo: a bounded four-plane contract with separate action proposal and receipt">
+  <defs>
+    <radialGradient id="hubGrad" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#06281d"/>
+      <stop offset="100%" stop-color="#0a1117"/>
+    </radialGradient>
+    <radialGradient id="gateGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#332408"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </radialGradient>
+    <radialGradient id="voxGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#2a0a2e"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </radialGradient>
+    <radialGradient id="galGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#2a0a0a"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </radialGradient>
+    <radialGradient id="hdGrad" cx="50%" cy="40%" r="68%">
+      <stop offset="0%" stop-color="#042f2a"/>
+      <stop offset="100%" stop-color="#10131a"/>
+    </radialGradient>
+    <radialGradient id="crebGrad" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#293716"/>
+      <stop offset="62%" stop-color="#19230f"/>
+      <stop offset="100%" stop-color="#0d1208"/>
+    </radialGradient>
+    <filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.38"/>
+    </filter>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="edgeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <style>
+    .cap        { font: 400 11px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #8b949e; }
+    .edge       { opacity: 0.55; }
+    .edge-contract  { filter: url(#edgeGlow); }
+    .contract-flow  { fill: none; stroke: #e2faff; stroke-width: 2.4; stroke-dasharray: 1.5 9; stroke-linecap: round; opacity: 0.9; }
+    .contract-flow-rev { stroke-width: 2; opacity: 0.78; }
+    .chip       { fill: #0d1117; stroke-width: 1.5; }
+    .chip-label { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #c9d1d9; }
+    .hub-fill   { fill: url(#hubGrad); }
+    .hub-ring   { fill: none; stroke: url(#hubBezel); stroke-width: 2.2; }
+    .hub-glow   { fill: none; stroke: #34d399; stroke-width: 6; stroke-opacity: 0.18; filter: url(#soft); }
+    .hub-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #6ee7b7; }
+    .pidx-rail   { fill: none; stroke: #021a12; stroke-opacity: 0.9; stroke-width: 1.3; stroke-linecap: round; }
+    .pidx-rail-lt{ fill: none; stroke: #34d399; stroke-opacity: 0.18; stroke-width: 1.3; stroke-linecap: round; }
+    .pidx-tick   { fill: none; stroke: #047857; stroke-opacity: 0.9; stroke-width: 0.9; stroke-linecap: round; }
+    .pidx-inner  { fill: none; stroke: #10b981; stroke-opacity: 0.14; stroke-width: 0.6; }
+    .pidx-chan   { fill: none; stroke: #032018; stroke-width: 2.2; stroke-linecap: round; }
+    .pidx-chan-lt{ fill: none; stroke: #6ee7b7; stroke-width: 0.8; stroke-linecap: round; }
+    .pidx-chamfer{ fill: none; stroke: #05070b; stroke-opacity: 0.55; stroke-width: 1; }
+    .pidx-rim    { fill: none; stroke: url(#pidXRim); stroke-width: 1.1; }
+    .pidx-lip    { fill: none; stroke: #6ee7b7; stroke-opacity: 0.16; stroke-width: 0.5; }
+    .pidx-shade  { fill: #031710; }
+    .pidx-flare  { fill: #d1fae5; }
+    .pidx-flare-s{ fill: #ecfdf5; }
+    .pidx-syn-ring { fill: none; stroke: #a7f3d0; stroke-width: 1; }
+    .pidx-girdle { fill: none; stroke: #a7f3d0; stroke-opacity: 0.55; stroke-width: 0.4; }
+    .pidx-girdle-s { fill: none; stroke: #d1fae5; stroke-opacity: 0.7; stroke-width: 0.5; }
+    .pidx-glint  { fill: #ecfdf5; fill-opacity: 0.7; }
+    .pidx-fU-l   { fill: #6ee7b7; }
+    .pidx-fU-d   { fill: #10b981; }
+    .pidx-jw-edge{ fill: none; stroke: #a7f3d0; stroke-width: 0.4; stroke-opacity: 0.85; stroke-linejoin: round; }
+    .pidx-syn-hot{ fill: #ecfdf5; }
+    .pidx-spark-head { fill: #ecfdf5; }
+    .pidx-spark-tail { fill: none; stroke: #a7f3d0; stroke-width: 1.1; stroke-linecap: round; stroke-opacity: 0.85; }
+    .pid-wg      { fill: none; stroke: #043a2e; stroke-width: 2.4; stroke-linecap: round; }
+    .pid-wg-lit  { fill: none; stroke: #6ee7b7; stroke-width: 0.9; stroke-linecap: round; }
+    .pid-port    { fill: #34d399; }
+    .pid-port-core { fill: #06281d; }
+    .pid-chip    { fill: #d1fae5; }
+    .pid-core-crown { fill: #6ee7b7; }
+    .pid-core-bl { fill: #065f46; }
+    .pid-core-br { fill: #047857; }
+    .pid-core-edge { fill: none; stroke: #a7f3d0; stroke-width: 0.8; stroke-linejoin: round; }
+    .pid-seam    { fill: none; stroke: #d1fae5; stroke-width: 0.7; stroke-opacity: 0.9; stroke-linecap: round; }
+    .pid-facet   { fill: none; stroke: #a7f3d0; stroke-width: 0.5; stroke-opacity: 0.35; }
+    .pid-hot     { fill: #ecfdf5; }
+    .pid-hot-in  { fill: #f0fdf4; }
+    .pid-compute { fill: none; stroke: #6ee7b7; stroke-width: 1; opacity: 0; }
+    .seat-ring     { fill: none; stroke-width: 2.2; }
+    .seat-groove   { fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1; }
+    .seat-hairline { fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1; }
+    .seat-gate     { fill: url(#gateGrad); }
+    .seat-vox      { fill: url(#voxGrad); }
+    .mel-plate    { fill: url(#melPlate); }
+    .mel-rock     { fill: url(#melRock); }
+    .mel-fog-g    { opacity: 0.42; }
+    .mel-ridge    { fill: none; stroke: #fdba74; stroke-opacity: 0.7; stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; }
+    .mel-facet    { fill: #1a0e08; }
+    .mel-tin      { stroke: #000000; stroke-opacity: 0.35; stroke-width: 0.6; stroke-linejoin: round; }
+    .mel-front    { fill: #ffedd5; filter: url(#edgeGlow); }
+    .mel-edge     { fill: none; stroke: url(#melBezel); stroke-width: 2.4; stroke-linejoin: miter; }
+    .mel-groove   { fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1; }
+    .mel-hairline { fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1; }
+    .cube-label { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #fdba74; }
+    .logo-label     { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #cdd6e0; }
+    .prz-body     { fill: url(#przGlass); }
+    .prz-edge     { fill: none; stroke: url(#przSilver); stroke-width: 2.4; }
+    .prz-groove   { fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1; }
+    .prz-hairline { fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1; }
+    .prz-hill     { fill: url(#przHill); }
+    .prz-hill-hi  { fill: url(#przHillHi); }
+    .prz-hill-ao  { fill: url(#przHillAo); }
+    .prz-spill    { fill: url(#przSpill); }
+    .prz-crest    { fill: none; stroke: #d8ccff; stroke-width: 1.8; stroke-linecap: round; stroke-opacity: 0.95; }
+    .prz-ray      { fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-opacity: 0.5; }
+    .prz-ray-flow { fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-dasharray: 4 22; stroke-opacity: 0.92; }
+    .prz-blade    { fill: url(#przBlade); stroke: #cbd3db; stroke-width: 0.4; stroke-linejoin: round; }
+    .prz-blade-core { stroke: #f8fafc; stroke-width: 0.8; stroke-linecap: round; stroke-opacity: 0.85; }
+    .prz-blade-glint { stroke: #ffffff; stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: 5 44; stroke-opacity: 0.95; }
+    .prz-foot-hot { fill: #ffffff; }
+    .tri-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #c4b5fd; }
+    .ncp-well       { fill: url(#ncpWell); stroke: #111827; stroke-width: 1.1; }
+    .ncp-generation path { fill: none; stroke: #fbbf24; stroke-width: 0.85; stroke-opacity: 0.42; stroke-dasharray: 11 3 2 3; stroke-linecap: round; }
+    .ncp-brace      { fill: none; stroke: url(#ncpBrace); stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+    .ncp-plane      { fill: none; stroke-linecap: round; }
+    .ncp-control    { stroke: #fde68a; stroke-width: 1.2; }
+    .ncp-perception { stroke: #67e8f9; stroke-width: 1.25; stroke-dasharray: 3.1 2.4; }
+    .ncp-action     { stroke: #fbbf24; stroke-width: 2.1; }
+    .ncp-observation{ stroke: #a5f3fc; stroke-width: 1.25; stroke-dasharray: 0.8 3.2; }
+    .ncp-receipt-lane { fill: none; stroke: #f8fafc; stroke-width: 0.7; stroke-opacity: 0.42; stroke-linecap: round; }
+    .ncp-key        { stroke-linejoin: round; }
+    .ncp-key-control { fill: #422006; stroke: #fef3c7; stroke-width: 0.8; }
+    .ncp-key-perception { fill: #071a26; stroke: #a5f3fc; stroke-width: 0.9; }
+    .ncp-key-action { fill: #fbbf24; stroke: #fff7d6; stroke-width: 0.75; }
+    .ncp-key-observation { fill: #071a26; stroke: #cffafe; stroke-width: 0.9; stroke-dasharray: 1 1.6; }
+    .ncp-receipt-home { fill: #07111d; stroke: #ffffff; stroke-width: 0.75; stroke-opacity: 0.72; stroke-linejoin: round; }
+    .ncp-knot       { fill: #050912; stroke: #fef3c7; stroke-width: 0.7; stroke-opacity: 0.8; stroke-linejoin: round; }
+    .ncp-cell       { stroke-width: 0.45; stroke-linejoin: round; }
+    .ncp-cell-control { fill: #fde68a; stroke: #fff7d6; }
+    .ncp-cell-perception { fill: #164e63; stroke: #cffafe; }
+    .ncp-cell-action { fill: #f59e0b; stroke: #fff7d6; }
+    .ncp-cell-observation { fill: #083344; stroke: #a5f3fc; }
+    .ncp-bind-core  { fill: #ffffff; stroke: #fde68a; stroke-width: 0.45; }
+    .ncp-bind-ring  { fill: none; stroke: #fff7d6; stroke-width: 0.9; filter: url(#edgeGlow); }
+    .ncp-packet     { stroke-width: 0.45; filter: url(#edgeGlow); }
+    .ncp-packet-control { fill: #fff7d6; stroke: #ffffff; }
+    .ncp-packet-perception { fill: #cffafe; stroke: #ffffff; }
+    .ncp-packet-action { fill: #fbbf24; stroke: #ffffff; }
+    .ncp-packet-observation { fill: #a5f3fc; stroke: #ffffff; }
+    .ncp-receipt    { fill: #07111d; stroke: #ffffff; stroke-width: 1.05; stroke-linejoin: round; filter: url(#edgeGlow); }
+    .gate-label     { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #fbbf24; text-anchor: middle; }
+    .flag-k     { fill: #181818; }
+    .flag-r     { fill: #d8001d; }
+    .flag-g     { fill: #ffcc00; }
+    .flag-edge  { fill: none; stroke: #ffffff; stroke-opacity: 0.16; stroke-width: 0.6; }
+    .vox-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #f0abfc; }
+    .ctx-well       { fill: url(#ctxWell); stroke: #1f1227; stroke-width: 1.1; }
+    .ctx-declared-lane { fill: none; stroke: #c4b5fd; stroke-width: 0.85; stroke-opacity: 0.58; stroke-dasharray: 2.1 2.3; stroke-linecap: round; }
+    .ctx-neuron     { fill: #e9d5ff; stroke: #ffffff; stroke-width: 0.8; }
+    .ctx-voxel-top  { fill: #e879f9; stroke: #fdf4ff; stroke-width: 0.55; stroke-linejoin: round; }
+    .ctx-voxel-left { fill: #a21caf; stroke: #f0abfc; stroke-width: 0.55; stroke-linejoin: round; }
+    .ctx-voxel-right{ fill: #701a75; stroke: #d946ef; stroke-width: 0.55; stroke-linejoin: round; }
+    .ctx-boundary   { fill: none; stroke: #fdf4ff; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+    .ctx-lattice    { fill: none; stroke: #e879f9; stroke-width: 0.75; stroke-opacity: 0.72; stroke-linecap: round; }
+    .ctx-sheet-shadow { fill: #000000; fill-opacity: 0.62; }
+    .ctx-sheet      { fill: url(#ctxSheet); stroke: url(#ctxSheetEdge); stroke-width: 1.45; stroke-linejoin: round; }
+    .ctx-fold       { fill: none; stroke: #f5d0fe; stroke-width: 0.8; stroke-opacity: 0.72; stroke-linejoin: round; }
+    .ctx-figure-field { fill: #070a11; stroke: #e879f9; stroke-width: 0.55; stroke-opacity: 0.58; }
+    .ctx-figure-trace { fill: none; stroke: #f8fafc; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; }
+    .ctx-figure-point { fill: #ffffff; stroke: #e879f9; stroke-width: 0.45; }
+    .ctx-disclosure { fill: #220b2a; stroke: #f0abfc; stroke-width: 0.55; stroke-opacity: 0.82; }
+    .ctx-table-grid { fill: none; stroke: #f0abfc; stroke-width: 0.45; stroke-opacity: 0.5; }
+    .ctx-table-cell { fill: #f5d0fe; fill-opacity: 0.86; }
+    .ctx-digest     { fill: #ffffff; stroke: #e879f9; stroke-width: 0.55; }
+    .ctx-digest-ring{ fill: none; stroke: #fdf4ff; stroke-width: 0.8; filter: url(#edgeGlow); }
+    .ctx-intake     { fill: #fdf4ff; stroke: #e879f9; stroke-width: 0.45; filter: url(#edgeGlow); }
+    .seat-creb     { fill: url(#crebGrad); }
+    .creb-signal   { fill: none; stroke: #b6cf86; stroke-opacity: 0.7; stroke-width: 1.2; }
+    .creb-xhair    { fill: none; stroke: #a8c07a; stroke-opacity: 0.7; stroke-width: 1.3; stroke-linecap: round; }
+    .creb-eye-core { fill: #ff6b5e; }
+    .creb-eye-hot  { fill: #fff1f0; }
+    .raven-label { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #9caf88; }
+    .raven-cursor { fill: #9caf88; }
+    .radar-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #38bdf8; }
+    .mw-iris      { fill: #101a26; stroke: #38bdf8; stroke-opacity: 0.25; stroke-width: 1; }
+    .mw-well      { fill: url(#mwWell); }
+    .mw-core      { fill: url(#mwCore); }
+    .mw-aphex     { fill: none; stroke: #e0f2fe; stroke-opacity: 0.45; stroke-width: 0.8; stroke-linejoin: round; }
+    .mw-blade     { fill: none; stroke: #7dd3fc; stroke-opacity: 0.55; stroke-width: 1.2; }
+    .mw-blade-sh  { fill: none; stroke: #05070b; stroke-opacity: 0.7; stroke-width: 1.2; }
+    .mw-inner     { fill: none; stroke: url(#mwBezel); stroke-width: 1.6; stroke-opacity: 0.9; stroke-linecap: round; }
+    .mw-notch     { fill: none; stroke: #bae6fd; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+    .mw-tick      { stroke: #38bdf8; stroke-opacity: 0.4; stroke-width: 1; }
+    .mw-dot       { fill: #7dd3fc; fill-opacity: 0.16; }
+    .mw-lock      { fill: none; stroke: #ef4444; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+    .mw-lock-dot  { fill: #ff6b5e; }
+    .mw-lock-g    { fill: none; stroke: #4ade80; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+    .mw-lock-g-dot{ fill: #86efac; }
+    .mw-lock-y    { fill: none; stroke: #facc15; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+    .mw-lock-y-dot{ fill: #fde047; }
+    .mw-lock-o    { fill: none; stroke: #fb923c; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+    .mw-lock-o-dot{ fill: #fdba74; }
+    .mw-drone-arm { fill: none; stroke: #7dd3fc; stroke-width: 1.4; stroke-linecap: round; }
+    .mw-rotor     { fill: #12283b; stroke: #7dd3fc; stroke-width: 1.2; }
+    .mw-hub       { fill: #f0f9ff; }
+    .mw-ring      { fill: none; stroke: url(#mwBezel); stroke-width: 2.2; }
+    .mw-groove    { fill: none; stroke: #05070b; stroke-opacity: 0.5; stroke-width: 1; }
+    .mw-hairline  { fill: none; stroke: #2b333d; stroke-opacity: 0.55; stroke-width: 1; }
+    .seat-gal   { fill: url(#galGrad); }
+    .gal-signal { fill: none; stroke: #ef4444; stroke-opacity: 0.7; stroke-width: 1.1; }
+    .gal-fiber  { fill: none; stroke: #22d3ee; stroke-opacity: 0.75; stroke-width: 1.4; stroke-linecap: round; }
+    .gal-pulse  { fill: none; stroke: #a5f3fc; stroke-opacity: 0.95; stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 3 40; }
+    .gal-port   { fill: #0a121c; stroke: #22d3ee; stroke-opacity: 0.9; stroke-width: 1; }
+    .gal-jack   { fill: #a5f3fc; fill-opacity: 0.85; }
+    .gal-plate  { fill: url(#galPlateG); stroke: #22d3ee; stroke-opacity: 0.9; stroke-width: 1.2; stroke-linejoin: miter; }
+    .gal-crest  { stroke: #22d3ee; stroke-opacity: 0.28; stroke-width: 0.6; stroke-linejoin: miter; }
+    .gal-slit   { fill: #05070b; stroke: #22d3ee; stroke-opacity: 0.55; stroke-width: 0.8; stroke-linejoin: miter; }
+    .gal-hotf   { fill: #ef4444; }
+    .gal-label  { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #ef4444; }
+    .seat-hd         { fill: url(#hdGrad); }
+    .hd-void         { fill: #03211d; }
+    .hd-frame        { fill: url(#haldirArch); stroke: #0f766e; stroke-width: 0.5; stroke-opacity: 0.7; }
+    .hd-speed        { fill: none; stroke: #5eead4; stroke-width: 0.6; stroke-opacity: 0.4; stroke-linecap: round; }
+    .hd-thresh       { fill: none; stroke: #2dd4bf; stroke-width: 1.6; stroke-linecap: round; stroke-opacity: 0.85; }
+    .hd-beam         { fill: none; stroke: #ef4444; stroke-width: 1.4; stroke-linecap: round; stroke-opacity: 0.92; }
+    .hd-diode        { fill: #ff3b47; }
+    .hd-diode-hot    { fill: #ffe1dd; }
+    .hd-core         { fill: #ef4444; }
+    .hd-core-facet   { fill: #ff9d94; fill-opacity: 0.95; }
+    .hd-core-hot     { fill: #fff1f0; }
+    .hd-coreglow     { fill: url(#hdCoreGlow); }
+    .hd-sun          { fill: none; stroke: #ff6b5e; stroke-width: 0.8; stroke-opacity: 0.85; stroke-linecap: round; }
+    .hd-scan         { fill: #ffd9d4; }
+    .hd-tok-in       { fill: #ff6b5e; }
+    .hd-tok-out      { fill: #fff1f0; }
+    .hd-flash        { fill: #fff1f0; }
+    .haldir-label    { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #2dd4bf; }
+    .cba-label       { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #93c5fd; }
+    .cba-glow        { fill: none; stroke: #7dd3fc; stroke-width: 3.5; stroke-opacity: 0.22; filter: url(#soft); stroke-linejoin: round; }
+    .cba-plate       { fill: url(#cbaPlate); }
+    .cba-bezel       { fill: none; stroke: url(#cbaBezel); stroke-width: 2.4; stroke-linejoin: round; }
+    .cba-groove      { fill: none; stroke: #05070b; stroke-opacity: 0.68; stroke-width: 1; stroke-linejoin: round; }
+    .cba-hairline    { fill: none; stroke: #2b333d; stroke-opacity: 0.6; stroke-width: 1; stroke-linejoin: round; }
+    .cba-grid        { fill: none; stroke: #60a5fa; stroke-width: 0.6; stroke-opacity: 0.09; }
+    .cba-tick        { stroke: #8be7f2; stroke-width: 0.9; stroke-opacity: 0.55; stroke-linecap: round; }
+    .cba-envelope    { fill: none; stroke: #60a5fa; stroke-width: 1; stroke-opacity: 0.45; stroke-linecap: round; }
+    .cba-envelope-soft { stroke: #8be7f2; stroke-opacity: 0.16; stroke-dasharray: 1 5; }
+    .cba-base        { fill: #091827; stroke: #60a5fa; stroke-width: 1.1; stroke-linejoin: round; }
+    .cba-desk-top    { fill: #173c66; stroke: #9cecf4; stroke-width: 0.8; stroke-linejoin: round; }
+    .cba-desk-apron  { fill: #0b2038; stroke: #60a5fa; stroke-width: 0.65; }
+    .cba-desk-leg    { fill: #091827; stroke: #60a5fa; stroke-width: 0.7; stroke-linejoin: round; }
+    .cba-source-pad  { fill: #102842; stroke: #7dd3fc; stroke-width: 0.75; stroke-linejoin: round; }
+    .cba-link-a      { fill: url(#cbaArmA); stroke: #9cecf4; stroke-width: 0.8; stroke-linejoin: round; }
+    .cba-link-b      { fill: url(#cbaArmB); stroke: #9cecf4; stroke-width: 0.8; stroke-linejoin: round; }
+    .cba-link-rail   { fill: none; stroke: #d7fbff; stroke-opacity: 0.58; stroke-width: 0.8; stroke-linecap: round; }
+    .cba-servo       { fill: url(#cbaServo); stroke: #9cecf4; stroke-width: 1.3; }
+    .cba-encoder     { fill: none; stroke: #60a5fa; stroke-width: 1.1; stroke-dasharray: 2 2; }
+    .cba-servo-hot   { fill: #e2faff; stroke: #ffffff; stroke-width: 0.55; }
+    .cba-tool        { fill: none; stroke: #9cecf4; stroke-width: 3.8; stroke-linecap: round; }
+    .cba-palm        { fill: none; stroke: #d7fbff; stroke-width: 2.4; stroke-linecap: round; }
+    .cba-finger      { fill: none; stroke: #d7fbff; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .cba-voxel-top   { fill: #f8fafc; stroke: #ffffff; stroke-width: 0.8; stroke-linejoin: round; }
+    .cba-voxel-left  { fill: #cbd5e1; stroke: #e2faff; stroke-width: 0.8; stroke-linejoin: round; }
+    .cba-voxel-right { fill: #64748b; stroke: #bfdbfe; stroke-width: 0.8; stroke-linejoin: round; }
+    .cba-voxel-mesh  { fill: none; stroke: #ffffff; stroke-width: 0.5; stroke-opacity: 0.78; }
+    .cba-contact     { fill: none; stroke: #d7fbff; stroke-width: 1.1; }
+    .atlas-dataset-disc { fill: #07111d; stroke-width: 1.35; }
+    .atlas-dataset-ring { fill: none; stroke: #f8fafc; stroke-width: 0.65; stroke-opacity: 0.3; }
+    .rfa-label       { font: 400 12px ui-monospace, SFMono-Regular, Menlo, monospace; fill: #fda4af; }
+    .rfa-glow        { fill: none; stroke: #fda4af; stroke-width: 2; stroke-opacity: 0.12; stroke-linejoin: round; }
+    .rfa-plate       { fill: url(#rfaPlate); }
+    .rfa-bezel       { fill: none; stroke: url(#rfaBezel); stroke-width: 2.4; stroke-linejoin: round; }
+    .rfa-groove      { fill: none; stroke: #05070b; stroke-opacity: 0.7; stroke-width: 1; stroke-linejoin: round; }
+    .rfa-hairline    { fill: none; stroke: #2b333d; stroke-opacity: 0.58; stroke-width: 1; stroke-linejoin: round; }
+    .rfa-contour     { fill: none; stroke: #fda4af; stroke-width: 0.65; stroke-opacity: 0.15; stroke-linecap: round; }
+    .rfa-contour-a   { stroke-opacity: 0.19; }
+    .rfa-sheet-back  { fill: #12070b; stroke: #881337; stroke-width: 0.75; stroke-opacity: 0.75; }
+    .rfa-sheet-mid   { fill: #260810; stroke: #be123c; stroke-width: 0.75; stroke-opacity: 0.68; }
+    .rfa-sheet-front { fill: #3a0a17; stroke: #fda4af; stroke-width: 0.8; stroke-opacity: 0.62; }
+    .rfa-index-rail  { fill: none; stroke: #fb7185; stroke-width: 0.7; stroke-opacity: 0.48; stroke-linecap: round; }
+    .rfa-index-tick  { stroke: #fecdd3; stroke-width: 0.7; stroke-opacity: 0.6; stroke-linecap: round; }
+    .rfa-record      { fill: #17070c; fill-opacity: 0.94; stroke: #fda4af; stroke-width: 0.8; stroke-opacity: 0.62; }
+    .rfa-sample      { fill: none; stroke: #ffe4e6; stroke-width: 0.75; stroke-opacity: 0.88; stroke-linecap: round; stroke-linejoin: round; }
+    .rfa-focus       { fill: none; stroke: #fff1f2; stroke-width: 1.05; stroke-linecap: round; filter: url(#edgeGlow); }
+    .wg-rule    { stroke: #30363d; stroke-width: 1; stroke-opacity: 0.55; }
+    .wg-bracket { fill: none; stroke: #fbbf24; stroke-width: 1.5; stroke-linecap: round; stroke-opacity: 0.85; }
+    .panel      { fill: #ffffff; fill-opacity: 0.022; stroke: #ffffff; stroke-opacity: 0.07; }
+    text { paint-order: stroke; stroke: #0d1117; stroke-width: 2.6; stroke-linejoin: round; text-transform: uppercase; letter-spacing: 2.5px; }
+    text { stroke: #ffffff; }
+      .cap { fill: #57606a; }
+      .contract-flow { stroke: #22d3ee; }
+      .chip { fill: #ffffff; }
+      .chip-label { fill: #1f2328; }
+      .hub-glow { stroke: #059669; stroke-opacity: 0.12; }
+      .hub-label { fill: #059669; }
+      .logo-label { fill: #57626f; }
+      .tri-label { fill: #6d28d9; }
+      .gate-label { fill: #b45309; }
+      .cube-label { fill: #c2410c; }
+      .flag-edge { stroke: #000000; stroke-opacity: 0.25; }
+      .vox-label { fill: #c026d3; }
+      .raven-label { fill: #4b5320; }
+      .raven-cursor { fill: #4b5320; }
+      .radar-label { fill: #0284c7; }
+      .gal-label { fill: #dc2626; }
+      .haldir-label { fill: #0d9488; }
+      .cba-label { fill: #1d4ed8; }
+      .cba-hairline { stroke: #334155; stroke-opacity: 0.42; }
+      .cba-glow { stroke-opacity: 0.13; }
+      .rfa-label { fill: #be123c; }
+      .rfa-hairline { stroke: #4c0519; stroke-opacity: 0.38; }
+      .rfa-glow { stroke-opacity: 0.08; }
+      .wg-rule { stroke: #d0d7de; stroke-opacity: 0.9; }
+      .wg-bracket { stroke: #b45309; }
+      .panel { fill: #0b1f2a; fill-opacity: 0.025; stroke: #0b1f2a; stroke-opacity: 0.08; }
+    @media (prefers-reduced-motion: reduce) { animate, animateMotion, animateTransform { display: none; } }
+  </style>
+  <g>
+    <defs>
+      <radialGradient id="ncpWell" cx="45%" cy="38%" r="72%">
+        <stop offset="0%" stop-color="#1b2736"/><stop offset="62%" stop-color="#09121e"/><stop offset="100%" stop-color="#03070c"/>
+      </radialGradient>
+      <linearGradient id="ncpBrace" x1="0" y1="236" x2="0" y2="276" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fff3bd"/><stop offset="38%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#92400e"/>
+      </linearGradient>
+    </defs>
+    <defs>
+      <linearGradient id="gateBezel" x1="0" y1="222" x2="0" y2="290" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stop-color="#fde68a"/><stop offset="45%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#92400e"/>
+      </linearGradient>
+    </defs>
+    <g filter="url(#nodeShadow)"><circle cx="250" cy="256" r="34" class="seat-gate"/></g>
+    <circle cx="250" cy="256" r="34" stroke="url(#gateBezel)" class="seat-ring"/>
+    <circle cx="250" cy="256" r="31.8" class="seat-groove"/>
+    <circle cx="250" cy="256" r="35.4" class="seat-hairline"/>
+    <circle cx="250" cy="256" r="30.2" class="ncp-well"/>
+
+    <g class="ncp-generation">
+      <path d="M230 237A27.5 27.5 0 0 1 270 237"/>
+      <path d="M270 275A27.5 27.5 0 0 1 230 275"/>
+      <animateTransform attributeName="transform" type="rotate" values="0 250 256;0 250 256;12 250 256;12 250 256;0 250 256" keyTimes="0;0.61;0.67;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+    </g>
+
+    <path d="M246 237H241L237 241V249L233 253L237 257V271L241 275H246" class="ncp-brace"/>
+    <path d="M254 237H259L263 241V249L267 253L263 257V271L259 275H254" class="ncp-brace"/>
+
+    <path d="M250 230V250" class="ncp-plane ncp-control"/>
+    <path d="M276 253H256" class="ncp-plane ncp-perception"/>
+    <path d="M224 259H244" class="ncp-plane ncp-action"/>
+    <path d="M250 282V262" class="ncp-plane ncp-observation"/>
+    <path d="M244 265H228" class="ncp-receipt-lane"/>
+
+    <rect x="247.5" y="227.5" width="5" height="5" rx="0.8" class="ncp-key ncp-key-control"/>
+    <polygon points="277,250 280,253 277,256 274,253" class="ncp-key ncp-key-perception"/>
+    <polygon points="223,255.8 226.2,259 223,262.2 219.8,259" class="ncp-key ncp-key-action"/>
+    <circle cx="250" cy="283" r="3" class="ncp-key ncp-key-observation"/>
+    <polygon points="228,262.8 230.3,265 228,267.3 225.8,265" class="ncp-receipt-home"/>
+
+    <path d="M250 250L254.6 256L250 262L245.4 256Z" class="ncp-knot"/>
+    <polygon points="250,249.7 252.2,251.8 250,253.9 247.8,251.8" class="ncp-cell ncp-cell-control"/>
+    <polygon points="254.2,253.8 256.4,256 254.2,258.1 252.1,256" class="ncp-cell ncp-cell-perception"/>
+    <polygon points="245.8,253.8 247.9,256 245.8,258.1 243.7,256" class="ncp-cell ncp-cell-action"/>
+    <polygon points="250,258.1 252.2,260.2 250,262.4 247.8,260.2" class="ncp-cell ncp-cell-observation"/>
+    <polygon points="250,254.2 251.8,256 250,257.8 248.2,256" class="ncp-bind-core"/>
+    <circle cx="250" cy="256" r="8.1" class="ncp-bind-ring" opacity="0">
+      <animate attributeName="opacity" values="0;0;0.88;0;0" keyTimes="0;0.56;0.63;0.73;1" dur="8.4s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="8.1;8.1;11.2;12.6;12.6" keyTimes="0;0.56;0.63;0.73;1" dur="8.4s" repeatCount="indefinite"/>
+    </circle>
+
+    <rect x="248.3" y="228.3" width="3.3" height="3.3" rx="0.55" class="ncp-packet ncp-packet-control" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 19.2;0 19.2;0 0" keyTimes="0;0.08;0.22;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.06;0.09;0.88;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+    </rect>
+    <polygon points="277,250.9 279.1,253 277,255.1 274.9,253" class="ncp-packet ncp-packet-perception" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;-19.2 0;-19.2 0;0 0" keyTimes="0;0.20;0.36;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.18;0.21;0.88;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+    </polygon>
+    <polygon points="223,256.8 225.3,259 223,261.3 220.8,259" class="ncp-packet ncp-packet-action" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;19.2 0;19.2 0;0 0" keyTimes="0;0.32;0.48;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.30;0.33;0.88;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+    </polygon>
+    <circle cx="250" cy="283" r="1.8" class="ncp-packet ncp-packet-observation" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="0 0;0 0;0 -19.2;0 -19.2;0 0" keyTimes="0;0.44;0.56;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.42;0.45;0.88;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+    </circle>
+
+    <polygon points="228,262.8 230.3,265 228,267.3 225.8,265" class="ncp-receipt" opacity="0">
+      <animateTransform attributeName="transform" type="translate" values="16 0;16 0;0 0;0 0;16 0" keyTimes="0;0.72;0.86;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.70;0.73;0.88;0.94;1" dur="8.4s" repeatCount="indefinite"/>
+    </polygon>
+
+  </g>
+</svg>

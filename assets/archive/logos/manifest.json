@@ -1,0 +1,2756 @@
+{
+  "schema": "sepahead.logo-design-archive.v1",
+  "status": "historical_design_assets",
+  "capture_date": "2026-09-07",
+  "scope": {
+    "head": "05859ae382ff09f895ca516b8451868766769ec3",
+    "refs": [
+      "refs/heads/main 05859ae382ff09f895ca516b8451868766769ec3",
+      "refs/remotes/origin/HEAD 05859ae382ff09f895ca516b8451868766769ec3",
+      "refs/remotes/origin/main 05859ae382ff09f895ca516b8451868766769ec3",
+      "refs/tags/v0.1.0 0909c2d495d607e94b6e1eec1322ae00710ab7f2",
+      "refs/tags/v0.2.0 7801123d3b10aaaa2027cc1189a47d094c6a8348",
+      "refs/tags/v0.2.1 944c774e6d5be379435b2ed8cfae28a99c6bd498",
+      "refs/tags/v0.2.2 d72d668a0cb9d3fbc18e3541df75f902484e5373",
+      "refs/tags/v0.2.3 1a1e90598c5a3510827add70dcdf000ab0b6ca1c",
+      "refs/tags/v0.2.4 57a7f938bfa9258a6ed32669b717651ee31cb0b1",
+      "refs/tags/v0.2.5 36f2b0888f943d798d61458bae9d890b9febe7fb",
+      "refs/tags/v0.2.6 4c92ec7e0cc9bb688e07b360ee9fa992ad7f996b",
+      "refs/tags/v0.2.7 f0d0f6a3c41847de2892b0392c05af9a37a8bb7a",
+      "refs/tags/v0.2.8 77df61af5fd4d6dd545de6ed45725cf0c1a9d16d",
+      "refs/tags/v0.3.0 7d9e8e7de182bcd4210ce0822fc046df0e8229fd",
+      "refs/tags/v0.4.0 d2ee854f7f957278c03f7a647366efac2afb0387",
+      "refs/tags/v0.4.1 42ff28c360d86dc00f6285bfea77dc35e8b8488d",
+      "refs/tags/v0.4.2 81a744ee814f96a511a6b43452ec71286d700d36",
+      "refs/tags/v0.4.3 881291cb3ab9e8d903963af2a54be2e71a7a9f95",
+      "refs/tags/v0.4.4 3f88881e24784a13204b936dfa553dd0b5cdcd09",
+      "refs/tags/v0.5.0 607b0f97f0fd7c11cb02164c0871288676065618",
+      "refs/tags/v0.5.1 b5dadec767b56cdd2c3200caed2774bdda375c4c",
+      "refs/tags/v0.5.2 170757ac31598acd138b72393232aa9ab31a9fe6",
+      "refs/tags/v0.5.3 2acb2d5627339e0dbf26462bbf99d14bd7964f83",
+      "refs/tags/v0.6.0 43b9e73a843228dd8cd6ce43265cc9e6fbf7add9",
+      "refs/tags/v0.7.0 8fadd3ff910b02190e23fa6a3af9c521cb154c76",
+      "refs/tags/v0.7.1 d67b2ec5a83dfd482dc48c310c5e557c39f73ff4",
+      "refs/tags/v0.8.0 54008b16ea0c195a4ccc9691cb533dd1153bf7f0"
+    ],
+    "paths": [
+      "assets/logo-dark.svg",
+      "assets/logo-light.svg"
+    ]
+  },
+  "deduplication": "One stored asset per exact SHA-256 in this repository. Different source dates, themes, framing, or motion bytes can remain separate.",
+  "exclusions": [
+    "Third-party, social, editor, and service marks",
+    "Repeated platform icon size exports",
+    "Full portfolio graph snapshots"
+  ],
+  "profile_extraction_gaps": [],
+  "assets": [
+    {
+      "project": "ncp",
+      "sha256": "f72cabe648c3acdeb0cc128538ad295487ef72d1867936bc600ded63e2e0d21a",
+      "bytes": 2816,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "e43d9f07dc6ef3246230a8b61cf6b5ddf5058a07",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "5b41fd6c470b824f653d45cf592d9e1048788c2f",
+          "sha256": "b04acb90b39aa6aa1253189eaf65fa612ebd794a12f1b61f74c1602f9250f47a",
+          "observed_commit_date": "2026-07-04T22:33:06+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "fe550c6c17b09f383a3f668205d6f29edf158588",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "be8a01c8b6df16f0d61f610823847fd6f428e801",
+          "sha256": "4091b526f7db5c3b7e3180ec0f66acf2bb75c9f4d01475b620346b154c4f585f",
+          "observed_commit_date": "2026-07-07T22:34:02+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "db4a9b2b9d7bcfe2937f8474db5ccb01b823982a",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "c279a65e9711596bb8e17c474e381b8771283777",
+          "sha256": "4c052b98f982127eaf4a397cfcc2aa3b3e387cb1f0c4ccc52e18af0bdf8a0506",
+          "observed_commit_date": "2026-07-07T23:47:32+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "876fb164e2b839096ca6cc33c930572be6672273",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "15aff98b3c8c58f48595bc1ccfec7d3b6b4b9d07",
+          "sha256": "7ce623276adbe7b9283377a581a163c8a5054a68b47dbb630bf601d0e365650f",
+          "observed_commit_date": "2026-07-08T21:46:57+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "517db530626410c30335c4f30c61b59c54506686",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "43bbf7296313c1d3ddf954495e44bb3ae5bb2e32",
+          "sha256": "f78cb8e584e936b76325128e0eeb4ffc1c564f41721a402a2a56d69b25936477",
+          "observed_commit_date": "2026-07-08T21:55:58+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a0ec5d35445b9a5341b68694fa898b3a87fb8a7d",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "3a7e38e51c06f6c9907685f7ad2242ba3e0b270b",
+          "sha256": "e5fe5de6c9d5304be04e0f721ff0e5e766aaf9a238c5dd98c9fb85487daa0042",
+          "observed_commit_date": "2026-07-09T19:27:23+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "53625ad5687d69a92ba09ec831ba269192191dba",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "ff859bb3e7d3a905d07c0b67641d1646e5af2482",
+          "sha256": "5f1d1e7c152a943b1eadde00defd5a45dd73a464b407c0d1948ee777b6ffb2fe",
+          "observed_commit_date": "2026-07-10T07:46:22+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "52ad69ad9d4fb6c1995dbcc8a778232cbae015e5",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "c6f28337558d9c8bb61049c9b4880300cbe21a5d",
+          "sha256": "7b0e194fbbff87546bd9b4c8ff7b2f9703bf8ac295096f169d4e8dc10ec284a0",
+          "observed_commit_date": "2026-07-10T08:00:04+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-04-001-profile-dark-f72cabe648.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "029cbb4241e25387b93d0df45bf19c069d2895e4318a187318eb3f1fa9b0369f",
+      "bytes": 3118,
+      "suffix": ".svg",
+      "label": "profile-light",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "e43d9f07dc6ef3246230a8b61cf6b5ddf5058a07",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "308d6be01387ef3ffe0f5224ee599963fbe7a69e",
+          "sha256": "05b712cbf5331c89531feb51e53424a0dc526a032b4f5e1e1c5d735a33d33132",
+          "observed_commit_date": "2026-07-04T22:33:06+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "fe550c6c17b09f383a3f668205d6f29edf158588",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "5626d0d451e208b0e2c3a27f760dcef176453981",
+          "sha256": "e8039883b801fa3934975b042ffaf28efa42d9360211251b5d505492dd05b63c",
+          "observed_commit_date": "2026-07-07T22:34:02+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "db4a9b2b9d7bcfe2937f8474db5ccb01b823982a",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "6a2eb5c979bb12530e4f397343e96c961fe6e2a4",
+          "sha256": "8181ad0c126633751cc10887d7de26f7f84f194c04a7508268c1503cd9cbcfc4",
+          "observed_commit_date": "2026-07-07T23:47:32+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "876fb164e2b839096ca6cc33c930572be6672273",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "5d2784bc3478f177461f9595990777d66f80dd98",
+          "sha256": "a4e96b690d4eab39dd9ed8fc4626ee7cc322042c2b3d05cad4420ab3d660b094",
+          "observed_commit_date": "2026-07-08T21:46:57+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "517db530626410c30335c4f30c61b59c54506686",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "38acb21f95de39e22d6b8df8205cb9a0ff1406a0",
+          "sha256": "7df5548ea5bcac336821ff26d0995ef67563eb5c178572792f3a9cc2c2491262",
+          "observed_commit_date": "2026-07-08T21:55:58+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a0ec5d35445b9a5341b68694fa898b3a87fb8a7d",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "e87d592a6cadd919de7344203fb0a5aa812c3837",
+          "sha256": "0192a16e2289559b60e3ef36e889af801eba479dcc52aae82047f32708265f80",
+          "observed_commit_date": "2026-07-09T19:27:23+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "53625ad5687d69a92ba09ec831ba269192191dba",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "327ed9117c96ecce1772ad3187e235cc3115f9c6",
+          "sha256": "d0d11e952ad80513d424ceffee7f01b504946d26c282463fd0f1c84f284e0207",
+          "observed_commit_date": "2026-07-10T07:46:22+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "52ad69ad9d4fb6c1995dbcc8a778232cbae015e5",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "de62154f4b0a5ca29152857272846b3323e812b2",
+          "sha256": "ca41130055983db61967f30ead96018f19581e5a821ff19b9e045ec777bf085c",
+          "observed_commit_date": "2026-07-10T08:00:04+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-04-002-profile-light-029cbb4241.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "a009fcbcf529bf01c8f3591da7ae3f2ce550a9a0a581baa47d53624574a8e0e5",
+      "bytes": 2941,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "f0375ae4588442e39e9fb28c28387170a831cadd",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "7fd10938e4308b230f16e90cb7d08a6af6ef19d5",
+          "sha256": "70005c434f9e8809d4acfd4cae0425b27a4edc9d96070da492c83e3476fcd7f7",
+          "observed_commit_date": "2026-07-10T08:15:16+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "978985edb08744875a85b74e3fc59c9081ac8d00",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "9a5c8233662388c0184998b4ba60a01adde05bcc",
+          "sha256": "a8d45f915b74ae859c2ca9b3f990d62ab26c0d220d19318cee11cbfab379d9d4",
+          "observed_commit_date": "2026-07-10T11:29:18+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "90edda69195c80ffab360f4c21312f4fe2101fe8",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "e55ac45d40b483440defd6dec9d2ddbaff32f538",
+          "sha256": "5192a60441eb1624b5329e76e184dbc0140857247c45e0bd520c0f4954d93409",
+          "observed_commit_date": "2026-07-10T13:34:07+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-10-003-profile-dark-a009fcbcf5.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "146277a7ef2169ea1230300bd5baafba4082e7e89e8ea7a71f970633591162ad",
+      "bytes": 3290,
+      "suffix": ".svg",
+      "label": "profile-light",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "f0375ae4588442e39e9fb28c28387170a831cadd",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "079443473d74208cfb5e34326a86a8f3c44c41e2",
+          "sha256": "60e5ab04ce4f9a2f84829d61e14587db37d003d2b2027a1c33d5d0b5f2720a3c",
+          "observed_commit_date": "2026-07-10T08:15:16+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "978985edb08744875a85b74e3fc59c9081ac8d00",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "a663a9dd82b77f9f1bc058199a0ea55c02c74538",
+          "sha256": "6ceb21ce9d7fbc781751f3d252699c509304eeb243562ee26dac1a989160e851",
+          "observed_commit_date": "2026-07-10T11:29:18+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "90edda69195c80ffab360f4c21312f4fe2101fe8",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "0657d11951ed1fbd197f79b6086cec21cbbba8e0",
+          "sha256": "7ccd86d2837c353102fdbbe62335dbbc4eaefdff6685cbb3ed971031c31390cb",
+          "observed_commit_date": "2026-07-10T13:34:07+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-10-004-profile-light-146277a7ef.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "cc4149151c4309ee3ea0f45c4e3ee062b36040702ae5537be4d1baea9a6d3a78",
+      "bytes": 3595,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "32a11d43bb57f500d940ee3c8daf2bcfd63b4f5e",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "3cc1b04f379cd1452588d35126a71e9815e0939b",
+          "sha256": "2d11597e2ccac0d167e6e06d0f7f5c4ec4e68057438c5d7cc1ecb4d1ce7e1b12",
+          "observed_commit_date": "2026-07-10T16:23:28+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-10-005-profile-dark-cc4149151c.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "575baf848d7b05011e412de1e01b6bed078c85b1c8d11f077326f142562678f8",
+      "bytes": 4005,
+      "suffix": ".svg",
+      "label": "profile-light",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "32a11d43bb57f500d940ee3c8daf2bcfd63b4f5e",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "4624bfdc3169bf1f5c23c9225cf0893fa843335d",
+          "sha256": "dc3ed5d87ee1eba7e621cd427f8af58dfae31dddb36e46a0dd032af683e9baf0",
+          "observed_commit_date": "2026-07-10T16:23:28+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-10-006-profile-light-575baf848d.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "88c8b5ecfba32a63fda04f20073bbcee861bcf49a6059f9439b9c788d18f6870",
+      "bytes": 4011,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "79fbe3d1a32c6dc61db1d018a3807a878c28cfea",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "5faaf0cb508cc7da82af23872a93a98bfeb51919",
+          "sha256": "970ac02502470a5cd7af375f50f1100285041b8273d8fa719a1fd13a9accbc6c",
+          "observed_commit_date": "2026-07-10T16:55:52+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "613a0bb239a0282b843a4058f4453b9828ff4bc4",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "e8353c72a4da75edb107dd283f34536d49bce409",
+          "sha256": "06f422fbd0d90948572b3ce017d27adb84209c1446e98c7c60c6a733a212d3ab",
+          "observed_commit_date": "2026-07-10T17:58:47+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "7611abed0b67e4d7ffcc896033e188a7544620f8",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "094df8c841303b41d11458a2ccc33ed73b5b2019",
+          "sha256": "c65136e77b0c57172477640df1d01ce56b83e3aafa574853c7d0ec19668e679a",
+          "observed_commit_date": "2026-07-10T18:13:35+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4d7894398e451f8c2833d2a5bcc87831d1b5345f",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "247898a9ae143f05e92648068524f02e6f7be139",
+          "sha256": "7555cf00e550f226787c6d56e9504bd733b679e4ab96b20c4968f70986315e51",
+          "observed_commit_date": "2026-07-10T18:26:38+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "3fbbbcbcfe4a50f05f07fea32fe570f48e2b01f5",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "e037345e4a7d491d1a88facd9ae6326785c74c1f",
+          "sha256": "a583f487e72ad854d40e48474d33bb14ffe6a379406ee8ae42ce8add4a7e37aa",
+          "observed_commit_date": "2026-07-10T18:51:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "dabc5b7cece7007ac098907db43cd7d8a43935d4",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "6ee25af5aa5cb66e094c32807e41c2053f90ed92",
+          "sha256": "4d89aae386d8b340515956c2ce59edb2a3ac0e714802c811cec4849394ede631",
+          "observed_commit_date": "2026-07-10T19:02:02+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "56dbc7a28ff2ef5b9905db16c84767b7290ada32",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "797c1eac1071c9dcbb0cf33406115393f44db613",
+          "sha256": "3459bc794e18771467aaccdcc07f006f0ed093f2082262cb4d7985b45b18330b",
+          "observed_commit_date": "2026-07-10T19:17:09+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "d3031a6acd545846259e39f8e65fa76d0f553558",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "0347ea84c43603b529917edea46c70d584be3aa4",
+          "sha256": "1d20e3925c8f3415b9ea1ba1fe5d732ebe3ec7c9d95bd45839a853cbf878dfaf",
+          "observed_commit_date": "2026-07-10T19:20:38+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "60b62678b51a869c2271f7ecc44dff18012bdc29",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "c4d62eb1894c7baa76d8179dbfb46511cb5e908d",
+          "sha256": "1d92db6756864336f366b1202a684f847f63aee6dfb5fe8afeea00c45795ca97",
+          "observed_commit_date": "2026-07-10T19:30:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "91cb5b4a5917d8419403e09019b7d9c0fbafddba",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "7918bbbb098b657ec93aa5aa12353deb237be105",
+          "sha256": "374f050556c3bc5c0ca0ac0f862d6b606f28f4e3cc92ba92c53b85b59d0d58c5",
+          "observed_commit_date": "2026-07-10T19:44:41+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "df0279f94294bbd14c8effbb3bcf74c36220315d",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "7a43a7e2f4930f1d6cdc92b08c0e7b4ddf5a59ab",
+          "sha256": "d1294ab17fe18d6374d45457c06329793f4baddf6d0a4e99db0d853d385a548c",
+          "observed_commit_date": "2026-07-10T21:41:36+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "2ebe00a6d70e085e6def60b921009ba71e56a919",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "edf9baa267946496a0110689d6f07c0d72100dc8",
+          "sha256": "989b7ae8b233a72878c0e4e9d8992e9f5b5d4acca7e02212e1d2f5194c7885a3",
+          "observed_commit_date": "2026-07-11T00:57:30+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "5ae9135fefd0e31d91ef552141f590bbacd5e0ac",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "1b4a3d4cfeefb9489e53db2b97303f11d4541878",
+          "sha256": "02f2df4fdafb399863476298e14a54dbcbe76b87089a30651222e15f288c1758",
+          "observed_commit_date": "2026-07-11T01:16:03+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "da8bb97113aad93495cf67e9c60a55f66ceca621",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "d911bb992bd39c98075de7720e162b801eac11ef",
+          "sha256": "2fe0fafed79f0c0c6e744ad05f3dc153f4c749b8f0f9e95060c8573826eba0fe",
+          "observed_commit_date": "2026-07-11T01:37:33+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "06251a5b165ea76c465855294adb50ef653c381e",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "c42e3c34c4724dd23e21d41c328f76e4891a03e0",
+          "sha256": "cbce1e6036ae992fdb5c2704504944a7c10da4f86297429ab95a2d9ba05bcfa4",
+          "observed_commit_date": "2026-07-12T01:03:31+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "7936e237e1b340717954d72eb75c679ca6e06a91",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "437948ba0a405844317ae417184c9a6ed9c453dd",
+          "sha256": "a4d3453d0106ba4f16430698e6f99f3d2de6d52d2c8de2843a5b14d7fdd724d5",
+          "observed_commit_date": "2026-07-12T11:09:46+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "b2d19ccdd3d19856664480dd3e14095cc307a4ba",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "f4e38a302a8a0c78ba9ae506d2d5175947ba5bc3",
+          "sha256": "8090ec1e65725a7c000c814404f5e5ad4136a8aa54852565033d460c0a3056e4",
+          "observed_commit_date": "2026-07-12T12:12:30+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6c173a05f1655eac25d7b3bf7f551bb0cec2aeeb",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "69dc203a1521926f4ed45630487aa78b9f0f62ac",
+          "sha256": "a3339d6b9a77ad7a27251640667296284c7c0785acbd2662ac47d335961ce328",
+          "observed_commit_date": "2026-07-12T13:54:52+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "8efeeab875d59d692ce3f7388e160bb3dd2d0aac",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "41ea46ce6ca7410083ef2d126cde773fe40b3370",
+          "sha256": "6ba6adc2a2378561bef1993585fab9abb62413ef65802e2811d12873edc509a3",
+          "observed_commit_date": "2026-07-12T15:16:15+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "9b122bb9e767613abbba34526f9af6e7f18dbdb5",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "e8afa26e0e722e9e4bb76afe9c03a70aca3e6467",
+          "sha256": "08993704e6e23e7aaa476f4b7d70c50d29ce901024dcd6925ced2a76c24c6a80",
+          "observed_commit_date": "2026-07-12T15:55:06+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "588c79fb146c84e1e609e998d69e8221cdb2988b",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "a29d99638fddabd17fd2ec231d01b45498fca8b0",
+          "sha256": "cd2d60758a5a490d6b681966234fb73e9cd3f7fb92bf9c644d9fd133fba46c40",
+          "observed_commit_date": "2026-07-12T16:18:57+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "55a8b5bc1c403806644606f507d5d248fea44cab",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "2e6fb55e5d418f6e964e5fc16beba483980fcdc9",
+          "sha256": "2a5f43a88cd2f36cf0cbbbf52e5b48c4defb55be86462d13c76ba997e47ba2eb",
+          "observed_commit_date": "2026-07-12T17:37:24+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "b2f012141aa6191bd281b4af5bd71b5776715b4b",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "d00a11a0930ececa5f495c214b29f81bd7e18a21",
+          "sha256": "9779df541ca65884b6c352e92e6516a09c6144f4f3d50d1b9eb9a8a0d3aa79b8",
+          "observed_commit_date": "2026-07-12T17:59:47+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "7d15b710f674da20d81121b9efba5b927d9684f2",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "6f2ca4ae9b93f62aa8f83a8eefb540128a037db9",
+          "sha256": "7db1c18ab876b74c7278380d737bc1e5e775e7803c7410621f047840147d37a8",
+          "observed_commit_date": "2026-07-12T18:11:05+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "994b1f0d044e13c1699071168b3a4c8f0dcecfe8",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "6e1f58587e55a4b3581b2b565a08adc717d4d820",
+          "sha256": "effbbf1d1c81ad9ac0bb38cf6dc604e19d55009ad8bc301aad174fa84b9f32b9",
+          "observed_commit_date": "2026-07-12T18:39:32+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "cab4238614f14862c3da1feae5dc3f281f53ab03",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "43edc1d8500191a80a2e232372488fd1a75a63e9",
+          "sha256": "d5a7b2adf7c7eb64252b642c1a869eefbc418f27407a7bd457c060ad7fa33824",
+          "observed_commit_date": "2026-07-12T19:28:28+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ccd8062d1eacddbc4050d511ba24592d42e50501",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "0660359690105dce33c4b7f4b830722555ff7f21",
+          "sha256": "7b813a2d8e1a42bbdbbacdd2c4d3702b40783846f5b71b8bb62d5c44a6626b43",
+          "observed_commit_date": "2026-07-12T19:49:10+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "400ad33a73e68615703adce98a6529d8ce8d96dd",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "91843dab185a3e1715cdb60d6ec41d55fe562a9e",
+          "sha256": "52e08606c5cda9792158076cdd59e6e44c0076d44cb0046168de8f8b079e54b4",
+          "observed_commit_date": "2026-07-12T20:12:06+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-10-007-profile-dark-88c8b5ecfb.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "d52d0a411eb889ef00f2b4aee906e3886ff818e9d84e32f13ea07270ba83d49a",
+      "bytes": 4088,
+      "suffix": ".svg",
+      "label": "profile-light",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "79fbe3d1a32c6dc61db1d018a3807a878c28cfea",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "e1451786dcc2dc28bc13a4fd91ad7c1f8fc4f6e6",
+          "sha256": "fcaafc0ae4b226d71dd38774fd735742f46d823d2544f1adf81a4b5ef2d04e2b",
+          "observed_commit_date": "2026-07-10T16:55:52+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "613a0bb239a0282b843a4058f4453b9828ff4bc4",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "b7eddf8c250181346efe40b179eb0ad3ad8fdc46",
+          "sha256": "71c70eb9c85c1afeb9a55b5f700cd277883993f6a7434f74183c0abf70b64ebe",
+          "observed_commit_date": "2026-07-10T17:58:47+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "7611abed0b67e4d7ffcc896033e188a7544620f8",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "c23251ee8e392aca70e59a2790acd70209681ffa",
+          "sha256": "997d6780c22ed24efcfb37a6ff98040e28dc7aaf56227850877ddd225c7ac25f",
+          "observed_commit_date": "2026-07-10T18:13:35+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4d7894398e451f8c2833d2a5bcc87831d1b5345f",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "cccb1bfd4e5d2b5c982a51f007c37c38c7be80f4",
+          "sha256": "090f15bbd51b1bb8d11d2a20dc08c295356d4542296cb228a84962a1fa7e3532",
+          "observed_commit_date": "2026-07-10T18:26:38+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "3fbbbcbcfe4a50f05f07fea32fe570f48e2b01f5",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "55dd332d18daac6e46347fc7c20bd559f065d158",
+          "sha256": "bd09e2847ecdc278fe31d7fa1428453cc48fdda0576fb8f362fffc15addf17a9",
+          "observed_commit_date": "2026-07-10T18:51:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "dabc5b7cece7007ac098907db43cd7d8a43935d4",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "0d5bb0f2506cce2bf16eb72e10ace334ee1117d2",
+          "sha256": "0ffa4dba477a3d146c2d0155d32bc4da8031f81576062556a191c7edc8ddde32",
+          "observed_commit_date": "2026-07-10T19:02:02+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "56dbc7a28ff2ef5b9905db16c84767b7290ada32",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "958d86b44c743e7a3d4d27fa1d56587d8ef3ee65",
+          "sha256": "3dbf16f63ec552a6a56b535f90282c3f72a211a59f78b5c57df6bc8f0781d47c",
+          "observed_commit_date": "2026-07-10T19:17:09+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "d3031a6acd545846259e39f8e65fa76d0f553558",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "948dd9c9c005a1e2b8835a12396a44286bcd65df",
+          "sha256": "5930399c819fef699e38d6760659fe884e9083c61d7fae17de611b30ecb0bae8",
+          "observed_commit_date": "2026-07-10T19:20:38+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "60b62678b51a869c2271f7ecc44dff18012bdc29",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "d3c599b931caa6434593f7fada724d023fb3fe03",
+          "sha256": "542cabb17191ec9e6e6de1514678d50c6139c4c1c95333f0dc0811a9d51be1b2",
+          "observed_commit_date": "2026-07-10T19:30:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "91cb5b4a5917d8419403e09019b7d9c0fbafddba",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "2f9248ad045eb99c3fd2e25db8e5bb47390973ed",
+          "sha256": "77c1ea0c2f8d0d600365567748d0f830a8997ede973ff4a3bb9784464eb3374a",
+          "observed_commit_date": "2026-07-10T19:44:41+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "df0279f94294bbd14c8effbb3bcf74c36220315d",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "f5bcfe05da68dd49cd4f95d5f342bfb189c89312",
+          "sha256": "992907bfd0af828873935c75192cd3c4e846e0a9803e48a4c72aa2de79f575b3",
+          "observed_commit_date": "2026-07-10T21:41:36+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "2ebe00a6d70e085e6def60b921009ba71e56a919",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "5976751bd59e978558f20d946d8f1b371c1ceb1e",
+          "sha256": "81757e05bdd80e2dc66227788262b260d9ef0ea43a4b7a0198d45cd27c44ae51",
+          "observed_commit_date": "2026-07-11T00:57:30+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "5ae9135fefd0e31d91ef552141f590bbacd5e0ac",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "2b1feb7e4130d4a551697770b32995f0e1da00d3",
+          "sha256": "7278dc0efc29a2b5e24ec7b1d3dd88bc1fa7e83e2cbaaeee0f572192442bb38b",
+          "observed_commit_date": "2026-07-11T01:16:03+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "da8bb97113aad93495cf67e9c60a55f66ceca621",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "56505e93b53e7b9cf71e93e2fc10937f27938a7a",
+          "sha256": "2c71130054cc1f152532e1d2797e851af07e648592c2802c587ef7fdd70faacf",
+          "observed_commit_date": "2026-07-11T01:37:33+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "06251a5b165ea76c465855294adb50ef653c381e",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "966348d69527a0754695775eacc2bf44b505fb0b",
+          "sha256": "5d695c2b258672c4a1902030ac6816070e53aad0affc5a41707a1bcf97bfdd87",
+          "observed_commit_date": "2026-07-12T01:03:31+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "7936e237e1b340717954d72eb75c679ca6e06a91",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "ca1875bbe4ac87af31be39e18ea987157d7f3231",
+          "sha256": "f09e0a8c76e904e036d25f6a750352500efb01ab4ffd149aab79cc2b83298b5f",
+          "observed_commit_date": "2026-07-12T11:09:46+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "b2d19ccdd3d19856664480dd3e14095cc307a4ba",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "aafc73fcc19058525d5581dd8bd8b9315f1f31ec",
+          "sha256": "7dbf4d99d835c17473b776fd0571d18585add2b9b38d98f2a8a495dfed989fe7",
+          "observed_commit_date": "2026-07-12T12:12:30+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6c173a05f1655eac25d7b3bf7f551bb0cec2aeeb",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "069260268e72fadda48fd0735b437a3628f2ca20",
+          "sha256": "eb37a0a0cff82ac7af81965b17584a9ad47cc2796157b57db87df6f2fffe5b36",
+          "observed_commit_date": "2026-07-12T13:54:52+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "8efeeab875d59d692ce3f7388e160bb3dd2d0aac",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "b5924dac41e14d9f79e8140eb010a1406bb5568e",
+          "sha256": "d3da2a9672671d158d367eee31523ed36a86bde8b35f03940178ded6a8c91f0a",
+          "observed_commit_date": "2026-07-12T15:16:15+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "9b122bb9e767613abbba34526f9af6e7f18dbdb5",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "b3d15ef8a3548166563a711b762c6a5afcbcff2b",
+          "sha256": "30b375495b94df2b8d4e0d1aa435de10d1144ef5c82d58a4bfe8e8dad71c6597",
+          "observed_commit_date": "2026-07-12T15:55:06+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "588c79fb146c84e1e609e998d69e8221cdb2988b",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "b3809d0f00e6648a20652acc16d08d87e839e2db",
+          "sha256": "06870c8a66774bb69902a9d22cb9d60ea475096cbd0e1664947bfb85c4f1d838",
+          "observed_commit_date": "2026-07-12T16:18:57+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "55a8b5bc1c403806644606f507d5d248fea44cab",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "40d325c2a7080f996554c4de1eb25b39f37074ec",
+          "sha256": "021694187df46b0a3c803115202f213119bb9635e9ded5a809bafb70fdd10c23",
+          "observed_commit_date": "2026-07-12T17:37:24+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "b2f012141aa6191bd281b4af5bd71b5776715b4b",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "16802cc0d080fe198bea18ff464eb4ca12934ded",
+          "sha256": "2be1d666922b2a90e200399d6c562491f1e0ac4956b347d20888f2a5e2d35369",
+          "observed_commit_date": "2026-07-12T17:59:47+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "7d15b710f674da20d81121b9efba5b927d9684f2",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "73ade252ee891054a566448d1e0f6a5013a2c39a",
+          "sha256": "1532de399ddab23700b53e380d70ac109bb2edb789c889843314200474969dd5",
+          "observed_commit_date": "2026-07-12T18:11:05+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "994b1f0d044e13c1699071168b3a4c8f0dcecfe8",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "6ad838d0dd868ec99b97d2d8c1dd2e42123896cc",
+          "sha256": "903332ce2e160871621912f92e5ef2405cb59d5c05f0f743295b1f567aacc873",
+          "observed_commit_date": "2026-07-12T18:39:32+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "cab4238614f14862c3da1feae5dc3f281f53ab03",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "b77cf30238840afc222ff25469d6c909efd82c8c",
+          "sha256": "92a81d33ae3831b6f8a1b16b05d1da908e1fca0c007ee39a573a3d12af29fef7",
+          "observed_commit_date": "2026-07-12T19:28:28+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ccd8062d1eacddbc4050d511ba24592d42e50501",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "5be651c472207b2230180f16007c94be038bc312",
+          "sha256": "029b3f460375f378a1ecca53f3289edd9d4aaa1ea5de528aeca4b4e8df52b31e",
+          "observed_commit_date": "2026-07-12T19:49:10+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "400ad33a73e68615703adce98a6529d8ce8d96dd",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "1e0e49843726508949313a76b10b17187105511b",
+          "sha256": "f559aaca8faf8d2bf227b27177d56ecf3de0368eaf41f36e8fe14e72d4a1b84e",
+          "observed_commit_date": "2026-07-12T20:12:06+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-10-008-profile-light-d52d0a411e.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "eec607135e038b8181b4fafc8ef25a479787f174f6afacc3344aac54f44a7f89",
+      "bytes": 19138,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "372a1197a109ee4229dad306df7d36bc59786621",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "2d8ff0c5f3f4ab5bb13e1587c547f5642483ed2b",
+          "sha256": "eec607135e038b8181b4fafc8ef25a479787f174f6afacc3344aac54f44a7f89",
+          "observed_commit_date": "2026-07-12T18:16:04+02:00"
+        }
+      ],
+      "file": "ncp/2026-07-12-009-logo-dark-eec607135e.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "b4f7eb4c3c716031d1003027ab36ba7a8b97effe40efd2a2813c531b6768a001",
+      "bytes": 20101,
+      "suffix": ".svg",
+      "label": "logo-light",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "372a1197a109ee4229dad306df7d36bc59786621",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "feb738fc34b9c67c9996782a770aadad8643cf4d",
+          "sha256": "b4f7eb4c3c716031d1003027ab36ba7a8b97effe40efd2a2813c531b6768a001",
+          "observed_commit_date": "2026-07-12T18:16:04+02:00"
+        }
+      ],
+      "file": "ncp/2026-07-12-010-logo-light-b4f7eb4c3c.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "bc656fe5ee53b77511289af9c0a623da16513ac628010bd2ec9276ded858f967",
+      "bytes": 4038,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6ba67be275f563bb53a5827ba9eabf49ff75d123",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "5ecdc1e8501f383bb0218483d6d930bbc732f3ea",
+          "sha256": "edda835bbe31279330a450aff354292c5e6d577a19fb3665436946b25bf8f034",
+          "observed_commit_date": "2026-07-12T20:37:57+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "2b3b320ab6be41bbee76d4a4812ba9f1ff9cb1c0",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "0ec4c6d8f9ceb0e90af3d71beaab43dd5ae8b702",
+          "sha256": "6febc24658429fb8d99626cf85b246625bbc0bef15ae996a21284bc1cea14a9f",
+          "observed_commit_date": "2026-07-12T23:19:36+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "7025afaf0f9f9f7555929853dad31d3d895db83d",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "db3f0280570bc57ff8c1d169f83bf6ee6637950e",
+          "sha256": "57081992dc78769f25f77f299bed074d4e22f4a0d4b8bc134f4ef79b9ddd30b2",
+          "observed_commit_date": "2026-07-12T23:40:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4675b232ed07bd2388c42a33b8696a3a374ce937",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "15fcedcecdc19312603c95eaf19ff90fa33910f4",
+          "sha256": "a8eb5a7e05ffec59f284269836200e3dbf636a64005d0fad9c8cb3c2551fdffe",
+          "observed_commit_date": "2026-07-13T11:20:48+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-12-011-profile-dark-bc656fe5ee.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "af6f85e49a1a0da1694393f6e482f5c3ccf410531c65245b8a8be42066633b42",
+      "bytes": 4115,
+      "suffix": ".svg",
+      "label": "profile-light",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6ba67be275f563bb53a5827ba9eabf49ff75d123",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "c03aa28614288a9fba9d1ad988452205b0cbca33",
+          "sha256": "ca6a09dde465eb27a564341e8e4b323a4750b095cc944fbf98fe26b374321372",
+          "observed_commit_date": "2026-07-12T20:37:57+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "2b3b320ab6be41bbee76d4a4812ba9f1ff9cb1c0",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "bffd76a6bc12ba26f5bbecffc97309fba75b9077",
+          "sha256": "a1719acf1165c4d9e69e3baa4e0d9b55acf2ae22dfd38f91508ffccc20553788",
+          "observed_commit_date": "2026-07-12T23:19:36+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "7025afaf0f9f9f7555929853dad31d3d895db83d",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "db03238b6eadade0d56394633c1e4fa7cfe7596a",
+          "sha256": "bcb3a2d8511692dcf864cc3a6b2423eeef4723c997f505dfa5b8850fcaa5f577",
+          "observed_commit_date": "2026-07-12T23:40:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4675b232ed07bd2388c42a33b8696a3a374ce937",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "8bbf8aded6fb879c6276553ff467982e3623e280",
+          "sha256": "0a1214b49841aeed39a6b71bfb78890276a597b6813bb3dd4a1225b7f65328d3",
+          "observed_commit_date": "2026-07-13T11:20:48+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-12-012-profile-light-af6f85e49a.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "4174f739ea7dd8ce0eb214b0c3f58d39ef7227ddb24e447eda23f1cbb4bee574",
+      "bytes": 4039,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "f43e6cc8cefdc5d136967b86cda983474b68f57f",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "6242e49fe58ac273a22fd315bc4df039b933b03b",
+          "sha256": "73ecb844b247e74bca074a847e291353e1cc3dcb6678125ce66262d9d0573fe6",
+          "observed_commit_date": "2026-07-13T11:44:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "d7bfa2cfe5ee10aa7ceec9c067744699d267e380",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "036139e49a3727dc3103bcef2778f492b5817159",
+          "sha256": "059834263dcae9e3ec1548c7aa72e423c39e39396312ef548d767d61598752de",
+          "observed_commit_date": "2026-07-13T12:03:30+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-13-013-profile-dark-4174f739ea.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "a3179b6e060d1bc4c385c3f140fd468740319cf512c8c9c79abe07b14ce34890",
+      "bytes": 4116,
+      "suffix": ".svg",
+      "label": "profile-light",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "f43e6cc8cefdc5d136967b86cda983474b68f57f",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "a2d07e15746fb2f80cd2cdf939161a522da25fc6",
+          "sha256": "63998293495bf7581a3d78ca720b0bf6c17c92892c114f9de3349933278625fe",
+          "observed_commit_date": "2026-07-13T11:44:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "d7bfa2cfe5ee10aa7ceec9c067744699d267e380",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "e9100544637ce7c7eb2d4616d94184b1d62c4a41",
+          "sha256": "74993b5e925fcb007bc4aa12504e9b95c0008f72a01def97a92fde21aeb182fc",
+          "observed_commit_date": "2026-07-13T12:03:30+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-13-014-profile-light-a3179b6e06.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "bacb76c76d72b6b795c3735c961b6aaf013776cd0cedd44276d62974653e8031",
+      "bytes": 4039,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "219741fdc576ad5ba86a21016a323254d8973489",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "d2b66636fdc892d6afb5a3ec566440066af17e72",
+          "sha256": "779000dfe1587bb8cd07144278f2448ef78914db803fa7e5c8f24dcffaed9dba",
+          "observed_commit_date": "2026-07-13T12:16:39+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ae5bf65a4405a2b12b57641300627987240f1510",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "d80d0ad2445999c8768062d3169cb362727d9cf1",
+          "sha256": "e401af69f04db35b8adedca9c7187af7546416685d68f3e8f5314e0f1a6fe04e",
+          "observed_commit_date": "2026-07-13T13:39:04+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6b5a8a0ddd82a01177092b158cfa805a08fdd6e6",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "9241deca9954036e9287a6af8ac93f8137b508eb",
+          "sha256": "6d098dba2435780135720ccf85d530ee39d59f90ed8da37b8bf30d8254d6d2a2",
+          "observed_commit_date": "2026-07-13T14:29:49+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a05738eb2e1834bc452a44ee8a8e6f446c8a1953",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "874a4148b1e030a3590a6a45af3655e0f6aa08a5",
+          "sha256": "ae017117abc609467ef9aed48ce5d305634019e30fb65864397f2a50eab4cfc7",
+          "observed_commit_date": "2026-07-13T16:33:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "e585af8f43413d73297e8c7c6a4c13c0354aed34",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "f7efba0337678d380f7abc407952f07e05307f86",
+          "sha256": "c76f48148c9c2b168098cc4cd49a69c50d2a005de07e9228518320b965f69ec3",
+          "observed_commit_date": "2026-07-13T17:12:43+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ffee3bbfdbe5a50a0ffc7af176dadd1b15dd822c",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "70e58168f74350e0d95408d4bbccfcd889ec4459",
+          "sha256": "8a03488084a74816d466645514cf4f94c47ea0258b4b1f95940c830398dea3ed",
+          "observed_commit_date": "2026-07-13T18:22:03+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "68ec2fb461a19e6f5aa81da5f4ee7a2bac54a643",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "0291ecdab5e6248b06ae756ebddca80480fb4284",
+          "sha256": "be3f3f5e448d1366dffc3a82b6cfae2580f101707e9a5f6bee0e9a844ffcb656",
+          "observed_commit_date": "2026-07-13T18:41:18+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "2bd8ba7522a649afa7d4c30f24a2b88d8651aa7d",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "7dd93ccb993862ee0efbd84e87acc1a839950837",
+          "sha256": "e6e1bed23c36521e85358d8a50d38c21aa2d4e4bcf8ab6f2367a875c6005b1db",
+          "observed_commit_date": "2026-07-13T19:44:49+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "79cce5846eb7e9b41f75196f0218447ae2e88fba",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "b50da7078aa3060373a95d4d40e5fe6e68706105",
+          "sha256": "4923b937b6b2c8cd9c0754ec9ece063007d9b341c057b49d94f6d759ef5924de",
+          "observed_commit_date": "2026-07-13T20:43:51+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "c343a5d6eee48cae9177253261fd8baa9ec4c75f",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "ffdac6232b09c21c3e85bde503f24d908ada30bb",
+          "sha256": "fb5cc6d801e7abaaadfc182580c0a738bd2d5773b0999b1720bf55cb3dec694f",
+          "observed_commit_date": "2026-07-13T23:19:50+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "f8a07bd487038363e615c14b9a74891911c9ef43",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "1f9db2c7ba0c1de3c80108da87c5bc95a8f33636",
+          "sha256": "df120b0eb43615c6d2e025a3c33eca82f4626e6585fb9ec0a91d175c06552d86",
+          "observed_commit_date": "2026-07-14T11:27:05+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a29c88d34abb6680f93fc61393a4e56f55c17697",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "6f7957e5bc9c3384e25b208796cf2baab4da8f37",
+          "sha256": "57ef18aa92ac5d67c52bce8007d9ed8f1d1136c22e599eb14f2602518d6bd646",
+          "observed_commit_date": "2026-07-14T14:11:42+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "00c5bdfc4e1795df5538c0184355c49eed724b67",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "d524cdf104be744e23008b70224ffd438055138b",
+          "sha256": "dbf44b78f81080ec645759fe44d33055f382a43a033ed92f6efe1a83cdc1449d",
+          "observed_commit_date": "2026-07-15T15:10:15+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "184ede8d115c01bace3435cd5b671d46b0a7345b",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "8b5f6ae20d76690b98362e524731a1570ff03781",
+          "sha256": "7c47f9acda72d4999679f678db78fb7b3439e80ed25197da0ae55962dd4e6c79",
+          "observed_commit_date": "2026-07-18T08:58:04+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a6833b5d27b7444efb94072a73ed021912933ea0",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "3fb1af3f502ad1b2bc9167ba31b7a1e2865c5adb",
+          "sha256": "b8d2093404e21aa42de590928467429d3196b357e1855f9c8ffcdbce7fffa3fe",
+          "observed_commit_date": "2026-07-26T21:23:35+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6b35d9bc866b735ae4cf21f0e7cab9b6fbdc32b7",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "bb5733823992924333d4fa1a180095fe0613c330",
+          "sha256": "39668325dd319471e8b75f207bc7643fecfbbc379cd77f8236272f8d3dc14416",
+          "observed_commit_date": "2026-08-02T15:48:47+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "87756e5fe2e296ac959032af63450e8a8b23eff7",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "9a8c408bc0a8812d41bc03e19c2ae1dedfe873d7",
+          "sha256": "bb440a10378efe127acfa77dbf6d345edd8ad1ac078707db9f64fe4bd7cceaa3",
+          "observed_commit_date": "2026-08-16T05:43:44+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-13-015-profile-dark-bacb76c76d.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "c9376982fe26f57e362f8a78348e990ad2369db37867b4851f9fd5ac7bb00fb0",
+      "bytes": 4116,
+      "suffix": ".svg",
+      "label": "profile-light",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "219741fdc576ad5ba86a21016a323254d8973489",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "463cf9d8acf358beb115d57f58f8b823c6226491",
+          "sha256": "9e62afc2cd55b38d579c936b43dadb93a314675da04de4770c0c1ccb4be25247",
+          "observed_commit_date": "2026-07-13T12:16:39+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ae5bf65a4405a2b12b57641300627987240f1510",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "3034f57276628c0f4ea96e977ca28932c1735320",
+          "sha256": "5d12cb9c082b5d33d30afef39813fd60c879a8df044eb2830ca770876601610a",
+          "observed_commit_date": "2026-07-13T13:39:04+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6b5a8a0ddd82a01177092b158cfa805a08fdd6e6",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "7fcae17335b8a4afc3d60d9104e88a00dab24a88",
+          "sha256": "97ae8edfc3f0497401af9a49f8c0e5dbb4dd560a944c69c3ffdba4d90e1fc1a4",
+          "observed_commit_date": "2026-07-13T14:29:49+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a05738eb2e1834bc452a44ee8a8e6f446c8a1953",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "a957574095229bd1772c33984561ae6f3bf461a8",
+          "sha256": "9a9511cd1e97cf461676e9570101670556da2f7feabda06b60d9150f63cb6160",
+          "observed_commit_date": "2026-07-13T16:33:53+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "e585af8f43413d73297e8c7c6a4c13c0354aed34",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "e96d79ac35bf9368a8fc56fcf3fd5856e9983a79",
+          "sha256": "aea5915a2365f13d80d25120fa48ad2638c7d527415915a06c7f1c01bc3da4ac",
+          "observed_commit_date": "2026-07-13T17:12:43+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ffee3bbfdbe5a50a0ffc7af176dadd1b15dd822c",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "0029e8c8c6192ba17dfb4377afc6c138e9826ac0",
+          "sha256": "0ca22d31900b96bb6b6a545637107f00290e159ecb39a0e32ecc31e66bad3e81",
+          "observed_commit_date": "2026-07-13T18:22:03+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "68ec2fb461a19e6f5aa81da5f4ee7a2bac54a643",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "31b5e602f48cdf3c117a06fe6920f9e685b2b9ce",
+          "sha256": "a4b226802b4d69d4a348bb4366dd414c4a85af8976cd460d81c9a2a4c1341e2f",
+          "observed_commit_date": "2026-07-13T18:41:18+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "2bd8ba7522a649afa7d4c30f24a2b88d8651aa7d",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "14965c7a83c3a50d6e668b986c19b1373097ea1f",
+          "sha256": "b32cbe76077161077a28c3bdd967c0ee82494ebfc47f952e43847f12723bcd50",
+          "observed_commit_date": "2026-07-13T19:44:49+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "79cce5846eb7e9b41f75196f0218447ae2e88fba",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "88a5e38a6ab559ec619a02cb3c7587200a3fb086",
+          "sha256": "f82e9c2f700aa56f0c1f81ea18d5b01cb9c6f3b99cee255814606a60369e1e27",
+          "observed_commit_date": "2026-07-13T20:43:51+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "c343a5d6eee48cae9177253261fd8baa9ec4c75f",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "e0c7ea2525be401432da92a13bbb5addae04cf3b",
+          "sha256": "7af6fe2ad04ddfe38068a22ea8c1fe7caf0397c11f2e3ec49f3b36be3e1d9bd9",
+          "observed_commit_date": "2026-07-13T23:19:50+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "f8a07bd487038363e615c14b9a74891911c9ef43",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "5f8619feb7b1203cb31afd7e7ab19991c89bae17",
+          "sha256": "883a2c61d9f518d14867d4673d9cce731fd6ead7aa48e863dffc042f0c3aec60",
+          "observed_commit_date": "2026-07-14T11:27:05+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a29c88d34abb6680f93fc61393a4e56f55c17697",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "24021627b62549bdec16e3d441895af547339912",
+          "sha256": "379513bd1f55b512b56f339120e93a7dcca9ccbc70b83dcc0cb84d443d0138e6",
+          "observed_commit_date": "2026-07-14T14:11:42+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "00c5bdfc4e1795df5538c0184355c49eed724b67",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "a6cfb4e477ff7eeab3a40a78da29178469fd1220",
+          "sha256": "4d15e4e0c2b8502a4a08a5e92d770089a6af0632c95b26772fd002491407e97d",
+          "observed_commit_date": "2026-07-15T15:10:15+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "184ede8d115c01bace3435cd5b671d46b0a7345b",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "6d46634dd2f0677598c17eea41626a6bbd173d01",
+          "sha256": "60001b41f54ead6f6466f9d62a51957d9a746039bc8676c72b212a218c5c8588",
+          "observed_commit_date": "2026-07-18T08:58:04+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a6833b5d27b7444efb94072a73ed021912933ea0",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "8110c8dbc8a7e715b9002c2c47fc308cbd3ffc2b",
+          "sha256": "91fd0bd8ebee2e506e657dd569251cc00ccc1f963a47473e2f748578189e594d",
+          "observed_commit_date": "2026-07-26T21:23:35+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6b35d9bc866b735ae4cf21f0e7cab9b6fbdc32b7",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "d7071c79fc76c0d5a02c800513acffcf139c974e",
+          "sha256": "360b382545f281da0c8d12ac9ee46258431a4aea01a7fa5a9aed2ffd06808e75",
+          "observed_commit_date": "2026-08-02T15:48:47+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "87756e5fe2e296ac959032af63450e8a8b23eff7",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "b300901674a5847f01b0dabcf9fc2de72c8cd8b1",
+          "sha256": "9f21d2f64a662736a1356bd4361cecb32f0c552214c904633153bea6da790acb",
+          "observed_commit_date": "2026-08-16T05:43:44+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-07-13-016-profile-light-c9376982fe.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "fac01e94b0b6bf2d6edda13f48f5c38abdd93d973146e471891fb9acc89bd0ea",
+      "bytes": 19139,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "36dacdc260d3df2d9fa1741e5b1428a239604711",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "8da706a497d8251444d37f715bbfc0ed4a0c1bf5",
+          "sha256": "fac01e94b0b6bf2d6edda13f48f5c38abdd93d973146e471891fb9acc89bd0ea",
+          "observed_commit_date": "2026-07-14T12:32:00+02:00"
+        }
+      ],
+      "file": "ncp/2026-07-14-017-logo-dark-fac01e94b0.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "0f0e35073c321083c22ebbefd82a96e4ccc0e2334ceeaeca66662f919223f57e",
+      "bytes": 20102,
+      "suffix": ".svg",
+      "label": "logo-light",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "36dacdc260d3df2d9fa1741e5b1428a239604711",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "fcbbf97fc78313c2cd4c15f141a3abac508751d6",
+          "sha256": "0f0e35073c321083c22ebbefd82a96e4ccc0e2334ceeaeca66662f919223f57e",
+          "observed_commit_date": "2026-07-14T12:32:00+02:00"
+        }
+      ],
+      "file": "ncp/2026-07-14-018-logo-light-0f0e35073c.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "d80da617da74ffd8cf61c5ed87c94ce7f1fa12e60a035ff8a85c258117c63556",
+      "bytes": 19135,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "a2e8c4369a19df86a16e2905502c7c3cc2c1d43d",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "6df3f02ce1388a9aef92bb062d829c4a2a10c1aa",
+          "sha256": "d80da617da74ffd8cf61c5ed87c94ce7f1fa12e60a035ff8a85c258117c63556",
+          "observed_commit_date": "2026-07-14T12:35:32+02:00"
+        }
+      ],
+      "file": "ncp/2026-07-14-019-logo-dark-d80da617da.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "456fe0b031dbde37c9c5948c1b630b4b679e1b336d45746b7d12d9d71fce3d0b",
+      "bytes": 20098,
+      "suffix": ".svg",
+      "label": "logo-light",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "a2e8c4369a19df86a16e2905502c7c3cc2c1d43d",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "57d288a2840d62912d09be6b832008a2f8364c1c",
+          "sha256": "456fe0b031dbde37c9c5948c1b630b4b679e1b336d45746b7d12d9d71fce3d0b",
+          "observed_commit_date": "2026-07-14T12:35:32+02:00"
+        }
+      ],
+      "file": "ncp/2026-07-14-020-logo-light-456fe0b031.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "ff20b0ce3fcfc6746ce955b740ae3f1109ec3f83e0b4f79055f5574f55f8867a",
+      "bytes": 19480,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "054eef7ee6ea2549f28e75e3e4f1c03389646d7c",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "588d0021dcad14db3398a88025345b6e51839cee",
+          "sha256": "ff20b0ce3fcfc6746ce955b740ae3f1109ec3f83e0b4f79055f5574f55f8867a",
+          "observed_commit_date": "2026-08-06T11:35:24+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-06-021-logo-dark-ff20b0ce3f.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "01c58a004567398be9b292f600ea24ebc6cc903d3e177d245ccfa1fccb0cbf63",
+      "bytes": 20443,
+      "suffix": ".svg",
+      "label": "logo-light",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "054eef7ee6ea2549f28e75e3e4f1c03389646d7c",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "5b126db3d89ae13690d59579e34704a4d500185f",
+          "sha256": "01c58a004567398be9b292f600ea24ebc6cc903d3e177d245ccfa1fccb0cbf63",
+          "observed_commit_date": "2026-08-06T11:35:24+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-06-022-logo-light-01c58a0045.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "35f38c39f0c3985fdd1721dcdbbc492f7ee59b3c7d301f195fa6951dc4791718",
+      "bytes": 3962,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6f89d6c19d8b87556f66c91e73486163400ec8d2",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "401ff6a94e000eae69952aad521d448efd1b15bc",
+          "sha256": "74333cd869eee77cfd71a4bf5f54487953efbd4736a9775c34654d7b1cb29f3b",
+          "observed_commit_date": "2026-08-20T10:18:02+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "6f89d6c19d8b87556f66c91e73486163400ec8d2",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "856afd1116d7a6429f6112eda9e17ac6f4b850d7",
+          "sha256": "2a49c2af0d92c92ade6129abb45e0292fee6fc9874b2e7301cec7001a78a126b",
+          "observed_commit_date": "2026-08-20T10:18:02+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "edc3d4a7c843a69bf1c45473e32b8d1e11a1c653",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "e56f824a2a7c0842fd8516ee51c7b28ef6347b16",
+          "sha256": "1e8c98c4de09282412b2dc505c4883f5c9a820597fddf8f465c27a1e3716c664",
+          "observed_commit_date": "2026-08-20T10:31:52+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "edc3d4a7c843a69bf1c45473e32b8d1e11a1c653",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "60e3320d5e867f12abd6be20d8ec831120e1cde4",
+          "sha256": "c80b93c0be4c785053028d50f3f5310bb38906a76becb077c4d829232e1ca492",
+          "observed_commit_date": "2026-08-20T10:31:52+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "3c0f734450eeceec317185014c48ffa72f8e05af",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "90ae4858c55ae0cd999d4a3bff8c6f080f9db8e9",
+          "sha256": "090f45490742c95b9ae78ec620b8aa4edb3ff9bc140f6a95d3800e3a27910001",
+          "observed_commit_date": "2026-08-20T12:18:52+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "3c0f734450eeceec317185014c48ffa72f8e05af",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "0e0bec93b87cd56d7acbd1c5ddd02b7aeb8bcbbd",
+          "sha256": "39115a12eba91406535ee0b613dd4f64486471cab5e6f3b0b6fd053a01c0a6b8",
+          "observed_commit_date": "2026-08-20T12:18:52+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-08-20-023-profile-dark-35f38c39f0.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "0d23687278a7ea215a742e0fbe4559adb70a97aea9b58b5fad5b6f3fe5a5372f",
+      "bytes": 6617,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ba26a24aacc53ea1d745716ee3b8091b686497c3",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "532fcc6fdf27349125d55b4764fa17b431c94ee2",
+          "sha256": "68f7adfb44afd0f76e2d299612caa28087683ed03f1878dec7b270777c093b2c",
+          "observed_commit_date": "2026-08-20T12:48:50+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ba26a24aacc53ea1d745716ee3b8091b686497c3",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "782e15833418a459d5afafc1b3baeb68f4cb9d89",
+          "sha256": "5b9729a825b417bf38cb31227b05dc9396440f2f06936530de416cb8e4b94afd",
+          "observed_commit_date": "2026-08-20T12:48:50+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-08-20-024-profile-dark-0d23687278.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "5968ee615da9d3ad3c1b43b933f9ff079a36da2e0e4c6ccc7d92e99bd0dec640",
+      "bytes": 24035,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "b9d326a9bb493182dae37afa5a38883fb252a27c",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "2a0a99511f4da3602a96cb8b1b754268c7b3c6fa",
+          "sha256": "5968ee615da9d3ad3c1b43b933f9ff079a36da2e0e4c6ccc7d92e99bd0dec640",
+          "observed_commit_date": "2026-08-20T12:49:00+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-20-025-logo-dark-5968ee615d.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "b252938b88bb598ba0e45126807a01907bfc7551c4966ff299c817b95d51658d",
+      "bytes": 25203,
+      "suffix": ".svg",
+      "label": "logo-light",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "b9d326a9bb493182dae37afa5a38883fb252a27c",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "07d78dab90e56fe7027bfb2462bb9b701c11bb59",
+          "sha256": "b252938b88bb598ba0e45126807a01907bfc7551c4966ff299c817b95d51658d",
+          "observed_commit_date": "2026-08-20T12:49:00+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-20-026-logo-light-b252938b88.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "45a737d3aa38d6abee3ac25fbba3c6fc64499400ce6ac2b80e2203e77c7b4920",
+      "bytes": 28028,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "c74315ecac295f1e3c63096a89350650de3cd7ba",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "6c5b067f592fc22c0a34591af2823e7e28c3e259",
+          "sha256": "45a737d3aa38d6abee3ac25fbba3c6fc64499400ce6ac2b80e2203e77c7b4920",
+          "observed_commit_date": "2026-08-20T13:29:13+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-20-027-logo-dark-45a737d3aa.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "ad685bc5f240bd437b438268070fef5da69de1844a1bb2b7e70b71be6fc13ee0",
+      "bytes": 29196,
+      "suffix": ".svg",
+      "label": "logo-light",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "c74315ecac295f1e3c63096a89350650de3cd7ba",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "10d914f8b3de8323a86ad68c0bb81ff387f02656",
+          "sha256": "ad685bc5f240bd437b438268070fef5da69de1844a1bb2b7e70b71be6fc13ee0",
+          "observed_commit_date": "2026-08-20T13:29:13+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-20-028-logo-light-ad685bc5f2.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "b27f3329ae5440398f5ca6cba6392156db5dbf8d29896d1b6674e5c87b5f226c",
+      "bytes": 8819,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4d5ac22dac823140d6257a821fd316f3e20356d4",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "69db4db0c6fb9eac89285cae074dcae016251fa8",
+          "sha256": "42d7a26df51b8fa739a70fd009c6b1cb0e6ec7092e83534e435041f1d623a0fb",
+          "observed_commit_date": "2026-08-20T13:29:17+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4d5ac22dac823140d6257a821fd316f3e20356d4",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "69f794deb598d477ef5ccd38862306da27c2fe0b",
+          "sha256": "133d43a9d3b6d5cc3b801b24710b4b05815aa965865e16b4e28b3c7ad631ecf4",
+          "observed_commit_date": "2026-08-20T13:29:17+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-08-20-029-profile-dark-b27f3329ae.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "268efd1c9a6ff435c442b9325f1f4e585b5565a9d6393bd127c9a5b5b1a0fb0a",
+      "bytes": 6022,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "42bc7b290a33cbf317398cefcd99ef6609228312",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "b180785ad33311803f8c098876afe84723a1dad2",
+          "sha256": "ac02808ac744c01434be674d8d26eb7d26e7091a14e7b82713ae44bd71153ded",
+          "observed_commit_date": "2026-08-20T14:35:21+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "42bc7b290a33cbf317398cefcd99ef6609228312",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "4c8c3c29cf1a8ba7df7047f6aff25ea902efdf0d",
+          "sha256": "c0894f174aafcbfe31df4b413d6cc524ac576a85c3cf4e6382a52f80a96fafa9",
+          "observed_commit_date": "2026-08-20T14:35:21+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "24dc6c24afab4e1e6e3cb835e953aaf905f7f303",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "ca4a87a3b4175c8588c2433572d10ded6bdafc5f",
+          "sha256": "45e473f7052783318f3096f500b6cc6b6403dd1dada02be24a4aa90e32f88e11",
+          "observed_commit_date": "2026-08-20T15:12:50+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "24dc6c24afab4e1e6e3cb835e953aaf905f7f303",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "9fe60e770310609f6abbfd7bac7d81fc2df52950",
+          "sha256": "777e52a99a9ba61b05792af6386c6bb6676c99631f0b2c916346e528d4be948e",
+          "observed_commit_date": "2026-08-20T15:12:50+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "1d4279781757f77bdca4b385eae0b816b8056f02",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "d98f5b32f232b7ad8789b9277ec1360e2e8999e4",
+          "sha256": "ffb820acc81bd2c0e19a9d4e71459697d0e82350fb93b4cbeb3dbad4696ddb70",
+          "observed_commit_date": "2026-08-20T15:46:26+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "1d4279781757f77bdca4b385eae0b816b8056f02",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "67ad9a1566beb86943c23b381741000789ad44ad",
+          "sha256": "a1725d00ef24607a985cef07850bc50e511909fb954a7148418dafc390c69459",
+          "observed_commit_date": "2026-08-20T15:46:26+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "77cb27ecd938d4699045fa96ecb8be48933a55c6",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "d6c732da71ca84d86df0b9fe18f9a74488ca1f71",
+          "sha256": "3408a7a8cc6a97d67cdbc2ef2c89c527e6a501f42379fe28e3c3bf04d0cb72b1",
+          "observed_commit_date": "2026-08-20T18:54:20+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "77cb27ecd938d4699045fa96ecb8be48933a55c6",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "765ffd8568a31859d68cd22843104846ec394408",
+          "sha256": "86ee7ce3fad82cd87fc3d48df728ee69cb2d1f3b62b174908b3a205d43d8485d",
+          "observed_commit_date": "2026-08-20T18:54:20+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-08-20-030-profile-dark-268efd1c9a.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "1b7ef408064ee52246e1d18b7993408a82c8121978efaba3662fd51710f8e781",
+      "bytes": 24726,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "7b9aa85bc78a1eeb2f28f4669268c980cb200df5",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "ccf8a99090ff8f08a9867e7455be597188292fe2",
+          "sha256": "1b7ef408064ee52246e1d18b7993408a82c8121978efaba3662fd51710f8e781",
+          "observed_commit_date": "2026-08-20T14:35:30+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-20-031-logo-dark-1b7ef40806.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "3ceaf9801567c0d8904fd0b2a99ea50ea436e0489e14c0d4de658c88a88b9596",
+      "bytes": 25894,
+      "suffix": ".svg",
+      "label": "logo-light",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "7b9aa85bc78a1eeb2f28f4669268c980cb200df5",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "654b391ba4ce4e9aac04b3bb9f11f8fb3f90a3fd",
+          "sha256": "3ceaf9801567c0d8904fd0b2a99ea50ea436e0489e14c0d4de658c88a88b9596",
+          "observed_commit_date": "2026-08-20T14:35:30+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-20-032-logo-light-3ceaf98015.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "585ca277f15f0b6f58d4782fcb498aae3d65c7ea55f555d947f84c6444a3d0f7",
+      "bytes": 24902,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "b87a84e8dec3953012a6633fe9de236182216af3",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "0d456742b7991b9e0b109ee4058a307d68c36401",
+          "sha256": "585ca277f15f0b6f58d4782fcb498aae3d65c7ea55f555d947f84c6444a3d0f7",
+          "observed_commit_date": "2026-08-28T00:55:39+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-28-033-logo-dark-585ca277f1.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "bdf9b3a9b04be3306ef3e6d0b7fa3376abeb2ce92ed569a6daada0a8a2fae89f",
+      "bytes": 26070,
+      "suffix": ".svg",
+      "label": "logo-light",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "b87a84e8dec3953012a6633fe9de236182216af3",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "b1e78270899429622d42082731752b73d3c50008",
+          "sha256": "bdf9b3a9b04be3306ef3e6d0b7fa3376abeb2ce92ed569a6daada0a8a2fae89f",
+          "observed_commit_date": "2026-08-28T00:55:39+02:00"
+        }
+      ],
+      "file": "ncp/2026-08-28-034-logo-light-bdf9b3a9b0.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "b313c28e8d54b1f965831ef60d9b7586fad9233a1542eb972184302c74c7d43c",
+      "bytes": 5966,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ed898bd827fd393b1a6262b48517a92c3b12d4b4",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "803f3dccacf6cc465a30e5f8c97f4848e127c0ab",
+          "sha256": "f04ef9781cf74f5bb810c968ddd6ced5caddedc811ce8555e7afd0f5a2100bb2",
+          "observed_commit_date": "2026-09-05T13:36:02+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "ed898bd827fd393b1a6262b48517a92c3b12d4b4",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "476759879daa5867d56dcf85b7172b10192ddf1f",
+          "sha256": "685b7c938074f7068cf554d941fe765f0b58302447a029f5f9f8bd0b2dafd1f1",
+          "observed_commit_date": "2026-09-05T13:36:02+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-09-05-035-profile-dark-b313c28e8d.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "5a068d3338d792594532b141f2dd0a8fdbbd3d1c4514d0190704257960fdc939",
+      "bytes": 6022,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "8740c531cbb5cc9b74a74fe8e4d4018940700483",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "18e217337d66b3c9069e6c71fe03fa7f4b59f888",
+          "sha256": "80fa8a93513e613b103d306d2651ba27b560b752a06354ee565e1e7a8fdf1ae9",
+          "observed_commit_date": "2026-09-05T16:47:21+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "8740c531cbb5cc9b74a74fe8e4d4018940700483",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "de5597854749f3e7caf68ce4444bc7713b6ea805",
+          "sha256": "9cb7145547a3fda16854715dbd9dba5b2ebb9d0f05677d74b73ad440ca7b8f31",
+          "observed_commit_date": "2026-09-05T16:47:21+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4ef9ec980880f32aae27eac182448a7e70bdee3f",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "28f7437c080f1f4c63ef26f7b2eeb262c133008f",
+          "sha256": "089bdec2f5962b52f8815c864c51a481a7f23d29612993219b1a182286351daa",
+          "observed_commit_date": "2026-09-05T17:58:11+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4ef9ec980880f32aae27eac182448a7e70bdee3f",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "f89944ffbe96421971eb3a6ea5e57a1bf86b21e1",
+          "sha256": "43e42a8a207dc2d13167371e2f6d88c267b79724f45e00267be2a8f39a172f60",
+          "observed_commit_date": "2026-09-05T17:58:11+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "8f4b49873e90a87d7e1b37bbb0fa44dc1899ce61",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "00bacf49ead6b663f7122d99a0ada740b763eba5",
+          "sha256": "7c16bed8c076303e520c0c5b59fa6ef2357e6f36d461c7b63610ad1d66ece59d",
+          "observed_commit_date": "2026-09-05T23:54:14+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "8f4b49873e90a87d7e1b37bbb0fa44dc1899ce61",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "142d28048a493ba9de643119284da5c316b9a8e3",
+          "sha256": "d19f99304b624fdf8c1d661bfd68aa4454e95384fc6c9ffd95ff414f87343d3a",
+          "observed_commit_date": "2026-09-05T23:54:14+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "8b0dc11c09db24a7d58d67ac37ac306a5cf79386",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "2c19e84bde9faad0cfc53d207a6a053a58d158df",
+          "sha256": "9c771a26948530f71c19ede86ab8a3e7d48aff6c51f8f2f58a22f04bc06155d0",
+          "observed_commit_date": "2026-09-06T00:41:21+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "8b0dc11c09db24a7d58d67ac37ac306a5cf79386",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "3f3e292bbbdad92eb2663b451c9d3a8241be834b",
+          "sha256": "421dfa2e44e3032a0a55d55e401dcad1a1ecb56d8ca9759cf761cd4ca5597f93",
+          "observed_commit_date": "2026-09-06T00:41:21+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a3bcd355a9a1089ffd503836893f0f8a9f3f1e7d",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "5c9f6cfc5540efc1ff0244a285d3cd7b36accc31",
+          "sha256": "dee172d954daddfb680273531352c3a1d4fee5168219f9c36a1802ae3fe7e09c",
+          "observed_commit_date": "2026-09-06T06:50:47+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a3bcd355a9a1089ffd503836893f0f8a9f3f1e7d",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "46ee04922192368670c906186122979006432174",
+          "sha256": "a6ab9981c52787698cc268bf608b7aca38b5b0b1270a1508d5851be67a80f913",
+          "observed_commit_date": "2026-09-06T06:50:47+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a1bc81fd7026c8aa6d1c58039542d6ca4dd85445",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "b6c4f042fb4aa287f02766065bfa8bdfe13211f7",
+          "sha256": "56b16cacd07d7495628f4043c0b65f4c1de6296a1c81c297f6ceaf377e7ae338",
+          "observed_commit_date": "2026-09-06T07:55:58+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a1bc81fd7026c8aa6d1c58039542d6ca4dd85445",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "9ae37845a46f9058e6129002f3bee47c1ce54be5",
+          "sha256": "9fca031e5be40464036f471a991a85e575a4cb2314b19eff28469a833fc7f55b",
+          "observed_commit_date": "2026-09-06T07:55:58+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "9db7aa36f11f2f92ffa52f1b7c416392836a4f6a",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "706c1654b295cd7eef1b6fa3646ba49cb05b0478",
+          "sha256": "3bf5044ee3090453072321e086ff6015208af0f5448d802e53a13abccadce7ba",
+          "observed_commit_date": "2026-09-06T12:44:57+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "9db7aa36f11f2f92ffa52f1b7c416392836a4f6a",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "11257010fdd37cef6aa57426daccd8b186d937f8",
+          "sha256": "377cb994dacb96546c25dda14612b48e65fd43341660be0fe939abe545c5ae75",
+          "observed_commit_date": "2026-09-06T12:44:57+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-09-05-036-profile-dark-5a068d3338.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "6d175501f8f4a4f88ed94a90c45e814aab655a3b0d377d59d337695b4b0963ed",
+      "bytes": 7215,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "unpublished_design_snapshot",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": null,
+          "path": "logo-borders-20260907/ncp-solid-cyberpunk.svg",
+          "mode": "100644",
+          "sha256": "6d175501f8f4a4f88ed94a90c45e814aab655a3b0d377d59d337695b4b0963ed",
+          "observed_commit_date": "2026-09-07T00:00:00Z",
+          "note": "Preserved design draft. This file was not a Git commit at capture."
+        },
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "05859ae382ff09f895ca516b8451868766769ec3",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "2500569bc72de8ed356d5b1550815eb8d1aa4d3a",
+          "sha256": "6d175501f8f4a4f88ed94a90c45e814aab655a3b0d377d59d337695b4b0963ed",
+          "observed_commit_date": "2026-09-07T11:00:40Z"
+        },
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "05859ae382ff09f895ca516b8451868766769ec3",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "2500569bc72de8ed356d5b1550815eb8d1aa4d3a",
+          "sha256": "6d175501f8f4a4f88ed94a90c45e814aab655a3b0d377d59d337695b4b0963ed",
+          "observed_commit_date": "2026-09-07T11:00:40Z"
+        }
+      ],
+      "file": "ncp/2026-09-07-037-logo-dark-6d175501f8.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "8dae5f8ba9f77cd95851321b1d33da456927f8086cbec3ef60187105a06bee7b",
+      "bytes": 5510,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a9038ea0ee5a0735837e9958f1301507cb7c0864",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "2fa3e7c6c871a8e958aa627898b94eca1fe0333c",
+          "sha256": "d79b30e04f0fc59632e1d9de4a074ee67033bdeea5ebe6a1f3fb66c931d5ec82",
+          "observed_commit_date": "2026-09-07T06:45:24+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "a9038ea0ee5a0735837e9958f1301507cb7c0864",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "411f4cd2c4b64b8390cf1dc8afdcf82eee4ab669",
+          "sha256": "c3e0f4e7c234451c47993c99bda9dc1eec70a99e8c2a0e2dbc60095d0feb392f",
+          "observed_commit_date": "2026-09-07T06:45:24+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-09-07-038-profile-dark-8dae5f8ba9.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "09e8843fb79516a3928bb5b3076ead32349eb8a8a024f8ccfbea1bc79a1cfba2",
+      "bytes": 4945,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "5b1401248239a286b4b3feb0f314986189bbc03c",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "f1fcce36bed10748902e164afae08812bcfc7496",
+          "sha256": "09e8843fb79516a3928bb5b3076ead32349eb8a8a024f8ccfbea1bc79a1cfba2",
+          "observed_commit_date": "2026-09-07T06:45:38+02:00"
+        },
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "5b1401248239a286b4b3feb0f314986189bbc03c",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "f1fcce36bed10748902e164afae08812bcfc7496",
+          "sha256": "09e8843fb79516a3928bb5b3076ead32349eb8a8a024f8ccfbea1bc79a1cfba2",
+          "observed_commit_date": "2026-09-07T06:45:38+02:00"
+        }
+      ],
+      "file": "ncp/2026-09-07-039-logo-dark-09e8843fb7.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "8951acf890589edc5ffe480e33d67a0f47623139c1fd29e02615f5c5bc0e6751",
+      "bytes": 6752,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4bcb7457ab2f55d856a9f52665ff18c0f186e063",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "1edc5ab19af8d062c5211f4d7543b7cbbdad3d00",
+          "sha256": "0c4573f84ed348badd731346d39c19fdc5d92c0e6ce4e3d91907748432c8a924",
+          "observed_commit_date": "2026-09-07T07:27:30+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "4bcb7457ab2f55d856a9f52665ff18c0f186e063",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "71689d9a567e68d5df9c74c09731aa3cc431f130",
+          "sha256": "2ad2acbf9aaf381e90296448f3ad0ea19b1df2824d52bf430edf966d8dc74d85",
+          "observed_commit_date": "2026-09-07T07:27:30+02:00",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-09-07-040-profile-dark-8951acf890.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "6fa03f65321eedef0c49ffdf9f2807c7628f9eda2949c9088de5e489c22df308",
+      "bytes": 6183,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "ad70fcc544418a3dcb8d29ca8cf1d2031f2fe9f9",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "3f060ab12048858c4ebbd9d2dacbade93fdf4359",
+          "sha256": "6fa03f65321eedef0c49ffdf9f2807c7628f9eda2949c9088de5e489c22df308",
+          "observed_commit_date": "2026-09-07T07:27:39+02:00"
+        },
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "ad70fcc544418a3dcb8d29ca8cf1d2031f2fe9f9",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "3f060ab12048858c4ebbd9d2dacbade93fdf4359",
+          "sha256": "6fa03f65321eedef0c49ffdf9f2807c7628f9eda2949c9088de5e489c22df308",
+          "observed_commit_date": "2026-09-07T07:27:39+02:00"
+        }
+      ],
+      "file": "ncp/2026-09-07-041-logo-dark-6fa03f6532.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "7138b51591f780c9474b543fb4df4445b4c5d17a0638550cb0ed54af60e7f2a9",
+      "bytes": 7524,
+      "suffix": ".svg",
+      "label": "logo-dark",
+      "sources": [
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "86695e047f2895d51c9e0409dd0800c1448aac1a",
+          "path": "assets/logo-dark.svg",
+          "mode": "100644",
+          "blob": "7301d4750a997be42cfae2eb989fbcf1041ff3f1",
+          "sha256": "7138b51591f780c9474b543fb4df4445b4c5d17a0638550cb0ed54af60e7f2a9",
+          "observed_commit_date": "2026-09-07T10:51:57Z"
+        },
+        {
+          "kind": "git_blob",
+          "repository": "https://github.com/sepahead/NCP",
+          "commit": "86695e047f2895d51c9e0409dd0800c1448aac1a",
+          "path": "assets/logo-light.svg",
+          "mode": "100644",
+          "blob": "7301d4750a997be42cfae2eb989fbcf1041ff3f1",
+          "sha256": "7138b51591f780c9474b543fb4df4445b4c5d17a0638550cb0ed54af60e7f2a9",
+          "observed_commit_date": "2026-09-07T10:51:57Z"
+        }
+      ],
+      "file": "ncp/2026-09-07-042-logo-dark-7138b51591.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "f93ac1c321b69144bdd56a2a51dcb07b4920763f4a2507e4f3c37155753da2fa",
+      "bytes": 8106,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "39a2a621dc002775b98dcca94ffa40ecd93f0663",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "99b9e4902472288848de1ad92208a8c6ce2de17b",
+          "sha256": "288127470a3c9f602177e5545313d81214e6bf9fa11546c8e482fe0010bcb9f2",
+          "observed_commit_date": "2026-09-07T10:51:57Z",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "39a2a621dc002775b98dcca94ffa40ecd93f0663",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "6ef54953a0af21a8967eb6bc7881c6a41a6359a3",
+          "sha256": "214115678cbbb80fa731a0df1061f490e8ea16007af6616182f650b6680b83bb",
+          "observed_commit_date": "2026-09-07T10:51:57Z",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-09-07-043-profile-dark-f93ac1c321.svg"
+    },
+    {
+      "project": "ncp",
+      "sha256": "4c07906e6de92e0d7ebfdc1ebfd34927806bb2bee1fb6026ba9fea2f67ae3a05",
+      "bytes": 7795,
+      "suffix": ".svg",
+      "label": "profile-dark",
+      "sources": [
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "21bf33bf1fde663e007433dd129e3093243de682",
+          "path": "assets/work-graph-dark.svg",
+          "mode": "100644",
+          "blob": "f280742dc6cc38d43d6cabd3f63fe5e1b73bf766",
+          "sha256": "bd9d6f3c74fa2afa01508f62f5402135f4d8d9619ab4e77509ed5ab3e7cf3b34",
+          "observed_commit_date": "2026-09-07T11:00:39Z",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        },
+        {
+          "kind": "derived_profile_node",
+          "repository": "https://github.com/sepahead/sepahead",
+          "commit": "21bf33bf1fde663e007433dd129e3093243de682",
+          "path": "assets/work-graph-light.svg",
+          "mode": "100644",
+          "blob": "eae9df19b23693e2f7209fb1e45fe8b3961b8ec4",
+          "sha256": "7b0c57fd7448339168c6d4f91eaa4e208ed5a049f2da8adb5a260db206561cc7",
+          "observed_commit_date": "2026-09-07T11:00:39Z",
+          "extraction": "XML subtree, referenced definitions, matched CSS, source-coordinate viewport; no historical JavaScript execution",
+          "embedded_assets": []
+        }
+      ],
+      "file": "ncp/2026-09-07-044-profile-dark-4c07906e6d.svg"
+    }
+  ]
+}

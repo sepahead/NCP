@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="298 278 124 124" width="124" height="124" role="img" aria-label="NCP historical profile mark"><title>NCP historical profile mark</title><desc>Archived design extracted from a historical portfolio SVG. This image makes no current product or release claim.</desc><defs><filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.38" />
+    </filter>
+    </defs><style /><g class="nodes"><g>
+      <g filter="url(#nodeShadow)" transform="translate(315 295) scale(.5)">
+  <title id="ncp-mark-title">NCP paired contract rails</title>
+  <desc id="ncp-mark-desc">Opposed contract rails carry an amber request and a distinct blue outcome. Two separated metal rim halves represent independent peers. The open center is an interface, not a central runtime. The exchange repeats slowly; reduced motion keeps the full mark still.</desc>
+  <defs>
+    <radialGradient id="ncp-seat" cx="38%" cy="24%" r="85%">
+      <stop stop-color="#1e2945" /><stop offset=".48" stop-color="#0c192b" /><stop offset="1" stop-color="#040812" />
+    </radialGradient>
+    <linearGradient id="ncp-rim" x1="35" y1="26" x2="147" y2="158" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#243b57" /><stop offset=".18" stop-color="#86a8c4" /><stop offset=".32" stop-color="#293e60" /><stop offset=".5" stop-color="#101c31" /><stop offset=".72" stop-color="#38537c" /><stop offset="1" stop-color="#122235" />
+    </linearGradient>
+    <linearGradient id="ncp-amber" x1="42" y1="47" x2="108" y2="132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffefb4" /><stop offset=".2" stop-color="#ffc568" /><stop offset=".48" stop-color="#d88337" /><stop offset=".7" stop-color="#ffb849" /><stop offset="1" stop-color="#87482d" />
+    </linearGradient>
+    <linearGradient id="ncp-blue" x1="74" y1="46" x2="138" y2="133" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d0fbff" /><stop offset=".2" stop-color="#65e9f6" /><stop offset=".48" stop-color="#2b89bd" /><stop offset=".73" stop-color="#50ccf1" /><stop offset="1" stop-color="#344c9a" />
+    </linearGradient>
+    <linearGradient id="ncp-rail-body" x1="46" y1="50" x2="132" y2="130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#365064" /><stop offset=".32" stop-color="#142636" /><stop offset=".51" stop-color="#263649" /><stop offset=".53" stop-color="#0a1424" /><stop offset="1" stop-color="#1b2b43" />
+    </linearGradient>
+    <linearGradient id="ncp-spectrum" x1="25" y1="25" x2="155" y2="155" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffd184" /><stop offset=".44" stop-color="#6473b2" /><stop offset="1" stop-color="#59dcfa" />
+    </linearGradient>
+    <filter id="ncp-emission" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.7" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  </defs>
+  <style>
+    .ncp-request-light { animation: ncp-request-light 8s ease-in-out infinite; }
+    .ncp-outcome-light { animation: ncp-outcome-light 8s ease-in-out infinite; }
+    .ncp-request-trace, .ncp-outcome-trace { fill: none; stroke-linecap: round; stroke-dasharray: 10 90; opacity: 0; }
+    .ncp-request-trace { animation: ncp-request-travel 8s linear infinite; }
+    .ncp-outcome-trace { animation: ncp-outcome-travel 8s linear infinite; }
+    @keyframes ncp-request-travel { 0%, 7% { stroke-dashoffset: 10; opacity: 0; } 10% { opacity: .9; } 38% { stroke-dashoffset: -70; opacity: .9; } 43%, 100% { stroke-dashoffset: -70; opacity: 0; } }
+    @keyframes ncp-outcome-travel { 0%, 48% { stroke-dashoffset: 10; opacity: 0; } 51% { opacity: .9; } 79% { stroke-dashoffset: -70; opacity: .9; } 84%, 100% { stroke-dashoffset: -70; opacity: 0; } }
+    @keyframes ncp-request-light { 0%, 48%, 100% { opacity: .4; } 20%, 30% { opacity: 1; } }
+    @keyframes ncp-outcome-light { 0%, 42%, 100% { opacity: .4; } 66%, 76% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .ncp-request-light, .ncp-outcome-light, .ncp-request-trace, .ncp-outcome-trace { animation: none; }
+    }
+  </style>
+  <g id="ncp-housing" fill="none">
+    <path d="M62 22H118L158 62V118L118 158H62L22 118V62Z" fill="url(#ncp-seat)" stroke="#080f16" stroke-width="5" />
+    <path d="M83 22H62L22 62V118L62 158H83 M97 22H118L158 62V118L118 158H97" stroke="url(#ncp-rim)" stroke-width="4.2" stroke-linejoin="bevel" />
+    <path d="M82 27H64L27 64V116L64 153H82 M98 27H116L153 64V116L116 153H98" stroke="#8cabb7" stroke-opacity=".25" stroke-width=".8" />
+    <path d="M78 32H67L32 67V76 M32 106V113L67 148H78 M102 32H113L148 67V76 M148 106V113L113 148H102" stroke="url(#ncp-spectrum)" stroke-opacity=".42" stroke-width=".9" />
+    <path d="M38 46 54 30H70 M29 108V115L46 132" stroke="#ffba68" stroke-width="1.5" filter="url(#ncp-emission)" />
+    <path d="M110 150H126L150 126 M150 70V54L136 40" stroke="#5ee6fa" stroke-width="1.5" filter="url(#ncp-emission)" />
+    <path d="M48 37 51 40 M53 32 56 35 M124 145 127 148 M129 140 132 143" stroke="#e2f2ff" stroke-opacity=".7" stroke-width="1" />
+    <path d="M72 39H82 M98 141H108 M37 79V101 M143 79V101" stroke="#567298" stroke-opacity=".35" stroke-width=".7" />
+    <path d="M84 19V25 M96 19V25 M84 155V161 M96 155V161" stroke="#1a2a34" stroke-width="2" />
+    <path d="M18 78H26V102H18Z M154 78H162V102H154Z" fill="#10202b" stroke="url(#ncp-rim)" stroke-width="1" />
+    <path d="M20 83H24 M20 90H24 M20 97H24" stroke="#b79961" stroke-width="1.8" />
+    <path d="M156 83H160 M156 90H160 M156 97H160" stroke="#729dac" stroke-width="1.8" />
+  </g>
+  <g id="ncp-contract-rails" stroke-linejoin="bevel">
+    <path d="M81 48H64L43 69V111L64 132H81V121H69L55 107V73L69 59H81Z" fill="#070e16" stroke="#070e16" stroke-width="5" transform="translate(0 2)" />
+    <path d="M99 48H116L137 69V111L116 132H99V121H111L125 107V73L111 59H99Z" fill="#070e16" stroke="#070e16" stroke-width="5" transform="translate(0 2)" />
+    <path d="M81 48H64L43 69V111L64 132H81V121H69L55 107V73L69 59H81Z" fill="url(#ncp-rail-body)" stroke="url(#ncp-amber)" stroke-width="1" />
+    <path d="M99 48H116L137 69V111L116 132H99V121H111L125 107V73L111 59H99Z" fill="url(#ncp-rail-body)" stroke="url(#ncp-blue)" stroke-width="1" />
+    <path d="M79 53H66L48 71V109L66 127H79" fill="none" stroke="url(#ncp-amber)" stroke-width="2.5" filter="url(#ncp-emission)" />
+    <path d="M101 53H114L132 71V109L114 127H101" fill="none" stroke="url(#ncp-blue)" stroke-width="2.5" filter="url(#ncp-emission)" />
+    <path d="M50 72V107 M130 72V107" fill="none" stroke="#bfe5f5" stroke-opacity=".25" stroke-width=".6" />
+    <path d="M49 72V110L65 126H78 M131 72V110L115 126H102" fill="none" stroke="#16252c" stroke-opacity=".6" stroke-width="1.4" />
+    <path d="M59 76H82L92 66H112" fill="none" stroke="#151a1e" stroke-width="5" />
+    <path d="M59 76H82L92 66H112" fill="none" stroke="url(#ncp-amber)" stroke-width="2.8" />
+    <path d="M121 104H98L88 114H68" fill="none" stroke="#101b24" stroke-width="5" />
+    <path d="M121 104H98L88 114H68" fill="none" stroke="url(#ncp-blue)" stroke-width="2.8" />
+    <path d="M59 76H82L92 66H112" stroke="#fff0c3" stroke-width="2.2" class="ncp-request-trace" filter="url(#ncp-emission)" />
+    <path d="M121 104H98L88 114H68" stroke="#dcfcff" stroke-width="2.2" class="ncp-outcome-trace" filter="url(#ncp-emission)" />
+  </g>
+  <g id="ncp-path-identities">
+    <path d="M104 62 108 66 104 70" fill="none" stroke="#eccea0" stroke-width="1.6" />
+    <path d="M76 110 72 114 76 118" fill="none" stroke="#97c5d1" stroke-width="1.6" />
+    <path d="M66 71 71 76 66 81 61 76Z" fill="#1c2326" stroke="#e4bd77" stroke-width="1.2" />
+    <path d="M66 73 69 76 66 79 63 76Z" fill="#f1d395" class="ncp-request-light" />
+    <rect x="108.5" y="99.5" width="9" height="9" rx="1" fill="#10212c" stroke="#8fbccc" stroke-width="1.2" />
+    <path d="M111 106V102H115" fill="none" stroke="#c3e6ec" stroke-width="1.2" class="ncp-outcome-light" />
+  </g>
+</g>
+      </g>
+  </g></svg>
