@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-labelledby="ncp-mark-title ncp-mark-desc">
   <title id="ncp-mark-title">NCP paired contract rails</title>
-  <desc id="ncp-mark-desc">Two independent, opposed contract rails frame separate amber request and blue outcome paths. The open center represents an interface, not a central runtime. A graphite disc and brushed metal rim match the project family.</desc>
+  <desc id="ncp-mark-desc">Opposed contract rails carry an amber request and a distinct blue outcome. Two separated metal rim halves represent independent peers. The open center is an interface, not a central runtime. The exchange repeats slowly; reduced motion keeps the full mark still.</desc>
   <defs>
     <radialGradient id="ncp-seat" cx="36%" cy="28%" r="82%">
       <stop stop-color="#22313c"/><stop offset=".5" stop-color="#111d27"/><stop offset="1" stop-color="#060c13"/>
@@ -21,19 +21,25 @@
   <style>
     .ncp-request-light { animation: ncp-request-light 8s ease-in-out infinite; }
     .ncp-outcome-light { animation: ncp-outcome-light 8s ease-in-out infinite; }
+    .ncp-request-trace, .ncp-outcome-trace { fill: none; stroke-linecap: round; stroke-dasharray: 10 90; opacity: 0; }
+    .ncp-request-trace { animation: ncp-request-travel 8s linear infinite; }
+    .ncp-outcome-trace { animation: ncp-outcome-travel 8s linear infinite; }
+    @keyframes ncp-request-travel { 0%, 7% { stroke-dashoffset: 10; opacity: 0; } 10% { opacity: .9; } 38% { stroke-dashoffset: -70; opacity: .9; } 43%, 100% { stroke-dashoffset: -70; opacity: 0; } }
+    @keyframes ncp-outcome-travel { 0%, 48% { stroke-dashoffset: 10; opacity: 0; } 51% { opacity: .9; } 79% { stroke-dashoffset: -70; opacity: .9; } 84%, 100% { stroke-dashoffset: -70; opacity: 0; } }
     @keyframes ncp-request-light { 0%, 48%, 100% { opacity: .4; } 20%, 30% { opacity: 1; } }
     @keyframes ncp-outcome-light { 0%, 42%, 100% { opacity: .4; } 66%, 76% { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) {
-      .ncp-request-light, .ncp-outcome-light { animation: none; }
+      .ncp-request-light, .ncp-outcome-light, .ncp-request-trace, .ncp-outcome-trace { animation: none; }
     }
   </style>
   <g id="ncp-housing" fill="none">
-    <circle cx="90" cy="90" r="68" fill="url(#ncp-seat)" stroke="#070c12" stroke-width="5"/>
-    <circle cx="90" cy="90" r="68" stroke="url(#ncp-rim)" stroke-width="3.2"/>
-    <circle cx="90" cy="90" r="63.8" stroke="#8cabb7" stroke-opacity=".18" stroke-width=".65"/>
-    <path d="M76 22H104 M76 158H104" stroke="#080f16" stroke-width="5.4"/>
-    <path d="M82 22H98 M82 158H98" stroke="url(#ncp-rim)" stroke-width="1.2"/>
-    <path d="M27 63 30 64 M24 72 28 73 M24 108 28 107 M27 117 30 116 M153 63 150 64 M156 72 152 73 M156 108 152 107 M153 117 150 116" stroke="#6c8590" stroke-width="1.1" stroke-opacity=".6"/>
+    <path d="M62 22H118L158 62V118L118 158H62L22 118V62Z" fill="url(#ncp-seat)" stroke="#080f16" stroke-width="5"/>
+    <path d="M83 22H62L22 62V118L62 158H83 M97 22H118L158 62V118L118 158H97" stroke="url(#ncp-rim)" stroke-width="4.2" stroke-linejoin="bevel"/>
+    <path d="M82 27H64L27 64V116L64 153H82 M98 27H116L153 64V116L116 153H98" stroke="#8cabb7" stroke-opacity=".25" stroke-width=".8"/>
+    <path d="M84 19V25 M96 19V25 M84 155V161 M96 155V161" stroke="#1a2a34" stroke-width="2"/>
+    <path d="M18 78H26V102H18Z M154 78H162V102H154Z" fill="#10202b" stroke="url(#ncp-rim)" stroke-width="1"/>
+    <path d="M20 83H24 M20 90H24 M20 97H24" stroke="#b79961" stroke-width="1.8"/>
+    <path d="M156 83H160 M156 90H160 M156 97H160" stroke="#729dac" stroke-width="1.8"/>
   </g>
   <g id="ncp-contract-rails" stroke-linejoin="bevel">
     <path d="M81 48H64L43 69V111L64 132H81V121H69L55 107V73L69 59H81Z" fill="#070e16" stroke="#070e16" stroke-width="5" transform="translate(0 2)"/>
@@ -42,10 +48,13 @@
     <path d="M99 48H116L137 69V111L116 132H99V121H111L125 107V73L111 59H99Z" fill="url(#ncp-blue)" stroke="url(#ncp-edge)" stroke-width=".85"/>
     <path d="M78 51H65L47 70V109" fill="none" stroke="#ead8ab" stroke-opacity=".48" stroke-width="1"/>
     <path d="M102 51H115L133 70V109" fill="none" stroke="#c2e1e7" stroke-opacity=".55" stroke-width="1"/>
+    <path d="M49 72V110L65 126H78 M131 72V110L115 126H102" fill="none" stroke="#16252c" stroke-opacity=".6" stroke-width="1.4"/>
     <path d="M59 76H82L92 66H112" fill="none" stroke="#151a1e" stroke-width="5"/>
     <path d="M59 76H82L92 66H112" fill="none" stroke="url(#ncp-amber)" stroke-width="2.8"/>
     <path d="M121 104H98L88 114H68" fill="none" stroke="#101b24" stroke-width="5"/>
     <path d="M121 104H98L88 114H68" fill="none" stroke="url(#ncp-blue)" stroke-width="2.8"/>
+    <path d="M59 76H82L92 66H112" stroke="#ffe5b4" stroke-width="2.2" class="ncp-request-trace"/>
+    <path d="M121 104H98L88 114H68" stroke="#cbf3f7" stroke-width="2.2" class="ncp-outcome-trace"/>
   </g>
   <g id="ncp-path-identities">
     <path d="M104 62 108 66 104 70" fill="none" stroke="#eccea0" stroke-width="1.6"/>
