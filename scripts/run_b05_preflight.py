@@ -45,6 +45,9 @@ MAX_GATE_SCRIPT_BYTES = 64 * 1024
 MAX_SYSTEM_TOOL_BYTES = 16 * 1024 * 1024
 MAX_INDEX_BYTES = 16 * 1024 * 1024
 MAX_INDEX_ENTRIES = 100_000
+MAX_INDEX_PATH_BYTES = 4_096
+INDEX_RAW_POLICY = "NCP_B05_ORDINARY_RAW_INDEX_V1"
+INDEX_OPTIONAL_EXTENSIONS = frozenset({b"TREE", b"REUC", b"UNTR"})
 GIT_TIMEOUT_SECONDS = 30
 GIT_MAX_BYTES = 1024 * 1024
 TERMINATION_GRACE_SECONDS = 1
@@ -513,7 +516,209 @@ def parse_normal_tags(raw: bytes, expected_paths: set[bytes], label: str) -> Non
         fail(f"{label} differs from the exact index path roster")
 
 
-def index_snapshot(source_commit: str) -> dict[str, str | int]:
+def parse_raw_index(
+    raw: bytes, object_format: str
+) -> tuple[dict[bytes, tuple[bytes, bytes]], dict[str, object]]:
+    """Parse the complete captured normal index, independently of Git refreshes.
+
+    TREE/REUC/UNTR are opaque caches, never substitutes for the complete entry
+    roster. Every FSMN extension is incompatible, including an all-dirty bitmap.
+    """
+    if object_format not in {"sha1", "sha256"}:
+        fail("Git index storage object format is unsupported")
+    hash_bytes = 20 if object_format == "sha1" else 32
+    if not 12 + hash_bytes <= len(raw) <= MAX_INDEX_BYTES:
+        fail("Git raw index exceeds its framing byte bound")
+    end = len(raw) - hash_bytes
+    trailer = raw[end:]
+    if (
+        not any(trailer)
+        or hashlib.new(object_format, memoryview(raw)[:end]).digest() != trailer
+    ):
+        fail("Git raw index checksum is missing, skipped, or incorrect")
+    version = int.from_bytes(raw[4:8], "big")
+    count = int.from_bytes(raw[8:12], "big")
+    if raw[:4] != b"DIRC" or version not in {2, 3, 4}:
+        fail("Git raw index signature or version is unsupported")
+    if not 1 <= count <= MAX_INDEX_ENTRIES:
+        fail("Git raw index entry count exceeds its bound")
+    offset = 12
+    previous = b""
+    expanded_bytes = 0
+    entries: dict[bytes, tuple[bytes, bytes]] = {}
+    for _ in range(count):
+        start = offset
+        fixed = 40 + hash_bytes + 2
+        if fixed > end - offset:
+            fail("Git raw index entry is truncated")
+        mode = int.from_bytes(raw[offset + 24 : offset + 28], "big")
+        oid = raw[offset + 40 : offset + 40 + hash_bytes]
+        flags = int.from_bytes(raw[offset + fixed - 2 : offset + fixed], "big")
+        offset += fixed
+        if mode not in {0o100644, 0o100755, 0o120000, 0o160000} or not any(oid):
+            fail("Git raw index contains an unsupported mode, sparse entry, or object")
+        if flags & 0xB000:
+            fail("Git raw index contains a hidden or non-normal index flag")
+        if flags & 0x4000:
+            if version == 2 or 2 > end - offset:
+                fail("Git raw index extended flags are invalid for this version")
+            extended = int.from_bytes(raw[offset : offset + 2], "big")
+            offset += 2
+            if extended:
+                fail("Git raw index contains a hidden or non-normal index flag")
+        strip = 0
+        if version == 4:
+            while True:
+                if offset >= end:
+                    fail("Git raw index prefix integer is truncated")
+                byte = raw[offset]
+                offset += 1
+                strip = (strip << 7) + (byte & 0x7F)
+                if strip > MAX_INDEX_PATH_BYTES:
+                    fail("Git raw index prefix integer exceeds its bound")
+                if not byte & 0x80:
+                    break
+                strip += 1
+            if strip > len(previous):
+                fail("Git raw index prefix removal exceeds the previous path")
+        nul = raw.find(b"\x00", offset, min(end, offset + MAX_INDEX_PATH_BYTES + 1))
+        if nul == -1:
+            fail("Git raw index path lacks bounded NUL termination")
+        prefix = len(previous) - strip if version == 4 else 0
+        length = prefix + nul - offset
+        if (
+            not 1 <= length <= MAX_INDEX_PATH_BYTES
+            or length > MAX_INDEX_BYTES - expanded_bytes
+        ):
+            fail("Git raw index expanded paths exceed their byte bound")
+        path = previous[:prefix] + raw[offset:nul]
+        expanded_bytes += length
+        if flags & 0xFFF != min(length, 0xFFF):
+            fail("Git raw index name-length marker is inconsistent")
+        if path <= previous or any(
+            part in {b"", b".", b"..", b".git"} for part in path.split(b"/")
+        ):
+            fail("Git raw index path or unsigned-byte ordering is invalid")
+        offset = nul + 1
+        if version != 4:
+            padding = (-(offset - start)) % 8
+            if padding > end - offset or any(raw[offset : offset + padding]):
+                fail("Git raw index entry padding is invalid")
+            offset += padding
+        entries[path] = (f"{mode:06o}".encode("ascii"), oid.hex().encode("ascii"))
+        previous = path
+    entry_end = offset
+    extensions: set[bytes] = set()
+    while offset < end:
+        if 8 > end - offset:
+            fail("Git raw index extension header is truncated")
+        signature = raw[offset : offset + 4]
+        length = int.from_bytes(raw[offset + 4 : offset + 8], "big")
+        offset += 8
+        if length > end - offset:
+            fail("Git raw index extension length exceeds captured bytes")
+        if signature == b"FSMN":
+            fail(
+                "Git raw index contains a hidden or non-normal index flag: "
+                "FSMN requires ordinary-index normalization"
+            )
+        if signature in extensions or signature not in INDEX_OPTIONAL_EXTENSIONS:
+            fail(
+                "Git raw index extension is duplicate or unsupported "
+                "by the normal-index policy"
+            )
+        extensions.add(signature)
+        offset += length
+    return entries, {
+        "policy": INDEX_RAW_POLICY,
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "bytes": len(raw),
+        "version": version,
+        "object_format": object_format,
+        "trailer_hex": trailer.hex(),
+        "entry_end": entry_end,
+        "expanded_path_bytes": expanded_bytes,
+        "extensions": sorted(item.decode("ascii") for item in extensions),
+        "checksum_verified": True,
+        "fsmonitor_extension_count": 0,
+    }
+
+
+def index_file_stamp(metadata: os.stat_result) -> tuple[int, ...]:
+    return (
+        metadata.st_dev,
+        metadata.st_ino,
+        metadata.st_mode,
+        metadata.st_size,
+        metadata.st_mtime_ns,
+        metadata.st_ctime_ns,
+    )
+
+
+def capture_index(path: Path) -> tuple[bytes, tuple[int, ...]]:
+    """Capture one no-follow regular file and detect observed identity changes."""
+    if not hasattr(os, "O_NOFOLLOW"):
+        fail("Git raw index capture requires O_NOFOLLOW")
+    try:
+        initial = path.lstat()
+        if (
+            not stat.S_ISREG(initial.st_mode)
+            or not 1 <= initial.st_size <= MAX_INDEX_BYTES
+        ):
+            fail("Git raw index is not a bounded no-follow regular file")
+        fd = os.open(
+            path,
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0),
+        )
+        try:
+            opened = os.fstat(fd)
+            stamp = index_file_stamp(opened)
+            if not stat.S_ISREG(opened.st_mode) or stamp != index_file_stamp(initial):
+                fail("Git raw index identity changed before capture")
+            chunks: list[bytes] = []
+            total = 0
+            while True:
+                chunk = os.read(fd, min(CHUNK_BYTES, MAX_INDEX_BYTES + 1 - total))
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > MAX_INDEX_BYTES:
+                    fail("Git raw index grew beyond its capture bound")
+                chunks.append(chunk)
+            if (
+                total != opened.st_size
+                or index_file_stamp(os.fstat(fd)) != stamp
+                or index_file_stamp(path.lstat()) != stamp
+            ):
+                fail("Git raw index identity changed during capture")
+        finally:
+            os.close(fd)
+    except OSError as error:
+        raise SystemExit("Git raw index cannot be captured safely") from error
+    return b"".join(chunks), stamp
+
+
+def index_locator() -> tuple[Path, str]:
+    raw = git_bytes(
+        "rev-parse", "--path-format=absolute", "--git-path", "index", maximum=4096
+    )
+    if (
+        not raw.endswith(b"\n")
+        or b"\x00" in raw
+        or not Path(os.fsdecode(raw[:-1])).is_absolute()
+    ):
+        fail("Git raw index locator is not one absolute path")
+    return Path(os.fsdecode(raw[:-1])), git_text(
+        "rev-parse", "--show-object-format=storage"
+    )
+
+
+def index_snapshot(source_commit: str) -> dict[str, object]:
+    path, object_format = index_locator()
+    captured, stamp = capture_index(path)
+    parsed, raw_observation = parse_raw_index(captured, object_format)
+    if git_bytes(*STATUS_ARGUMENTS):
+        fail("preflight requires a clean tracked and untracked-nonignored worktree")
     index_raw = git_bytes("ls-files", "--stage", "-z", maximum=MAX_INDEX_BYTES)
     tree_raw = git_bytes(
         "ls-tree",
@@ -524,6 +729,8 @@ def index_snapshot(source_commit: str) -> dict[str, str | int]:
         maximum=MAX_INDEX_BYTES,
     )
     index = parse_index_stage(index_raw)
+    if parsed != index:
+        fail("Git raw index roster differs from its adjacent Git view")
     tree = parse_head_tree(tree_raw)
     if index != tree:
         fail("Git index differs from the immutable source tree")
@@ -554,11 +761,26 @@ def index_snapshot(source_commit: str) -> dict[str, str | int]:
     for raw in tag_raw_values:
         tag_digest.update(len(raw).to_bytes(8, "big"))
         tag_digest.update(raw)
+    after, after_stamp = capture_index(path)
+    if (
+        index_locator() != (path, object_format)
+        or after_stamp != stamp
+        or after != captured
+    ):
+        fail("Git raw index changed across its adjacent Git view")
+    raw_observation.update(
+        descriptor_identity_sha256=hashlib.sha256(
+            json.dumps(stamp, separators=(",", ":")).encode("ascii")
+        ).hexdigest(),
+        adjacent_identity_unchanged=True,
+        matches_git_roster=True,
+    )
     return {
         "entries": len(index),
         "head_roster_sha256": hashlib.sha256(tree_raw).hexdigest(),
         "index_roster_sha256": hashlib.sha256(index_raw).hexdigest(),
         "tag_roster_sha256": tag_digest.hexdigest(),
+        "raw": raw_observation,
     }
 
 
@@ -643,9 +865,6 @@ def main() -> None:
     git_root = git_text("rev-parse", "--show-toplevel")
     if Path(git_root).resolve() != ROOT:
         fail("Git resolved a different repository root")
-    status_before = git_bytes(*STATUS_ARGUMENTS)
-    if status_before:
-        fail("preflight requires a clean tracked and untracked-nonignored worktree")
     index_before = index_snapshot(source_commit)
 
     immutable_runner = git_bytes(
@@ -688,7 +907,6 @@ def main() -> None:
 
     source_commit_after = git_text("rev-parse", "--verify", "HEAD")
     source_tree_after = git_text("rev-parse", "--verify", "HEAD^{tree}")
-    status_after = git_bytes(*STATUS_ARGUMENTS)
     index_after = index_snapshot(source_commit)
     immutable_runner_after = git_bytes(
         "show", f"{source_commit}:{RUNNER_PATH}", maximum=MAX_SCRIPT_BYTES
@@ -698,8 +916,6 @@ def main() -> None:
     )
     if source_commit_after != source_commit or source_tree_after != source_tree:
         fail("preflight changed the checked source identity")
-    if status_after:
-        fail("preflight left tracked or untracked-nonignored worktree changes")
     if (
         immutable_runner_after != immutable_runner
         or worktree_file_bytes(RUNNER_PATH) != immutable_runner
@@ -711,7 +927,9 @@ def main() -> None:
         != immutable_preflight
     ):
         fail("preflight script changed during execution")
-    if index_after != index_before:
+    if any(
+        index_after[key] != index_before[key] for key in index_before if key != "raw"
+    ):
         fail("preflight changed the checked Git index roster")
     if not raw:
         fail("preflight output is empty")
@@ -754,6 +972,8 @@ def main() -> None:
             "index_roster_sha256_after": index_after["index_roster_sha256"],
             "tag_roster_sha256_before": index_before["tag_roster_sha256"],
             "tag_roster_sha256_after": index_after["tag_roster_sha256"],
+            "raw_before": index_before["raw"],
+            "raw_after": index_after["raw"],
             "matches_head_before": True,
             "matches_head_after": True,
             "staged_or_unmerged_count": 0,

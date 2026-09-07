@@ -24,6 +24,20 @@
       "destination_sha256": "fc28110f4456a4098c4d613c585a0a59926cfb54ddfe3fdadab8e9664f9289f7"
     },
     {
+      "source": "ncp-core/examples/modular_buffer_probe.rs",
+      "destination": "examples/modular_buffer_probe.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "7ed7094c26f929da602eb0a47c6a3cd6d7ae721f0306ec064ece27f267956236",
+      "destination_sha256": "9f1e6417d1b608d8d85a4b9266dbdc4f4ac7adf5bddd38aca2ec6b0e109ee7cb"
+    },
+    {
+      "source": "ncp-core/examples/modular_owner_probe.rs",
+      "destination": "examples/modular_owner_probe.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "7d5994a1755cd426bf3feafa1fea58187a863e71b1b1ecf59fbe368aafde3464",
+      "destination_sha256": "4ab4a374d15ac1607350824feef26a8265079005cd49ee5bc5ada2707e391801"
+    },
+    {
       "source": "ncp-core/local-profile.v1.json",
       "destination": "local-profile.v1.json",
       "transformation": "identity",
@@ -59,6 +73,41 @@
       "destination_sha256": "ae171199dbad67f7570bb850b61b69477f513a05592f1c4ad156486efba35b37"
     },
     {
+      "source": "ncp-core/src/modular_buffer.rs",
+      "destination": "src/modular_buffer.rs",
+      "transformation": "identity",
+      "source_sha256": "25083d146be74da1d64deaabd9fbfe9c34b967ff4f915bf48cc3ed8a690a3d39",
+      "destination_sha256": "25083d146be74da1d64deaabd9fbfe9c34b967ff4f915bf48cc3ed8a690a3d39"
+    },
+    {
+      "source": "ncp-core/src/modular_client.rs",
+      "destination": "src/modular_client.rs",
+      "transformation": "identity",
+      "source_sha256": "17928125ffd37f7f4868509aed73174e5722ef55ebdde1c0fc96e04268a80e74",
+      "destination_sha256": "17928125ffd37f7f4868509aed73174e5722ef55ebdde1c0fc96e04268a80e74"
+    },
+    {
+      "source": "ncp-core/src/modular_owner.rs",
+      "destination": "src/modular_owner.rs",
+      "transformation": "identity",
+      "source_sha256": "7c51e7006b3a368313174f8d25eaa8b47de289ba3bf2c23a26021652469d32a6",
+      "destination_sha256": "7c51e7006b3a368313174f8d25eaa8b47de289ba3bf2c23a26021652469d32a6"
+    },
+    {
+      "source": "ncp-core/src/modular_profile.v1.json",
+      "destination": "src/modular_profile.v1.json",
+      "transformation": "identity",
+      "source_sha256": "af2fc13f4f231f6ee5f23744040cebacbaf56db8a3741127dd4b7c00307c5549",
+      "destination_sha256": "af2fc13f4f231f6ee5f23744040cebacbaf56db8a3741127dd4b7c00307c5549"
+    },
+    {
+      "source": "ncp-core/src/modular_wire.rs",
+      "destination": "src/modular_wire.rs",
+      "transformation": "identity",
+      "source_sha256": "8e79e6e156493be6aadd7a186b415379142141fd772141e55550daee277ff2c0",
+      "destination_sha256": "8e79e6e156493be6aadd7a186b415379142141fd772141e55550daee277ff2c0"
+    },
+    {
       "source": "ncp-core/tests/fixtures/local-binary64.json",
       "destination": "tests/fixtures/local-binary64.json",
       "transformation": "identity",
@@ -71,6 +120,13 @@
       "transformation": "identity",
       "source_sha256": "254956dc1659dee62e66a1f61219127d9b17a9e5a2b1a4b00dbacaa73e5a6709",
       "destination_sha256": "254956dc1659dee62e66a1f61219127d9b17a9e5a2b1a4b00dbacaa73e5a6709"
+    },
+    {
+      "source": "ncp-core/tests/fixtures/modular-binary64.json",
+      "destination": "tests/fixtures/modular-binary64.json",
+      "transformation": "identity",
+      "source_sha256": "ba84d5321476601110d13fb9f2ccd1e0ba20704b0f31b260e152064e194b7476",
+      "destination_sha256": "ba84d5321476601110d13fb9f2ccd1e0ba20704b0f31b260e152064e194b7476"
     },
     {
       "source": "ncp-core/tests/local.rs",
@@ -92,6 +148,34 @@
       "transformation": "test_import_only",
       "source_sha256": "6b172d1e624fd8f217f31b1f5aa4542c60d7e23f7434e6fc75478fccf36a8650",
       "destination_sha256": "2a6822b4ef8c082cdfcfb27bcec4bb5e022d02e3e2c4bbb2293b8180f83f6d6d"
+    },
+    {
+      "source": "ncp-core/tests/modular_buffer.rs",
+      "destination": "tests/modular_buffer.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "2af5888c28866b7288984bd354341955057e71c0a61677ac91da9e72efcefdb5",
+      "destination_sha256": "44bda6ede9eff404cb6aa975f8868ff11f6dd1e7f7ca3029d2e1b0b58bf954e6"
+    },
+    {
+      "source": "ncp-core/tests/modular_owner.rs",
+      "destination": "tests/modular_owner.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "fab0696cd50ba8d960733c788eae1baee62299588111da03bd327c9b4a4e6c21",
+      "destination_sha256": "a60445c3b8e48141d15a8766800236e212bab405c9ee943950f17f52382e516e"
+    },
+    {
+      "source": "ncp-core/tests/modular_wire.rs",
+      "destination": "tests/modular_wire.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "aab1e8768c2c7b75a8161ff78971f940abf948456f3ed090736962d9910745d0",
+      "destination_sha256": "fcbadbb128b59cbad60ae295b3fa0b25224b37790fd6905be2963cd06d9de224"
+    },
+    {
+      "source": "ncp-core/tests/support/modular_fixture.rs",
+      "destination": "tests/support/modular_fixture.rs",
+      "transformation": "test_import_only",
+      "source_sha256": "8eeb24f4acf7f93e8dc0fd4c03523d6db2f6128a755e6a69d95a37524e3a9234",
+      "destination_sha256": "fa1728b06524f9c4e12703d38a48df8b21c80d1bfb26c387f965ae544dc18e06"
     }
   ]
 }

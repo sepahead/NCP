@@ -44,8 +44,14 @@ cargo fmt --all -- --check
 git diff --check
 python3 scripts/gen_diagrams.py --check
 
-step "publication system-design reproduction"
-./scripts/check_ncp_system_design_pdf.sh --cross-toolchain
+step "pinned publication PDF toolchain and system-design reproduction"
+publication_venv="$tmp_dir/publication-venv"
+python3 -m venv "$publication_venv"
+"$publication_venv/bin/python" -m pip install \
+    --disable-pip-version-check --require-hashes --only-binary=:all: \
+    -r scripts/requirements-publication.txt
+NCP_PUBLICATION_PYTHON="$publication_venv/bin/python" \
+    ./scripts/check_ncp_system_design_pdf.sh --cross-toolchain
 
 step "pinned evidence-schema and B01 Python toolchain"
 evidence_schema_venv="$tmp_dir/evidence-schema-venv"
@@ -229,9 +235,20 @@ step "workspace build + tests"
 cargo build --workspace --exclude ncp-python --locked
 cargo test --workspace --exclude ncp-python --locked
 
-step "ncp-core TypeScript generation feature"
-cargo test -p ncp-core --features ts --locked
+step "ncp-core complete feature combination + TypeScript generation"
+cargo test -p ncp-core --all-features --locked
+cargo clippy -p ncp-core --all-targets --all-features --locked -- -D warnings
 node ncp-ts/scripts/sync-bindings.mjs
+
+step "standalone local SDK + installed Python/Rust controls"
+"$evidence_schema_python" -m ruff format --check -- \
+    scripts/check_local_sdk.py scripts/test_local_sdk_gate.py
+"$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+    scripts/check_local_sdk.py scripts/test_local_sdk_gate.py
+"$evidence_schema_python" -m py_compile \
+    scripts/check_local_sdk.py scripts/test_local_sdk_gate.py
+python3 -I scripts/check_local_sdk.py \
+    --python "${NCP_LOCAL_SDK_PYTHON:-python3}"
 
 step "ncp-python type check"
 cargo check -p ncp-python --locked
@@ -356,6 +373,9 @@ HOME="$current_advisory_home" \
     cargo deny --manifest-path "$adr_semantics_manifest" \
         --locked --offline --all-features check --disable-fetch
 HOME="$current_advisory_home" \
+    cargo deny --manifest-path local/rust/Cargo.toml \
+        --locked --offline --all-features check --config "$PWD/deny.toml" --disable-fetch
+HOME="$current_advisory_home" \
     python3 scripts/generate_supply_chain_evidence.py \
         --validate-current-advisories
 find "$current_advisory_home/.cargo/advisory-dbs" \
@@ -375,6 +395,9 @@ HOME="$pinned_advisory_home" \
 HOME="$pinned_advisory_home" \
     cargo deny --manifest-path "$adr_semantics_manifest" \
         --locked --offline --all-features check --disable-fetch
+HOME="$pinned_advisory_home" \
+    cargo deny --manifest-path local/rust/Cargo.toml \
+        --locked --offline --all-features check --config "$PWD/deny.toml" --disable-fetch
 HOME="$pinned_advisory_home" \
     python3 scripts/generate_supply_chain_evidence.py --self-test --check
 

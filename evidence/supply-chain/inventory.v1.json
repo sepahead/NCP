@@ -3,7 +3,287 @@
     {
       "classification": "documentation-asset-or-measurement-input",
       "license_disposition": "MIT OR Apache-2.0 repository material",
-      "path": "assets/logo-dark.svg",
+      "path": "assets/archive/logos/.gitattributes",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "3aeb6677589e6cc3e5cfc0b6e1ddadeb130d909cca98afc59454e12a97c20af1",
+      "size_bytes": 117
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/README.md",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "4f4f5741d314efed99dd77eb7f315ffb10039aafcbde61542e907fff1b952195",
+      "size_bytes": 18066
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/manifest.json",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "fb28061b9cac11c94c29b09c565c9ee7930ca41a068a98cfe5c9aac35d0f1c0d",
+      "size_bytes": 136057
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-04-001-profile-dark-f72cabe648.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "f72cabe648c3acdeb0cc128538ad295487ef72d1867936bc600ded63e2e0d21a",
+      "size_bytes": 2816
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-04-002-profile-light-029cbb4241.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "029cbb4241e25387b93d0df45bf19c069d2895e4318a187318eb3f1fa9b0369f",
+      "size_bytes": 3118
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-10-003-profile-dark-a009fcbcf5.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "a009fcbcf529bf01c8f3591da7ae3f2ce550a9a0a581baa47d53624574a8e0e5",
+      "size_bytes": 2941
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-10-004-profile-light-146277a7ef.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "146277a7ef2169ea1230300bd5baafba4082e7e89e8ea7a71f970633591162ad",
+      "size_bytes": 3290
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-10-005-profile-dark-cc4149151c.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "cc4149151c4309ee3ea0f45c4e3ee062b36040702ae5537be4d1baea9a6d3a78",
+      "size_bytes": 3595
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-10-006-profile-light-575baf848d.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "575baf848d7b05011e412de1e01b6bed078c85b1c8d11f077326f142562678f8",
+      "size_bytes": 4005
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-10-007-profile-dark-88c8b5ecfb.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "88c8b5ecfba32a63fda04f20073bbcee861bcf49a6059f9439b9c788d18f6870",
+      "size_bytes": 4011
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-10-008-profile-light-d52d0a411e.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "d52d0a411eb889ef00f2b4aee906e3886ff818e9d84e32f13ea07270ba83d49a",
+      "size_bytes": 4088
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-12-009-logo-dark-eec607135e.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "eec607135e038b8181b4fafc8ef25a479787f174f6afacc3344aac54f44a7f89",
+      "size_bytes": 19138
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-12-010-logo-light-b4f7eb4c3c.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "b4f7eb4c3c716031d1003027ab36ba7a8b97effe40efd2a2813c531b6768a001",
+      "size_bytes": 20101
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-12-011-profile-dark-bc656fe5ee.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "bc656fe5ee53b77511289af9c0a623da16513ac628010bd2ec9276ded858f967",
+      "size_bytes": 4038
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-12-012-profile-light-af6f85e49a.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "af6f85e49a1a0da1694393f6e482f5c3ccf410531c65245b8a8be42066633b42",
+      "size_bytes": 4115
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-13-013-profile-dark-4174f739ea.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "4174f739ea7dd8ce0eb214b0c3f58d39ef7227ddb24e447eda23f1cbb4bee574",
+      "size_bytes": 4039
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-13-014-profile-light-a3179b6e06.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "a3179b6e060d1bc4c385c3f140fd468740319cf512c8c9c79abe07b14ce34890",
+      "size_bytes": 4116
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-13-015-profile-dark-bacb76c76d.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "bacb76c76d72b6b795c3735c961b6aaf013776cd0cedd44276d62974653e8031",
+      "size_bytes": 4039
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-13-016-profile-light-c9376982fe.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "c9376982fe26f57e362f8a78348e990ad2369db37867b4851f9fd5ac7bb00fb0",
+      "size_bytes": 4116
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-14-017-logo-dark-fac01e94b0.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "fac01e94b0b6bf2d6edda13f48f5c38abdd93d973146e471891fb9acc89bd0ea",
+      "size_bytes": 19139
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-14-018-logo-light-0f0e35073c.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "0f0e35073c321083c22ebbefd82a96e4ccc0e2334ceeaeca66662f919223f57e",
+      "size_bytes": 20102
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-14-019-logo-dark-d80da617da.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "d80da617da74ffd8cf61c5ed87c94ce7f1fa12e60a035ff8a85c258117c63556",
+      "size_bytes": 19135
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-07-14-020-logo-light-456fe0b031.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "456fe0b031dbde37c9c5948c1b630b4b679e1b336d45746b7d12d9d71fce3d0b",
+      "size_bytes": 20098
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-06-021-logo-dark-ff20b0ce3f.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "ff20b0ce3fcfc6746ce955b740ae3f1109ec3f83e0b4f79055f5574f55f8867a",
+      "size_bytes": 19480
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-06-022-logo-light-01c58a0045.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "01c58a004567398be9b292f600ea24ebc6cc903d3e177d245ccfa1fccb0cbf63",
+      "size_bytes": 20443
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-023-profile-dark-35f38c39f0.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "35f38c39f0c3985fdd1721dcdbbc492f7ee59b3c7d301f195fa6951dc4791718",
+      "size_bytes": 3962
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-024-profile-dark-0d23687278.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "0d23687278a7ea215a742e0fbe4559adb70a97aea9b58b5fad5b6f3fe5a5372f",
+      "size_bytes": 6617
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-025-logo-dark-5968ee615d.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "5968ee615da9d3ad3c1b43b933f9ff079a36da2e0e4c6ccc7d92e99bd0dec640",
+      "size_bytes": 24035
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-026-logo-light-b252938b88.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "b252938b88bb598ba0e45126807a01907bfc7551c4966ff299c817b95d51658d",
+      "size_bytes": 25203
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-027-logo-dark-45a737d3aa.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "45a737d3aa38d6abee3ac25fbba3c6fc64499400ce6ac2b80e2203e77c7b4920",
+      "size_bytes": 28028
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-028-logo-light-ad685bc5f2.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "ad685bc5f240bd437b438268070fef5da69de1844a1bb2b7e70b71be6fc13ee0",
+      "size_bytes": 29196
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-029-profile-dark-b27f3329ae.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "b27f3329ae5440398f5ca6cba6392156db5dbf8d29896d1b6674e5c87b5f226c",
+      "size_bytes": 8819
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-030-profile-dark-268efd1c9a.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "268efd1c9a6ff435c442b9325f1f4e585b5565a9d6393bd127c9a5b5b1a0fb0a",
+      "size_bytes": 6022
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-031-logo-dark-1b7ef40806.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "1b7ef408064ee52246e1d18b7993408a82c8121978efaba3662fd51710f8e781",
+      "size_bytes": 24726
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-20-032-logo-light-3ceaf98015.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "3ceaf9801567c0d8904fd0b2a99ea50ea436e0489e14c0d4de658c88a88b9596",
+      "size_bytes": 25894
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-08-28-033-logo-dark-585ca277f1.svg",
       "provenance": "tracked repository source or reproducible generated output",
       "sha256": "585ca277f15f0b6f58d4782fcb498aae3d65c7ea55f555d947f84c6444a3d0f7",
       "size_bytes": 24902
@@ -11,10 +291,106 @@
     {
       "classification": "documentation-asset-or-measurement-input",
       "license_disposition": "MIT OR Apache-2.0 repository material",
-      "path": "assets/logo-light.svg",
+      "path": "assets/archive/logos/ncp/2026-08-28-034-logo-light-bdf9b3a9b0.svg",
       "provenance": "tracked repository source or reproducible generated output",
       "sha256": "bdf9b3a9b04be3306ef3e6d0b7fa3376abeb2ce92ed569a6daada0a8a2fae89f",
       "size_bytes": 26070
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-05-035-profile-dark-b313c28e8d.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "b313c28e8d54b1f965831ef60d9b7586fad9233a1542eb972184302c74c7d43c",
+      "size_bytes": 5966
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-05-036-profile-dark-5a068d3338.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "5a068d3338d792594532b141f2dd0a8fdbbd3d1c4514d0190704257960fdc939",
+      "size_bytes": 6022
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-07-037-logo-dark-6d175501f8.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "6d175501f8f4a4f88ed94a90c45e814aab655a3b0d377d59d337695b4b0963ed",
+      "size_bytes": 7215
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-07-038-profile-dark-8dae5f8ba9.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "8dae5f8ba9f77cd95851321b1d33da456927f8086cbec3ef60187105a06bee7b",
+      "size_bytes": 5510
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-07-039-logo-dark-09e8843fb7.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "09e8843fb79516a3928bb5b3076ead32349eb8a8a024f8ccfbea1bc79a1cfba2",
+      "size_bytes": 4945
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-07-040-profile-dark-8951acf890.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "8951acf890589edc5ffe480e33d67a0f47623139c1fd29e02615f5c5bc0e6751",
+      "size_bytes": 6752
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-07-041-logo-dark-6fa03f6532.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "6fa03f65321eedef0c49ffdf9f2807c7628f9eda2949c9088de5e489c22df308",
+      "size_bytes": 6183
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-07-042-logo-dark-7138b51591.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "7138b51591f780c9474b543fb4df4445b4c5d17a0638550cb0ed54af60e7f2a9",
+      "size_bytes": 7524
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-07-043-profile-dark-f93ac1c321.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "f93ac1c321b69144bdd56a2a51dcb07b4920763f4a2507e4f3c37155753da2fa",
+      "size_bytes": 8106
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/archive/logos/ncp/2026-09-07-044-profile-dark-4c07906e6d.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "4c07906e6de92e0d7ebfdc1ebfd34927806bb2bee1fb6026ba9fea2f67ae3a05",
+      "size_bytes": 7795
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/logo-dark.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "8f9dd6a369a1455729f935838462a4586f16ffa4d515deb3a9d598388663e9bb",
+      "size_bytes": 7252
+    },
+    {
+      "classification": "documentation-asset-or-measurement-input",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "assets/logo-light.svg",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "8f9dd6a369a1455729f935838462a4586f16ffa4d515deb3a9d598388663e9bb",
+      "size_bytes": 7252
     },
     {
       "classification": "conformance-fixture",
@@ -2216,14 +2592,14 @@
         "docs/diagrams/*.svg"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "f9426264062554a9cbbefec91f2f2c40019103b9b29124571c1a0a56a2a9f9f0"
+      "sha256": "7d58b30e3efc5d9ff5a82878b4a55480263fb614bf1f3cf5be27b69ed572926b"
     },
     {
       "outputs": [
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "3750bce592b7838073daa9c6f957e9281de6f9928e19607da60b07550da2b68c"
+      "sha256": "e9b49edf8fd712593d194f607de80ba973960dcc0bb1458160712ef9619a30c0"
     },
     {
       "outputs": [
@@ -2281,7 +2657,7 @@
         "docs/implementation/NCP_1_0_RESUMPTION.md"
       ],
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "c56428289978396ddeea8127f98ac81c05b5ac0e93605fbbf1b16e0d2a87f991"
+      "sha256": "b2db512d86b36d954172624fa44e52417b0151af2b6fe9c5ceb24147dcc36c73"
     },
     {
       "outputs": [
@@ -2323,7 +2699,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "eae9d807d94fae1f87a0d0cf646ca9e8bd996cbd57f880a0e249e59faf2fe9cc"
+      "sha256": "b6886dec4b7abaa6640719413995f262a3d6edc98e0b1165fe758f123dca7d85"
     },
     {
       "outputs": [
@@ -2335,15 +2711,28 @@
     {
       "outputs": [
         "local/rust/src/{local,local_data,bounded_json,canonical_digest}.rs",
+        "local/rust/src/{modular_buffer,modular_wire,modular_owner,modular_client}.rs",
+        "local/rust/src/modular_profile.v1.json",
         "local/rust/local-profile.v1.json",
         "local/rust/tests/{local,local_binary64,local_profile_contract}.rs",
+        "local/rust/tests/{modular_buffer,modular_wire,modular_owner}.rs",
         "local/rust/tests/fixtures/{local-profile-identity,local-binary64}.json",
+        "local/rust/tests/fixtures/modular-binary64.json",
+        "local/rust/tests/support/modular_fixture.rs",
         "local/rust/examples/local_contract_probe.rs",
+        "local/rust/examples/{modular_buffer_probe,modular_owner_probe}.rs",
         "local/rust/LICENSE-{MIT,APACHE}",
         "local/rust/source-projection.v1.json"
       ],
       "path": "scripts/project_local_rust.py",
-      "sha256": "8b9a80b016b8ae4fddb05e30fadf45e38dd2f2c15097a43401382517ec853aab"
+      "sha256": "56a3d1c659bdc9462336f6f725d35c9a1db1e45fb0c3e69a6a65d441ca3fc106"
+    },
+    {
+      "outputs": [
+        "local/python/ncp_local/modular_profile.py"
+      ],
+      "path": "scripts/project_modular_profile.py",
+      "sha256": "998bf02f6eb467be34c30c04ef8cfab8e6356bf8b3673efddb87d9a03602530f"
     },
     {
       "outputs": [
@@ -2521,6 +2910,11 @@
         "workflow": ".github/workflows/ci.yml"
       },
       {
+        "action": "actions/checkout",
+        "revision": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
         "action": "actions/setup-node",
         "revision": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
         "workflow": ".github/workflows/ci.yml"
@@ -2558,11 +2952,31 @@
       {
         "action": "actions/setup-python",
         "revision": "ece7cb06caefa5fff74198d8649806c4678c61a1",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/setup-python",
+        "revision": "ece7cb06caefa5fff74198d8649806c4678c61a1",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/upload-artifact",
+        "revision": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
         "workflow": ".github/workflows/ci.yml"
       },
       {
         "action": "bufbuild/buf-action",
         "revision": "8c6a16e16f12ba20b6470afa9c2ba9b5ba8c97c3",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "dtolnay/rust-toolchain",
+        "revision": "4be7066ada62dd38de10e7b70166bc74ed198c30",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "dtolnay/rust-toolchain",
+        "revision": "4be7066ada62dd38de10e7b70166bc74ed198c30",
         "workflow": ".github/workflows/ci.yml"
       },
       {

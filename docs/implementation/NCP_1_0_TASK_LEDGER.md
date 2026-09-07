@@ -1942,6 +1942,21 @@ The evidence commit directly follows its source. Its delta contains only listed 
 The focused result and portable preflight output bind the source cut.
 Preflight requires a clean tracked and untracked-nonignored worktree.
 The index must equal the source tree and use only normal index flags.
+Raw index policy `NCP_B05_ORDINARY_RAW_INDEX_V1` checks captured bytes before Git refreshes its view.
+It admits versions 2, 3, and 4 with the repository's explicit SHA-1 or SHA-256 storage format.
+It checks the complete nonzero checksum, entry framing, flags, paths, compression, padding, and extension framing.
+The limits are 16 MiB of raw bytes, 100,000 entries, 4,096 bytes per path, and 16 MiB of expanded paths.
+Only `TREE`, `REUC`, and `UNTR` extensions are permitted as opaque optional caches.
+These caches cannot replace the independently checked entry roster or its join to Git and the source tree.
+Every `FSMN` extension requires ordinary-index normalization, including an all-dirty bitmap with no valid entries.
+Clearing `fsmonitor-valid` alone does not satisfy this policy.
+Disable the monitor and use `git -c core.fsmonitor=false update-index --no-fsmonitor` before the gate.
+The policy also rejects split indexes, sparse indexes, `EOIE`, `IEOT`, duplicate extensions, and unknown extensions.
+No-follow bounded capture brackets each Git observation with file-identity and exact-byte checks.
+Portable metadata binds each capture without exposing the host's index path.
+These checks detect observed changes; they do not attest every concurrent filesystem action.
+Stat timestamps alone cannot prove that no same-inode write occurred.
+A byte change restored between complete observations can remain undetected.
 A hash-bound canonical runner uses Python isolated mode.
 The runner passes immutable gate text to explicit system Bash.
 It never reopens the gate pathname during execution.

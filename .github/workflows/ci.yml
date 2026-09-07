@@ -73,6 +73,12 @@ jobs:
           "$evidence_schema_python" scripts/generate_decision_registry.py \
             --self-test --check
           "$evidence_schema_python" -m ruff format --check -- \
+            scripts/check_local_sdk.py scripts/test_local_sdk_gate.py
+          "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
+            scripts/check_local_sdk.py scripts/test_local_sdk_gate.py
+          "$evidence_schema_python" -m py_compile \
+            scripts/check_local_sdk.py scripts/test_local_sdk_gate.py
+          "$evidence_schema_python" -m ruff format --check -- \
             scripts/generate_b01_review_request.py scripts/immutable_git.py
           "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
             scripts/generate_b01_review_request.py scripts/immutable_git.py
@@ -204,6 +210,7 @@ jobs:
             librsvg2-bin \
             lmodern \
             poppler-utils \
+            python3-venv \
             texlive-latex-base \
             texlive-latex-extra \
             texlive-latex-recommended
@@ -211,10 +218,17 @@ jobs:
       - name: Verify generated SVGs
         run: python3 scripts/gen_diagrams.py --check
 
-      # Distribution TeX and librsvg versions can encode different PDF object
-      # metadata and insignificant extraction whitespace. This mode still rejects
-      # warnings, missing fonts, wrong page geometry, missing equations, changed
-      # pagination, and any canonical per-page text difference.
+      - name: Prepare pinned publication PDF parser
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ncp-publication-venv"
+          "$RUNNER_TEMP/ncp-publication-venv/bin/python" -m pip install \
+            --disable-pip-version-check --require-hashes --only-binary=:all: \
+            -r scripts/requirements-publication.txt
+          echo "NCP_PUBLICATION_PYTHON=$RUNNER_TEMP/ncp-publication-venv/bin/python" >> "$GITHUB_ENV"
+
+      # Preserve body/math lexical boundaries and ordered source-bound diagrams.
+      # Require exact figure placement, page count, geometry, and source identity.
+      # Cross-toolchain extraction does not prove visual equality.
       - name: Rebuild and compare the system-design PDF
         run: ./scripts/check_ncp_system_design_pdf.sh --cross-toolchain
 
@@ -318,7 +332,8 @@ jobs:
       # Regenerate + ensure the TS bindings build (ncp-core `ts` feature).
       - name: Test ncp-core with TS bindings
         run: |
-          cargo test -p ncp-core --features ts --locked
+          cargo test -p ncp-core --all-features --locked
+          cargo clippy -p ncp-core --all-targets --all-features --locked -- -D warnings
           # ts-rs 12 leaves spaces before some doc-driven line breaks. The
           # checked-in generator bridge normalizes those bytes and mirrors the
           # exact result into the package before either surface is compared.
@@ -370,6 +385,45 @@ jobs:
         run: |
           cargo run -q -p ncp-core --features schema --bin gen-schemas -- "${RUNNER_TEMP:-/tmp}/ncp-schemas-fresh"
           diff -ru "${RUNNER_TEMP:-/tmp}/ncp-schemas-fresh" schemas/ -x README.md
+
+  local-sdk:
+    name: standalone local SDK + installed cross-language controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact source and historical reference
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Python at the SDK minimum version
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.11"
+      - name: Install SDK test compiler
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Install SDK minimum Rust compiler
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30
+        with:
+          toolchain: "1.88.0"
+          components: rustfmt, clippy
+      - name: Standalone source, packages, installed SDK and mandatory probes
+        run: TMPDIR="$RUNNER_TEMP" python3 -I scripts/check_local_sdk.py --python python3
+      - name: Retain failed SDK gate diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: local-sdk-gate-diagnostics
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/ncp-local-sdk-*/command-*.log
+            ${{ runner.temp }}/ncp-local-sdk-*/command-*.json
+            ${{ runner.temp }}/ncp-local-sdk-*/source-before.json
+      # Current and pinned standalone policy run in the cargo-deny job.
+      # Passing this source job grants no installed-application or release authority.
 
   ncp-python:
     name: ncp-python (maturin build + behavioral gate)
@@ -598,6 +652,7 @@ jobs:
           test "$(cargo deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
           cargo fetch --locked
           cargo fetch --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" --locked
+          cargo fetch --manifest-path local/rust/Cargo.toml --locked
       # The current database gate detects newly applicable findings. A local clone
       # is then rewound to the evidence-pinned revision for deterministic byte
       # replay and the repo-less Git-archive preflight.
@@ -615,6 +670,9 @@ jobs:
           HOME="$current_home" \
             cargo deny --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" \
               --locked --offline --all-features check --disable-fetch
+          HOME="$current_home" \
+            cargo deny --manifest-path local/rust/Cargo.toml \
+              --locked --offline --all-features check --config "$PWD/deny.toml" --disable-fetch
           HOME="$current_home" \
             python3 scripts/generate_supply_chain_evidence.py \
               --validate-current-advisories
@@ -635,6 +693,9 @@ jobs:
           HOME="$pinned_home" \
             cargo deny --manifest-path "$B01_ADR_SEMANTICS_MANIFEST" \
               --locked --offline --all-features check --disable-fetch
+          HOME="$pinned_home" \
+            cargo deny --manifest-path local/rust/Cargo.toml \
+              --locked --offline --all-features check --config "$PWD/deny.toml" --disable-fetch
           HOME="$pinned_home" \
             python3 scripts/generate_supply_chain_evidence.py --self-test --check
           python3 scripts/check_dependency_exposure.py --self-test

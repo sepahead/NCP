@@ -322,9 +322,9 @@
   },
   "inputs": {
     "bounded_json_reader": {
-      "bytes": 51681,
+      "bytes": 70079,
       "path": "scripts/bounded_json.py",
-      "sha256": "33599371dea7a30b157ac730db8012654707c926e8537c571e6c29b96ac00168"
+      "sha256": "33ee040f016bcbc8f76b85a42fc18f6c33500e7b8a95245c1e6f32a1894eb7f9"
     },
     "decision_registry_generator": {
       "bytes": 256310,

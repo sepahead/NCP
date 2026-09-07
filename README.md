@@ -170,6 +170,7 @@ Measured timing and resource results must state their exact host, workload, and 
 - [Broad candidate security contract](SECURITY.md)
 - [Broad candidate release ledger](RELEASE_READINESS.md)
 - [Frozen wire-0.8 baseline](docs/0.8-current-baseline.md)
+- [System-design PDF build and comparison](docs/publication/README.md)
 - [Documentation style](DOCUMENTATION_STYLE.md)
 - [Contribution workflow](CONTRIBUTING.md)
 - [Versioning policy](VERSIONING.md)

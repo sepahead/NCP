@@ -10,3 +10,7 @@ pub mod bounded_json;
 mod canonical_digest;
 pub mod local;
 pub mod local_data;
+pub mod modular_buffer;
+pub mod modular_client;
+pub mod modular_owner;
+pub mod modular_wire;

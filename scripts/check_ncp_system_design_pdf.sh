@@ -244,71 +244,13 @@ case "$MODE" in
             echo "NCP system-design PDF check: committed PDF is missing" >&2
             exit 1
         fi
-        pdftotext -layout "$ROOT/$COMMITTED" "$BUILD_DIR/committed.txt"
-        # TeX and Poppler releases can change horizontal padding and page-break
-        # placement. Preserve global text order and every non-whitespace code
-        # point. Require the same nonempty page count and A4 geometry separately.
-        # This mode does not prove visual equality or per-page text equality.
-        # Same-toolchain --check remains byte-exact.
-        python3 - "$BUILD_DIR/built.txt" "$BUILD_DIR/committed.txt" <<'PY'
-import re
-import sys
-from pathlib import Path
-
-
-def canonical_text(text: str, label: str) -> tuple[int, str]:
-    pages = text.split("\f")
-    if pages and not pages[-1].strip():
-        pages.pop()
-    if not pages:
-        raise SystemExit(f"NCP system-design PDF check: {label} has no pages")
-    canonical_pages: list[str] = []
-    for page_number, page in enumerate(pages, start=1):
-        if "\ufffd" in page:
-            raise SystemExit(
-                f"NCP system-design PDF check: {label} contains a replacement "
-                f"character on page {page_number}"
-            )
-        canonical_page = re.sub(r"\s+", " ", page).strip()
-        if not canonical_page:
-            raise SystemExit(
-                f"NCP system-design PDF check: {label} contains an empty page "
-                f"at page {page_number}"
-            )
-        canonical_pages.append(canonical_page)
-    return len(pages), " ".join(canonical_pages)
-
-
-def canonical_document(path: Path) -> tuple[int, str]:
-    return canonical_text(path.read_text(encoding="utf-8"), str(path))
-
-
-reflow_left = canonical_text("alpha beta\fgamma delta\f", "reflow left")
-reflow_right = canonical_text("alpha\fbeta gamma delta\f", "reflow right")
-if reflow_left != reflow_right:
-    raise SystemExit("NCP system-design PDF check: page-reflow control failed")
-for hostile in (
-    "alpha beta\fgamma epsilon\f",
-    "beta alpha\fgamma delta\f",
-):
-    if canonical_text(hostile, "hostile control") == reflow_left:
-        raise SystemExit(
-            "NCP system-design PDF check: canonical-text negative control failed"
-        )
-
-
-built_pages, built_text = canonical_document(Path(sys.argv[1]))
-committed_pages, committed_text = canonical_document(Path(sys.argv[2]))
-if built_pages != committed_pages:
-    raise SystemExit(
-        "NCP system-design PDF check: extracted page counts differ "
-        f"({built_pages} rebuilt, {committed_pages} committed)"
-    )
-if built_text != committed_text:
-    raise SystemExit(
-        "NCP system-design PDF check: ordered canonical extracted text differs"
-    )
-PY
+        # Body/math retain lexical boundaries. Each complete diagram Form joins
+        # its ordered SVG glyph roster. Same-toolchain --check stays byte-exact.
+        publication_python="${NCP_PUBLICATION_PYTHON:-python3}"
+        "$publication_python" "$ROOT/scripts/test_publication_pdf_text.py"
+        "$publication_python" "$ROOT/scripts/check_publication_pdf_text.py" \
+            "$BUILT" "$ROOT/$COMMITTED" "$ROOT/$SOURCE" \
+            "$ROOT/docs/diagrams" "${figures[@]}"
         pdfinfo "$BUILT" | grep -E '^(Pages|Page size):' >"$BUILD_DIR/built.info"
         pdfinfo "$ROOT/$COMMITTED" | grep -E '^(Pages|Page size):' \
             >"$BUILD_DIR/committed.info"

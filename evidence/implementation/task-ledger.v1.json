@@ -266,11 +266,11 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "c89fbf87314c50c04193e6a433efd44f77ae0b4bad3b94115b1c6187cab66180"
+      "sha256": "31bb2fd4cf99ed2eb054764543a0f360cd3ab309769aa2e0f8509eba0d23b62c"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
-      "sha256": "c56428289978396ddeea8127f98ac81c05b5ac0e93605fbbf1b16e0d2a87f991"
+      "sha256": "b2db512d86b36d954172624fa44e52417b0151af2b6fe9c5ceb24147dcc36c73"
     },
     {
       "path": "evidence/implementation/task-ledger.schema.v1.json",
@@ -290,7 +290,7 @@
     },
     {
       "path": "scripts/run_b05_preflight.py",
-      "sha256": "0ff3e82aeca9807d698c263ff74dbda8e7015e49e4da40125db9c5948f4f7ef5"
+      "sha256": "6c6bb4e7f6825fde4d29544ceb502754ebec9b5ede6962071421df1705b1dbe6"
     }
   ],
   "ledger_grants_release_authorization": false,

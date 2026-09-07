@@ -1,0 +1,406 @@
+{
+  "schema": "ncp.modular.owner-contract.v1",
+  "identity": "normative-contract-v1",
+  "qualification_status_is_external": true,
+  "shape_language": "closed named types with installed application slots; not executable JSON Schema",
+  "request_schema": "ncp.modular.request.v1",
+  "response_schema": "ncp.modular.response.v1",
+  "digest": {
+    "domains": [
+      "ncp.modular.profile.v1",
+      "ncp.modular.request.v1",
+      "ncp.modular.response.v1"
+    ],
+    "terminal_domain_byte": 0,
+    "tags": {
+      "null": 0,
+      "false": 1,
+      "true": 2,
+      "binary64": 3,
+      "utf8": 4,
+      "array": 5,
+      "object": 6
+    },
+    "lengths": "u64 big endian",
+    "number": "finite IEEE754 binary64 bits, big endian; signed zero preserved",
+    "object_order": "unsigned UTF8 byte order",
+    "omission": "only the enclosing request_digest or result_digest field; no descriptor omission",
+    "algorithm": "SHA-256, lowercase hexadecimal"
+  },
+  "bounds": {
+    "frame_bytes": 65536,
+    "framing_prefix_bytes": 4,
+    "chunk_bytes": 32768,
+    "buffer_bytes": 8388608,
+    "endpoint_payload_bytes": 67108864,
+    "composition_payload_bytes": 268435456,
+    "endpoints": 16,
+    "combined_buffer_slots": 24,
+    "incomplete_import_slots": 12,
+    "byte_manifest_encoded_bytes": 4096,
+    "semantic_digest_slots": 64,
+    "maximum_sequence_and_buffer_id": 9007199254740991,
+    "core_logical_metadata_bytes": 131072,
+    "import_metadata_record_encoded_bytes": 1024,
+    "import_metadata_slots": 24,
+    "additional_import_metadata_logical_bytes": 32768,
+    "client_frame_extents": 6,
+    "client_parsed_extents": 3,
+    "client_fixed_state_logical_bytes": 4096,
+    "additional_client_logical_bytes": 1085440,
+    "sixteen_clients_additional_logical_bytes": 17367040,
+    "retained_frames": 1,
+    "ingress_frames": 1,
+    "output_staging_frames": 1,
+    "egress_verification_frame_extents": 1,
+    "digest_projection_bytes": 131072,
+    "digest_sort_scratch_bytes": 130048,
+    "chunk_scratch_bytes": 32768,
+    "parsed_encoded_extent_each": 65536,
+    "endpoint_logical_working_extent_excluding_payload": 1261568,
+    "sixteen_endpoint_logical_working_extent_excluding_payload": 20185088,
+    "process_rss_claim": false,
+    "input_spec_encoded_bytes": 256,
+    "input_spec_slots": 24,
+    "additional_input_metadata_logical_bytes": 16384,
+    "owner_frame_extents": 6,
+    "framing_conversion_frame_extents": 2,
+    "parsed_value_extents": 3,
+    "decoded_source_utf8_bytes": 65536,
+    "scanner_token_utf8_bytes": 131072,
+    "scalar_base64_utf8_bytes": 131072
+  },
+  "lexical": {
+    "duplicate_decoded_keys": "reject before object materialization",
+    "invalid_unicode": "reject",
+    "trailing_bytes": "reject",
+    "integer_identity_tokens": "exact positive JSON integers; reject floating spellings, booleans and negative zero",
+    "nesting_depth": 32,
+    "objects": 4096,
+    "arrays": 4096,
+    "total_members": 16384,
+    "total_array_items": 262144,
+    "object_members": 4096,
+    "array_items": 65536,
+    "key_utf8_bytes": 128,
+    "string_utf8_bytes": 65536,
+    "total_string_utf8_bytes": 1048576,
+    "finite_number_magnitude": 1e+300
+  },
+  "all_shapes_closed": true,
+  "binding": {
+    "profile_digest": "digest of exact installed core descriptor",
+    "application_digest": "digest of exact installed application descriptor",
+    "run_id": "canonical lowercase UUIDv4",
+    "endpoint_id": "canonical lowercase UUIDv4",
+    "generation": "fresh canonical lowercase UUIDv4"
+  },
+  "application_slots": [
+    "Prepare",
+    "Command",
+    "ImportDescriptor",
+    "ImportMetadata",
+    "Finish",
+    "Result",
+    "Imported",
+    "Terminal"
+  ],
+  "application_dispatch": "statically installed closed types and validators; no peer schema, path, import, callable or method selection",
+  "buffer_types": {
+    "BufferRef": {
+      "generation": "canonical lowercase UUIDv4",
+      "buffer_id": "positive safe integer"
+    },
+    "BufferChunk": {
+      "schema": "ncp.modular.buffer-chunk.v1",
+      "manifest_digest": "SHA256",
+      "index": "integer0 through255",
+      "offset": "index times32768",
+      "decoded_length": "integer1 through32768",
+      "chunk_sha256": "SHA256 of exact decoded bytes",
+      "data_base64": "standard padded RFC4648 alphabet; exact reencoding; zero unused padding bits"
+    },
+    "BufferManifest": {
+      "schema": "ncp.modular.buffer-manifest.v1",
+      "binding": "BufferBinding",
+      "buffer_id": "positive safe integer",
+      "creating_request_digest": "SHA256",
+      "causal_predecessor": "null or SHA256",
+      "semantic_digest": "one of the fixed installed semantic digest roster",
+      "byte_length": "integer1 through8388608",
+      "payload_sha256": "SHA256 of exact owned complete payload",
+      "chunk_bytes": 32768,
+      "chunk_count": "ceiling(byte_length/32768)",
+      "imported_manifest_digest": "null or exact source BufferManifest digest",
+      "manifest_digest": "typed hash under ncp.modular.buffer-manifest.v1 followed by NUL, omitting only this field"
+    },
+    "typed_payload_boundary": "A separate installed application type binds the exact byte-manifest digest, dtype, shape, layout, units and source clock before import allocation. Byte semantic-digest membership alone does not validate these fields."
+  },
+  "request_fields": [
+    "schema",
+    "binding",
+    "sequence",
+    "command",
+    "request_digest"
+  ],
+  "command_tag": "kind",
+  "command_arms": {
+    "execute": [
+      "kind",
+      "expected_predecessor_result_digest",
+      "operation"
+    ],
+    "result": [
+      "kind",
+      "original_request_digest"
+    ],
+    "ack": [
+      "kind",
+      "original_request_digest",
+      "result_digest"
+    ]
+  },
+  "operation_fields": [
+    "kind",
+    "data"
+  ],
+  "operation_arms": {
+    "prepare": "Application.Prepare",
+    "application": "Application.Command",
+    "buffer_import_begin": "Application.ImportDescriptor",
+    "buffer_append": {
+      "reference": "BufferRef",
+      "chunk": "BufferChunk"
+    },
+    "buffer_seal": {
+      "reference": "BufferRef",
+      "expected_import_request_digest": "lowercase SHA-256 digest",
+      "expected_source_manifest_digest": "lowercase SHA-256 digest"
+    },
+    "buffer_abort": {
+      "reference": "BufferRef"
+    },
+    "buffer_read": {
+      "reference": "BufferRef",
+      "expected_manifest_digest": "lowercase SHA-256 digest",
+      "index": "bounded exact nonnegative integer"
+    },
+    "buffer_release": {
+      "reference": "BufferRef"
+    },
+    "finish": "Application.Finish",
+    "abort": {}
+  },
+  "response_fields": [
+    "schema",
+    "binding",
+    "sequence",
+    "operation",
+    "request_digest",
+    "outcome",
+    "code",
+    "body",
+    "result_digest"
+  ],
+  "response_body_tag": "kind",
+  "response_body_arms": {
+    "prepared": {
+      "data": "Application.Result"
+    },
+    "application": {
+      "data": "Application.Result"
+    },
+    "import_reserved": {
+      "reference": "BufferRef"
+    },
+    "import_sealed": {
+      "manifest": "BufferManifest",
+      "data": "Application.Imported"
+    },
+    "chunk": {
+      "data": "BufferChunk"
+    },
+    "buffer_changed": {
+      "reference": "BufferRef"
+    },
+    "finished": {
+      "data": "Application.Terminal"
+    },
+    "aborted": {},
+    "rejected": {},
+    "not_admitted": {},
+    "indeterminate": {
+      "reason": [
+        "backend",
+        "invalid_output",
+        "internal"
+      ]
+    },
+    "unavailable": {},
+    "acknowledged": {
+      "stamp": {
+        "sequence": "positive safe integer",
+        "original_request_digest": "SHA256",
+        "result_digest": "SHA256"
+      }
+    }
+  },
+  "outcome_codes": {
+    "committed": [
+      "ok"
+    ],
+    "rejected_before_execution": [
+      "role",
+      "state",
+      "invalid_input",
+      "capacity",
+      "buffer_unavailable"
+    ],
+    "not_admitted": [
+      "conflict",
+      "result_pending"
+    ],
+    "indeterminate": [
+      "execution_unknown"
+    ],
+    "unavailable": [
+      "no_matching_retained_result"
+    ],
+    "acknowledged": [
+      "result_released"
+    ]
+  },
+  "response_dispositions": {
+    "committed": {
+      "operation_bodies": {
+        "prepare": "prepared",
+        "application": "application",
+        "buffer_import_begin": "import_reserved",
+        "buffer_append": "buffer_changed",
+        "buffer_seal": "import_sealed",
+        "buffer_abort": "buffer_changed",
+        "buffer_read": "chunk",
+        "buffer_release": "buffer_changed",
+        "finish": "finished",
+        "abort": "aborted"
+      }
+    },
+    "rejected_before_execution": {
+      "operations": [
+        "prepare",
+        "application",
+        "buffer_import_begin",
+        "buffer_append",
+        "buffer_seal",
+        "buffer_abort",
+        "buffer_read",
+        "buffer_release",
+        "finish",
+        "abort"
+      ],
+      "body": "rejected"
+    },
+    "not_admitted": {
+      "operations": [
+        "prepare",
+        "application",
+        "buffer_import_begin",
+        "buffer_append",
+        "buffer_seal",
+        "buffer_abort",
+        "buffer_read",
+        "buffer_release",
+        "finish",
+        "abort",
+        "ack"
+      ],
+      "body": "not_admitted"
+    },
+    "indeterminate": {
+      "operations": [
+        "prepare",
+        "application",
+        "buffer_import_begin",
+        "buffer_append",
+        "buffer_seal",
+        "buffer_abort",
+        "buffer_read",
+        "buffer_release",
+        "finish",
+        "abort"
+      ],
+      "body": "indeterminate"
+    },
+    "unavailable": {
+      "operations": [
+        "prepare",
+        "application",
+        "buffer_import_begin",
+        "buffer_append",
+        "buffer_seal",
+        "buffer_abort",
+        "buffer_read",
+        "buffer_release",
+        "finish",
+        "abort",
+        "result",
+        "ack"
+      ],
+      "body": "unavailable"
+    },
+    "acknowledged": {
+      "operations": [
+        "ack"
+      ],
+      "body": "acknowledged"
+    }
+  },
+  "semantic_assertions": {
+    "identity": "Complete fixed installed binding and typed digest precede any correlated response.",
+    "outgoing_identity": "Before committed publication, reopen exact staged bytes with installed output codecs, compare original Rust output structurally, and rejoin the complete typed digest. Reject nonfinite-to-null, dropped fields, value normalization, or type drift after execution with indeterminate retirement. Custom serializers, equality and decoders are trusted application code, not host attestation.",
+    "decoded_identity": "Installed typed decoding must reproduce the verified complete typed digest. Missing fields, dropped fields, aliases, or changed values grant no execution or response authority.",
+    "seal_content_joins": "Seal requests bind caller-known import request and source manifest digests. Both must match the retained receiver manifest before promotion and in independent response verification. The sealed result contains that exact core manifest. These joins do not authenticate a producer or establish scientific validity.",
+    "unbound_failure": "Malformed or unbound input closes the channel with local evidence only, never fabricated correlation.",
+    "replay_precedence": "Exact owed sequence and request digest return retained wire before current predecessor, lifecycle, prefix or handle checks.",
+    "sequence": "Only the next unused positive safe sequence executes; no wrap, reuse, gap or same-generation restart.",
+    "predecessor": "Every admitted operation, including buffer reads and releases, advances the endpoint result head; query and ACK do not.",
+    "role": "One installed application fixes role and allowed operations for the generation. Only that fixed policy emits a role rejection; a validator cannot redefine it through an error code.",
+    "local_reservation": "Resolve exact sealed local input references and manifest digests and reserve bounded input metadata, outputs/imports and response storage before execution; failed admission consumes no sequence or buffer ID.",
+    "external_reservation": "Storage, process or remote reservation is an explicit receipted installed operation, never hidden pure admission.",
+    "unknown_cleanup": "Failed or unknown cleanup retires; it cannot be a clean rejection or capacity-release proof.",
+    "retained_outcome": "One exact complete response remains owed until matching ACK; no other operation executes meanwhile.",
+    "lookup": "Successful lookup returns original retained wire; unavailable grants no historical execution or release claim.",
+    "ack": "Exact ACK frees only retained wire. One fixed current stamp supports healthy direct repeats and never frees buffers.",
+    "ack_expiration": "A newer owed result preserves the prior stamp; a newer successful ACK replaces it.",
+    "retirement": "Panic, invalid postexecution output, overflow or unknown effect consumes the operation and retires with indeterminate or unresolved evidence.",
+    "channel": "EOF, timeout, partial frame or failed read/write retires the channel. No reconnect, crash resume or transport retry follows that boundary.",
+    "rejection_client": "Only matching verified clean preexecution rejection clears pending without ACK, preserving sequence and head.",
+    "buffer_lifetime": "Producer buffers, receiver assemblies and output tickets share bounded slots/bytes; producer and receiver budgets count independently.",
+    "buffer_context": "Creation identity derives from the owner's verified request, never peer-body identity. Enclosing result digest is excluded to avoid cycles.",
+    "typed_metadata": "Owned bounded immutable metadata binds exact source byte-manifest and complete typed descriptor digests; reserve it before promotion.",
+    "read_manifest_join": "Read requests bind the caller-held manifest digest. Admission joins it to the live handle, and response verification requires exact chunk agreement. This does not authenticate the producer.",
+    "seal": "Pure complete-byte and scalar validation precedes sequence consumption; failure retains incomplete capacity for explicit abort.",
+    "finish": "Zero input/output demand and empty pool/imports/tickets before entry and after terminal validation. No fresh terminal buffers or deleted durable evidence.",
+    "completion": "All selected participant and promised-output obligations remain required; scientific acceptance is separate from structural completion.",
+    "reference_compatibility": "The previous local reference descriptor, envelopes and behavior remain unchanged. This is not NCP wire 2.",
+    "selected_input": "Input views expose only the preadmitted exact sealed roster during entered synchronous execution. Generation, live membership, manifest digest, duplicates and capacity are checked before effect. These joins do not authenticate an imported producer. Ignored input-use errors still cause indeterminate retirement.",
+    "logical_accounting": "Six frame extents, three source/compact-JSON parsed extents, explicit Unicode/scanner/base64 scratch, bounded metadata and chunk extents are conservative logical admission charges. They are not backing allocation, application-object, allocator, RSS or host-attestation guarantees; see local/modular/owner.md phase map."
+  },
+  "local_execution": {
+    "AdmissionDemand": {
+      "inputs": "zero through24 unique InputSpec values",
+      "outputs": "zero through24 OutputSpec values subject to shared live-slot and payload capacity"
+    },
+    "InputSpec": {
+      "reference": "exact local BufferRef",
+      "expected_manifest_digest": "exact live sealed local manifest SHA256"
+    },
+    "shape_scope": "local installed application API only; no new wire operation or arbitrary peer JSON dispatch",
+    "input_metadata": "two bounded rosters of at most24 encoded256-byte specs plus4096 fixed logical bytes; no payload copy",
+    "admission": "resolve every selected sealed input and reserve output storage before sequence consumption or application call",
+    "view": "read-only selected manifest and payload borrow during one entered synchronous execution; no unnamed pool access or lifecycle authority",
+    "rust_lifetime": "view borrows execution permit; application-owned copies need separate bounds",
+    "python_lifetime": "view wrapper expires after execute; extracted memoryview aliases cannot be revoked, so trusted application retention and copies require separate bounds",
+    "finish": "zero selected input and output demand and an empty pool before entry and after terminal validation"
+  }
+}

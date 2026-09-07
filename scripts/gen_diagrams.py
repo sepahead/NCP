@@ -840,16 +840,15 @@ def topology(th):
             T(x + 28, y + 25, key, 9.5, 500, th["tmut"], mono=True),
         ]
         if body:
-            o.append(
-                T(x + 28 + len(concept) * 7 + 14, y + 13, body, 9.5, 500, th["tsec"])
-            )
+            # Fixed columns preserve separation under both publication fonts.
+            o.append(T(x + 28 + 110 + 12, y + 13, body, 9.5, 500, th["tsec"]))
         return "".join(o)
 
     s.append(
         chip(
             430,
             168,
-            320,
+            390,
             "C1",
             ctl,
             "CONTROL",
@@ -861,7 +860,7 @@ def topology(th):
         chip(
             430,
             210,
-            370,
+            390,
             "P1",
             per,
             "PERCEPTION",
@@ -871,7 +870,7 @@ def topology(th):
     )
     s.append(
         chip(
-            430, 442, 350, "O1", obs, "OBSERVATION", OBSERVATION_ROUTE, "body publishes"
+            430, 442, 390, "O1", obs, "OBSERVATION", OBSERVATION_ROUTE, "body publishes"
         )
     )
 
@@ -1697,7 +1696,9 @@ def fsm(th):
 
     def klabel(cx, cy, trigger, eyebrow=None, ehue=None, compact=False):
         if compact and eyebrow:
-            w = round(len(eyebrow) * 6.0 + len(trigger) * 5.3 + 24)
+            # Conservative title advance for this finite publication roster.
+            title_width = len(eyebrow) * 7.0
+            w = round(title_width + len(trigger) * 5.3 + 24)
             x, y = cx - w / 2, cy - 9
             return (
                 rect(
@@ -1713,7 +1714,7 @@ def fsm(th):
                 )
                 + T(x + 8, y + 13, eyebrow, 9, 700, ehue)
                 + T(
-                    round(x + 8 + len(eyebrow) * 6.0 + 6),
+                    round(x + 8 + title_width + 6),
                     y + 13,
                     trigger,
                     9,
@@ -1747,10 +1748,13 @@ def fsm(th):
 
     # ---- state geometry ----
     AC = (96, 150, 200, 72)  # ACTIVE  (96-296, 150-222) cy186
-    HD = (430, 150, 200, 72)  # HOLD    (430-630)
-    ES = (430, 330, 212, 86)  # ESTOP   (430-642, 330-416) cy373  HERO
-    CF = (96, 330, 200, 72)  # CONFIG-FAIL-CLOSED
-    GC = (400, 444, 260, 52)  # successful reset boundary / retired generation
+    HD = (430, 150, 248, 72)  # HOLD
+    ES = (430, 330, 248, 86)  # ESTOP hero
+    CF = (96, 330, 224, 72)  # CONFIG-FAIL-CLOSED
+    GC = (400, 444, 280, 52)  # successful reset boundary / retired generation
+    hold_right = HD[0] + HD[2]
+    estop_right = ES[0] + ES[2]
+    reset_right = GC[0] + GC[2]
 
     # ---- edges (painted first) ----
     s.append('<circle cx="110" cy="120" r="4" fill="%s"/>' % obs)
@@ -1810,7 +1814,7 @@ def fsm(th):
     )  # E5 HOLD→ESTOP
     s.append(
         path(
-            "M642,356 C680,356 680,392 642,392",
+            f"M{estop_right},356 C710,356 710,392 {estop_right},392",
             stroke=verm,
             sw=3.5,
             marker="arrowEstop",
@@ -1822,7 +1826,8 @@ def fsm(th):
     )
     s.append(
         path(
-            "M660,470 L704,470 Q712,470 712,462 L712,194 Q712,186 704,186 L630,186",
+            f"M{reset_right},470 L704,470 Q712,470 712,462 "
+            f"L712,194 Q712,186 704,186 L{hold_right},186",
             stroke=amb,
             sw=2,
             dash="5 4",
@@ -1956,7 +1961,7 @@ def fsm(th):
     )
     s.append(ic_octagon(ex + ew - 40, ey + 10, 24, ink))
     s.append(T(ex + 18, ey + 44, "ESTOP", 15, 800, ink))
-    s.append(T(ex + 18, ey + 61, "LATCHED · bounded ESTOP candidate", 10.5, 600, ink))
+    s.append(T(ex + 18, ey + 61, "LATCHED · bounded ESTOP candidate", 9.5, 600, ink))
     s.append(
         T(ex + 18, ey + 77, "reset never restores authority", 9.5, 500, ink, mono=True)
     )

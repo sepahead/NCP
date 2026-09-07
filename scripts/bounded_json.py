@@ -6,10 +6,11 @@ calls the standard-library JSON decoder. The decoder remains the source of the
 native Python value, but it never receives an input that exceeds the explicit
 limits supplied by its caller.
 
-The file reader returns one stable snapshot of a non-symlink regular file. It
-opens every path component with fail-closed POSIX directory-descriptor
-operations, checks the leaf size before allocation, and verifies the opened
-inode and path after the read.
+The file reader returns owned bytes after two bounded no-follow reads agree.
+It checks the observed leaf and ancestor identities around those reads.
+These checks do not provide an atomic filesystem snapshot or detect every
+intervening write. Callers must bind expected content and immutable source
+authority separately.
 """
 
 from __future__ import annotations
@@ -43,7 +44,7 @@ _SIMPLE_ESCAPES = {
 
 
 class BoundedJsonError(ValueError):
-    """Input is not bounded JSON or a file is not one stable snapshot."""
+    """Input exceeds JSON bounds or required file observations disagree."""
 
 
 def _fail(message: str) -> NoReturn:
@@ -153,7 +154,7 @@ class JsonLimits:
 
 @dataclass(frozen=True, slots=True)
 class FileSnapshotLimits:
-    """Immutable byte bounds for one physical regular-file snapshot."""
+    """Immutable admitted byte bounds for one regular-file observation."""
 
     minimum_bytes: int
     maximum_bytes: int
@@ -944,7 +945,12 @@ def read_bounded_regular_file(
     label: str,
     phase_hook: FileReadPhaseHook | None = None,
 ) -> bytes:
-    """Read one stable non-symlink regular-file snapshot without path races."""
+    """Read owned bytes after matching bounded file observations.
+
+    The two passes compare exact bytes and observed identities. They cannot
+    prove atomicity, continued currentness, or absence of an intervening byte
+    ABA. A caller's expected-content or immutable-source checks remain required.
+    """
 
     _validate_file_limits_exact(limits)
     try:
@@ -995,6 +1001,7 @@ def read_bounded_regular_file(
     directory_flags = os.O_RDONLY | directory | no_follow | getattr(os, "O_CLOEXEC", 0)
     descriptors: list[int] = []
     file_descriptor = -1
+    verification_descriptor = -1
     close_error: OSError | None = None
     try:
         descriptors.append(os.open(os.sep, directory_flags))
@@ -1002,6 +1009,7 @@ def read_bounded_regular_file(
         for component in components[:-1]:
             parent = descriptors[-1]
             child = os.open(component, directory_flags, dir_fd=parent)
+            descriptors.append(child)
             opened = os.fstat(child)
             listed = os.stat(
                 component,
@@ -1014,7 +1022,6 @@ def read_bounded_regular_file(
                 and _directory_fingerprint(opened) == _directory_fingerprint(listed),
                 f"{label}: ancestor is not one stable physical directory",
             )
-            descriptors.append(child)
             directory_fingerprints.append(_directory_fingerprint(opened))
 
         parent = descriptors[-1]
@@ -1059,6 +1066,9 @@ def read_bounded_regular_file(
             f"{label}: file grew beyond its opened size",
         )
         content = b"".join(chunks)
+        # Release the first pass's chunks before allocating verification chunks.
+        chunks.clear()
+        chunk = b""
         if phase_hook is not None:
             phase_hook("read-complete")
         after = os.fstat(file_descriptor)
@@ -1073,6 +1083,64 @@ def read_bounded_regular_file(
             limits.minimum_bytes <= len(content) <= limits.maximum_bytes,
             f"{label}: snapshot size is outside "
             f"{limits.minimum_bytes}..{limits.maximum_bytes} bytes",
+        )
+
+        # A fresh no-follow leaf observation detects persistent changed bytes
+        # even when the filesystem reports the same mtime and ctime. Comparing
+        # bounded chunks avoids retaining a second complete payload. Each pass
+        # consumes at most the admitted size plus one extra-byte probe. Equal
+        # observations still cannot establish an atomic historical file version.
+        verification_before = os.stat(leaf, dir_fd=parent, follow_symlinks=False)
+        _require(
+            stat.S_ISREG(verification_before.st_mode)
+            and _stat_fingerprint(verification_before) == _stat_fingerprint(opened),
+            f"{label}: file changed before its verification inode was opened",
+        )
+        if phase_hook is not None:
+            phase_hook("verification-pre-open")
+        verification_descriptor = os.open(
+            leaf,
+            os.O_RDONLY
+            | no_follow
+            | getattr(os, "O_CLOEXEC", 0)
+            | getattr(os, "O_NONBLOCK", 0)
+            | getattr(os, "O_NOCTTY", 0),
+            dir_fd=parent,
+        )
+        verification_opened = os.fstat(verification_descriptor)
+        _require(
+            stat.S_ISREG(verification_opened.st_mode)
+            and _stat_fingerprint(verification_opened)
+            == _stat_fingerprint(verification_before)
+            == _stat_fingerprint(opened),
+            f"{label}: file changed before its verification inode was opened",
+        )
+        offset = 0
+        with memoryview(content) as observed:
+            while offset < len(content):
+                chunk = os.read(
+                    verification_descriptor, min(len(content) - offset, 1024 * 1024)
+                )
+                _require(chunk, f"{label}: verification ended before its opened size")
+                end = offset + len(chunk)
+                _require(
+                    chunk == observed[offset:end],
+                    f"{label}: file bytes changed while its reads were compared",
+                )
+                offset = end
+                del chunk
+        _require(
+            os.read(verification_descriptor, 1) == b"",
+            f"{label}: verification file grew beyond its opened size",
+        )
+        if phase_hook is not None:
+            phase_hook("verification-read-complete")
+        _require(
+            _stat_fingerprint(opened)
+            == _stat_fingerprint(os.fstat(file_descriptor))
+            == _stat_fingerprint(os.fstat(verification_descriptor))
+            == _stat_fingerprint(os.stat(leaf, dir_fd=parent, follow_symlinks=False)),
+            f"{label}: file or path changed while its verification bytes were read",
         )
 
         for index, component in enumerate(components[:-1]):
@@ -1094,11 +1162,17 @@ def read_bounded_regular_file(
     except OSError as error:
         _fail(f"{label}: cannot read a stable regular-file snapshot: {error}")
     finally:
+        if verification_descriptor >= 0:
+            try:
+                os.close(verification_descriptor)
+            except OSError as error:
+                close_error = error
         if file_descriptor >= 0:
             try:
                 os.close(file_descriptor)
             except OSError as error:
-                close_error = error
+                if close_error is None:
+                    close_error = error
         for descriptor in reversed(descriptors):
             try:
                 os.close(descriptor)
@@ -1579,7 +1653,358 @@ def run_self_test() -> None:
             "changed while",
         )
 
+    _run_file_observation_self_test()
+
+
+def _run_file_observation_self_test() -> None:
+    """Pair the second observation with actual files and isolated fault controls."""
+
+    import tempfile
+    from contextlib import ExitStack
+    from unittest.mock import patch
+
+    chunk_bytes = 1024 * 1024
+    with tempfile.TemporaryDirectory(prefix="ncp-file-observation-") as temporary:
+        root = Path(temporary).resolve(strict=True)
+        path = root / "observed.bin"
+        selected_maximum = 2 * chunk_bytes + 17
+        selected_sizes = (0, 1, chunk_bytes - 1, chunk_bytes, chunk_bytes + 1)
+        for size in (*selected_sizes, selected_maximum):
+            payload = bytes(range(251)) * (size // 251) + bytes(range(size % 251))
+            path.write_bytes(payload)
+            phases: list[str] = []
+            actual = read_bounded_regular_file(
+                path,
+                limits=FileSnapshotLimits(0, max(1, size)),
+                label="exact selected observation size",
+                phase_hook=phases.append,
+            )
+            _require(actual == payload, "second observation changed admitted bytes")
+            _require(
+                phases
+                == [
+                    "pre-open",
+                    "read-complete",
+                    "verification-pre-open",
+                    "verification-read-complete",
+                ],
+                "second observation skipped a required phase",
+            )
+        _must_fail(
+            lambda: read_bounded_regular_file(
+                path,
+                limits=FileSnapshotLimits(1, selected_maximum - 1),
+                label="selected maximum plus one",
+            ),
+            "file size",
+        )
+        path.write_bytes(b"")
+        _must_fail(
+            lambda: read_bounded_regular_file(
+                path, limits=FileSnapshotLimits(1, 1), label="empty not admitted"
+            ),
+            "file size",
+        )
+
+        # Actual writes plus an explicitly injected equal-stamp condition test
+        # the byte comparison independently of either host's clock resolution.
+        # The original unmodified read-complete rewrite control above remains.
+        payload = b"a" * (chunk_bytes + 17)
+        for changed_offset in (0, chunk_bytes // 2, len(payload) - 1):
+            path.write_bytes(payload)
+            stamp = _stat_fingerprint(path.stat())
+            changed = bytearray(payload)
+            changed[changed_offset] = ord("b")
+
+            def persistent_rewrite(phase: str) -> None:
+                if phase == "read-complete":
+                    path.write_bytes(changed)
+
+            with patch.dict(globals(), {"_stat_fingerprint": lambda _value: stamp}):
+                _must_fail(
+                    lambda: read_bounded_regular_file(
+                        path,
+                        limits=FileSnapshotLimits(1, len(payload)),
+                        label="changed bytes with injected equal stamps",
+                        phase_hook=persistent_rewrite,
+                    ),
+                    "file bytes changed while",
+                )
+        path.write_bytes(payload)
+        stamp = _stat_fingerprint(path.stat())
+        with patch.dict(globals(), {"_stat_fingerprint": lambda _value: stamp}):
+            _require(
+                read_bounded_regular_file(
+                    path,
+                    limits=FileSnapshotLimits(1, len(payload)),
+                    label="unchanged bytes with injected equal stamps",
+                )
+                == payload,
+                "equal-stamp positive changed bytes",
+            )
+
+        # An equal-stamp byte ABA completed between the two observations is an
+        # explicit unavailable detection boundary, not an expected rejection.
+        path.write_bytes(b"original")
+        stamp = _stat_fingerprint(path.stat())
+
+        def completed_aba(phase: str) -> None:
+            if phase == "read-complete":
+                path.write_bytes(b"altered!")
+                path.write_bytes(b"original")
+
+        with patch.dict(globals(), {"_stat_fingerprint": lambda _value: stamp}):
+            _require(
+                read_bounded_regular_file(
+                    path,
+                    limits=FileSnapshotLimits(1, 8),
+                    label="explicit equal-stamp byte ABA boundary",
+                    phase_hook=completed_aba,
+                )
+                == b"original",
+                "equal observed copies are not an ABA attestation",
+            )
+
+        # Short reads must consume the full extent without storing another full
+        # copy. Changing the final physical byte must still fail the same path.
+        original_read = os.read
+        for changed_final_byte in (False, True):
+            payload = bytes(range(251))
+            path.write_bytes(payload)
+            stamp = _stat_fingerprint(path.stat())
+            counts: list[int] = []
+
+            def short_read(descriptor: int, count: int) -> bytes:
+                counts.append(count)
+                return original_read(descriptor, min(count, 7))
+
+            def short_read_mutation(phase: str) -> None:
+                if changed_final_byte and phase == "read-complete":
+                    path.write_bytes(payload[:-1] + b"x")
+
+            with (
+                patch.object(os, "read", short_read),
+                patch.dict(globals(), {"_stat_fingerprint": lambda _value: stamp}),
+            ):
+                if changed_final_byte:
+                    _must_fail(
+                        lambda: read_bounded_regular_file(
+                            path,
+                            limits=FileSnapshotLimits(1, len(payload)),
+                            label="short read final-byte mutation",
+                            phase_hook=short_read_mutation,
+                        ),
+                        "file bytes changed while",
+                    )
+                else:
+                    _require(
+                        read_bounded_regular_file(
+                            path,
+                            limits=FileSnapshotLimits(1, len(payload)),
+                            label="short read complete positive",
+                        )
+                        == payload,
+                        "short reads omitted admitted bytes",
+                    )
+            _require(
+                len(counts) <= 2 * len(payload) + 2 and max(counts) <= chunk_bytes,
+                "short reads exceeded their finite work bound",
+            )
+
+        for mutation in ("truncate", "grow"):
+            payload = bytes(range(251))
+            path.write_bytes(payload)
+            stamp = _stat_fingerprint(path.stat())
+            verification_active = False
+            verification_reads = 0
+
+            def identify_verification(phase: str) -> None:
+                nonlocal verification_active
+                if phase == "verification-pre-open":
+                    verification_active = True
+
+            def mutate_during_verification(descriptor: int, count: int) -> bytes:
+                nonlocal verification_reads
+                observed = original_read(descriptor, min(count, 7))
+                if verification_active:
+                    verification_reads += 1
+                    if verification_reads == 1:
+                        if mutation == "truncate":
+                            path.write_bytes(payload[:7])
+                        else:
+                            path.write_bytes(payload + b"x")
+                return observed
+
+            with (
+                patch.object(os, "read", mutate_during_verification),
+                patch.dict(globals(), {"_stat_fingerprint": lambda _value: stamp}),
+            ):
+                _must_fail(
+                    lambda: read_bounded_regular_file(
+                        path,
+                        limits=FileSnapshotLimits(1, len(payload)),
+                        label="verification extent changes with injected equal stamps",
+                        phase_hook=identify_verification,
+                    ),
+                    "verification ended before"
+                    if mutation == "truncate"
+                    else "verification file grew",
+                )
+
+        for mutation in ("replacement", "symlink", "directory", "fifo"):
+            if mutation == "fifo" and not hasattr(os, "mkfifo"):
+                continue
+            leaf = root / f"verify-open-{mutation}"
+            leaf.write_bytes(b"original")
+            target = root / f"verify-open-{mutation}-target"
+            target.write_bytes(b"original")
+
+            def replace_verification_leaf(phase: str) -> None:
+                if phase != "verification-pre-open":
+                    return
+                leaf.unlink()
+                if mutation == "replacement":
+                    target.rename(leaf)
+                elif mutation == "symlink":
+                    leaf.symlink_to(target.name)
+                elif mutation == "directory":
+                    leaf.mkdir()
+                else:
+                    os.mkfifo(leaf)
+
+            _must_fail(
+                lambda: read_bounded_regular_file(
+                    leaf,
+                    limits=FileSnapshotLimits(1, 8),
+                    label="verification leaf replacement",
+                    phase_hook=replace_verification_leaf,
+                ),
+                "verification inode"
+                if mutation != "symlink"
+                else "stable regular-file snapshot",
+            )
+
+        for mutation in ("truncate", "grow", "mode", "time", "ancestor"):
+            parent = root / f"during-verification-{mutation}"
+            parent.mkdir()
+            leaf = parent / "value"
+            leaf.write_bytes(b"original")
+            stamp = _stat_fingerprint(leaf.stat())
+
+            def mutate_verification(phase: str) -> None:
+                if phase != "verification-read-complete":
+                    return
+                if mutation == "truncate":
+                    leaf.write_bytes(b"origin")
+                elif mutation == "grow":
+                    leaf.write_bytes(b"original!")
+                elif mutation == "mode":
+                    leaf.chmod(0o400)
+                elif mutation == "time":
+                    os.utime(leaf, ns=(stamp[-2], stamp[-2] + 10_000_000_000))
+                else:
+                    parent.rename(parent.with_name(parent.name + "-displaced"))
+                    parent.mkdir()
+
+            _must_fail(
+                lambda: read_bounded_regular_file(
+                    leaf,
+                    limits=FileSnapshotLimits(1, 8),
+                    label="observed verification identity change",
+                    phase_hook=mutate_verification,
+                ),
+                "changed while",
+            )
+
+        # Every successful open enters cleanup before the next fallible call.
+        # Close faults occur after actual close, so cleanup cannot hide leaked
+        # descriptors behind test mocks. The reader must not retry a close.
+        for fault in (None, "open", "ancestor-stat", "read", "final-stat", "close"):
+            leaf = root / "fault.bin"
+            leaf.write_bytes(b"original")
+            opened_fds: list[int] = []
+            closed_fds: list[int] = []
+            leaf_fds: list[int] = []
+            triggered: list[str] = []
+            phase_state: list[str] = []
+            original_open, original_close, original_fstat = os.open, os.close, os.fstat
+            fstat_count = 0
+
+            def observed_open(*args: Any, **kwargs: Any) -> int:
+                if fault == "open" and args[0] == leaf.name and leaf_fds:
+                    triggered.append("open")
+                    raise OSError("selected verification open fault")
+                descriptor = original_open(*args, **kwargs)
+                opened_fds.append(descriptor)
+                if args[0] == leaf.name:
+                    leaf_fds.append(descriptor)
+                return descriptor
+
+            def observed_fstat(descriptor: int) -> os.stat_result:
+                nonlocal fstat_count
+                fstat_count += 1
+                if (fault == "ancestor-stat" and fstat_count == 2) or (
+                    fault == "final-stat"
+                    and phase_state
+                    and phase_state[-1] == "verification-read-complete"
+                ):
+                    triggered.append("stat")
+                    raise OSError("selected owned-descriptor stat fault")
+                return original_fstat(descriptor)
+
+            def observed_read(descriptor: int, count: int) -> bytes:
+                if fault == "read" and len(leaf_fds) == 2 and descriptor == leaf_fds[1]:
+                    triggered.append("read")
+                    raise OSError("selected verification read fault")
+                return original_read(descriptor, count)
+
+            def observed_close(descriptor: int) -> None:
+                original_close(descriptor)
+                closed_fds.append(descriptor)
+                if fault == "close" and not triggered:
+                    triggered.append("close")
+                    raise OSError("selected close error after actual close")
+
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(os, "open", observed_open))
+                stack.enter_context(patch.object(os, "close", observed_close))
+                stack.enter_context(patch.object(os, "read", observed_read))
+                stack.enter_context(patch.object(os, "fstat", observed_fstat))
+                stack.enter_context(
+                    patch.object(
+                        os, "supports_dir_fd", os.supports_dir_fd | {observed_open}
+                    )
+                )
+                if fault is None:
+                    _require(
+                        read_bounded_regular_file(
+                            leaf,
+                            limits=FileSnapshotLimits(1, 8),
+                            label="observed complete cleanup positive",
+                            phase_hook=phase_state.append,
+                        )
+                        == b"original",
+                        "cleanup positive changed its bytes",
+                    )
+                else:
+                    _must_fail(
+                        lambda: read_bounded_regular_file(
+                            leaf,
+                            limits=FileSnapshotLimits(1, 8),
+                            label="owned descriptor fault",
+                            phase_hook=phase_state.append,
+                        ),
+                        "cannot close" if fault == "close" else "cannot read",
+                    )
+            _require(
+                sorted(opened_fds) == sorted(closed_fds)
+                and len(closed_fds) == len(set(closed_fds)),
+                "a descriptor was leaked or closed more than once",
+            )
+            if fault is not None:
+                _require(triggered, "descriptor fault control did not reach its cut")
+
 
 if __name__ == "__main__":
     run_self_test()
-    print("OK bounded JSON: preflight, native-tree, and stable-file hostile tests")
+    print("OK bounded JSON: preflight, native-tree, and paired file-observation tests")

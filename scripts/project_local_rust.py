@@ -11,6 +11,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DESTINATION = ROOT / "local/rust"
 SOURCES = {
+    "src/modular_wire.rs": ("ncp-core/src/modular_wire.rs", "identity"),
+    "src/modular_owner.rs": ("ncp-core/src/modular_owner.rs", "identity"),
+    "src/modular_client.rs": ("ncp-core/src/modular_client.rs", "identity"),
+    "src/modular_profile.v1.json": ("ncp-core/src/modular_profile.v1.json", "identity"),
+    "tests/modular_owner.rs": ("ncp-core/tests/modular_owner.rs", "test_import_only"),
+    "tests/modular_wire.rs": ("ncp-core/tests/modular_wire.rs", "test_import_only"),
+    "tests/fixtures/modular-binary64.json": ("ncp-core/tests/fixtures/modular-binary64.json", "identity"),
+    "tests/support/modular_fixture.rs": ("ncp-core/tests/support/modular_fixture.rs", "test_import_only"),
+    "examples/modular_owner_probe.rs": ("ncp-core/examples/modular_owner_probe.rs", "test_import_only"),
+    "examples/modular_buffer_probe.rs": ("ncp-core/examples/modular_buffer_probe.rs", "test_import_only"),
+    "src/modular_buffer.rs": ("ncp-core/src/modular_buffer.rs", "identity"),
+    "tests/modular_buffer.rs": ("ncp-core/tests/modular_buffer.rs", "test_import_only"),
     "src/local.rs": ("ncp-core/src/local.rs", "identity"),
     "src/local_data.rs": ("ncp-core/src/local_data.rs", "identity"),
     "src/bounded_json.rs": ("ncp-core/src/bounded_json.rs", "identity"),

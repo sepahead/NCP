@@ -1,0 +1,69 @@
+{
+  "schema": "ncp.modular.primitive-bounds.v1",
+  "status": "development-primitive-contract-not-installed-profile",
+  "request_owner_implemented": false,
+  "application_qualification": false,
+  "reference_profile_changed": false,
+  "typed_sensor_admission_implemented": false,
+  "minimum_endpoint_payload_reservation_bytes": 0,
+  "zero_payload_endpoint_still_counts_endpoint_and_overhead": true,
+  "limits": {
+    "FRAME_BYTES": 65536,
+    "CHUNK_BYTES": 32768,
+    "BUFFER_BYTES": 8388608,
+    "ENDPOINT_BYTES": 67108864,
+    "COMPOSITION_BYTES": 268435456,
+    "LIVE_SLOTS": 24,
+    "INCOMPLETE_SLOTS": 12,
+    "ENDPOINTS": 16,
+    "MANIFEST_BYTES": 4096,
+    "SEMANTIC_SLOTS": 64,
+    "METADATA_BYTES": 131072,
+    "DIGEST_STAGING_BYTES": 131072,
+    "MAX_ID": 9007199254740991
+  },
+  "future_owner_staging": {
+    "retained_outcome_frames": 1,
+    "retained_outcome_frame_bytes": 65536,
+    "ingress_frames": 1,
+    "ingress_frame_bytes": 65536,
+    "output_frames": 1,
+    "output_frame_bytes": 65536,
+    "decoded_chunk_scratch_bytes": 32768,
+    "concurrent_operations_per_endpoint": 1,
+    "implemented_by_primitives": false
+  },
+  "persistent_metadata_argument": {
+    "manifest_cardinality": 24,
+    "manifest_serialized_byte_limit": 4096,
+    "semantic_digest_cardinality": 64,
+    "semantic_digest_ascii_bytes": 64,
+    "other_fields": "fixed bindings, monotonic counter, entry category and import prefix",
+    "process_rss_bound": false,
+    "allocator_and_interpreter_overhead_measured": false
+  },
+  "context_seam": "TrustedHostCreationContext is trusted host input, not request verification or attestation",
+  "context_requirement": "The future owner supplies its verified complete request digest and actual installed binding; peer body data cannot choose them",
+  "digest_domain": "ncp.modular.buffer-manifest.v1",
+  "payload_hash": "SHA-256 of exact owned payload bytes",
+  "full_result_digest_in_manifest": false,
+  "base64": "standard alphabet, required canonical padding, exact decode/re-encode equality",
+  "parity_selection": {
+    "class": "selected synthetic structural controls, not sampled scientific evidence",
+    "seed": 1313034290,
+    "payload_lengths": [1, 2, 3, 4, 31, 255, 32767, 32768, 32775],
+    "selection_before_outcomes": true
+  },
+  "additional_selected_cases": [
+    {
+      "id": "maximum-buffer-cross-language-v1",
+      "kind": "selected maximum structural boundary; not a scientific sample or performance benchmark",
+      "payload_bytes": 8388608,
+      "chunk_count": 256,
+      "payload_pattern": "bytes(i modulo 251) for i from zero through 8388607",
+      "positive": "Python producer to Rust import/seal, then all 256 Rust reads verified in Python; exact final payload digest and separate release accounting",
+      "negative": "Change the final payload byte and recompute the final chunk hash; full-payload sealing must reject and preserve the incomplete reservation until explicit abort",
+      "selection_before_outcomes": true
+    }
+  ]
+}

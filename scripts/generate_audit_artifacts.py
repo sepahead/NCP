@@ -117,6 +117,9 @@ PUBLICATION_REVIEWED_GAP_LINES = {
 # Exact path, marker, and line identity prevent a changed runtime claim from
 # inheriting this disposition. Source and generated acceptance prose stay paired.
 LOCAL_REVIEWED_SCOPE_LINES = {
+    ("local/modular/README.md", "M005"): {
+        "Installed sensor admission remains unimplemented.": "PUBLICATION_REVIEWED_IMPLEMENTATION_GAP",
+    },
     ("docs/local-v1/README.md", "M005"): {
         "| LV1-10 | Enforce fixed endpoint roles and reject unimplemented profiles without fallback. |": "NEGATIVE_POLICY_GUARD",
     },

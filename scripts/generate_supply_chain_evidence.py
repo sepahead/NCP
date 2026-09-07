@@ -136,12 +136,21 @@ GENERATOR_OUTPUTS = {
     "scripts/plot_perf.py": ["docs/plots/*.svg"],
     "scripts/project_local_rust.py": [
         "local/rust/src/{local,local_data,bounded_json,canonical_digest}.rs",
+        "local/rust/src/{modular_buffer,modular_wire,modular_owner,modular_client}.rs",
+        "local/rust/src/modular_profile.v1.json",
         "local/rust/local-profile.v1.json",
         "local/rust/tests/{local,local_binary64,local_profile_contract}.rs",
+        "local/rust/tests/{modular_buffer,modular_wire,modular_owner}.rs",
         "local/rust/tests/fixtures/{local-profile-identity,local-binary64}.json",
+        "local/rust/tests/fixtures/modular-binary64.json",
+        "local/rust/tests/support/modular_fixture.rs",
         "local/rust/examples/local_contract_probe.rs",
+        "local/rust/examples/{modular_buffer_probe,modular_owner_probe}.rs",
         "local/rust/LICENSE-{MIT,APACHE}",
         "local/rust/source-projection.v1.json",
+    ],
+    "scripts/project_modular_profile.py": [
+        "local/python/ncp_local/modular_profile.py"
     ],
     "scripts/render_acl_template.py": ["operator-selected concrete Zenoh ACL config"],
     "scripts/sync_rust_package_testdata.py": ["ncp-{core,zenoh,cpp}/testdata/**"],

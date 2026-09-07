@@ -12205,7 +12205,7 @@ B05_RECEIPT_PREFIX = "evidence/implementation/receipts/B05/"
 B05_CHECKER_PATH = f"{B05_PROTOTYPE_PREFIX}check.py"
 B05_PREFLIGHT_RUNNER_PATH = "scripts/run_b05_preflight.py"
 B05_PREFLIGHT_RUNNER_SHA256 = (
-    "0ff3e82aeca9807d698c263ff74dbda8e7015e49e4da40125db9c5948f4f7ef5"
+    "6c6bb4e7f6825fde4d29544ceb502754ebec9b5ede6962071421df1705b1dbe6"
 )
 B05_RUN_MANIFEST_SCHEMA = "ncp.prototype-run.v1"
 B05_FOCUSED_RESULT_SCHEMA = "ncp.prototype-focused-result.v1"
@@ -16595,6 +16595,88 @@ def _validate_b05_preflight_environment(value: Any, path: str) -> None:
     _hex(value["path_sha256"], HEX64, f"{path}.path_sha256")
 
 
+def _validate_b05_raw_index(value: Any, path: str, entries: int) -> None:
+    if not isinstance(value, dict):
+        _fail(f"{path} must be an object")
+    _exact_keys(
+        value,
+        {
+            "policy",
+            "sha256",
+            "bytes",
+            "version",
+            "object_format",
+            "trailer_hex",
+            "entry_end",
+            "expanded_path_bytes",
+            "extensions",
+            "checksum_verified",
+            "fsmonitor_extension_count",
+            "descriptor_identity_sha256",
+            "adjacent_identity_unchanged",
+            "matches_git_roster",
+        },
+        path,
+    )
+    if value["policy"] != "NCP_B05_ORDINARY_RAW_INDEX_V1":
+        _fail(f"{path} requires the ordinary raw index policy")
+    if not isinstance(value["object_format"], str) or value["object_format"] not in {
+        "sha1",
+        "sha256",
+    }:
+        _fail(f"{path} has an unsupported storage object format")
+    width = 20 if value["object_format"] == "sha1" else 32
+    for key in ("sha256", "descriptor_identity_sha256"):
+        _hex(value[key], HEX64, f"{path}.{key}")
+    _hex(value["trailer_hex"], HEX40 if width == 20 else HEX64, f"{path}.trailer_hex")
+    if value["trailer_hex"] == "0" * (width * 2):
+        _fail(f"{path} cannot use a skipped-zero index checksum")
+    _integer(
+        value["bytes"], f"{path}.bytes", minimum=12 + width, maximum=16 * 1024 * 1024
+    )
+    _integer(value["version"], f"{path}.version", minimum=2, maximum=4)
+    _integer(
+        value["entry_end"],
+        f"{path}.entry_end",
+        minimum=12 + entries * (43 + width),
+        maximum=value["bytes"] - width,
+    )
+    _integer(
+        value["expanded_path_bytes"],
+        f"{path}.expanded_path_bytes",
+        minimum=entries,
+        maximum=16 * 1024 * 1024,
+    )
+    extensions = value["extensions"]
+    if not isinstance(extensions, list) or any(
+        type(item) is not str for item in extensions
+    ):
+        _fail(f"{path}.extensions must be a closed string roster")
+    if extensions != sorted(set(extensions)) or not set(extensions) <= {
+        "TREE",
+        "REUC",
+        "UNTR",
+    }:
+        _fail(f"{path}.extensions contains a duplicate or unsupported raw extension")
+    if value["entry_end"] + 8 * len(extensions) > value["bytes"] - width:
+        _fail(f"{path} lacks complete extension framing")
+    if not extensions and value["entry_end"] != value["bytes"] - width:
+        _fail(f"{path} has unexplained trailing raw index bytes")
+    for key in (
+        "checksum_verified",
+        "adjacent_identity_unchanged",
+        "matches_git_roster",
+    ):
+        if value[key] is not True:
+            _fail(f"{path}.{key} must be true")
+    _integer(
+        value["fsmonitor_extension_count"],
+        f"{path}.fsmonitor_extension_count",
+        minimum=0,
+        maximum=0,
+    )
+
+
 def _validate_b05_preflight_index(value: Any, path: str) -> None:
     if not isinstance(value, dict):
         _fail(f"{path} must be an object")
@@ -16617,6 +16699,8 @@ def _validate_b05_preflight_index(value: Any, path: str) -> None:
             "assume_unchanged_count",
             "fsmonitor_valid_count",
             "nonignored_untracked_count",
+            "raw_before",
+            "raw_after",
         },
         path,
     )
@@ -16632,6 +16716,10 @@ def _validate_b05_preflight_index(value: Any, path: str) -> None:
         minimum=1,
         maximum=B05_PREFLIGHT_INDEX_MAX_ENTRIES,
     )
+    for field in ("raw_before", "raw_after"):
+        _validate_b05_raw_index(value[field], f"{path}.{field}", value["entries"])
+    if value["raw_before"]["object_format"] != value["raw_after"]["object_format"]:
+        _fail(f"{path} storage object format changed during execution")
     for field in (
         "head_roster_sha256",
         "index_roster_sha256_before",
@@ -21887,17 +21975,64 @@ def _self_test_adr008_reference_span(
     return illustrative_offset, first_reference, reference_start, reference_end
 
 
+def _self_test_preflight_environment() -> dict[str, str]:
+    """Isolate fixture preconditions; explicit loader controls inject afterward."""
+    environment = _git_environment()
+    for key in list(environment):
+        if key in {"LIBPATH", "SHLIB_PATH"} or key.startswith(
+            ("LD_", "DYLD_", "_RLD_")
+        ):
+            environment.pop(key)
+    return environment
+
+
 def _self_test_git_environment_filter() -> None:
-    prior_git_parameters = os.environ.get("GIT_CONFIG_PARAMETERS")
-    os.environ["GIT_CONFIG_PARAMETERS"] = "'core.replaceRefs=true'"
+    loader_markers = (
+        "LIBPATH",
+        "SHLIB_PATH",
+        "LD_LIBRARY_PATH",
+        "DYLD_LIBRARY_PATH",
+        "_RLD_LIST",
+        "LD_NCP_SELF_TEST",
+        "DYLD_NCP_SELF_TEST",
+        "_RLD_NCP_SELF_TEST",
+    )
+    injected = dict.fromkeys(loader_markers, "fixture-loader-marker")
+    injected.update(
+        {
+            "GIT_CONFIG_PARAMETERS": "'core.replaceRefs=true'",
+            "NCP_SELF_TEST_PRESERVED": "ordinary-value",
+            "XLD_LIBRARY_PATH": "near-match-value",
+            "LDPATH": "near-match-value",
+            "LD_NCP_SELF_TEST": "",
+            "DYLD_NCP_SELF_TEST": "",
+            "_RLD_NCP_SELF_TEST": "",
+        }
+    )
+    prior = {key: os.environ.get(key) for key in injected}
+    os.environ.update(injected)
     try:
+        parent = os.environ.copy()
         if "GIT_CONFIG_PARAMETERS" in _git_environment():
             _fail("self-test git environment retained injected config parameters")
+        controlled = _self_test_preflight_environment()
+        if any(key in controlled for key in loader_markers):
+            _fail("self-test preflight environment retained an ambient loader marker")
+        if controlled.get("NCP_SELF_TEST_PRESERVED") != "ordinary-value":
+            _fail("self-test preflight environment dropped an ordinary value")
+        if any(
+            controlled.get(key) != "near-match-value"
+            for key in ("XLD_LIBRARY_PATH", "LDPATH")
+        ):
+            _fail("self-test preflight environment dropped a near-match key")
+        if os.environ != parent:
+            _fail("self-test preflight environment changed its parent")
     finally:
-        if prior_git_parameters is None:
-            os.environ.pop("GIT_CONFIG_PARAMETERS", None)
-        else:
-            os.environ["GIT_CONFIG_PARAMETERS"] = prior_git_parameters
+        for key, value in prior.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
 
 
 def _self_test_authorized_origin_line_boundary(
@@ -22194,6 +22329,19 @@ def _self_test_commit(repository: Path, message: str) -> tuple[str, str]:
 
 
 def _self_test_b05_source_boundary() -> None:
+    raw_index_controls = subprocess.run(  # noqa: S603
+        [sys.executable, "-I", str(ROOT / "scripts/test_b05_index.py")],
+        cwd=ROOT,
+        env=_self_test_preflight_environment(),
+        check=False,
+        capture_output=True,
+        timeout=120,
+    )
+    if raw_index_controls.returncode:
+        _fail(
+            "B05 raw-index controls failed: "
+            + raw_index_controls.stderr.decode("utf-8", "replace")
+        )
     with tempfile.TemporaryDirectory(prefix="ncp-b05-source-boundary-") as temporary:
         repository = Path(temporary) / "repository"
         repository.mkdir()
@@ -22454,7 +22602,7 @@ def standalone(value):
         dirty_preflight_execution = subprocess.run(  # noqa: S603
             [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
             cwd=repository,
-            env=_git_environment(),
+            env=_self_test_preflight_environment(),
             check=False,
             capture_output=True,
             timeout=10,
@@ -22486,7 +22634,7 @@ def standalone(value):
             execution = subprocess.run(  # noqa: S603
                 [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
                 cwd=repository,
-                env=_git_environment(),
+                env=_self_test_preflight_environment(),
                 check=False,
                 capture_output=True,
                 timeout=10,
@@ -22626,7 +22774,7 @@ def standalone(value):
         immutable_execution = subprocess.run(  # noqa: S603
             [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
             cwd=repository,
-            env=_git_environment(),
+            env=_self_test_preflight_environment(),
             check=False,
             capture_output=True,
             timeout=10,
@@ -22666,7 +22814,7 @@ def standalone(value):
             hidden_index_execution = subprocess.run(  # noqa: S603
                 [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
                 cwd=repository,
-                env=_git_environment(),
+                env=_self_test_preflight_environment(),
                 check=False,
                 capture_output=True,
                 timeout=10,
@@ -22684,10 +22832,22 @@ def standalone(value):
                 not in hidden_index_execution.stderr
             ):
                 _fail(f"B05 preflight runner did not reject {label} index state")
+            if label == "fsmonitor-valid":
+                all_dirty_execution = subprocess.run(  # noqa: S603
+                    [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
+                    cwd=repository,
+                    env=_self_test_preflight_environment(),
+                    check=False,
+                    capture_output=True,
+                    timeout=10,
+                )
+                if all_dirty_execution.returncode == 0 or b"FSMN requires ordinary-index normalization" not in all_dirty_execution.stderr:
+                    _fail("B05 runner did not require normalization after clearing fsmonitor-valid")
+                _self_test_git(repository, "-c", "core.fsmonitor=false", "update-index", "--no-fsmonitor")
         focused_execution = subprocess.run(  # noqa: S603
             [sys.executable, str(repository / B05_CHECKER_PATH), "--self-test"],
             cwd=repository,
-            env=_git_environment(),
+            env=_self_test_preflight_environment(),
             check=False,
             capture_output=True,
             timeout=10,
@@ -22706,6 +22866,9 @@ def standalone(value):
         shell_injection_sentinel = Path(temporary) / "shell-injection-ran"
         hostile_bin = Path(temporary) / "hostile-bin"
         hostile_bin.mkdir()
+        # Root-owned 0755 directories are trusted tool inputs under the policy.
+        # Only this fixture leaf is writable; its temporary parent stays private.
+        hostile_bin.chmod(0o777)
         hostile_shell = (
             "#!/bin/sh\n"
             f"printf injected >> {shlex.quote(str(shell_injection_sentinel))}\n"
@@ -22718,7 +22881,7 @@ def standalone(value):
             tool_path.chmod(0o755)
         bash_environment = Path(temporary) / "hostile-bash-env"
         bash_environment.write_text(hostile_shell, encoding="utf-8")
-        hostile_preflight_environment = _git_environment()
+        hostile_preflight_environment = _self_test_preflight_environment()
         hostile_preflight_environment.update(
             {
                 "GIT_DIR": str(repository / "hostile-git-dir"),
@@ -22744,13 +22907,60 @@ def standalone(value):
             timeout=10,
         )
         if preflight_execution.returncode != 0 or preflight_execution.stderr:
-            _fail("B05 positive preflight execution did not produce a clean result")
+            detail = preflight_execution.stderr[:1_024].decode("utf-8", "replace")
+            _fail(
+                "B05 positive preflight execution did not produce a clean result: "
+                f"exit={preflight_execution.returncode}, stderr={detail!r}"
+            )
         if shell_injection_sentinel.exists():
             _fail("B05 preflight execution admitted ambient shell or PATH injection")
         preflight_bytes = preflight_execution.stdout
         preflight_value = _load_b05_full_preflight_json(
             preflight_bytes, "B05 positive preflight output"
         )
+        _validate_b05_preflight_index(preflight_value["index"], "B05 actual raw-index positive")
+        for side in ("raw_before", "raw_after"):
+            for field, replacement in (
+                ("policy", "Git-refreshed-view-only"),
+                ("object_format", []),
+                ("object_format", "sha512"),
+                ("sha256", "invalid"),
+                ("descriptor_identity_sha256", "invalid"),
+                ("trailer_hex", "0" * 40),
+                ("trailer_hex", "0" * 64),
+                ("bytes", 16 * 1024 * 1024 + 1),
+                ("bytes", 0),
+                ("version", 1),
+                ("version", 5),
+                ("entry_end", 12),
+                ("expanded_path_bytes", 16 * 1024 * 1024 + 1),
+                ("extensions", ["FSMN"]),
+                ("extensions", ["EOIE"]),
+                ("extensions", ["IEOT"]),
+                ("extensions", ["link"]),
+                ("extensions", ["sdir"]),
+                ("extensions", ["TREE", "TREE"]),
+                ("extensions", [{}]),
+                ("checksum_verified", False),
+                ("adjacent_identity_unchanged", False),
+                ("matches_git_roster", False),
+                ("fsmonitor_extension_count", 1),
+            ):
+                hostile_index = copy.deepcopy(preflight_value["index"])
+                hostile_index[side][field] = replacement
+                _must_fail(
+                    lambda hostile_index=hostile_index: _validate_b05_preflight_index(hostile_index, "B05 hostile raw-index metadata"),
+                    f"B05 {side} {field} altered metadata",
+                    "B05 hostile raw-index metadata",
+                )
+            hostile_index = copy.deepcopy(preflight_value["index"])
+            del hostile_index[side]
+            _must_fail(
+                lambda hostile_index=hostile_index: _validate_b05_preflight_index(hostile_index, "B05 missing raw-index metadata"),
+                f"B05 missing {side}",
+                "B05 missing raw-index metadata",
+            )
+        _validate_b05_preflight_index(preflight_value["index"], "B05 unchanged raw-index positive")
         if (
             len(preflight_bytes) <= 4_096
             or len(preflight_bytes) > B05_FULL_PREFLIGHT_MAX_JSON_BYTES
@@ -22788,8 +22998,13 @@ def standalone(value):
 
         for label, environment_update, expected_error in (
             (
-                "loader injection",
+                "SHLIB_PATH loader injection",
                 {"SHLIB_PATH": str(Path(temporary) / "hostile-loader")},
+                b"dynamic-loader injection variable",
+            ),
+            (
+                "LD_LIBRARY_PATH loader injection",
+                {"LD_LIBRARY_PATH": ""},
                 b"dynamic-loader injection variable",
             ),
             (
@@ -22798,7 +23013,7 @@ def standalone(value):
                 b"PATH contains an empty or relative component",
             ),
         ):
-            hostile_environment = _git_environment()
+            hostile_environment = _self_test_preflight_environment()
             hostile_environment.update(environment_update)
             hostile_execution = subprocess.run(  # noqa: S603
                 [sys.executable, "-I", str(repository / B05_PREFLIGHT_RUNNER_PATH)],
@@ -22811,6 +23026,7 @@ def standalone(value):
             if (
                 hostile_execution.returncode == 0
                 or expected_error not in hostile_execution.stderr
+                or B05_PREFLIGHT_TERMINAL.encode() in hostile_execution.stdout
             ):
                 _fail(f"B05 preflight runner did not reject {label}")
 

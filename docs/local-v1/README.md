@@ -167,3 +167,33 @@ Reference-profile qualification must resolve these gates independently:
 
 The [decision record](decision.md) explains the alternatives and unresolved review questions.
 The [mathematical guide](math-guide.md) explains causality, time, NIS, retention, and completeness with worked examples.
+
+## Maintained SDK source gate
+
+Run the shared SDK gate with Python 3.11 or later:
+
+```sh
+python3 -I scripts/check_local_sdk.py --python python3
+```
+
+The gate tests the standalone Rust package with Rust 1.96.0 and its 1.88.0 minimum supported version.
+It verifies source projections, package construction, and exact Python package bytes through a fresh wheel installation.
+Installed Python suites require the native reference, buffer, and request-owner probes.
+Missing probes, empty suites, skipped controls, and imports outside that installation fail the gate.
+Mandatory gate-integrity controls exercise those checks and owned child-process cleanup.
+The source roster and 22 historical reference files must remain unchanged across the run.
+Git queries discard inherited Git routing variables and ignore replacement objects.
+These comparisons establish observed byte equality, without an atomic snapshot or universal concurrent-mutation guarantee.
+
+The runner bounds each command and the post-kill wait for its direct child.
+It retains its private diagnostic directory after failure or unconfirmed cleanup.
+The hosted SDK job uploads available command logs and source-roster diagnostics after failure.
+These controls do not establish cleanup after the gate process itself dies.
+
+The complete `scripts/check.sh` also tests broad-core feature combinations and scans the standalone lock against current and pinned advisory databases.
+Hosted CI uses the same SDK runner and dependency-policy commands.
+Python build and test tools use exact version pins; those SDK requirement files do not contain artifact hashes.
+A complete bootstrap run requires a fresh, short-path checkout of the exact clean candidate commit.
+The separate source-distribution checks archive `HEAD`; an uncommitted SDK run cannot qualify those changed bytes by implication.
+
+Passing this source gate does not qualify installed applications, sensor profiles, scientific outcomes, or a final release.
