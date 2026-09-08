@@ -2914,8 +2914,8 @@
       {
         "path": "evidence/implementation/task-ledger.v1.json",
         "bytes": 188521,
-        "sha256": "c4aa640822ed67c4e22223585d6f0405d3796004d239a6dd937222bfceca4c1e",
-        "git_blob_oid": "53dc7b23bb28bdd92a165aa0a65dc1b4e0e2628c",
+        "sha256": "709e7a03f97ef5b2e07e53db70a0bbd7c169ac6095a1fcd6fe4f2afbc753ecf2",
+        "git_blob_oid": "f6fd7c7b1f1ac1003a05d0062e75c8e69768f352",
         "indexed": true
       },
       {
@@ -7827,9 +7827,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 18540,
-        "sha256": "c28b2dc303f27f16ccbe4962334908156c9fada7dda0ba1811129c24454ea599",
-        "git_blob_oid": "fd95f6a9cbddfaa959c88cb2fe5a36ac0b94e441",
+        "bytes": 18687,
+        "sha256": "a5e2bf9653c411220915dac11c1e01a7e8acdeffa6b8b383ad9577027eebc307",
+        "git_blob_oid": "aa6c419528d0b7048d7afc2d17414e39b87c8a16",
         "indexed": true
       },
       {
@@ -7912,8 +7912,8 @@
       {
         "path": "scripts/check_implementation_ledger.py",
         "bytes": 1331107,
-        "sha256": "31bb2fd4cf99ed2eb054764543a0f360cd3ab309769aa2e0f8509eba0d23b62c",
-        "git_blob_oid": "5fc94491e7f171609899088734fe232da2f49c88",
+        "sha256": "ebded7359034465e1e3e968d01f06030f72258d2a90462a2f0049ca581ed5a34",
+        "git_blob_oid": "359461a078e96ad218d1546856f9869b9ca1c66a",
         "indexed": true
       },
       {
@@ -8247,9 +8247,9 @@
       },
       {
         "path": "scripts/run_b05_preflight.py",
-        "bytes": 36834,
-        "sha256": "6c6bb4e7f6825fde4d29544ceb502754ebec9b5ede6962071421df1705b1dbe6",
-        "git_blob_oid": "592a4ccb5f4843ed461ff6e55621c92e810992b9",
+        "bytes": 38585,
+        "sha256": "2325ee84874a93b7460a9f48b03aa0b437495acba959fdfa355830e593e593bf",
+        "git_blob_oid": "29282249f6493e09dc52fad489e03615a765b254",
         "indexed": true
       },
       {
@@ -8292,6 +8292,13 @@
         "bytes": 22552,
         "sha256": "aec1a07e6b7ca8e832e856eb11e571d2fb9082a859ceb76b0f74cc4cec8465f8",
         "git_blob_oid": "f2b9243a5f1115b246e04b0986eb534ad1162aa7",
+        "indexed": true
+      },
+      {
+        "path": "scripts/test_b05_process.py",
+        "bytes": 16303,
+        "sha256": "d426ac8cc6b6646fb8b32b3604054edd1a6db8f28d5a477a04a4f5dc1a11f10f",
+        "git_blob_oid": "217bc2dc5053b04b114dd7cfe37e7f61fe75dd66",
         "indexed": true
       },
       {
@@ -8585,7 +8592,7 @@
     ]
   },
   "counts": {
-    "text_files": 1189,
+    "text_files": 1190,
     "binary_or_non_utf8_files": 27,
     "occurrences": 333,
     "by_token_id": {
@@ -8618,7 +8625,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "a12ec9779439ce232691ebe3099e069edc64b15a03d04e6713d33bde8c61bac6",
+  "scanned_path_set_sha256": "2cb8a5433c96d72130e55e949178f7f0f74676dfdf93fc0bc395bbfad0fc5be6",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -11023,7 +11030,7 @@
       "column": 66,
       "token_id": "M008",
       "line_sha256": "d80450cb7715d4c045e02ac59e3acb42fa8b833e1b84bfee3716d7bce057f6ff",
-      "file_sha256": "c4aa640822ed67c4e22223585d6f0405d3796004d239a6dd937222bfceca4c1e",
+      "file_sha256": "709e7a03f97ef5b2e07e53db70a0bbd7c169ac6095a1fcd6fe4f2afbc753ecf2",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -11857,7 +11864,7 @@
       "column": 6,
       "token_id": "M007",
       "line_sha256": "94a068adc081fc0218562be78267b3cbdbf05e4ec3bcc5118790e5ce17e4403f",
-      "file_sha256": "31bb2fd4cf99ed2eb054764543a0f360cd3ab309769aa2e0f8509eba0d23b62c",
+      "file_sha256": "ebded7359034465e1e3e968d01f06030f72258d2a90462a2f0049ca581ed5a34",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -11872,7 +11879,7 @@
       "column": 10,
       "token_id": "M007",
       "line_sha256": "05750a51f227030f2a88ff64ac69bd1c2256ddbd8b29e552996df724401d9c10",
-      "file_sha256": "31bb2fd4cf99ed2eb054764543a0f360cd3ab309769aa2e0f8509eba0d23b62c",
+      "file_sha256": "ebded7359034465e1e3e968d01f06030f72258d2a90462a2f0049ca581ed5a34",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [

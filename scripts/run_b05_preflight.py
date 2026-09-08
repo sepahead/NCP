@@ -282,10 +282,6 @@ def group_exists(process: subprocess.Popen[bytes]) -> bool:
         os.killpg(process.pid, 0)
     except ProcessLookupError:
         return False
-    except PermissionError as error:
-        if process.poll() is not None:
-            return False
-        raise SystemExit("cannot inspect the bounded command process group") from error
     return True
 
 
@@ -296,39 +292,68 @@ def signal_group(
         os.killpg(process.pid, signal_number)
     except ProcessLookupError:
         return
-    except PermissionError as error:
-        try:
-            process.wait(timeout=0.25)
-        except subprocess.TimeoutExpired:
-            raise SystemExit(
-                "cannot signal the bounded command process group"
-            ) from error
-        if not group_exists(process):
-            return
-        raise SystemExit("cannot signal the surviving bounded command group") from error
 
 
-def wait_for_group_exit(process: subprocess.Popen[bytes], timeout_seconds: int) -> bool:
+def wait_for_group_exit(
+    process: subprocess.Popen[bytes], timeout_seconds: float
+) -> bool:
     deadline = time.monotonic() + timeout_seconds
-    while group_exists(process):
-        if time.monotonic() >= deadline:
+    while True:
+        observation_error = None
+        try:
+            if not group_exists(process):
+                return True
+        except PermissionError as error:
+            # Darwin can report EPERM while a signaled group is exiting.
+            # Neither EPERM nor the leader's exit proves that the group is gone.
+            observation_error = error
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            if observation_error is not None:
+                raise SystemExit(
+                    "cannot inspect the bounded command process group "
+                    "before its cleanup deadline"
+                ) from observation_error
             return False
-        time.sleep(0.05)
-    return True
+        time.sleep(min(0.05, remaining))
 
 
 def terminate_process_group(process: subprocess.Popen[bytes]) -> None:
-    signal_group(process, signal.SIGTERM)
-    if not wait_for_group_exit(process, TERMINATION_GRACE_SECONDS):
-        signal_group(process, signal.SIGKILL)
-        if not wait_for_group_exit(process, KILL_GRACE_SECONDS):
-            fail("bounded command process group survived SIGKILL")
+    failures: list[str] = []
+    for signal_number, grace in (
+        (signal.SIGTERM, TERMINATION_GRACE_SECONDS),
+        (signal.SIGKILL, KILL_GRACE_SECONDS),
+    ):
+        phase_failures: list[str] = []
+        try:
+            signal_group(process, signal_number)
+        except OSError as error:
+            phase_failures.append(f"{signal_number.name} signal failed: {error}")
+        try:
+            if wait_for_group_exit(process, grace):
+                # A later ESRCH resolves earlier signal or observation uncertainty.
+                break
+            phase_failures.append("bounded command process group survived termination")
+        except (OSError, SystemExit) as error:
+            phase_failures.append(str(error))
+        if signal_number == signal.SIGKILL:
+            failures.extend(phase_failures)
     try:
         process.wait(timeout=KILL_GRACE_SECONDS)
     except subprocess.TimeoutExpired as error:
-        process.kill()
-        process.wait(timeout=KILL_GRACE_SECONDS)
-        raise SystemExit("bounded command leader survived group termination") from error
+        failures.append(f"bounded command leader survived group termination: {error}")
+        try:
+            process.kill()
+        except OSError as cleanup_error:
+            failures.append(f"bounded command leader signal failed: {cleanup_error}")
+        try:
+            process.wait(timeout=KILL_GRACE_SECONDS)
+        except (OSError, subprocess.TimeoutExpired) as cleanup_error:
+            failures.append(f"bounded command leader cleanup: {cleanup_error}")
+    except OSError as error:
+        failures.append(f"bounded command leader wait failed: {error}")
+    if failures:
+        fail("; ".join(failures))
 
 
 def run_bounded(
@@ -345,19 +370,18 @@ def run_bounded(
         stderr=subprocess.STDOUT,
         start_new_session=True,
     )
-    if process.stdout is None:
-        terminate_process_group(process)
-        fail("bounded command lacks its output pipe")
-    selector = selectors.DefaultSelector()
-    selector.register(process.stdout, selectors.EVENT_READ)
+    selector = None
     chunks: list[bytes] = []
     total = 0
     deadline = time.monotonic() + timeout_seconds
     try:
+        if process.stdout is None:
+            fail("bounded command lacks its output pipe")
+        selector = selectors.DefaultSelector()
+        selector.register(process.stdout, selectors.EVENT_READ)
         while selector.get_map():
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                terminate_process_group(process)
                 fail("bounded command exceeded its timeout")
             events = selector.select(timeout=min(remaining, 0.25))
             for key, _ in events:
@@ -367,21 +391,38 @@ def run_bounded(
                     continue
                 total += len(chunk)
                 if total > maximum:
-                    terminate_process_group(process)
                     fail("bounded command exceeded its output byte limit")
                 chunks.append(chunk)
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            terminate_process_group(process)
             fail("bounded command exceeded its timeout")
         try:
             return_code = process.wait(timeout=remaining)
         except subprocess.TimeoutExpired as error:
-            terminate_process_group(process)
             raise SystemExit("bounded command exceeded its timeout") from error
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            fail("bounded command exceeded its timeout")
+        group_exited = wait_for_group_exit(
+            process, min(remaining, TERMINATION_GRACE_SECONDS)
+        )
+        if time.monotonic() >= deadline:
+            fail("bounded command exceeded its timeout")
+    except BaseException as error:
+        try:
+            terminate_process_group(process)
+        except (OSError, SystemExit, subprocess.TimeoutExpired) as cleanup_error:
+            raise SystemExit(f"{error}; cleanup failed: {cleanup_error}") from error
+        raise
     finally:
-        selector.close()
-        process.stdout.close()
+        if selector is not None:
+            selector.close()
+        if process.stdout is not None:
+            process.stdout.close()
+    if not group_exited:
+        # A successful leader can leave helpers after it closes the output pipe.
+        # Retain its result only after the owned process group is gone.
+        terminate_process_group(process)
     return return_code, b"".join(chunks)
 
 

@@ -266,7 +266,7 @@
   "implementation_tools": [
     {
       "path": "scripts/check_implementation_ledger.py",
-      "sha256": "31bb2fd4cf99ed2eb054764543a0f360cd3ab309769aa2e0f8509eba0d23b62c"
+      "sha256": "ebded7359034465e1e3e968d01f06030f72258d2a90462a2f0049ca581ed5a34"
     },
     {
       "path": "scripts/generate_implementation_ledger.py",
@@ -290,7 +290,7 @@
     },
     {
       "path": "scripts/run_b05_preflight.py",
-      "sha256": "6c6bb4e7f6825fde4d29544ceb502754ebec9b5ede6962071421df1705b1dbe6"
+      "sha256": "2325ee84874a93b7460a9f48b03aa0b437495acba959fdfa355830e593e593bf"
     }
   ],
   "ledger_grants_release_authorization": false,

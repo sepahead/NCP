@@ -12205,7 +12205,7 @@ B05_RECEIPT_PREFIX = "evidence/implementation/receipts/B05/"
 B05_CHECKER_PATH = f"{B05_PROTOTYPE_PREFIX}check.py"
 B05_PREFLIGHT_RUNNER_PATH = "scripts/run_b05_preflight.py"
 B05_PREFLIGHT_RUNNER_SHA256 = (
-    "6c6bb4e7f6825fde4d29544ceb502754ebec9b5ede6962071421df1705b1dbe6"
+    "2325ee84874a93b7460a9f48b03aa0b437495acba959fdfa355830e593e593bf"
 )
 B05_RUN_MANIFEST_SCHEMA = "ncp.prototype-run.v1"
 B05_FOCUSED_RESULT_SCHEMA = "ncp.prototype-focused-result.v1"

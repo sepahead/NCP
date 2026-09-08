@@ -77,10 +77,12 @@ else
     "$evidence_schema_python" scripts/generate_implementation_ledger.py --check
 fi
 "$evidence_schema_python" -m ruff format --check -- \
-    scripts/run_b05_preflight.py
+    scripts/run_b05_preflight.py scripts/test_b05_process.py
 "$evidence_schema_python" -m ruff check --select E,F,I,N,S,UP -- \
-    scripts/run_b05_preflight.py
-"$evidence_schema_python" -m py_compile scripts/run_b05_preflight.py
+    scripts/run_b05_preflight.py scripts/test_b05_process.py
+"$evidence_schema_python" -m py_compile \
+    scripts/run_b05_preflight.py scripts/test_b05_process.py
+"$evidence_schema_python" -I scripts/test_b05_process.py
 "$evidence_schema_python" scripts/generate_decision_registry.py --self-test --check
 
 step "non-authorizing B01 review-request tooling"
