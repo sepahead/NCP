@@ -92,7 +92,7 @@ AUTHORING_SCHEMA_URL = (
     "https://sepahead.github.io/ncp/schemas/b01-selector-closure-authoring.v1.json"
 )
 AUTHORING_SCHEMA_SHA256 = (
-    "0d1ef0a6e5cfd9a70b5de12b45b3d423365684a6c2fe74e073533ae577c9f7c8"
+    "b9db1d0eb3657dbbc7c15563a0243ab5036cd71584eb12d052ee004dfd2c635e"
 )
 CANONICAL_SOURCE_SCHEMA_FILE = "selector-closure.source.schema.v1.json"
 CANONICAL_SOURCE_SCHEMA_ID = "ncp.b01-selector-closure-source.v1"
@@ -347,28 +347,31 @@ V2_EMPTY_MIGRATION_TARGET_SCHEMA_SHA256 = (
 # predecessor or intended successor changes as one coherent source update.
 EXACT_COMBINED_MIGRATION_AUTHORING_SCHEMA_BYTE_LENGTH = 83_271
 EXACT_COMBINED_MIGRATION_AUTHORING_SCHEMA_SHA256 = (
-    "0d1ef0a6e5cfd9a70b5de12b45b3d423365684a6c2fe74e073533ae577c9f7c8"
+    "b9db1d0eb3657dbbc7c15563a0243ab5036cd71584eb12d052ee004dfd2c635e"
 )
+# The active one-use repin preserves the paired file-observation repair.
+# Its exact predecessor is the 51,681-byte reader binding. Git history retains
+# the earlier 50,898-to-51,681-byte migration and its complete source closure.
 EXACT_PROBE_REPIN_PREDECESSOR_BINDING_BYTE_LENGTH = 4_696
 EXACT_PROBE_REPIN_PREDECESSOR_BINDING_SHA256 = (
-    "6d050663c6565f4b418e905a45c70b002fea15d9cd6990bae69c64febd8306cb"
+    "bd3cc9fde9b2bbef9f03074da6b18dd1e3d8a7b2d6784a0a551e7af1699fafca"
 )
 EXACT_PROBE_REPIN_TARGET_BINDING_BYTE_LENGTH = 4_696
 EXACT_PROBE_REPIN_TARGET_BINDING_SHA256 = (
-    "bd3cc9fde9b2bbef9f03074da6b18dd1e3d8a7b2d6784a0a551e7af1699fafca"
+    "94f1478058ac00e8595a5e6c1731dce01d7732b3250aa211d0af01874f08acb1"
 )
 EXACT_PROBE_REPIN_PREDECESSOR_OVERRIDES = (
     (
         "shared_source_bindings",
         "bounded_json",
         "byte_length",
-        50_898,
+        51_681,
     ),
     (
         "shared_source_bindings",
         "bounded_json",
         "sha256",
-        "588eb98082955978dfc026bb70ebb22fe5a0e82aa96833201700230f2b2ac817",
+        "33599371dea7a30b157ac730db8012654707c926e8537c571e6c29b96ac00168",
     ),
 )
 EXACT_PROBE_REPIN_PREDECESSOR_REMOVALS: tuple[tuple[str, ...], ...] = ()
@@ -382,7 +385,7 @@ EXACT_COMBINED_MIGRATION_PREDECESSOR_INVENTORY_SHA256 = (
 )
 EXACT_COMBINED_MIGRATION_SUCCESSOR_AUTHORING_BYTE_LENGTH = 12_897_150
 EXACT_COMBINED_MIGRATION_SUCCESSOR_AUTHORING_SHA256 = (
-    "05e9045cb2fb5cbda9e48a9565bf253c0c29580487c89f07f9da70b8303e5725"
+    "408402da892f6bf429c8b7baa9cbb090bf6a4a7684088bf8da518926ce362b6f"
 )
 EXACT_COMBINED_MIGRATION_SUCCESSOR_INVENTORY_BYTE_LENGTH = 42_807
 EXACT_COMBINED_MIGRATION_SUCCESSOR_INVENTORY_SHA256 = (
@@ -1762,6 +1765,75 @@ def _run_exact_adversarial_probe_binding_repin_self_test(
         pass
     else:
         _fail("adversarial probe repin accepted a near-miss predecessor")
+
+    for label, candidate, path, value in (
+        (
+            "changed reader length with retained stdout",
+            original,
+            ("shared_source_bindings", "bounded_json", "byte_length"),
+            70_079,
+        ),
+        (
+            "changed reader digest with retained stdout",
+            original,
+            ("shared_source_bindings", "bounded_json", "sha256"),
+            "0" * 64,
+        ),
+        (
+            "near-miss completed successor",
+            seeded,
+            ("observer_capture_probe", "stdout_byte_length"),
+            target["observer_capture_probe"]["stdout_byte_length"] + 1,
+        ),
+    ):
+        hostile = copy.deepcopy(candidate)
+        cursor = hostile[ADVERSARIAL_PROBE_BINDINGS_KEY]
+        for part in path[:-1]:
+            cursor = cursor[part]
+        cursor[path[-1]] = value
+        retained = copy.deepcopy(hostile)
+        try:
+            _prepare_exact_adversarial_probe_binding_repin(
+                authoring=hostile,
+                schema=fixture_schema,
+            )
+        except SelectorClosureGenerationError:
+            pass
+        else:
+            _fail(f"adversarial probe repin accepted {label}")
+        _require(hostile == retained, f"rejected {label} changed its input")
+
+    retired = copy.deepcopy(original)
+    retired_reader = retired[ADVERSARIAL_PROBE_BINDINGS_KEY]["shared_source_bindings"][
+        "bounded_json"
+    ]
+    retired_reader.update(
+        byte_length=50_898,
+        sha256="588eb98082955978dfc026bb70ebb22fe5a0e82aa96833201700230f2b2ac817",
+    )
+    try:
+        _prepare_exact_adversarial_probe_binding_repin(
+            authoring=retired,
+            schema=fixture_schema,
+        )
+    except SelectorClosureGenerationError:
+        pass
+    else:
+        _fail("adversarial probe repin accepted the retired historical predecessor")
+
+    hostile_schema = copy.deepcopy(fixture_schema)
+    hostile_schema["properties"][ADVERSARIAL_PROBE_BINDINGS_KEY]["const"][
+        "shared_source_bindings"
+    ]["bounded_json"]["sha256"] = "0" * 64
+    try:
+        _prepare_exact_adversarial_probe_binding_repin(
+            authoring=original,
+            schema=hostile_schema,
+        )
+    except SelectorClosureGenerationError:
+        pass
+    else:
+        _fail("adversarial probe repin accepted an unbound successor schema")
 
 
 def _same_file_or_resolved_path(left: Path, right: Path) -> bool:

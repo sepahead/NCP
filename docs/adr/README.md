@@ -130,6 +130,24 @@ bridge retains and checks caller-supplied dispatch-attempt bytes against the
 atomically committed outbox bytes. These checks do not qualify a live transport
 or cryptographic deployment.
 
+The selector probe bindings must name the exact current shared reader bytes.
+The active repin moves the 51,681-byte reader binding to the 70,079-byte paired file-observation reader.
+It preserves every probe output expectation and execution limit.
+The generator accepts only the exact predecessor or an unchanged completed successor.
+Near-miss source identities, changed outputs, and the older 50,898-byte predecessor reject.
+Git history retains earlier cuts. The repin grants no review or release authority.
+
+Use the authoring-first generator for the active cut:
+
+```bash
+python3 scripts/generate_selector_closure_source.py --refresh-incomplete-authoring --repin-adversarial-probe-bindings
+python3 scripts/generate_selector_closure_source.py --review-candidate
+python3 scripts/generate_selector_closure_matrix.py
+python3 scripts/generate_selector_allocation_proposal.py
+```
+
+Regeneration does not replace actual bound-probe replay or the applicable complete gate.
+
 ## Transaction and receipt terms
 
 The same rule applies to each proposed ADR. `Post-CAS` states content dependency
