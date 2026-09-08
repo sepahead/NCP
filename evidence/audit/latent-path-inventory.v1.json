@@ -2942,8 +2942,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 151082,
-        "sha256": "01ca34ae8e6d4735f64b87d291bacfd0cd02543487bb50f28f9bbd7b88496bab",
-        "git_blob_oid": "af1a2bb275c39cc5ff1c8c2041bc736dd319384c",
+        "sha256": "1a33e57071893cb9abe224b6a2f7418f71d3a34a0ffbf45b1ec61284ce50c0a6",
+        "git_blob_oid": "cef25bc5fb6114eff6b7876f2f2d083c38514deb",
         "indexed": true
       },
       {
@@ -3109,9 +3109,9 @@
       },
       {
         "path": "local/python/ncp_local/modular_wire.py",
-        "bytes": 29658,
-        "sha256": "2944573d8a2ee020fcb3d41ae08b521f03b292a27dc26a49dd90b3a35aac2ccc",
-        "git_blob_oid": "68bd0766fcdf75a2c559a130012fe4ad4d3c8cde",
+        "bytes": 30036,
+        "sha256": "7506fb41a3183b1325271dd61eec84aabb7909b34f48e2ec04fc90a7023187aa",
+        "git_blob_oid": "9c7b43c4e4cac1fd2a18bf9a9521d470ae87d060",
         "indexed": true
       },
       {
@@ -3172,9 +3172,9 @@
       },
       {
         "path": "local/python/tests/test_modular_wire.py",
-        "bytes": 8165,
-        "sha256": "c18d0698307a3733913eccb81140aaec7cf3c4222f6f5ec93f568ad605802bf7",
-        "git_blob_oid": "b409744065a310cc0d4859fd47806f553792175a",
+        "bytes": 9938,
+        "sha256": "215e1da5e309970dd09d18da452fa6c0fd6c8a71bcef33a65181358efb655de1",
+        "git_blob_oid": "c80343ce890c844a6d69e7c9c5632cdcb422087d",
         "indexed": true
       },
       {
@@ -7827,9 +7827,9 @@
       },
       {
         "path": "scripts/check.sh",
-        "bytes": 18687,
-        "sha256": "a5e2bf9653c411220915dac11c1e01a7e8acdeffa6b8b383ad9577027eebc307",
-        "git_blob_oid": "aa6c419528d0b7048d7afc2d17414e39b87c8a16",
+        "bytes": 18819,
+        "sha256": "b498d2ebf6e3d41325954d5117de551df57770eace776905b678fca993c5470d",
+        "git_blob_oid": "ba7792133c5861274aa6d831083a8c65e844ff7a",
         "indexed": true
       },
       {
@@ -8135,9 +8135,9 @@
       },
       {
         "path": "scripts/generate_supply_chain_evidence.py",
-        "bytes": 129425,
-        "sha256": "b6886dec4b7abaa6640719413995f262a3d6edc98e0b1165fe758f123dca7d85",
-        "git_blob_oid": "f36121f0496b3fc298057a1981eaffb47136ecbc",
+        "bytes": 131305,
+        "sha256": "a7a079998e06d3372e8ff6874afcd4dcc73b880c3f2d72d90307b7cd74db6321",
+        "git_blob_oid": "b2d51c90aaa5eca6fe65d68744cfce1e08d3566f",
         "indexed": true
       },
       {
