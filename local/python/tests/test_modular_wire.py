@@ -13,6 +13,34 @@ from ncp_local.modular_profile import CORE_DESCRIPTOR
 
 
 class WireTests(unittest.TestCase):
+    def test_ascii_accounting_matches_independent_encoded_pair_extents(self):
+        for first in range(128):
+            for second in range(128):
+                value = chr(first) + chr(second)
+                for quoted in (False, True):
+                    encoded = json.dumps(value, ensure_ascii=False).encode() if quoted else value.encode()
+                    extent = len(encoded)
+                    self.assertEqual(w._string_extent(value, extent, quoted=quoted), extent)
+                    with self.assertRaises(w.ModularError) as rejected:
+                        w._string_extent(value, extent - 1, quoted=quoted)
+                    self.assertEqual(rejected.exception.code, "capacity")
+
+    def test_string_accounting_preserves_unicode_and_error_order(self):
+        for value in ("", "μ", "😀", "aμ", "\x00μ", '"μ\\'):
+            for quoted in (False, True):
+                encoded = json.dumps(value, ensure_ascii=False).encode() if quoted else value.encode()
+                self.assertEqual(w._string_extent(value, len(encoded), quoted=quoted), len(encoded))
+        for value, limit, expected in (("a\ud800", 0, "capacity"), ("a\ud800", 1, "wire"),
+                                       ("\ud800a", 0, "wire"), ("μ\ud800", 1, "capacity"),
+                                       ("μ\ud800", 2, "wire")):
+            with self.assertRaises(w.ModularError) as rejected:
+                w._string_extent(value, limit)
+            self.assertEqual(rejected.exception.code, expected)
+        class LegacyString(str):
+            def isascii(self): raise AssertionError("Subclass method must not run")
+        self.assertEqual(w._string_extent(LegacyString("abc"), 5, quoted=True), 5)
+        self.assertEqual(w._string_extent("abc", 3.0), 3)
+
     def test_descriptor_response_dispositions_cover_every_closed_combination(self):
         descriptor = json.loads(CORE_DESCRIPTOR)
         accepted = 0

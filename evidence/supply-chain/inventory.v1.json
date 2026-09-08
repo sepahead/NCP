@@ -2692,14 +2692,14 @@
         "docs/adr/selector-closure.source.v1.json"
       ],
       "path": "scripts/generate_selector_closure_source.py",
-      "sha256": "805d0ea33876a1ba0e3ed118b3f7b305c2786cfe0882e5ea4b2c715663a435b3"
+      "sha256": "37b527ea5933ad9bfe2a75034dbb7ab8152a320b9b061b6ce9f1fcdd3c32c9f4"
     },
     {
       "outputs": [
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "b6886dec4b7abaa6640719413995f262a3d6edc98e0b1165fe758f123dca7d85"
+      "sha256": "a7a079998e06d3372e8ff6874afcd4dcc73b880c3f2d72d90307b7cd74db6321"
     },
     {
       "outputs": [

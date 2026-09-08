@@ -115,6 +115,12 @@ def _string_extent(text: str, limit: int, *, quoted: bool = False) -> int:
     """Count UTF8 or compact JSON bytes before allocating a complete token."""
     size = 2 if quoted else 0
     if size > limit: raise ModularError("capacity")
+    # ASCII has no surrogate, so its byte lower bound preserves rejection order.
+    if type(text) is str and text.isascii() and type(limit) is int and type(quoted) is bool:
+        if len(text) > limit - size:
+            raise ModularError("capacity")
+        if not quoted or (text.isprintable() and '"' not in text and '\\' not in text):
+            return size + len(text)
     for character in text:
         point = ord(character)
         if 0xD800 <= point <= 0xDFFF: raise ModularError("wire")

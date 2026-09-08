@@ -28,7 +28,6 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "evidence" / "supply-chain"
 ADVISORY_DB_PATH_ENV = "NCP_ADVISORY_DB_PATH"
@@ -149,9 +148,7 @@ GENERATOR_OUTPUTS = {
         "local/rust/LICENSE-{MIT,APACHE}",
         "local/rust/source-projection.v1.json",
     ],
-    "scripts/project_modular_profile.py": [
-        "local/python/ncp_local/modular_profile.py"
-    ],
+    "scripts/project_modular_profile.py": ["local/python/ncp_local/modular_profile.py"],
     "scripts/render_acl_template.py": ["operator-selected concrete Zenoh ACL config"],
     "scripts/sync_rust_package_testdata.py": ["ncp-{core,zenoh,cpp}/testdata/**"],
 }
@@ -1375,6 +1372,24 @@ def _workflow_actions(tracked: list[str]) -> list[dict[str, str]]:
     return actions
 
 
+def _source_records(tracked: list[str]) -> dict[str, list[dict[str, Any]]]:
+    return {
+        "code_generators": _generator_inventory(set(tracked)),
+        "assets_datasets_and_fixtures": _asset_inventory(tracked),
+    }
+
+
+def _validate_source_records(inventory: Any, expected: dict[str, Any]) -> None:
+    if (
+        not isinstance(inventory, dict)
+        or inventory.get("schema") != OUTPUTS["inventory.v1.json"]
+    ):
+        raise EvidenceError("source inventory schema is invalid")
+    for name, records in expected.items():
+        if inventory.get(name) != records:
+            raise EvidenceError(f"source inventory {name} is stale; regenerate it")
+
+
 def _exact_requirement_file(path: Path) -> list[str]:
     requirements = [
         line.strip()
@@ -1756,7 +1771,6 @@ def _build_outputs(
     cargo, refs = _cargo_packages(metadata)
     checksums = _lock_checksums()
     tracked = _tracked_files(tracked_files_manifest)
-    tracked_set = set(tracked)
     workspace = _workspace_inventory(metadata, refs)
     root_manifest = _read_json(ROOT / "package.json")
     nested_npm_manifest = _read_json(ROOT / "ncp-ts" / "package.json")
@@ -2033,8 +2047,7 @@ def _build_outputs(
             "github_actions": _workflow_actions(tracked),
             "buf_remote_plugins": "validated by scripts/check_buf_generator_pins.py",
         },
-        "code_generators": _generator_inventory(tracked_set),
-        "assets_datasets_and_fixtures": _asset_inventory(tracked),
+        **_source_records(tracked),
     }
     sbom_identity = {
         "candidate_version": version,
@@ -2618,6 +2631,26 @@ def _self_test() -> None:
             return
         raise AssertionError(f"hostile self-test did not fail closed: {label}")
 
+    expected_records = {
+        "code_generators": [
+            {"path": "scripts/generate_example.py", "sha256": "a" * 64}
+        ],
+        "assets_datasets_and_fixtures": [],
+    }
+    valid_inventory = {"schema": OUTPUTS["inventory.v1.json"], **expected_records}
+    _validate_source_records(valid_inventory, expected_records)
+    for invalid in (
+        None,
+        {**valid_inventory, "schema": "unknown"},
+        {**valid_inventory, "code_generators": []},
+        {**valid_inventory, "assets_datasets_and_fixtures": [{"path": "unexpected"}]},
+    ):
+        expect_rejected(
+            "source inventory drift",
+            lambda invalid=invalid: _validate_source_records(invalid, expected_records),
+        )
+        _validate_source_records(valid_inventory, expected_records)
+
     for ambiguous in (
         '{"release_authorized":true,"release_authorized":false}',
         '{"outer":{"revision":"a","revision":"b"}}',
@@ -3189,6 +3222,11 @@ def main() -> int:
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument("--check", action="store_true")
     mode_group.add_argument(
+        "--check-assets-and-generators",
+        action="store_true",
+        help="fast source-record check only; dependency and advisory gates remain required",
+    )
+    mode_group.add_argument(
         "--validate-current-advisories",
         action="store_true",
         help=(
@@ -3208,6 +3246,15 @@ def main() -> int:
             raise EvidenceError("--tracked-files-manifest is valid only with --check")
         if args.self_test:
             _self_test()
+        if args.check_assets_and_generators:
+            _validate_source_records(
+                _read_json(EVIDENCE / "inventory.v1.json"),
+                _source_records(_tracked_files()),
+            )
+            print(
+                "OK generator and asset records; dependency and advisory evidence not checked"
+            )
+            return 0
         if args.validate_current_advisories:
             _reviewed_advisory_ignore_set()
             advisory_scan = _cargo_advisories()
