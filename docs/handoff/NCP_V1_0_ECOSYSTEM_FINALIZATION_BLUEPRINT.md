@@ -834,6 +834,14 @@ assumptions, or release readiness.
 
 ### D13 — dependencies and registry identities remain release blockers
 
+The 2026-09-09 review checked official Zenoh 1.10.1, released September 7.
+Its [immutable transport manifest](https://github.com/eclipse-zenoh/zenoh/blob/1211779c3647f5a96713dade452c546a07823580/io/zenoh-transport/Cargo.toml)
+and registry crate still declare unconditional `lz4_flex 0.10.0`.
+The reviewed crate SHA-256 is
+`72bae2e0aca56ac6431bd6c37c6ac3fcc9367446cbb356bd44137cc01d1493ee`.
+The [upstream vulnerability issue](https://github.com/eclipse-zenoh/zenoh/issues/2589)
+remains open. This release cannot yet replace NCP's or CREBAIN's existing fix.
+
 The current root and quarantined-probe graphs select `lz4_flex 0.11.6` and
 non-yanked `spin 0.9.9` and `0.10.1` through exact `zenoh-transport 1.9.0`
 backport revision
@@ -850,8 +858,11 @@ normalized `ncp-zenoh` and `ncp-gateway` source archive selects registry
 `zenoh-transport 1.9.0` with affected `lz4_flex 0.10.0` and `twox-hash 1.6.3`.
 The local package checker observes that fallback without compiling it. It applies
 the exact patch at each consuming test root before compilation; the conditioned
-graph selects `lz4_flex 0.11.6` and `twox-hash 2.1.3`. Receipt v3 retains the two
-conditioned locks and three checksum-bound registry crates. Fork-source and
+graph selects `lz4_flex 0.11.6` and `twox-hash 2.1.3`. Receipt v4 retains the two
+conditioned locks and three checksum-bound registry crates.
+It separates logical source modes from POSIX permissions created under child mask `0077`.
+The checker preserves owner executable bits and rejects unexpected or special permission bits.
+Fork-source and
 upstream-delta verification are point-in-time local-process attestations because
 the receipt does not retain the exact fork bytes. Pre/post source comparisons are
 not a compiler-input trace. The checker first acquires exact registry inputs and
@@ -7308,7 +7319,7 @@ Implementation:
   not self-contained distribution evidence. Source-only archive metadata must
   retain the observed registry fallback without compiling it. Qualification must
   apply the exact patch at each consuming test root, verify the conditioned graph,
-  and retain receipt v3's locks and checksum-bound registry sources without
+  and retain receipt v4's locks and checksum-bound registry sources without
   overstating point-in-time fork verification or pre/post source comparison as an
   exact compiler-input trace. That run remains only `CONDITIONAL_PASS` while the
   gate is `OPEN_FAIL_CLOSED` and `NO_GO`. Replace the temporary source with a

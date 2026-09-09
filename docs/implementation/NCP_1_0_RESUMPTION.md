@@ -87,7 +87,7 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `bcaeb9158febd16f3da5fd43637d2248360c688fda97d36a0d35dc8f8fc3af2e`.
+Blueprint SHA-256: `31285348202990c691f980ff3676448e4132fcf33c424c130ef661cd0d0aa8e7`.
 
 Can this ledger grant release authorization? **false**.
 

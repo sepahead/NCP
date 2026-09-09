@@ -122,6 +122,12 @@ Archive construction then runs offline.
 Conditioned lock updates run offline against acquired inputs.
 Later locked fetches can use network access.
 Cargo dependency access remains offline during compile and test.
+Receipt v4 separates logical source modes from POSIX filesystem permissions.
+Qualification children use mask `0077` without changing the parent's mask.
+Source permissions `0644` become `0600`.
+Executable permissions `0755` become `0700`.
+The checker rejects unexpected permissions, special mode bits, changed bytes, links, and incorrect source rosters.
+Historical v3 receipts do not acquire this v4 materialization evidence.
 The checker claims no host or child-process
 network isolation and no host filesystem isolation. Its source comparison covers
 both conditioned consumer graphs at two points in time. It retains no

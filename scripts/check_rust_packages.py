@@ -105,7 +105,16 @@ ZENOH_BACKPORT_CONFIG = {
     "patch.crates-io.zenoh-transport.git": ZENOH_BACKPORT_GIT,
     "patch.crates-io.zenoh-transport.rev": ZENOH_BACKPORT_REVISION,
 }
-RUST_PACKAGE_RECEIPT_SCHEMA = "ncp.rust-package-receipt.v3"
+RUST_PACKAGE_RECEIPT_SCHEMA = "ncp.rust-package-receipt.v4"
+QUALIFICATION_UMASK = 0o077
+SOURCE_MATERIALIZATION_POLICY = {
+    "platform": "POSIX",
+    "child_umask": "0077",
+    "file_permissions": "SOURCE_PERMISSION_BITS_AND_NOT_CHILD_UMASK",
+    "source_manifest_modes": "LOGICAL_ARCHIVE_OR_GIT_MODES",
+    "cargo_marker_permissions": "0600",
+    "parent_umask": "UNCHANGED",
+}
 RUST_RECEIPT_VERIFICATION_BOUNDARY = {
     "artifact_derived": [
         "EXACT_RETAINED_TREE_AND_FILE_HASHES",
@@ -200,6 +209,7 @@ def run(
         env=env,
         check=True,
         stdin=subprocess.DEVNULL,
+        umask=QUALIFICATION_UMASK,
     )
 
 
@@ -217,6 +227,7 @@ def run_capture(
         check=True,
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
+        umask=QUALIFICATION_UMASK,
     )
     return process.stdout
 
@@ -300,6 +311,7 @@ def _tool_output_exact(
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            umask=QUALIFICATION_UMASK,
         )
     except OSError as error:
         raise RuntimeError(f"cannot execute {command[0]}: {error}") from error
@@ -403,6 +415,8 @@ def create_qualification(
 ) -> Qualification:
     """Create a credential-free Cargo home and a minimal, bound environment."""
 
+    if os.name != "posix":
+        raise RuntimeError("Rust package qualification requires POSIX permissions")
     cargo = _resolved_tool("cargo", inherited)
     rustc = _resolved_tool("rustc", inherited)
     rustdoc = _resolved_tool("rustdoc", inherited)
@@ -504,6 +518,7 @@ def create_qualification(
         "system_executable_isolation": "NOT_CLAIMED",
         "credential_access_isolation": "NOT_CLAIMED",
         "caller_credential_environment": "STRIPPED_FOR_CARGO_AND_GIT",
+        "source_materialization": dict(SOURCE_MATERIALIZATION_POLICY),
         "cargo_config": list(SECURE_CARGO_CONFIG),
         "environment": retained_environment,
         "environment_allowlist": sorted(
@@ -686,6 +701,7 @@ def rustc_host(env: dict[str, str], rustc: str = "rustc") -> str:
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            umask=QUALIFICATION_UMASK,
         )
     except OSError as error:
         raise RuntimeError(f"cannot execute rustc: {error}") from error
@@ -1081,15 +1097,12 @@ def _plain_file_records(
     marker_bytes: bytes,
     mode_key: str,
 ) -> list[dict[str, object]]:
-    """Verify an exact source tree without following links or accepting hardlinks."""
+    """Verify private source materialization and return logical source records."""
 
-    expected_by_path = {
-        str(record["path"]): record
-        for record in expected
-        if isinstance(record, dict) and isinstance(record.get("path"), str)
-    }
-    if len(expected_by_path) != len(expected):
-        raise RuntimeError("expected source manifest contains duplicate paths")
+    if mode_key not in {"mode", "git_mode"}:
+        raise RuntimeError("unknown source manifest mode kind")
+    normalized = _normalized_source_records(expected, mode_key=mode_key)
+    expected_by_path = {str(record["path"]): record for record in expected}
     expected_directories: set[str] = set()
     for path in expected_by_path:
         parent = Path(path).parent
@@ -1133,37 +1146,43 @@ def _plain_file_records(
     if set(actual_files) != expected_names:
         raise RuntimeError("source tree file set differs from its manifest")
     marker = actual_files[marker_name]
+    if stat.S_IMODE(marker.stat().st_mode) != 0o600:
+        raise RuntimeError(f"source marker permissions differ: {marker_name}")
     if marker.read_bytes() != marker_bytes:
         raise RuntimeError(
             f"source marker {marker_name} differs from its reviewed value"
         )
 
-    actual_records: list[dict[str, object]] = []
+    verified_records: list[dict[str, object]] = []
     for path_value in sorted(expected_by_path):
         expected_record = expected_by_path[path_value]
         path = actual_files[path_value]
         size = path.stat().st_size
         digest = sha256(path)
         expected_mode = expected_record.get(mode_key)
-        if mode_key == "git_mode":
-            mode = f"100{path.stat().st_mode & 0o777:03o}"
-        else:
-            mode = f"{path.stat().st_mode & 0o777:04o}"
-        if (
-            mode != expected_mode
-            or size != expected_record.get("size_bytes")
-            or digest != expected_record.get("sha256")
+        source_permissions = int(str(normalized[path_value]["mode"]), 8)
+        expected_permissions = source_permissions & ~QUALIFICATION_UMASK
+        # stat.S_IMODE retains special permission bits, which must also match.
+        actual_permissions = stat.S_IMODE(path.stat().st_mode)
+        if actual_permissions != expected_permissions:
+            raise RuntimeError(
+                f"source permissions differ: {path_value}: "
+                f"expected {expected_permissions:04o}, observed {actual_permissions:04o}"
+            )
+        if size != expected_record.get("size_bytes") or digest != expected_record.get(
+            "sha256"
         ):
             raise RuntimeError(f"source file differs from its manifest: {path_value}")
-        actual_records.append(
+        # The source commitment keeps the archive/Git mode, not its projection.
+        verified_records.append(
             {
                 "path": path_value,
-                mode_key: mode,
+                mode_key: expected_mode,
                 "size_bytes": size,
                 "sha256": digest,
             }
         )
-    return actual_records
+    return verified_records
 
 
 def _git_base(git: str, checkout: Path) -> list[str]:
@@ -1592,6 +1611,10 @@ def _streamed_crate_manifest(
             if not (member.isfile() or member.isdir()):
                 raise RuntimeError(
                     f"special archive entry in {archive.name}: {member.name}"
+                )
+            if member.mode & ~0o777:
+                raise RuntimeError(
+                    f"special archive permissions in {archive.name}: {member.name}"
                 )
             if member.isdir():
                 continue
@@ -2753,6 +2776,7 @@ def _validate_qualification_environment(
         "system_executable_isolation",
         "credential_access_isolation",
         "caller_credential_environment",
+        "source_materialization",
         "cargo_config",
         "environment",
         "environment_allowlist",
@@ -2781,6 +2805,7 @@ def _validate_qualification_environment(
         or value.get("system_executable_isolation") != "NOT_CLAIMED"
         or value.get("credential_access_isolation") != "NOT_CLAIMED"
         or value.get("caller_credential_environment") != "STRIPPED_FOR_CARGO_AND_GIT"
+        or value.get("source_materialization") != SOURCE_MATERIALIZATION_POLICY
         or value.get("toolchain_pre_post_point_match") is not True
         or value.get("cargo_config") != list(SECURE_CARGO_CONFIG)
     ):
@@ -3407,9 +3432,163 @@ def _self_test_archive_acquisition(qualification: Qualification) -> None:
                 raise AssertionError(f"acquisition continued after failure: {case}")
 
 
+def _self_test_source_materialization() -> None:
+    """Exercise actual permissions, source identity, and link rejection together."""
+
+    import copy
+
+    with tempfile.TemporaryDirectory(prefix="ncp-source-mode-selftest-") as tmp:
+        root = Path(tmp)
+        for mode_key in ("mode", "git_mode"):
+            source = root / mode_key
+            source.mkdir(mode=0o700)
+            marker = source / ".cargo-ok"
+            marker.write_bytes(REGISTRY_CARGO_OK)
+            marker.chmod(0o600)
+            expected = []
+            for name, logical, materialized in (
+                ("normal", "0644", 0o600),
+                ("executable", "0755", 0o700),
+            ):
+                path = source / name
+                path.write_bytes(name.encode("ascii"))
+                path.chmod(materialized)
+                expected.append(
+                    {
+                        "path": name,
+                        mode_key: "100" + logical[1:]
+                        if mode_key == "git_mode"
+                        else logical,
+                        "size_bytes": len(name),
+                        "sha256": sha256(path),
+                    }
+                )
+            expected.sort(key=lambda row: str(row["path"]))
+
+            def check(records: list[dict[str, object]] = expected) -> None:
+                verified = _plain_file_records(
+                    source,
+                    records,
+                    marker_name=".cargo-ok",
+                    marker_bytes=REGISTRY_CARGO_OK,
+                    mode_key=mode_key,
+                )
+                if verified != records:
+                    raise AssertionError("materialization changed logical source modes")
+
+            def reject(label: str, records: list[dict[str, object]] = expected) -> None:
+                try:
+                    check(records)
+                except RuntimeError:
+                    return
+                raise AssertionError(f"altered source passed materialization: {label}")
+
+            check()
+            for name, valid, hostile_modes in (
+                ("normal", 0o600, (0o644, 0o660, 0o700, 0o400, 0o1600, 0o2600, 0o4600)),
+                ("executable", 0o700, (0o600, 0o755)),
+            ):
+                for hostile in hostile_modes:
+                    (source / name).chmod(hostile)
+                    reject(f"{name} permission {hostile:04o}")
+                    (source / name).chmod(valid)
+            normal = source / "normal"
+            normal.write_bytes(b"NORMAL")
+            reject("same-size byte substitution")
+            normal.write_bytes(b"normal-extra")
+            reject("size substitution")
+            normal.write_bytes(b"normal")
+            normal.unlink()
+            reject("missing source")
+            normal.symlink_to(source / "executable")
+            reject("symbolic link")
+            normal.unlink()
+            normal.write_bytes(b"normal")
+            normal.chmod(0o600)
+            outside = root / f"{mode_key}-hardlink"
+            os.link(normal, outside)
+            reject("hard link outside the source roster")
+            outside.unlink()
+            extra = source / "extra"
+            extra.write_bytes(b"")
+            reject("extra source file")
+            extra.unlink()
+            extra.mkdir(mode=0o700)
+            reject("extra source directory")
+            extra.rmdir()
+            marker.write_bytes(b"wrong")
+            reject("Cargo marker bytes")
+            marker.write_bytes(REGISTRY_CARGO_OK)
+            marker.chmod(0o644)
+            reject("Cargo marker permissions")
+            marker.chmod(0o600)
+            malformed = copy.deepcopy(expected)
+            malformed[0][mode_key] = "100600" if mode_key == "git_mode" else "4644"
+            reject("malformed logical source mode", malformed)
+            reject("duplicate source path", [*expected, expected[0]])
+            malformed = copy.deepcopy(expected)
+            malformed[0]["path"] = "../outside"
+            reject("source path escape", malformed)
+            check()
+
+        # Each outer process has a known parent mask. Production helpers must
+        # constrain only their children, including when the parent uses 0022.
+        child = (
+            "from pathlib import Path; import sys; Path(sys.argv[1]).write_bytes(b'ok')"
+        )
+        probe = r"""
+import importlib.util
+import os
+from pathlib import Path
+import sys
+
+spec = importlib.util.spec_from_file_location("packages", sys.argv[1])
+packages = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = packages
+spec.loader.exec_module(packages)
+root = Path(sys.argv[2])
+expected_parent = int(sys.argv[3], 8)
+def parent_control(name):
+    path = root / name
+    path.write_bytes(b"parent")
+    assert path.stat().st_mode & 0o7777 == expected_parent
+parent_control("before")
+for name in ("run", "run_capture", "_tool_output_exact"):
+    destination = root / name
+    command = [sys.executable, "-I", "-c", sys.argv[4], str(destination)]
+    if name == "_tool_output_exact":
+        packages._tool_output_exact(command, dict(os.environ))
+    else:
+        getattr(packages, name)(command, env=dict(os.environ), cwd=root)
+    assert destination.read_bytes() == b"ok"
+    assert destination.stat().st_mode & 0o7777 == 0o600
+parent_control("after")
+"""
+        for parent_mask in (0o022, 0o077):
+            probe_root = root / f"parent-{parent_mask:04o}"
+            probe_root.mkdir(mode=0o700)
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-I",
+                    "-c",
+                    probe,
+                    str(Path(__file__).resolve()),
+                    str(probe_root),
+                    f"{0o666 & ~parent_mask:04o}",
+                    child,
+                ],
+                check=True,
+                stdin=subprocess.DEVNULL,
+                umask=parent_mask,
+            )
+
+
 def self_test() -> None:
     import copy
     import io
+
+    _self_test_source_materialization()
 
     artifact_claims = set(RUST_RECEIPT_VERIFICATION_BOUNDARY["artifact_derived"])
     local_claims = set(RUST_RECEIPT_VERIFICATION_BOUNDARY["local_process_attestations"])
@@ -3508,6 +3687,22 @@ def self_test() -> None:
             qualification.toolchain_receipt,
             expected_identity="unreleased-worktree",
         )
+        for field, replacement in (
+            ("child_umask", "0022"),
+            ("file_permissions", "IGNORE_PERMISSION_DIFFERENCES"),
+            ("source_manifest_modes", "MATERIALIZED_FILESYSTEM_MODES"),
+            ("parent_umask", "MUTATED"),
+        ):
+            altered = copy.deepcopy(qualification.toolchain_receipt)
+            altered["source_materialization"][field] = replacement
+            try:
+                _validate_qualification_environment(
+                    altered, expected_identity="unreleased-worktree"
+                )
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError("altered materialization receipt passed")
         _self_test_archive_acquisition(qualification)
 
     with tempfile.TemporaryDirectory(prefix="ncp-package-path-selftest-") as tmp:
@@ -3616,6 +3811,25 @@ def self_test() -> None:
                     else:
                         info.size = len(body)
                         package.addfile(info, io.BytesIO(body))
+
+        for source_mode in (0o644, 0o755, 0o1644, 0o2644, 0o4644):
+            archive = root / f"permissions-{source_mode:04o}.crate"
+            with canonical_tar_writer(archive) as package:
+                info = tarfile.TarInfo(f"{prefix}/source")
+                info.mode = source_mode
+                info.size = 2
+                package.addfile(info, io.BytesIO(b"ok"))
+            if source_mode in (0o644, 0o755):
+                rows, _ = _streamed_crate_manifest(archive, prefix)
+                if rows[0]["mode"] != f"{source_mode:04o}":
+                    raise AssertionError("crate parser changed source permission bits")
+            else:
+                try:
+                    _streamed_crate_manifest(archive, prefix)
+                except RuntimeError:
+                    pass
+                else:
+                    raise AssertionError("special archive permissions passed")
 
         buffered_read_regression_size = CRATE_STREAM_CHUNK_BYTES * 2 + 17
         buffered_read_regression_body = (
@@ -4264,7 +4478,7 @@ def main() -> int:
         type=Path,
         help=(
             "atomically retain verified crate archives, conditioned locks, fixed "
-            "registry source crates, and a v3 evidence receipt in this new directory; "
+            "registry source crates, and a v4 evidence receipt in this new directory; "
             "also rebuild and compare every NCP archive"
         ),
     )

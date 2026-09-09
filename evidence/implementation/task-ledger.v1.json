@@ -1,7 +1,7 @@
 {
   "blueprint": {
     "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
-    "sha256": "bcaeb9158febd16f3da5fd43637d2248360c688fda97d36a0d35dc8f8fc3af2e"
+    "sha256": "31285348202990c691f980ff3676448e4132fcf33c424c130ef661cd0d0aa8e7"
   },
   "claim_boundary": "This ledger records bounded implementation progress only. It never authorizes runtime identity, plant action, a tag, publication, certification, physical safety, calibrated posterior inference, paper reproduction, or a scientific claim. OPEN and IN_PROGRESS are not passes. PROTOTYPE_ONLY and its LOCAL_PASS are quarantined repository-local experiments only. They grant no implementation-task, defect-closure, qualification, governance, or release credit. Other LOCAL_PASS evidence is also repository-local only. This checker has no separately authenticated independent verifier boundary, so EXTERNAL_PASS, INDEPENDENT_PASS, and externally dependent COMPLETE admission are intentionally disabled.",
   "defect_traceability": [
