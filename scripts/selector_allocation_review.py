@@ -3617,7 +3617,7 @@ else:
             _require(
                 _run_git(
                     ROOT,
-                    "ignored",
+                    "self-test-exact-output",
                     maximum_output_bytes=4096,
                     _timeout_seconds=2,
                 )
@@ -3628,7 +3628,7 @@ else:
             expect_git_rejection(
                 lambda: _run_git(
                     ROOT,
-                    "ignored",
+                    "self-test-stdout-overflow",
                     maximum_output_bytes=4096,
                     _timeout_seconds=2,
                 ),
@@ -3639,7 +3639,7 @@ else:
             expect_git_rejection(
                 lambda: _run_git(
                     ROOT,
-                    "ignored",
+                    "self-test-stderr-overflow",
                     maximum_output_bytes=1,
                     _timeout_seconds=2,
                 ),
@@ -3649,7 +3649,7 @@ else:
             os.environ["NCP_FAKE_GIT_MODE"] = "duplex"
             duplex_output = _run_git(
                 ROOT,
-                "ignored",
+                "self-test-duplex",
                 maximum_output_bytes=64 * 1024,
                 standard_input=b"i" * MAX_GIT_COMMAND_INPUT_BYTES,
                 _timeout_seconds=2,
@@ -3662,7 +3662,7 @@ else:
             expect_git_rejection(
                 lambda: _run_git(
                     ROOT,
-                    "ignored",
+                    "self-test-descendant-held-pipe",
                     maximum_output_bytes=1,
                     _timeout_seconds=0.1,
                 ),
@@ -3680,7 +3680,7 @@ else:
             expect_git_rejection(
                 lambda: _run_git(
                     ROOT,
-                    "ignored",
+                    "self-test-nonzero-descendant",
                     maximum_output_bytes=1,
                     _timeout_seconds=2,
                 ),
