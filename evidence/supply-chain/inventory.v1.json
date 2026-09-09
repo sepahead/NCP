@@ -2599,7 +2599,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "650005de5ddc7f0968a98196d6bb9a229db279c7d2738cb2b57c60bcd257417c"
+      "sha256": "5c62deed78ae10371fd70ed6ddbc3d0fe402bf3d158bec1c6ff71e74590566ae"
     },
     {
       "outputs": [

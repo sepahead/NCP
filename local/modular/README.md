@@ -28,6 +28,36 @@ The host must validate payload semantics against its installed application contr
 Source-manifest verification checks the declared source binding and exact supplied data.
 It does not prove that an imported artifact came from a live producer.
 
+## Applications, sensors, and optional peers
+
+The generic SDK requires no named project, sensor modality, estimator, or four-owner topology.
+The host selects peers and installs their exact typed application contracts.
+A future system supplies its own application types and semantic checks without adding project names to the NCP core.
+Unknown application identities fail admission; payload transport does not authorize an unknown decoder.
+
+| Owner | Responsibility |
+| --- | --- |
+| NCP | Message identity, ordering, retained outcomes, bounded byte transfer, and buffer lifetime |
+| Application | Operations, sensor identity, tensor shape, layout, units, clocks, and accepted values |
+| Host | Selected peers, process lifetime, installed contracts, and composition budgets |
+| Experiment | Source variables, target, feature encoding, sampling, comparisons, and statistical assumptions |
+
+An endpoint is a protocol participant, not a sensor.
+One producer can expose several identified cameras or microphones through one endpoint.
+Two cameras share a modality but remain distinct sensor instances.
+Their data may become separate experimental variables or one declared joint variable.
+NCP makes neither choice and implies no statistical independence.
+
+A two-source RGB-and-acoustic experiment does not require thermal observations, Engram, Galadriel, or Prisoma capture.
+The selected application must support that roster.
+Adding a peer or source requires explicit admission and capacity; it does not silently enable every ecosystem component.
+The SDK's endpoint and byte bounds do not define an estimator's supported source count.
+
+Future radar, LiDAR, inertial, and contact applications need exact semantic contracts and producer-specific validation.
+NCP supplies no sensor forward model, clock synchronization, automatic resampling, fusion algorithm, or statistical estimator.
+An application must distinguish an unconfigured sensor, a scheduled observation that is not due, and a failed expected observation.
+Missing observations must never become invented zero-valued measurements.
+
 ## Working-state bounds
 
 | Item | Bound |
@@ -92,7 +122,9 @@ The client retains uncertain dispatches and prevents further operations on that 
 
 ## Open application boundaries
 
-Installed sensor admission remains unimplemented.
+The generic SDK implements no sensor-specific admission.
+CREBAIN's [separate sensor application](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-ground-sensors) defines RGB, thermal radiance, and acoustic pressure contracts.
+Its construction and native engineering evidence do not close installed application qualification.
 The test-only tensor consumer checks finite `f32le` components and exact two-dimensional byte lengths.
 Those controls do not implement an installed sensor profile.
 The byte manifest carries no tensor dimensions, scalar type, layout, units, or sensor clock.

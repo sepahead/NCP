@@ -3556,7 +3556,8 @@ def run_self_test() -> int:
         fake_bin = fake_directory / "bin"
         fake_bin.mkdir()
         fake_git = fake_bin / "git"
-        fake_source = f"""#!{sys.executable}
+        fake_source = f"""#!{sys.executable} -IS
+import fcntl
 import os
 import sys
 import time
@@ -3582,26 +3583,66 @@ elif mode == "duplex":
     if len(value) != 65536:
         raise SystemExit(9)
     write_all(1, b"done")
-elif mode == "descendant":
+elif mode in ("descendant", "nonzero-descendant"):
+    reader, writer = os.pipe()
     if os.fork() == 0:
-        time.sleep(0.5)
-        with open(os.environ["NCP_FAKE_GIT_SURVIVAL_PATH"], "xb") as handle:
-            handle.write(b"survived")
+        os.close(reader)
+        lifetime = os.open(os.environ["NCP_FAKE_GIT_SURVIVAL_PATH"],
+                           os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        fcntl.flock(lifetime, fcntl.LOCK_EX)
+        write_all(lifetime, b"held")
+        if mode == "nonzero-descendant":
+            os.close(1)
+            os.close(2)
+        write_all(writer, b"r")
+        os.close(writer)
+        time.sleep({GIT_COMMAND_TIMEOUT_SECONDS + 10})
+        os.lseek(lifetime, 0, os.SEEK_SET)
+        write_all(lifetime, b"survived")
         os._exit(0)
-    os._exit(0)
-elif mode == "nonzero-descendant":
-    if os.fork() == 0:
-        os.close(1)
-        os.close(2)
-        time.sleep(0.5)
-        with open(os.environ["NCP_FAKE_GIT_SURVIVAL_PATH"], "xb") as handle:
-            handle.write(b"survived")
-        os._exit(0)
-    os._exit(7)
+    os.close(writer)
+    ready = os.read(reader, 1)
+    os.close(reader)
+    if ready != b"r":
+        os._exit(10)
+    os._exit(7 if mode == "nonzero-descendant" else 0)
 else:
     raise SystemExit(8)
 """.encode("utf-8")
         _write_fixture(fake_git, fake_source, executable=True)
+        import fcntl
+
+        def assert_descendant_retired(
+            path: Path, maximum_wait_seconds: float = 5
+        ) -> None:
+            _require(path.is_file(), "Git descendant fixture did not start")
+            deadline = time.monotonic() + maximum_wait_seconds
+            with path.open("r+b") as handle:
+                while True:
+                    try:
+                        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        break
+                    except BlockingIOError:
+                        _require(
+                            time.monotonic() < deadline,
+                            "Git cleanup left a descendant process alive",
+                        )
+                        time.sleep(0.01)
+                _require(
+                    handle.read(9) == b"held",
+                    "Git descendant outlived its cleanup deadline",
+                )
+
+        lifetime_control = fake_directory / "lifetime-control"
+        with lifetime_control.open("x+b") as handle:
+            handle.write(b"held")
+            handle.flush()
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            _expect_rejection(
+                lambda: assert_descendant_retired(lifetime_control, 0),
+                "live descendant lock",
+            )
+        assert_descendant_retired(lifetime_control, 0)
         original_path = os.environ.get("PATH")
         original_mode = os.environ.get("NCP_FAKE_GIT_MODE")
         original_survival_path = os.environ.get("NCP_FAKE_GIT_SURVIVAL_PATH")
@@ -3619,7 +3660,6 @@ else:
                     ROOT,
                     "self-test-exact-output",
                     maximum_output_bytes=4096,
-                    _timeout_seconds=2,
                 )
                 == b"x" * 4096,
                 "Git exact output bound changed",
@@ -3630,7 +3670,6 @@ else:
                     ROOT,
                     "self-test-stdout-overflow",
                     maximum_output_bytes=4096,
-                    _timeout_seconds=2,
                 ),
                 "output exceeds 4096 bytes",
                 "Git stdout bound while producer is live",
@@ -3641,7 +3680,6 @@ else:
                     ROOT,
                     "self-test-stderr-overflow",
                     maximum_output_bytes=1,
-                    _timeout_seconds=2,
                 ),
                 f"error output exceeds {MAX_GIT_ERROR_BYTES} bytes",
                 "Git stderr bound while producer is live",
@@ -3652,7 +3690,6 @@ else:
                 "self-test-duplex",
                 maximum_output_bytes=64 * 1024,
                 standard_input=b"i" * MAX_GIT_COMMAND_INPUT_BYTES,
-                _timeout_seconds=2,
             )
             _require(
                 duplex_output == b"o" * 60000 + b"done",
@@ -3664,16 +3701,11 @@ else:
                     ROOT,
                     "self-test-descendant-held-pipe",
                     maximum_output_bytes=1,
-                    _timeout_seconds=0.1,
                 ),
                 "timed out",
                 "Git descendant-held pipe timeout",
             )
-            time.sleep(0.7)
-            _require(
-                not survival_path.exists(),
-                "Git timeout left a descendant process alive",
-            )
+            assert_descendant_retired(survival_path)
             nonzero_survival_path = fake_directory / "nonzero-descendant-survived"
             os.environ["NCP_FAKE_GIT_SURVIVAL_PATH"] = str(nonzero_survival_path)
             os.environ["NCP_FAKE_GIT_MODE"] = "nonzero-descendant"
@@ -3682,16 +3714,11 @@ else:
                     ROOT,
                     "self-test-nonzero-descendant",
                     maximum_output_bytes=1,
-                    _timeout_seconds=2,
                 ),
                 "exit=7",
                 "nonzero Git leader with a detached descendant",
             )
-            time.sleep(0.7)
-            _require(
-                not nonzero_survival_path.exists(),
-                "nonzero Git exit left a descendant process alive",
-            )
+            assert_descendant_retired(nonzero_survival_path)
         finally:
             if original_path is None:
                 os.environ.pop("PATH", None)
@@ -3705,7 +3732,7 @@ else:
                 os.environ.pop("NCP_FAKE_GIT_SURVIVAL_PATH", None)
             else:
                 os.environ["NCP_FAKE_GIT_SURVIVAL_PATH"] = original_survival_path
-        cases += 6
+        cases += 8
     with tempfile.TemporaryDirectory(
         prefix="ncp-selector-allocation-review-self-test-"
     ) as directory_name:
