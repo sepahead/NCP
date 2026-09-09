@@ -116,8 +116,13 @@ conditioned graph resolves patched `lz4_flex 0.11.6` and updates its `twox-hash`
 dependency to `2.1.3` before compilation. The qualification also runs the exact
 fork's `security_backport` regression and its compression-enabled library tests.
 
-Exact resolution and fetch can use network access. Cargo dependency access is
-offline only during compile and test. The checker claims no host or child-process
+Before packaging, the checker acquires the locked workspace graph for the selected host.
+It separately acquires three checksum-bound registry inputs required by normalized Zenoh graphs.
+Archive construction then runs offline.
+Conditioned lock updates run offline against acquired inputs.
+Later locked fetches can use network access.
+Cargo dependency access remains offline during compile and test.
+The checker claims no host or child-process
 network isolation and no host filesystem isolation. Its source comparison covers
 both conditioned consumer graphs at two points in time. It retains no
 compiler-input trace or command transcript. The patched result is

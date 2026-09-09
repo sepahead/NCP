@@ -2578,7 +2578,7 @@
         "Rust package qualification and retained-artifact receipt"
       ],
       "path": "scripts/check_rust_packages.py",
-      "sha256": "df4cbef7d251f1ae666373430463b40e6ee9999f5e48318056cbc5819d5dc1f2"
+      "sha256": "dafbd925bcf9605087867fbfdaabfd1c9dfc10e7e8daf223e6a5b1a00639973e"
     },
     {
       "outputs": [
@@ -2599,7 +2599,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "e9b49edf8fd712593d194f607de80ba973960dcc0bb1458160712ef9619a30c0"
+      "sha256": "650005de5ddc7f0968a98196d6bb9a229db279c7d2738cb2b57c60bcd257417c"
     },
     {
       "outputs": [

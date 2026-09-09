@@ -854,9 +854,12 @@ graph selects `lz4_flex 0.11.6` and `twox-hash 2.1.3`. Receipt v3 retains the tw
 conditioned locks and three checksum-bound registry crates. Fork-source and
 upstream-delta verification are point-in-time local-process attestations because
 the receipt does not retain the exact fork bytes. Pre/post source comparisons are
-not a compiler-input trace. Exact resolution and fetch can use network access;
-only compilation and tests disable Cargo dependency access. The checker claims no
-host or child-process network isolation or host filesystem isolation. The result
+not a compiler-input trace. The checker first acquires exact registry inputs and
+the locked host dependency graph. Archive construction and pinned conditioned
+lock updates run offline. Subsequent locked fetches can use network access.
+Metadata checks, compilation, tests, and gateway identity execution use Cargo
+offline mode. The checker claims no host or child-process network isolation or
+host filesystem isolation. The result
 is only `CONDITIONAL_PASS`; self-contained distribution remains
 `OPEN_FAIL_CLOSED` and `NO_GO`. Replace the temporary source with a qualified
 immutable upstream release or another reviewed distribution design before

@@ -8,7 +8,7 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "22e29964e2458f5dfe7bdd200f78836349ffdac5bfcca820c4b3c27246e4bd86",
+      "sha256": "87eacc814a84ae20cca898f5a2411c7a4f39a25f11357e90bd04e1f22bc41fd5",
       "bytes": 528728,
       "records": 333
     },
@@ -20,8 +20,8 @@
     },
     {
       "path": "evidence/audit/threat-register.v1.json",
-      "sha256": "8b0a8afe36114a23d03decbd73862ffcf5f76195199ba0afea8eb14a1c28197e",
-      "bytes": 70916,
+      "sha256": "aae1de0d9cded8f81a2b09062a728cb30e7c2c8cd6a90e83628ef53fa47e1d87",
+      "bytes": 71189,
       "records": 26
     }
   ],

@@ -8,6 +8,11 @@ executed for its exact identity receipt. Temporary Cargo patches point exact
 unpublished NCP dependencies at the corresponding extracted archives, leaving the
 normalized/published manifests untouched.
 
+The checker acquires the locked workspace graph for the selected host and the
+three exact registry inputs needed by normalized Zenoh archives. Archive
+construction then runs offline. Later consuming-root resolution and fetch remain
+separate prerequisites to offline compilation.
+
 The normalized ``ncp-zenoh`` and ``ncp-gateway`` archives cannot propagate the
 workspace root's Zenoh transport patch. Their generated locks therefore select
 the vulnerable published ``lz4_flex 0.10.0`` graph. This checker first resolves
@@ -577,6 +582,82 @@ def fetch_locked_archive(
         env=qualification.env,
         cwd=qualification.work,
     )
+
+
+def acquire_archive_inputs(
+    package_root: Path, *, target: str, qualification: Qualification
+) -> None:
+    """Populate both workspace and normalized-archive graphs before packaging."""
+
+    source_controls = {
+        path: sha256(package_root / path) for path in ("Cargo.toml", "Cargo.lock")
+    }
+    query_root = qualification.work / "registry-metadata"
+    _private_empty_directory(query_root)
+    # `cargo info --locked` requires a workspace. A separate empty workspace
+    # selects registry bytes without inheriting NCP's consuming-root patch.
+    query_files = {
+        "Cargo.toml": (
+            b'[workspace]\nresolver = "2"\n\n[package]\n'
+            b'name = "ncp-registry-metadata-probe"\nversion = "0.0.0"\n'
+            b'edition = "2021"\npublish = false\n\n[lib]\npath = "empty.rs"\n'
+        ),
+        "Cargo.lock": (
+            b"version = 4\n\n[[package]]\n"
+            b'name = "ncp-registry-metadata-probe"\nversion = "0.0.0"\n'
+        ),
+        "empty.rs": b"",
+    }
+    for name, content in query_files.items():
+        (query_root / name).write_bytes(content)
+    registry_inputs = (
+        (
+            "zenoh-transport",
+            ZENOH_TRANSPORT_VERSION,
+            ZENOH_TRANSPORT_REGISTRY_CHECKSUM,
+        ),
+        ("lz4_flex", VULNERABLE_LZ4_VERSION, VULNERABLE_LZ4_CHECKSUM),
+        ("twox-hash", FALLBACK_TWOX_VERSION, FALLBACK_TWOX_CHECKSUM),
+    )
+    for package, version, checksum in registry_inputs:
+        run(
+            cargo_command(
+                qualification,
+                "info",
+                "--registry",
+                "crates-io",
+                "--locked",
+                f"{package}@{version}",
+            ),
+            env=qualification.env,
+            cwd=query_root,
+        )
+        if {path.name for path in query_root.iterdir()} != set(query_files) or any(
+            _bounded_regular_bytes(
+                query_root / name,
+                maximum=len(content) + 1,
+                context="registry query workspace",
+            )
+            != content
+            for name, content in query_files.items()
+        ):
+            raise RuntimeError("registry query workspace changed during acquisition")
+        archive = _registry_crate_archive(
+            qualification, package=package, version=version
+        )
+        if sha256(archive) != checksum:
+            raise RuntimeError(f"acquired {package} registry archive checksum differs")
+    fetch_locked_archive(
+        package_root / "Cargo.toml",
+        [],
+        target=target,
+        qualification=qualification,
+    )
+    if any(
+        sha256(package_root / path) != digest
+        for path, digest in source_controls.items()
+    ):
+        raise RuntimeError("package workspace changed during dependency acquisition")
 
 
 def parse_rustc_host(output: bytes) -> str:
@@ -2423,10 +2504,12 @@ def condition_zenoh_archive(
     fallback["resolution_projection"] = fallback_projection
 
     patch_args = [*local_patch_args, *zenoh_backport_patch_args()]
+    # Acquisition populated both exact graphs; lock selection needs no refresh.
     for package, precise_version in CONDITIONED_ZENOH_UPDATE_PINS:
         update = cargo_command(
             qualification,
             "update",
+            "--offline",
             "--manifest-path",
             str(manifest_path),
             "-p",
@@ -3184,6 +3267,146 @@ def verify_retained_receipt(
     return receipt
 
 
+def _self_test_archive_acquisition(qualification: Qualification) -> None:
+    from dataclasses import replace
+    from unittest.mock import patch
+
+    registry = (
+        ("zenoh-transport", ZENOH_TRANSPORT_VERSION),
+        ("lz4_flex", VULNERABLE_LZ4_VERSION),
+        ("twox-hash", FALLBACK_TWOX_VERSION),
+    )
+    payloads = {
+        f"{package}@{version}": f"{package} {version}\n".encode()
+        for package, version in registry
+    }
+    checksum_controls = {
+        name: sha256_bytes(payloads[f"{package}@{version}"])
+        for name, (package, version) in zip(
+            (
+                "ZENOH_TRANSPORT_REGISTRY_CHECKSUM",
+                "VULNERABLE_LZ4_CHECKSUM",
+                "FALLBACK_TWOX_CHECKSUM",
+            ),
+            registry,
+            strict=True,
+        )
+    }
+    cases = (
+        ("valid", None, 4),
+        ("missing", "does not contain one exact", 1),
+        ("duplicate", "does not contain one exact", 1),
+        ("checksum", "archive checksum differs", 1),
+        ("archive-link", "cannot hash", 1),
+        ("query-lock", "registry query workspace", 1),
+        ("query-extra", "registry query workspace", 1),
+        ("source-lock", "package workspace changed", 4),
+        ("source-manifest", "package workspace changed", 4),
+        ("network-error", "returned non-zero exit status 101", 1),
+    )
+    for case, expected_error, expected_calls in cases:
+        with tempfile.TemporaryDirectory(prefix="ncp-acquisition-selftest-") as tmp:
+            root = Path(tmp)
+            source = root / "source"
+            source.mkdir()
+            (source / "Cargo.toml").write_bytes(b"source manifest control\n")
+            (source / "Cargo.lock").write_bytes(b"source lock control\n")
+            work = root / "work"
+            work.mkdir()
+            cache = root / "cargo-home"
+            cache.mkdir()
+            selected = replace(qualification, work=work, cargo_home=cache)
+            commands: list[list[str]] = []
+
+            def fake_run(command: list[str], *, env: dict[str, str], cwd: Path) -> None:
+                commands.append(command)
+                if env is not selected.env:
+                    raise AssertionError(
+                        "acquisition discarded the qualification environment"
+                    )
+                if case == "network-error":
+                    raise subprocess.CalledProcessError(101, command)
+                if "info" in command:
+                    index = len(commands) - 1
+                    package, version = registry[index]
+                    if (
+                        command
+                        != cargo_command(
+                            selected,
+                            "info",
+                            "--registry",
+                            "crates-io",
+                            "--locked",
+                            f"{package}@{version}",
+                        )
+                        or cwd != work / "registry-metadata"
+                    ):
+                        raise AssertionError(
+                            "registry acquisition command lost exact selection"
+                        )
+                    archive = (
+                        cache / "registry/cache/original" / f"{package}-{version}.crate"
+                    )
+                    archive.parent.mkdir(parents=True, exist_ok=True)
+                    payload = payloads[f"{package}@{version}"]
+                    if case != "missing":
+                        archive.write_bytes(
+                            b"wrong bytes" if case == "checksum" else payload
+                        )
+                    if case == "duplicate":
+                        duplicate = cache / "registry/cache/other" / archive.name
+                        duplicate.parent.mkdir(parents=True)
+                        duplicate.write_bytes(payload)
+                    elif case == "archive-link":
+                        target = root / "linked-payload"
+                        target.write_bytes(payload)
+                        archive.unlink()
+                        archive.symlink_to(target)
+                    elif case == "query-lock":
+                        (cwd / "Cargo.lock").write_bytes(b"changed\n")
+                    elif case == "query-extra":
+                        (cwd / "unexpected").mkdir()
+                else:
+                    if (
+                        command
+                        != cargo_command(
+                            selected,
+                            "fetch",
+                            "--manifest-path",
+                            str(source / "Cargo.toml"),
+                            "--locked",
+                            "--target",
+                            "aarch64-apple-darwin",
+                        )
+                        or cwd != work
+                    ):
+                        raise AssertionError(
+                            "workspace acquisition lost the locked host target"
+                        )
+                    if case in ("source-lock", "source-manifest"):
+                        name = "Cargo.lock" if case == "source-lock" else "Cargo.toml"
+                        (source / name).write_bytes(b"changed\n")
+
+            with (
+                patch.multiple(__name__, **checksum_controls),
+                patch(f"{__name__}.run", side_effect=fake_run),
+            ):
+                try:
+                    acquire_archive_inputs(
+                        source, target="aarch64-apple-darwin", qualification=selected
+                    )
+                except (RuntimeError, subprocess.CalledProcessError) as error:
+                    if expected_error is None or expected_error not in str(error):
+                        raise AssertionError(
+                            f"wrong acquisition failure for {case}"
+                        ) from error
+                else:
+                    if expected_error is not None:
+                        raise AssertionError(f"invalid acquisition passed: {case}")
+            if len(commands) != expected_calls:
+                raise AssertionError(f"acquisition continued after failure: {case}")
+
+
 def self_test() -> None:
     import copy
     import io
@@ -3285,6 +3508,7 @@ def self_test() -> None:
             qualification.toolchain_receipt,
             expected_identity="unreleased-worktree",
         )
+        _self_test_archive_acquisition(qualification)
 
     with tempfile.TemporaryDirectory(prefix="ncp-package-path-selftest-") as tmp:
         root = Path(tmp)
@@ -3397,8 +3621,7 @@ def self_test() -> None:
         buffered_read_regression_body = (
             b"ncp-bounded-tar-member-read\n"
             * (
-                buffered_read_regression_size
-                // len(b"ncp-bounded-tar-member-read\n")
+                buffered_read_regression_size // len(b"ncp-bounded-tar-member-read\n")
                 + 1
             )
         )[:buffered_read_regression_size]
@@ -4150,6 +4373,11 @@ def main() -> int:
             os.environ.copy(),
             expected_identity=expected_identity,
         )
+        host_target = rustc_host(qualification.env, qualification.rustc)
+        qualification.toolchain_receipt["target"] = host_target
+        acquire_archive_inputs(
+            package_root, target=host_target, qualification=qualification
+        )
         source_paths = {crate: package_root / crate for crate in CRATES}
         extracted_paths: dict[str, Path] = {}
         archives: dict[str, Path] = {}
@@ -4165,6 +4393,7 @@ def main() -> int:
                 crate,
                 "--allow-dirty",
                 "--locked",
+                "--offline",
                 "--no-verify",
                 "--target-dir",
                 str(package_target),
@@ -4189,8 +4418,6 @@ def main() -> int:
         # `CARGO_MANIFEST_DIR` is compiled into several fixture paths; reusing a
         # target directory across differently named temp extractions can otherwise
         # execute a stale test binary that points at an already-deleted directory.
-        host_target = rustc_host(qualification.env, qualification.rustc)
-        qualification.toolchain_receipt["target"] = host_target
         consumer_patch_args: dict[str, list[str]] = {}
         archive_fallbacks: list[dict[str, object]] = []
         conditioned_consumers: list[dict[str, object]] = []
