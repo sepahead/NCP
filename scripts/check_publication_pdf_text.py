@@ -277,7 +277,7 @@ def main() -> None:
     parser.add_argument("figures", nargs="+")
     args = parser.parse_args()
     require(
-        pypdf.__version__ == "6.7.4",
+        pypdf.__version__ == "6.16.1",
         "install exact scripts/requirements-publication.txt in a private environment",
     )
     roster = source_roster(args.source, args.diagrams, args.figures)

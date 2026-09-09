@@ -2,4 +2,4 @@
 reportlab==4.4.10
 svglib==1.5.1
 matplotlib==3.10.8
-pypdf==6.7.4
+pypdf==6.16.1

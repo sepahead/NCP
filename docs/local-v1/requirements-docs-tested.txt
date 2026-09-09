@@ -10,7 +10,7 @@ numpy==2.5.2
 packaging==26.3
 pillow==12.3.0
 pyparsing==3.3.2
-pypdf==6.7.4
+pypdf==6.16.1
 python-dateutil==2.9.0.post0
 reportlab==4.4.10
 six==1.17.0
