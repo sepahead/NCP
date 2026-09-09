@@ -3,5 +3,5 @@
 # the upstream release metadata does not claim package signatures.
 maturin==1.14.1 \
     --hash=sha256:dfc54ae32e6fcb18302193ab9a30b0b25eefffba994ae13238974805533ef75e
-pip==26.1.2 \
-    --hash=sha256:382ff9f685ee3bc25864f820aa50505825f10f5458ffff07e30a6d96e5715cab
+pip==26.2.1 \
+    --hash=sha256:71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e

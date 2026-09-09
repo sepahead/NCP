@@ -1273,6 +1273,41 @@ def _extract_sdist(archive: Path, destination: Path) -> Path:
     return root
 
 
+def _install_python_wheel(
+    wheel: Path,
+    source: Path,
+    environment: dict[str, str],
+    virtual: Path,
+) -> Path:
+    """Install with the builder's selected pip into a separate pip-free target."""
+
+    _run(
+        [sys.executable, "-I", "-m", "venv", "--without-pip", str(virtual)],
+        cwd=source,
+        env=environment,
+    )
+    python = virtual / "bin" / "python"
+    if os.name == "nt":
+        python = virtual / "Scripts" / "python.exe"
+    _run(
+        [
+            sys.executable,
+            "-I",
+            "-m",
+            "pip",
+            "--python",
+            str(python),
+            "install",
+            "--disable-pip-version-check",
+            "--no-index",
+            str(wheel),
+        ],
+        cwd=source,
+        env=environment,
+    )
+    return python
+
+
 def _smoke_python_wheel(
     wheel: Path,
     source: Path,
@@ -1284,28 +1319,7 @@ def _smoke_python_wheel(
     input_subject_role: str,
     input_artifact_sha256: str,
 ) -> dict[str, Any]:
-    _run(
-        [sys.executable, "-I", "-m", "venv", str(virtual)],
-        cwd=source,
-        env=environment,
-    )
-    python = virtual / "bin" / "python"
-    if os.name == "nt":
-        python = virtual / "Scripts" / "python.exe"
-    _run(
-        [
-            str(python),
-            "-I",
-            "-m",
-            "pip",
-            "install",
-            "--disable-pip-version-check",
-            "--no-index",
-            str(wheel),
-        ],
-        cwd=source,
-        env=environment,
-    )
+    python = _install_python_wheel(wheel, source, environment, virtual)
     identity = _strict_json_object(
         _run(
             [
@@ -1885,9 +1899,7 @@ def _validate_typescript_bun_lock(
         raise DossierError("Bun TypeScript package record differs from its control")
 
 
-def _validate_npm_dependency_surface(
-    manifest: dict[str, Any], *, context: str
-) -> str:
+def _validate_npm_dependency_surface(manifest: dict[str, Any], *, context: str) -> str:
     unexpected = [
         field for field in NPM_UNREVIEWED_PACKAGE_GRAPH_FIELDS if field in manifest
     ]
@@ -1900,9 +1912,7 @@ def _validate_npm_dependency_surface(
     if (
         not isinstance(development, dict)
         or set(development) != {"typescript"}
-        or re.fullmatch(
-            r"[0-9]+\.[0-9]+\.[0-9]+", str(development.get("typescript"))
-        )
+        or re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", str(development.get("typescript")))
         is None
     ):
         raise DossierError(
@@ -2610,7 +2620,7 @@ def _verify_dossier(
         or not toolchain["cargo"].startswith("cargo 1.88.0 ")
         or not toolchain["rustc"].startswith("rustc 1.88.0 ")
         or toolchain["python"] != "Python 3.14.6"
-        or toolchain["pip"] != "pip 26.1.2"
+        or toolchain["pip"] != "pip 26.2.1"
         or toolchain["node"] != "v24.18.0"
         or toolchain["npm"] != "11.16.0"
         or toolchain["bun"] != "1.3.14"

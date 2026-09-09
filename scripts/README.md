@@ -247,6 +247,11 @@ authority.
 | `check-version-coherence.sh` | package/wire/compact-hash metadata coherence |
 | `node ncp-ts/scripts/build-release.mjs --source-revision REV --output DIR` | materialize every regular blob and mode from one replacement-disabled exact 40-hex `HEAD`; reject aliased TypeScript inputs and report `bun install --frozen-lockfile --backend=copyfile --force` as the remediation; bind the exact Bun lock, reviewed registry control, normalized regular-file-content tree, compiler launcher, package manifest, and Node executable before and after compilation; inject and verify the shared Rust/TypeScript build identity; and emit smoke-tested root+nested npm tarballs plus a hash receipt. The reviewed registry-tarball digest is expected control data, not build-observed derivation, because those bytes are not retained or read. The command never publishes. |
 
+The candidate builder uses its selected parent pip to install each Python test wheel.
+Each target environment starts without pip; the parent installer selects it with `--python`.
+The hosted requirement and verifier both require pip `26.2.1`.
+Installation remains offline, and the installed SDK must pass the existing identity and behavior checks.
+
 The exact-source verifier mode was exercised against held-dossier run
 [`29414924349`](https://github.com/sepahead/NCP/actions/runs/29414924349), sourced
 from `ef357d20692f707e185495dcfd16b16556fec264`, after exact hosted CI run

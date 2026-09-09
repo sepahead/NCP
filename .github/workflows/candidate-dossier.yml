@@ -59,7 +59,7 @@ jobs:
           python3 -m pip install --disable-pip-version-check \
             --only-binary=:all: --require-hashes \
             -r scripts/requirements-candidate-build-linux-x86_64.txt
-          python3 -m pip --version | grep -Eq '^pip 26\.1\.2 '
+          python3 -m pip --version | grep -Eq '^pip 26\.2\.1 '
           cargo install cargo-deny --locked --version "$CARGO_DENY_VERSION"
           test "$(cargo deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
           bun install --frozen-lockfile --backend=copyfile --force

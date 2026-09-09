@@ -2562,7 +2562,7 @@
         "candidate checksums and build receipt"
       ],
       "path": "scripts/build_candidate_dossier.py",
-      "sha256": "242c2bd1175f51b42df06ee37828adb5439cc9981f523dd66c7822973e866ff5"
+      "sha256": "6d70552f1fe8fad2e3c2cc1b667108601c4c58a4f293b0e238fbaf01edacf57b"
     },
     {
       "outputs": [
@@ -2764,7 +2764,7 @@
     "ncp-ts/package.json": "990317ce7a974b5b42ed7e17a2a5033f34a4db43a013b33da2f1dad5c9ef30c4",
     "ncp-zenoh/Cargo.toml": "b11f38dc4aad334f3f8b588a5ed83eb56122a97554889be29dde4e637cf45c58",
     "package.json": "038f45047bd6974face3d62ce1b39524ad3486d85a535449cb33116a327de255",
-    "scripts/requirements-candidate-build-linux-x86_64.txt": "47be8dcd4992a79a31c7609e1d41f561c2bbf4299fb452138ae95c0fe3691f7d",
+    "scripts/requirements-candidate-build-linux-x86_64.txt": "2dd5f33b489e486b5319d4220188b1094ec141401fba86201e79485c368d6230",
     "scripts/requirements-plot.txt": "8a2d128f9a70eeb03f40747984f7eac9c7e0efe8638b362b28f97d01dcc5b072",
     "security/toolchains/typescript-5.9.2.v1.json": "95567243589f757d9c643070a0f93621cca2d46b32f8d7765c0329cdb9dc2857"
   },
@@ -2798,9 +2798,9 @@
       },
       {
         "hashes": [
-          "sha256:382ff9f685ee3bc25864f820aa50505825f10f5458ffff07e30a6d96e5715cab"
+          "sha256:71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e"
         ],
-        "requirement": "pip==26.1.2"
+        "requirement": "pip==26.2.1"
       }
     ],
     "github_actions": [
