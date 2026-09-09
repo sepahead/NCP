@@ -46,6 +46,11 @@ It checks depth, structural budgets, safe integer spellings, and finite number m
 Floating negative zero retains its binary64 sign in digests.
 Sequence fields reject negative zero and non-integer spellings.
 
+The modular codec scans complete unescaped ASCII strings in bounded runs.
+It uses the unchanged reference scanner for other strings, including escapes and Unicode.
+Both paths check decoded key identity and byte limits before generic object decoding.
+The modular JSON tests compare their admission, error positions, counters, and decoded values.
+
 The frame ceiling is 65,536 bytes. Each frame starts with its four-byte big-endian length.
 Responses reserve retained-wire capacity before execution; digest staging has separate bounded allocations.
 This Python implementation does not promise allocation-free execution or real-time scheduling.

@@ -9,6 +9,7 @@ import dataclasses
 import hashlib
 import json
 import math
+import re
 import struct
 from dataclasses import dataclass
 from enum import Enum
@@ -22,6 +23,44 @@ RESPONSE_SCHEMA = "ncp.modular.response.v1"
 PROFILE_DOMAIN = "ncp.modular.profile.v1"
 FRAME_BYTES = 65_536
 PROJECTION_BYTES = 131_072
+
+# Each matched character is one UTF-8 byte without JSON escape semantics.
+_ASCII_STRING_RUN = re.compile(r'[\x20-\x21\x23-\x5b\x5d-\x7f]+')
+
+
+class _ModularScanner(bounded._Scanner):
+    """Scan complete ASCII strings in C; retain the scalar grammar as a reference."""
+
+    def _parse_string(self, *, capture: bool) -> str | None:
+        opening = self.position
+        self._expect('"')
+        start = self.position
+        limit = bounded.MAX_KEY_BYTES if capture else bounded.MAX_STRING_BYTES
+        span = _ASCII_STRING_RUN.match(self.text, start, start + limit + 1)
+        if span is not None:
+            end = span.end()
+            size = end - start
+            if size > limit:
+                self.position = end
+                self._fail("NCP-LIMIT-005", "JSON string exceeds its byte limit")
+            if end < len(self.text) and self.text[end] == '"':
+                self.position = end + 1
+                self.string_bytes += size
+                if self.string_bytes > bounded.MAX_TOTAL_STRING_BYTES:
+                    self._fail("NCP-LIMIT-005", "aggregate JSON string budget exceeded")
+                return self.text[start:end] if capture else None
+        self.position = opening
+        return super()._parse_string(capture=capture)
+
+
+def _preflight(payload: bytes) -> None:
+    if type(payload) is not bytes or not payload or len(payload) > FRAME_BYTES:
+        raise bounded.LocalError("capacity")
+    try:
+        text = payload.decode("utf-8", errors="strict")
+    except UnicodeError as error:
+        raise bounded.BoundedJsonError("NCP-LIMIT-008", "invalid UTF-8") from error
+    _ModularScanner(text).scan()
 
 
 class ModularError(ValueError):
@@ -49,7 +88,10 @@ def parse(payload: bytes | memoryview) -> Any:
         if payload.nbytes > FRAME_BYTES: raise ModularError("capacity")
         payload = payload.tobytes()
     try:
-        return bounded.decode(payload)
+        _preflight(payload)
+        return json.loads(
+            payload, parse_int=lambda token: -0.0 if token == "-0" else int(token)
+        )
     except bounded.LocalError as error:
         raise ModularError(error.code) from error
 

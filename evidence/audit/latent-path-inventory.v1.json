@@ -3053,9 +3053,9 @@
       },
       {
         "path": "local/python/README.md",
-        "bytes": 2827,
-        "sha256": "e2d739414bbff948def59532dfd6e8895c1aaed12b7c14024bd4e9f0c6a90b1c",
-        "git_blob_oid": "c64a34387031b2558291c0564f9e8cdc7a758ab6",
+        "bytes": 3173,
+        "sha256": "b6ed13b14fbafed5aa63589869800bf8f9491fa57f988ffd94c08d169b74aac6",
+        "git_blob_oid": "cd91dc08488535dcbbbb0bfd113030f765ff49eb",
         "indexed": true
       },
       {
@@ -3109,9 +3109,9 @@
       },
       {
         "path": "local/python/ncp_local/modular_wire.py",
-        "bytes": 30036,
-        "sha256": "7506fb41a3183b1325271dd61eec84aabb7909b34f48e2ec04fc90a7023187aa",
-        "git_blob_oid": "9c7b43c4e4cac1fd2a18bf9a9521d470ae87d060",
+        "bytes": 31805,
+        "sha256": "616a09d296f85477f2fc115796f6d061da5cc6d05b1422781f8ea3c45d0ef36b",
+        "git_blob_oid": "619ee12e692dd7585c5adc94968052005eaa30e4",
         "indexed": true
       },
       {
@@ -3161,6 +3161,13 @@
         "bytes": 12689,
         "sha256": "0a50b35276808bbc4838b37a71616e1aa5cd871ea6dfcc0214f0d0a44298df1b",
         "git_blob_oid": "4a5a86c32c24078ac3cf50aa46dba88bd8e94361",
+        "indexed": true
+      },
+      {
+        "path": "local/python/tests/test_modular_json.py",
+        "bytes": 5794,
+        "sha256": "f6b5a3660c3a557744f62b9612c53cf0a0fe6099990364e2ff0ea193b3979f0b",
+        "git_blob_oid": "29f0a64ae8aef39b0ab2f0bc43c2e988c97e7d6f",
         "indexed": true
       },
       {
@@ -8592,7 +8599,7 @@
     ]
   },
   "counts": {
-    "text_files": 1190,
+    "text_files": 1191,
     "binary_or_non_utf8_files": 27,
     "occurrences": 333,
     "by_token_id": {
@@ -8625,7 +8632,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "2cb8a5433c96d72130e55e949178f7f0f74676dfdf93fc0bc395bbfad0fc5be6",
+  "scanned_path_set_sha256": "fdd92dbc3a9f91c47870b721354a51cf520c2fe12c947397281f586cf4f630e3",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
