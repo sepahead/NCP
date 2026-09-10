@@ -56,6 +56,11 @@ Request verification uses the same checks without emitting discarded bytes when 
 A supplied scratch buffer still receives the encoded request before binding and digest checks.
 The final encoded request, including its digest, must fit the frame ceiling.
 
+Response decoding validates the received digest and the application's reconstructed projection without emitting discarded bytes.
+The reconstructed projection must fit the frame ceiling, including its final digest.
+An application decoder that changes a value must still fail the reconstructed digest check.
+Public response writes preserve both placeholder and final output, including visible scratch bytes after a later failure.
+
 The frame ceiling is 65,536 bytes. Each frame starts with its four-byte big-endian length.
 Responses reserve retained-wire capacity before execution; digest staging has separate bounded allocations.
 This Python implementation does not promise allocation-free execution or real-time scheduling.

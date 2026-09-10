@@ -704,11 +704,14 @@ class Response:
         length, _ = self.write(slot)
         return bytes(memoryview(slot)[:length])
 
-    def write(self, slot: bytearray) -> tuple[int, str]:
+    def _unsigned_value(self) -> dict[str, Any]:
         self.check_shape()
-        value = {"schema": RESPONSE_SCHEMA, "binding": immutable_value(self.binding), "sequence": self.sequence,
-                 "operation": self.operation.value, "request_digest": self.request_digest, "outcome": self.outcome.value,
-                 "code": self.code.value, "body": self.body.value(), "result_digest": ""}
+        return {"schema": RESPONSE_SCHEMA, "binding": immutable_value(self.binding), "sequence": self.sequence,
+                "operation": self.operation.value, "request_digest": self.request_digest, "outcome": self.outcome.value,
+                "code": self.code.value, "body": self.body.value(), "result_digest": ""}
+
+    def write(self, slot: bytearray) -> tuple[int, str]:
+        value = self._unsigned_value()
         encode_into(value, slot)
         value["result_digest"] = typed_digest(RESPONSE_SCHEMA, value, "result_digest")
         length = encode_into(value, slot)
@@ -718,8 +721,11 @@ class Response:
     def decode(payload: bytes, binding: BufferBinding, contract: type[Contract]) -> Response:
         result = Response._decode_raw(parse(payload), binding, contract)
         # The raw response tree is gone before constructing its checked projection.
-        slot = bytearray(FRAME_BYTES)
-        _, digest = result.write(slot)
+        value = result._unsigned_value()
+        _validate_json(value)
+        digest = typed_digest(RESPONSE_SCHEMA, value, "result_digest")
+        value["result_digest"] = digest
+        _validate_json(value)
         if digest != result.result_digest: raise ModularError("wire")
         return result
 
