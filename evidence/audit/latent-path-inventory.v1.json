@@ -274,9 +274,9 @@
       },
       {
         "path": "RELEASE_READINESS.md",
-        "bytes": 18552,
-        "sha256": "0effb6fb43d1133361b1b05799208b5545c9b9e84085e0811586a21d2f35c463",
-        "git_blob_oid": "142f8a81ebbc8ac49685363525476021ce921eb8",
+        "bytes": 18676,
+        "sha256": "f741954f1efc75ae138d90be259b44331023527f247484ea02400ec2d0de4650",
+        "git_blob_oid": "638e9302e9ba158867cd5df7dfd63b7bc905061f",
         "indexed": true
       },
       {
@@ -2942,8 +2942,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 151082,
-        "sha256": "05237c8f551841a3a56c1c1587c28e380d4482cdf2e0c1f0cf5e274be33d4328",
-        "git_blob_oid": "3ba7258218191444e35f7ed6ee0353da38e36332",
+        "sha256": "4dcbeb4ca196ad1b6a9ed72079611252e2a8a5986bbdb2f38a6f14f7862ee10e",
+        "git_blob_oid": "17a719530cbbf5b2bc29250fd87a5a66e145fa84",
         "indexed": true
       },
       {
@@ -8002,9 +8002,9 @@
       },
       {
         "path": "scripts/check_rust_packages.py",
-        "bytes": 198222,
-        "sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
-        "git_blob_oid": "d91edcad6f9ace3d5cd58e1e48ab1d5e24fccb40",
+        "bytes": 198733,
+        "sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
+        "git_blob_oid": "607b5b4776d23e74272215bd8c6532b782572dba",
         "indexed": true
       },
       {
@@ -9026,7 +9026,7 @@
       "column": 65,
       "token_id": "M008",
       "line_sha256": "4c6d59e9a605d05262e2e0ad682952a1ba7e54a1d0460894d41c79a068a44daa",
-      "file_sha256": "0effb6fb43d1133361b1b05799208b5545c9b9e84085e0811586a21d2f35c463",
+      "file_sha256": "f741954f1efc75ae138d90be259b44331023527f247484ea02400ec2d0de4650",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -11902,7 +11902,7 @@
       "column": 18,
       "token_id": "M008",
       "line_sha256": "3d572a18878203b561c487197b7fb6144dd56d041dc9c592434fe01de11c6c6f",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -11918,7 +11918,7 @@
       "column": 71,
       "token_id": "M008",
       "line_sha256": "3298ce07fac7bb7f83e28eb95359232adc318e0e81fdf12c63ea0d5f66b457b8",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -11934,7 +11934,7 @@
       "column": 76,
       "token_id": "M008",
       "line_sha256": "224d946e66b74dd8a70cd8c01eec1cae9e5dc9de9325855ffcfeba099f433c8b",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -11950,7 +11950,7 @@
       "column": 73,
       "token_id": "M008",
       "line_sha256": "16a8112d94f3641120e2d96ae81f6f30b06fbf83938f1d196f59f96f7d68d758",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -11966,7 +11966,7 @@
       "column": 46,
       "token_id": "M008",
       "line_sha256": "2cccd317e58cd0075ef92e9924228c567b2bd6e845482b37efefd0de0f8a674b",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -11982,7 +11982,7 @@
       "column": 5,
       "token_id": "M008",
       "line_sha256": "61b8634e7d1997f7c0fd68db48b27bc9e2795ece7f627e160f63b26b3eb4fbf7",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -11998,7 +11998,7 @@
       "column": 35,
       "token_id": "M008",
       "line_sha256": "454bcc8d943288ae8b58ca988bbfabcc408a90b6a585f77fab6a281ba6583441",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12014,7 +12014,7 @@
       "column": 9,
       "token_id": "M008",
       "line_sha256": "9aec6270b5f951110ef01206e7e2c6502656d88e807b69d71cd9453c35cfc246",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12030,7 +12030,7 @@
       "column": 47,
       "token_id": "M008",
       "line_sha256": "9aec6270b5f951110ef01206e7e2c6502656d88e807b69d71cd9453c35cfc246",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12046,7 +12046,7 @@
       "column": 29,
       "token_id": "M008",
       "line_sha256": "fa2ed5423989a58c63cff2b9ad04e00aa1db7d5b32d32bae0d5a2e2cff7ce0ba",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12062,7 +12062,7 @@
       "column": 39,
       "token_id": "M008",
       "line_sha256": "a314374ba0faa944aa0047dd83db94b7b32d3886a4972131aa2d1d701b0efe46",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12078,7 +12078,7 @@
       "column": 70,
       "token_id": "M008",
       "line_sha256": "a314374ba0faa944aa0047dd83db94b7b32d3886a4972131aa2d1d701b0efe46",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12094,7 +12094,7 @@
       "column": 29,
       "token_id": "M008",
       "line_sha256": "cc627b355a97b8a966a1fd571931d71721e2618412c06b67430a3a171727f10c",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12110,7 +12110,7 @@
       "column": 40,
       "token_id": "M008",
       "line_sha256": "8a5b376b4325a793cb1dba336212ef97bc400a0cb9d6e56a96e682c0b18c4a77",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12126,7 +12126,7 @@
       "column": 72,
       "token_id": "M008",
       "line_sha256": "8a5b376b4325a793cb1dba336212ef97bc400a0cb9d6e56a96e682c0b18c4a77",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12142,7 +12142,7 @@
       "column": 29,
       "token_id": "M008",
       "line_sha256": "89ed38672c4e45d1c5a6893ca261dbefebe0de3de5979cf4c19ab2af668a1984",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12158,7 +12158,7 @@
       "column": 71,
       "token_id": "M008",
       "line_sha256": "49fd2d9f05004b4cadea7509eda7a86976243b47051797db415d88d755129abf",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12174,7 +12174,7 @@
       "column": 5,
       "token_id": "M008",
       "line_sha256": "7e9e44ddd8cbd9083652afcc6e4a2e6a872f6f5119f6f5850b174a7c275eca8e",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12190,7 +12190,7 @@
       "column": 5,
       "token_id": "M008",
       "line_sha256": "bed66665c71b5f3ac04aa1aba760e5fc6782aa95d98cea7e529c50ea3db01408",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12206,7 +12206,7 @@
       "column": 5,
       "token_id": "M008",
       "line_sha256": "2dbe490da1fefd7b250151785e6031e5d72956f3f9cf9d8dc6e9ebc32ceafdd1",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12222,7 +12222,7 @@
       "column": 47,
       "token_id": "M008",
       "line_sha256": "dfb16f0e635ac2e7babd362961882d2b3b159769339569aeaa1e5380d705c0a9",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12238,7 +12238,7 @@
       "column": 9,
       "token_id": "M008",
       "line_sha256": "a120ced465049bb3a7675353024acf9d20e09441b9de21a254d262db42085517",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12254,7 +12254,7 @@
       "column": 16,
       "token_id": "M008",
       "line_sha256": "01fdaaf8c9d6d01a637b200d1db000617b93faf84357eb963727a7df5ea5bb10",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12270,7 +12270,7 @@
       "column": 27,
       "token_id": "M008",
       "line_sha256": "4f57da3127f196eedc4cef9146500af94ed657993dce921a3ae9e1858e6fdb54",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12286,7 +12286,7 @@
       "column": 50,
       "token_id": "M008",
       "line_sha256": "afd4775a75dff5a3cfb3b3775a6fd04207489f0cc95307fd7ec3a6e9e4b5e5a2",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12302,7 +12302,7 @@
       "column": 31,
       "token_id": "M008",
       "line_sha256": "6eebb91c18b2b96c403abfb9cfcff9e0ee59be7376e2fcb3acfa269f2631ad45",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12318,7 +12318,7 @@
       "column": 12,
       "token_id": "M008",
       "line_sha256": "d8987a99779ab4f16c7390236e681e968be25580e7724569889feb9de91301b6",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12334,7 +12334,7 @@
       "column": 50,
       "token_id": "M008",
       "line_sha256": "2e67584004eed74e4ec44a4f59c66841759cce9dbed49e7e40f2a20a9f47c523",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12344,13 +12344,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-82CF28CB0DE9A8A97112",
+      "id": "NCP-LATENT-E03D50FA75CE04B8248C",
       "path": "scripts/check_rust_packages.py",
-      "line": 4100,
+      "line": 4111,
       "column": 5,
       "token_id": "M008",
       "line_sha256": "7e9e44ddd8cbd9083652afcc6e4a2e6a872f6f5119f6f5850b174a7c275eca8e",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12360,13 +12360,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-3D132B06AB11C9BDA8DF",
+      "id": "NCP-LATENT-2FDDF1B3A91DE5F8E3D6",
       "path": "scripts/check_rust_packages.py",
-      "line": 4103,
+      "line": 4114,
       "column": 8,
       "token_id": "M008",
       "line_sha256": "93214ad4142d8da27e0702fc9237c70298342001f12a9af6b067b1d93069b089",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12376,13 +12376,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-715CD8D993E6786BFB7E",
+      "id": "NCP-LATENT-8BBFE2208F5DDCB4510D",
       "path": "scripts/check_rust_packages.py",
-      "line": 4104,
+      "line": 4115,
       "column": 39,
       "token_id": "M008",
       "line_sha256": "4cd66d67cae6d8972f9bbd5d3343af1590947a3853bfcdf23ea9c7c10f9b9efc",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12392,13 +12392,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-A2166A387E4EE71D290A",
+      "id": "NCP-LATENT-0DBF2986E7A8BDA355E8",
       "path": "scripts/check_rust_packages.py",
-      "line": 4162,
+      "line": 4173,
       "column": 29,
       "token_id": "M008",
       "line_sha256": "68ba55ad65e96cb95c91593413eb95d1233191e87b84dfedc9e51808bcd4c477",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12408,13 +12408,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-3F955852BBA99F7E61CB",
+      "id": "NCP-LATENT-A85C463B609562E9D272",
       "path": "scripts/check_rust_packages.py",
-      "line": 4247,
+      "line": 4258,
       "column": 49,
       "token_id": "M008",
       "line_sha256": "f124b91531dd3f8c7a52e771454c02123f7ef953192a5d5145442d68f4941635",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12424,13 +12424,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-F55A718A18E76103715C",
+      "id": "NCP-LATENT-340462EDC007CFC791CA",
       "path": "scripts/check_rust_packages.py",
-      "line": 4328,
+      "line": 4339,
       "column": 33,
       "token_id": "M008",
       "line_sha256": "19094f35cec94b739a6dbe9dddb96c8089e5c0c3e28e6c5ea001a5fab31dbb66",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12440,13 +12440,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-42069D112D9174215A7E",
+      "id": "NCP-LATENT-CE1B372623E9A2CE7D94",
       "path": "scripts/check_rust_packages.py",
-      "line": 4646,
+      "line": 4657,
       "column": 17,
       "token_id": "M008",
       "line_sha256": "434965ef07c0de2f406a76247be17a76b42953cfeadd0dcbe1746d3b31ff3a59",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12456,13 +12456,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-0EDD407AD72D3C71E188",
+      "id": "NCP-LATENT-F7A25E3C7451B67DD516",
       "path": "scripts/check_rust_packages.py",
-      "line": 4660,
+      "line": 4671,
       "column": 38,
       "token_id": "M008",
       "line_sha256": "066c9bac2554a8b0cce56b13444d4dbdfa4a3dd20416c18bcdb904f8b9a2f0cf",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -12472,13 +12472,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-83CDE2C78FA5840015C5",
+      "id": "NCP-LATENT-0371839AA77EA44BE524",
       "path": "scripts/check_rust_packages.py",
-      "line": 4991,
+      "line": 5002,
       "column": 10,
       "token_id": "M008",
       "line_sha256": "91b6f3a270a845f4c2891fd349ae486e6c573c6d354402f9544e520de47d44a4",
-      "file_sha256": "93808e22c463f31fe5d0f921a14977b411aaf290018917e8584706092b37286b",
+      "file_sha256": "1617c9ffd7afe2db7a1a996ffe9a2b62c5a26303162b81f138b199e677a139be",
       "disposition": "PACKAGE_RESOLUTION_BOUNDARY",
       "claim_effect": "NO_SELF_CONTAINED_RELEASE_AUTHORIZATION",
       "evidence_paths": [
