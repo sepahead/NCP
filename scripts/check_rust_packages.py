@@ -3437,14 +3437,25 @@ def _self_test_source_materialization() -> None:
 
     import copy
 
+    def set_mode(path: Path, mode: int) -> None:
+        path.chmod(mode)
+        observed = stat.S_IMODE(path.stat().st_mode)
+        if observed != mode:
+            raise AssertionError(
+                f"permission fixture requested {mode:04o}, observed {observed:04o}"
+            )
+
     with tempfile.TemporaryDirectory(prefix="ncp-source-mode-selftest-") as tmp:
         root = Path(tmp)
+        # Darwin inherits the parent's group and can silently clear setgid when
+        # that group is not ours. Join only this owned fixture to our group.
+        os.chown(root, -1, os.getegid())
         for mode_key in ("mode", "git_mode"):
             source = root / mode_key
             source.mkdir(mode=0o700)
             marker = source / ".cargo-ok"
             marker.write_bytes(REGISTRY_CARGO_OK)
-            marker.chmod(0o600)
+            set_mode(marker, 0o600)
             expected = []
             for name, logical, materialized in (
                 ("normal", "0644", 0o600),
@@ -3452,7 +3463,7 @@ def _self_test_source_materialization() -> None:
             ):
                 path = source / name
                 path.write_bytes(name.encode("ascii"))
-                path.chmod(materialized)
+                set_mode(path, materialized)
                 expected.append(
                     {
                         "path": name,
@@ -3489,9 +3500,9 @@ def _self_test_source_materialization() -> None:
                 ("executable", 0o700, (0o600, 0o755)),
             ):
                 for hostile in hostile_modes:
-                    (source / name).chmod(hostile)
+                    set_mode(source / name, hostile)
                     reject(f"{name} permission {hostile:04o}")
-                    (source / name).chmod(valid)
+                    set_mode(source / name, valid)
             normal = source / "normal"
             normal.write_bytes(b"NORMAL")
             reject("same-size byte substitution")
@@ -3504,7 +3515,7 @@ def _self_test_source_materialization() -> None:
             reject("symbolic link")
             normal.unlink()
             normal.write_bytes(b"normal")
-            normal.chmod(0o600)
+            set_mode(normal, 0o600)
             outside = root / f"{mode_key}-hardlink"
             os.link(normal, outside)
             reject("hard link outside the source roster")
@@ -3519,9 +3530,9 @@ def _self_test_source_materialization() -> None:
             marker.write_bytes(b"wrong")
             reject("Cargo marker bytes")
             marker.write_bytes(REGISTRY_CARGO_OK)
-            marker.chmod(0o644)
+            set_mode(marker, 0o644)
             reject("Cargo marker permissions")
-            marker.chmod(0o600)
+            set_mode(marker, 0o600)
             malformed = copy.deepcopy(expected)
             malformed[0][mode_key] = "100600" if mode_key == "git_mode" else "4644"
             reject("malformed logical source mode", malformed)
