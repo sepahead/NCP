@@ -51,6 +51,11 @@ It uses the unchanged reference scanner for other strings, including escapes and
 Both paths check decoded key identity and byte limits before generic object decoding.
 The modular JSON tests compare their admission, error positions, counters, and decoded values.
 
+Request creation checks the complete JSON extent and universal value limits before hashing.
+Request verification uses the same checks without emitting discarded bytes when no scratch buffer is supplied.
+A supplied scratch buffer still receives the encoded request before binding and digest checks.
+The final encoded request, including its digest, must fit the frame ceiling.
+
 The frame ceiling is 65,536 bytes. Each frame starts with its four-byte big-endian length.
 Responses reserve retained-wire capacity before execution; digest staging has separate bounded allocations.
 This Python implementation does not promise allocation-free execution or real-time scheduling.

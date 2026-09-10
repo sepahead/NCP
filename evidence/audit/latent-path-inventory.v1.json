@@ -3053,9 +3053,9 @@
       },
       {
         "path": "local/python/README.md",
-        "bytes": 3173,
-        "sha256": "b6ed13b14fbafed5aa63589869800bf8f9491fa57f988ffd94c08d169b74aac6",
-        "git_blob_oid": "cd91dc08488535dcbbbb0bfd113030f765ff49eb",
+        "bytes": 3549,
+        "sha256": "8334868ee0566b3fd6351cc146886563d5580442226acb9017f168b9158e37fe",
+        "git_blob_oid": "b0449e8091e3099b5a25dacec9a8b3b03ecda326",
         "indexed": true
       },
       {
@@ -3109,9 +3109,9 @@
       },
       {
         "path": "local/python/ncp_local/modular_wire.py",
-        "bytes": 31805,
-        "sha256": "616a09d296f85477f2fc115796f6d061da5cc6d05b1422781f8ea3c45d0ef36b",
-        "git_blob_oid": "619ee12e692dd7585c5adc94968052005eaa30e4",
+        "bytes": 32089,
+        "sha256": "e44307e5ede4daff6b0809b03069a02166eed6705a0253e0d7ffaefc010928a4",
+        "git_blob_oid": "66d72436b1e922fc3bd7cc67d34f2dfcf4ddd2d7",
         "indexed": true
       },
       {
@@ -3175,6 +3175,13 @@
         "bytes": 38110,
         "sha256": "3877748e00881869c3bdecd265396cd282acee87c39099aa570baf507453ef11",
         "git_blob_oid": "69dd88a69fda0301e793dbcadde7581bb5c869ee",
+        "indexed": true
+      },
+      {
+        "path": "local/python/tests/test_modular_request_preflight.py",
+        "bytes": 3842,
+        "sha256": "854b597af116621573cf00749db7893299ac2da363f69c9857ae2dd7819029c8",
+        "git_blob_oid": "a89ddbc7353895d166f4b3e2fbb5c42ef1dd3d07",
         "indexed": true
       },
       {
@@ -8599,7 +8606,7 @@
     ]
   },
   "counts": {
-    "text_files": 1191,
+    "text_files": 1192,
     "binary_or_non_utf8_files": 27,
     "occurrences": 332,
     "by_token_id": {
@@ -8632,7 +8639,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "fdd92dbc3a9f91c47870b721354a51cf520c2fe12c947397281f586cf4f630e3",
+  "scanned_path_set_sha256": "489d177bf957858738b9354903a173249a31704de065bac41c83635e10edc61a",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

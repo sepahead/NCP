@@ -102,6 +102,15 @@ def encode(value: Any) -> bytes:
     return bytes(memoryview(slot)[:length])
 
 
+def _validate_json(value: Any) -> None:
+    """Check exact encoded extent and universal limits without emitting bytes."""
+    try:
+        _check_json_extent(value)
+        bounded.check_value(value)
+    except bounded.LocalError as error:
+        raise ModularError(error.code) from error
+
+
 def encode_into(value: Any, slot: bytearray) -> int:
     """Write inside a fixed slot; escaped string fragments have at most1,538 bytes.
 
@@ -109,8 +118,7 @@ def encode_into(value: Any, slot: bytearray) -> int:
     escaping bounds that temporary even for an oversized application result.
     """
     try:
-        _check_json_extent(value)
-        bounded.check_value(value)
+        _validate_json(value)
         end = 0
 
         def write(payload: bytes) -> None:
@@ -527,8 +535,8 @@ class Request:
         binding.validate()
         if not integer(sequence): raise ModularError("wire")
         value = Request(binding, sequence, command, "").value()
-        # Encoding bounds before hashing also checks universal scalar limits.
-        encode(value)
+        # Keep exact extent and universal scalar checks before hashing.
+        _validate_json(value)
         value["request_digest"] = typed_digest(REQUEST_SCHEMA, value, "request_digest")
         return encode(value)
 
@@ -567,7 +575,10 @@ class Request:
 
     def verify(self, binding: BufferBinding, *, scratch: bytearray | None = None) -> None:
         value = self.value()
-        encode_into(value, scratch if scratch is not None else bytearray(FRAME_BYTES))
+        if scratch is None:
+            _validate_json(value)
+        else:
+            encode_into(value, scratch)
         if self.binding != binding or not integer(self.sequence) or not digest_valid(self.request_digest) or typed_digest(REQUEST_SCHEMA, value, "request_digest") != self.request_digest:
             raise ModularError("binding")
 
