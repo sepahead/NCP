@@ -2941,9 +2941,9 @@
       },
       {
         "path": "evidence/supply-chain/inventory.v1.json",
-        "bytes": 151082,
-        "sha256": "4dcbeb4ca196ad1b6a9ed72079611252e2a8a5986bbdb2f38a6f14f7862ee10e",
-        "git_blob_oid": "17a719530cbbf5b2bc29250fd87a5a66e145fa84",
+        "bytes": 151084,
+        "sha256": "869ca92091dd0e15077594b24474ab6c8e1c6c64d36e2f87060856ebe4cfd94e",
+        "git_blob_oid": "de5ebd6420546f02c01b799b6c4dac9d94f894bf",
         "indexed": true
       },
       {
@@ -2970,8 +2970,8 @@
       {
         "path": "evidence/supply-chain/vulnerability-report.v1.json",
         "bytes": 2342,
-        "sha256": "e0131e87c010e8ee1b3b1f87d1be43a0c688f287e74d50ff61f7eeacf63c9762",
-        "git_blob_oid": "b70c9624c335f652c358548ecb4e06ac633d0cf5",
+        "sha256": "21f8bf11e9d5de8b89c11e05bc4568a25bdb118f67642a7b552966233d32f1b1",
+        "git_blob_oid": "d80f0fe3cb3d83c0a8c8b40a289ee92b960ca827",
         "indexed": true
       },
       {
@@ -6763,9 +6763,9 @@
       },
       {
         "path": "ncp-zenoh/Cargo.toml",
-        "bytes": 1532,
-        "sha256": "b11f38dc4aad334f3f8b588a5ed83eb56122a97554889be29dde4e637cf45c58",
-        "git_blob_oid": "e001c6f84b201dbbbb58754232be0adbcabb050c",
+        "bytes": 1619,
+        "sha256": "2a367d7c7dd41bd5dffa588ad5e4f665bca88ab6be2c09b3a7c98ece69740236",
+        "git_blob_oid": "b1ec0dbd9861ab0c8b93b7f8c535664c7676f507",
         "indexed": true
       },
       {
@@ -7918,9 +7918,9 @@
       },
       {
         "path": "scripts/check_dependency_exposure.py",
-        "bytes": 16426,
-        "sha256": "c669e5f75db129778a6d62a3f7e094f4636fa1f98b5a9887c8394eaf8cac39a6",
-        "git_blob_oid": "db9c41c4a9f1d28364d5bf6cedc43a47e957c51c",
+        "bytes": 16828,
+        "sha256": "f85960afb8d869c93dcdb6bb5816ac5fe42cc2fe1d606978e3585afa0df78209",
+        "git_blob_oid": "73ba224cd07dbb531687d9139665135ab2916ab1",
         "indexed": true
       },
       {
