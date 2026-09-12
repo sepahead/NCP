@@ -192,8 +192,11 @@ def validate(
         raise ExposureError(
             "ncp-zenoh must declare Zenoh with an explicit dependency table"
         )
-    if zenoh.get("version") != "1.9":
-        raise ExposureError("ncp-zenoh Zenoh requirement drifted from reviewed 1.9")
+    if zenoh.get("version") != f"={ZENOH_VERSION}":
+        raise ExposureError(
+            f"ncp-zenoh must pin Zenoh to exactly ={ZENOH_VERSION}; "
+            "a broader requirement can bypass the transport backport"
+        )
     if zenoh.get("default-features") is not False:
         raise ExposureError("ncp-zenoh must keep Zenoh default features disabled")
     declared = zenoh.get("features")
@@ -319,7 +322,7 @@ def _fixture() -> tuple[
     zenoh_manifest = {
         "dependencies": {
             "zenoh": {
-                "version": "1.9",
+                "version": f"={ZENOH_VERSION}",
                 "default-features": False,
                 "features": sorted(DECLARED_ZENOH_FEATURES),
             }
@@ -374,6 +377,11 @@ def self_test() -> None:
     hostile: list[tuple[str, tuple[dict[str, Any], ...]]] = []
 
     values = (deny, lock, workspace_manifest, zenoh_manifest, metadata)
+
+    for requirement in ("1.9", "1.9.0", "^1.9.0", "~1.9.0", "=1.10.1"):
+        case = tuple(copy.deepcopy(value) for value in values)
+        case[3]["dependencies"]["zenoh"]["version"] = requirement
+        hostile.append((f"unreviewed Zenoh requirement {requirement}", case))
 
     case = tuple(copy.deepcopy(value) for value in values)
     case[0]["advisories"]["ignore"].append(ADVISORY)

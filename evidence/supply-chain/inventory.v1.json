@@ -2762,7 +2762,7 @@
     "ncp-python/Cargo.toml": "bf45c47a23cdf60a1ef74cd14238011e72555308a1b0d7cc26d7c855296004af",
     "ncp-python/pyproject.toml": "3ffae253db4b3054ae8127212d8d39be3bf9f3bcf46216204fdf2864c56424f6",
     "ncp-ts/package.json": "990317ce7a974b5b42ed7e17a2a5033f34a4db43a013b33da2f1dad5c9ef30c4",
-    "ncp-zenoh/Cargo.toml": "b11f38dc4aad334f3f8b588a5ed83eb56122a97554889be29dde4e637cf45c58",
+    "ncp-zenoh/Cargo.toml": "2a367d7c7dd41bd5dffa588ad5e4f665bca88ab6be2c09b3a7c98ece69740236",
     "package.json": "038f45047bd6974face3d62ce1b39524ad3486d85a535449cb33116a327de255",
     "scripts/requirements-candidate-build-linux-x86_64.txt": "2dd5f33b489e486b5319d4220188b1094ec141401fba86201e79485c368d6230",
     "scripts/requirements-plot.txt": "8a2d128f9a70eeb03f40747984f7eac9c7e0efe8638b362b28f97d01dcc5b072",
@@ -3325,7 +3325,7 @@
           "kind": "normal",
           "name": "zenoh",
           "optional": false,
-          "requirement": "^1.9",
+          "requirement": "=1.9.0",
           "target": null
         }
       ],
