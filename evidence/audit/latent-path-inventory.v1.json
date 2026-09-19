@@ -170,8 +170,8 @@
       {
         "path": "Cargo.lock",
         "bytes": 94486,
-        "sha256": "66dc7e6a8eaba70369d87cc6685d5f8f596f33730090bb57588618abc837379e",
-        "git_blob_oid": "7dc5b92d283773fa95084a65d2af0360c4d6bbd7",
+        "sha256": "f597b5f00899f44b0ecabde9d8b7de8adeed8b1de5ccbad67f7c08f3da5363ad",
+        "git_blob_oid": "bd658c0f86db8352d9dec3013e5d787a4e795f87",
         "indexed": true
       },
       {
@@ -267,9 +267,9 @@
       },
       {
         "path": "README.md",
-        "bytes": 10703,
-        "sha256": "31e8251b6023e8680e5ef34b07652004248f86c1b11fe6ea1e30ae98a4e43cc2",
-        "git_blob_oid": "84af16c59b816283149ec0fad349f350b9329cd1",
+        "bytes": 14381,
+        "sha256": "e201a2e260b8f3fa773c961ba56d3ea1ef58d3a1a82f2417d58ef36c2404a88c",
+        "git_blob_oid": "ab3190f996a2d88918b6a4c65a907fefe0c90597",
         "indexed": true
       },
       {
@@ -2493,9 +2493,9 @@
       },
       {
         "path": "docs/local-v1/README.md",
-        "bytes": 14235,
-        "sha256": "afceec45e85b66149606c020d68b981f401bae4814723000175856f07955d931",
-        "git_blob_oid": "3849a12205f6fd7dae73f54f98806c47281ba601",
+        "bytes": 14311,
+        "sha256": "7fa3ababe67898ba28745fe599b8438217e888cec0586f50eaac4ad4603229f6",
+        "git_blob_oid": "76d1904fc5be0cfffae286e4e1c54d0b0f6f544a",
         "indexed": true
       },
       {
@@ -2942,43 +2942,50 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 151084,
-        "sha256": "869ca92091dd0e15077594b24474ab6c8e1c6c64d36e2f87060856ebe4cfd94e",
-        "git_blob_oid": "de5ebd6420546f02c01b799b6c4dac9d94f894bf",
+        "sha256": "2eed43a3138692935e028a5d844d86f3ddc18fa100c2d3abb02783a41dc1a67e",
+        "git_blob_oid": "f1345e6fe49b92ab3838939bde2f62d1943e8732",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/license-report.v1.json",
         "bytes": 81478,
-        "sha256": "351c122bec118d1be7dd489dcf2416f7305887f45b01935ce4964c68e99be256",
-        "git_blob_oid": "435918a90cfe24f92d6306a93182ff317e6ae34c",
+        "sha256": "c55919fd71bf45510816ee0c873ac98e165bc02a62226bcdfb4a6505a455421f",
+        "git_blob_oid": "4b286e7a3f3952b5eaec7b84ee706507bc22953d",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/provenance-policy.v1.json",
         "bytes": 1698,
-        "sha256": "6e8e9a40ca8e88f1168d3908ebe92b0c5c0efc24a5136a2f780d3128b8a285d7",
-        "git_blob_oid": "bc40d52a7a0e27e2d2bfcec6bd1c13d7e9cb3cde",
+        "sha256": "bdad7675d4fb99fc00c8550b7896f49be794e85159158e195ef84f70d5ae22d2",
+        "git_blob_oid": "bd268adc87827a4ad5afd11511b884d87cd34914",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/sbom.cdx.json",
         "bytes": 303191,
-        "sha256": "a4b4fe54a3604393d3387b568ceab959cf507c6835ea13bc02678b33e7ed5f41",
-        "git_blob_oid": "0a70ff6017cda170fdff3dfb6513850067cc4649",
+        "sha256": "4b47ac9cf897c771054c2f77a0dbddd205e3fd520b8477385d8fa24ee6a176bc",
+        "git_blob_oid": "de0504e9fa7e58e624a46347b2caabd5765895ae",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/vulnerability-report.v1.json",
         "bytes": 2342,
-        "sha256": "21f8bf11e9d5de8b89c11e05bc4568a25bdb118f67642a7b552966233d32f1b1",
-        "git_blob_oid": "d80f0fe3cb3d83c0a8c8b40a289ee92b960ca827",
+        "sha256": "ab8b696b174db497dace5c44433134394007062696035ed4d2f7fb77a386fa96",
+        "git_blob_oid": "6912a8e372710554e2d1c52b08d4522ee3e9b6e9",
         "indexed": true
       },
       {
         "path": "local/modular/README.md",
-        "bytes": 10794,
-        "sha256": "ccc5d3af15b7af27c4be35e99779b1ca52ad5f5fa0da73dcb24b88798c0bf67b",
-        "git_blob_oid": "939ae0455d76b38d215b0d5fee417767eb26379b",
+        "bytes": 11296,
+        "sha256": "3600385f498cfc8c663c14d059906fdac1db5dc2725316c005de263111d41b6d",
+        "git_blob_oid": "468cc230ab5a1f08977fde90ded979ea6c33333a",
+        "indexed": true
+      },
+      {
+        "path": "local/modular/STATUS.md",
+        "bytes": 17602,
+        "sha256": "764e16c7ae3439a9d40b49c6ca3a28de89930004efb02bd32220dfa61c2f95bc",
+        "git_blob_oid": "2e1dd76d7840c2c4bc3a24899c043a2dc058e726",
         "indexed": true
       },
       {
@@ -7946,9 +7953,9 @@
       },
       {
         "path": "scripts/check_local_sdk.py",
-        "bytes": 20210,
-        "sha256": "0ded07a31220d25c787768d89d484cc6fe5936a4325bdb0babfe0b487d6a75ae",
-        "git_blob_oid": "074fa0d901457dd483c35119d0c69b7498dc4146",
+        "bytes": 20353,
+        "sha256": "4d7b3db3ef4505173a48b4fb20ff5298c1d08d0e7aec4c6f7690f693b99e8bf4",
+        "git_blob_oid": "9273504add60f2aa9cd6bf1fa2d0459866378c17",
         "indexed": true
       },
       {
@@ -8331,9 +8338,9 @@
       },
       {
         "path": "scripts/test_local_sdk_gate.py",
-        "bytes": 19193,
-        "sha256": "35c60ad40853ae8c167718f50e004797da02d4a966c0933522c19694bff88304",
-        "git_blob_oid": "ec14e8d3af9fc86894f4f0f91f9635d42deded16",
+        "bytes": 21359,
+        "sha256": "4eca8b89064aced4eaf93d941146826a1e5880b5d81f99bf461adf8ffb66f8e6",
+        "git_blob_oid": "e962b9e54c271217cf5cf141086c67a6d85e3691",
         "indexed": true
       },
       {
@@ -8613,9 +8620,9 @@
     ]
   },
   "counts": {
-    "text_files": 1193,
+    "text_files": 1194,
     "binary_or_non_utf8_files": 27,
-    "occurrences": 332,
+    "occurrences": 334,
     "by_token_id": {
       "M001": 7,
       "M002": 3,
@@ -8623,13 +8630,13 @@
       "M004": 1,
       "M005": 19,
       "M006": 22,
-      "M007": 73,
+      "M007": 75,
       "M008": 205
     },
     "by_disposition": {
       "AUDIT_CONTROL_TEXT": 83,
       "BOUNDED_DIAGNOSTIC_ONLY": 1,
-      "EXPLICIT_SCOPE_QUARANTINE": 32,
+      "EXPLICIT_SCOPE_QUARANTINE": 34,
       "FAIL_SAFE_NON_WIDENING": 17,
       "GENERATED_MIRROR": 10,
       "HANDOFF_OPEN_EVIDENCE": 44,
@@ -8646,7 +8653,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "0bb176b6f1320b824d08e5f58fc893ef370e1168e00b685231efe799f2696d01",
+  "scanned_path_set_sha256": "6aa799136934319810ca992fd97adcdd55a3fe9ab7cac5390afbf58b784766c1",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -10317,7 +10324,7 @@
       "column": 76,
       "token_id": "M008",
       "line_sha256": "19c4d33c46ac96812a1e139d51e2d88a1c6a55ab50f16da81385475c1919fcd5",
-      "file_sha256": "afceec45e85b66149606c020d68b981f401bae4814723000175856f07955d931",
+      "file_sha256": "7fa3ababe67898ba28745fe599b8438217e888cec0586f50eaac4ad4603229f6",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -10331,7 +10338,7 @@
       "column": 52,
       "token_id": "M005",
       "line_sha256": "6c28b7fb01b09034c16730ec1f43938b2f1248d5b5f2468fe2d476fc15a49f73",
-      "file_sha256": "afceec45e85b66149606c020d68b981f401bae4814723000175856f07955d931",
+      "file_sha256": "7fa3ababe67898ba28745fe599b8438217e888cec0586f50eaac4ad4603229f6",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
       "evidence_paths": [
@@ -10345,7 +10352,7 @@
       "column": 83,
       "token_id": "M008",
       "line_sha256": "6c28b7fb01b09034c16730ec1f43938b2f1248d5b5f2468fe2d476fc15a49f73",
-      "file_sha256": "afceec45e85b66149606c020d68b981f401bae4814723000175856f07955d931",
+      "file_sha256": "7fa3ababe67898ba28745fe599b8438217e888cec0586f50eaac4ad4603229f6",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
@@ -11059,13 +11066,43 @@
       ]
     },
     {
-      "id": "NCP-LATENT-E2FC0DBA9A9ED2BDDFF9",
+      "id": "NCP-LATENT-A66C1EA2150735E79559",
       "path": "local/modular/README.md",
-      "line": 48,
+      "line": 49,
       "column": 32,
       "token_id": "M007",
       "line_sha256": "bf9328726f93e5cb3ffdefc01061c336aa63f9c9c5a7299ec045bed5ebb71112",
-      "file_sha256": "ccc5d3af15b7af27c4be35e99779b1ca52ad5f5fa0da73dcb24b88798c0bf67b",
+      "file_sha256": "3600385f498cfc8c663c14d059906fdac1db5dc2725316c005de263111d41b6d",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-CE47792730ED0B8179BB",
+      "path": "local/modular/STATUS.md",
+      "line": 25,
+      "column": 48,
+      "token_id": "M007",
+      "line_sha256": "58cc80425201795e1c81ec7a6286f8635c57263e81a20665fcd8bc7cd4cc5e6b",
+      "file_sha256": "764e16c7ae3439a9d40b49c6ca3a28de89930004efb02bd32220dfa61c2f95bc",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-171C78A5973E0B095DCB",
+      "path": "local/modular/STATUS.md",
+      "line": 210,
+      "column": 50,
+      "token_id": "M007",
+      "line_sha256": "e687c4e42afcea5bd9d21f5f9e5496c852151727ef1ac8bb14029fdb634c069d",
+      "file_sha256": "764e16c7ae3439a9d40b49c6ca3a28de89930004efb02bd32220dfa61c2f95bc",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [

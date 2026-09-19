@@ -82,6 +82,8 @@ KILL_WAIT_SECONDS = 5.0
 DIAGNOSTICS = None
 COMMAND_NUMBER = 0
 REFERENCE_COMMIT = "de751d499b5e07d1c95a072e08255083d77cb38b"
+# The broader root lock follows current dependency policy, not historical SDK parity.
+# source_rows() and source_unchanged() still bind it throughout this gate.
 REFERENCE_FILES = (
     "ncp-core/src/local.rs",
     "ncp-core/src/local_data.rs",
@@ -101,7 +103,6 @@ REFERENCE_FILES = (
     "local/python/ncp_local/local-profile.v1.json",
     "local/release.v1.json",
     "Cargo.toml",
-    "Cargo.lock",
     "local/rust/Cargo.toml",
     "local/rust/Cargo.lock",
     "local/python/pyproject.toml",

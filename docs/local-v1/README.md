@@ -181,7 +181,8 @@ It verifies source projections, package construction, and exact Python package b
 Installed Python suites require the native reference, buffer, and request-owner probes.
 Missing probes, empty suites, skipped controls, and imports outside that installation fail the gate.
 Mandatory gate-integrity controls exercise those checks and owned child-process cleanup.
-The source roster and 22 historical reference files must remain unchanged across the run.
+The complete source roster, including root `Cargo.lock`, must remain unchanged across the run.
+The 21 historical reference files retain their pinned bytes.
 Git queries discard inherited Git routing variables and ignore replacement objects.
 These comparisons establish observed byte equality, without an atomic snapshot or universal concurrent-mutation guarantee.
 
@@ -190,7 +191,7 @@ It retains its private diagnostic directory after failure or unconfirmed cleanup
 The hosted SDK job uploads available command logs and source-roster diagnostics after failure.
 These controls do not establish cleanup after the gate process itself dies.
 
-The complete `scripts/check.sh` also tests broad-core feature combinations and scans the standalone lock against current and pinned advisory databases.
+The complete `scripts/check.sh` also tests broad-core feature combinations and scans the root and standalone locks against current and pinned advisory databases.
 Hosted CI uses the same SDK runner and dependency-policy commands.
 Python build and test tools use exact version pins; those SDK requirement files do not contain artifact hashes.
 A complete bootstrap run requires a fresh, short-path checkout of the exact clean candidate commit.

@@ -10,37 +10,65 @@
 
 <p align="center"><a href="assets/archive/logos/README.md">Logo design archive</a></p>
 
-NCP connects independently owned neural simulations, simulated bodies, capture tools, and monitors through explicit data contracts.
-The first bounded development profile demonstrates exact causal steps and retained outcomes in one local experiment.
-Final product v1 requirements remain open.
+NCP connects independently owned simulations and tools through exact, bounded data contracts.
+The [modular local SDK](local/modular/README.md) lets a host select installed applications without requiring a fixed project bundle.
+NCP owns message identity, retained outcomes, acknowledgements, and byte-buffer lifetime.
+Each application owns its operations, observations, units, clocks, and accepted values.
 
 **Release status: unreleased.**
-The [local release registry](local/release.v1.json) records this reference profile's contract, packages, application roles, and required gates.
-Native development controls have passed.
-Immutable installed qualification and final publication remain open.
-The reference profile's intended tag remains `local-v1.0.0`.
-That profile does not define the complete final product scope.
+The SDK and applications have source controls and selected native evidence.
+Complete qualification of their declared installed combinations and final product v1 remain open.
+Read the [architecture, interface mathematics, evidence, and remaining work](local/modular/STATUS.md) for the current modular scope.
 
-The broader `1.0.0-rc.1` protocol candidate remains release-blocked under its [separate scope](docs/1.0-scope.md).
-Its Zenoh, remote-security, physical-control, and eleven-role gates remain unpassed.
+In the intended paper-driven workflow, Engram extracts candidate evidence from a PDF for review.
+After evidence review, Engram constructs a supported network and experiment, configures CREBAIN, and coordinates execution and reporting.
+Prisoma experiment services and Galadriel monitoring for possible sensor tampering remain optional.
+The other applications can run without Galadriel. An anomaly does not prove an attack.
+
+Current native tests use explicit plans and scenes. They do not establish arbitrary-paper reproduction.
+The [target ownership flow](local/modular/STATUS.md#target-a-paper-driven-experiment) distinguishes that goal from current measured behavior.
+
+## Select the applications you need
+
+| Component | Implemented use | Current evidence boundary |
+| --- | --- | --- |
+| [NCP modular SDK](local/modular/owner.md) | Independent Rust and Python owners and clients for installed application contracts and bounded buffers. | SDK controls do not qualify an application's native behavior or resources. |
+| [Engram NEST application (private source)](https://github.com/sepahead/Paper2Brain/tree/main/packages/ncp-nest) | Run a persistent local neural network with typed currents and spike-count readouts. | Seven installed sessions passed 700 readout comparisons, including optional capture. Private repository access is required. |
+| [CREBAIN sensor application](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-ground-sensors) | Run an explicitly installed body through `body_session`, or use caller-owned streams through `SensorSession`. | Installed CLI and body/neural cases cover selected workloads. Each advertised configuration needs its own qualification. |
+| [Prisoma transcript](https://github.com/sepahead/prisoma/tree/main/integrations/ncp-transcript) | Capture original NCP exchanges from selected peers and verify terminal completeness. | Capture does not launch a simulator or validate an experiment's scientific result. |
+| [Prisoma Agent Bridge](https://github.com/sepahead/prisoma/tree/main/integrations/agent-bridge) | Bind CREBAIN commands, execution receipts, original exchanges, and sensor bytes to canonical experiment events. | A native sensor execution case exists. Forecasts and independently restored outcome labels remain separate work. |
+
+Engram, CREBAIN, and capture are independently selectable.
+A selected composition must satisfy every participating application's contract and resource limits.
+The SDK supplies no automatic application discovery, downloaded decoder, or mandatory central runtime.
+
+CREBAIN's current sensor application admits one simulated drone and no city solids.
+It supports zero through four RGB cameras, thermal cameras, or microphones, with at least one sensor overall.
+Camera-free selections require no Node or graphics process.
+The [installed body guide](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-ground-sensors/python) explains the runtime prerequisites and lifecycle contract.
+
+## Remaining product v1 work
+
+The remaining work includes:
+
+- Complete installed qualification, lifecycle controls, and reproducible distribution for each advertised optional combination.
+- Measure the declared workload and resource envelope, including supported sensor sizes and entity counts.
+- Extend and qualify the modular body interface for the requested many-drone experiments.
+- Complete Prisoma's embodied and world-model experiment path, including forecasts, applied actions, independent outcome labels, and comparisons.
+- Qualify additional advertised application roles, including selected monitoring, through their own typed contracts.
+
+These requirements need implementation or operating evidence according to the owning application contract.
+Selected demonstrations do not establish real-time operation, controller stability, sensor accuracy, or model quality.
+
+## Earlier four-owner reference control
+
+The earlier `ncp.local-lockstep.v1` reference remains a separate regression control.
+Its [release registry](local/release.v1.json) records its fixed roles, packages, and outstanding publication gates.
+Its intended tag remains `local-v1.0.0`.
+That registry does not qualify the modular applications above or define the complete final product scope.
+
+The broader `1.0.0-rc.1` candidate retains its [separate scope](docs/1.0-scope.md) and release blockers.
 The latest published legacy release remains `v0.8.0`, with an incompatible wire.
-No local test promotes either historical surface.
-
-## Open final v1 requirements
-
-NCP must support independently selectable adapters and optional project combinations.
-Using one project must not require a mandatory all-project bundle.
-The final product also requires:
-
-- Declared profiles for many entities and multiple actual sensor modalities, with exact units, layouts, missingness, and measured bounds.
-- CREBAIN standalone operation and many-drone experiments, with declared camera/3DGS, audio, and heat sensor profiles.
-- Prisoma ownership of embodied-agent and world-model experiments, with CREBAIN available as a simulation dependency.
-- Optional Engram integration and independent qualification of each supported project combination.
-
-These requirements need implementation and qualification evidence.
-The current four-owner controls cover only the bounded reference profile below.
-
-## Development reference: one experiment, four owners
 
 ![Engram owns NEST and sequences private NCP exchanges with the CREBAIN body, Prisoma capture, and record-only Galadriel monitor.](docs/local-v1/architecture.svg)
 
@@ -96,7 +124,7 @@ Haldir's existing velocity-command semantics do not define this acceleration int
 A gated request must fail before preparation.
 Remote endpoints, physical actuation, and real-time guarantees are also excluded.
 
-## Learn the contract
+## Learn the reference contract
 
 The [mathematical guide](docs/local-v1/math-guide.md) defines the symbols, units, assumptions, and operating bounds.
 It explains delayed spike readout, innovation statistics, exact outcomes, and capture completeness through worked examples.
@@ -121,14 +149,23 @@ Those historical diagrams do not describe an implemented local-v1 runtime or clo
 
 | Package | Selected purpose | Independence |
 | --- | --- | --- |
-| [Local Rust SDK](local/rust/README.md) | Standalone local framing, data validation, and outcome ownership. | Rust reference implementation. |
-| [Local Python SDK](local/python/README.md) | Equivalent local contract and bounded client/owner implementation. | Independent pure-Python implementation; no Rust FFI. |
+| [Local Rust SDK](local/rust/README.md) | Local framing, installed application contracts, bounded buffers, and outcome ownership. | Rust reference implementation. |
+| [Local Python SDK](local/python/README.md) | Equivalent local contracts, buffers, and bounded client/owner behavior. | Independent pure-Python implementation; no Rust FFI. |
 | [Broader candidate packages](docs/1.0-scope.md) | Historical migration and broader protocol development. | Separate candidate identities and unpassed release gates. |
 
 The standalone Rust package has no dependency on the broader `ncp-core` candidate.
 Its generated projection preserves the exact canonical module bytes.
 Only test and example package imports change.
 The projection gate checks every selected source and descriptor.
+
+Run the maintained SDK gate with Python 3.11 or later:
+
+```sh
+python3 -I scripts/check_local_sdk.py --python python3
+```
+
+This gate includes source projections, independent language controls, and fresh installed-wheel checks.
+It grants no application or release qualification.
 
 From the repository root, run the focused source and Rust gates:
 
@@ -165,7 +202,8 @@ Measured timing and resource results must state their exact host, workload, and 
 
 ## Project documents
 
-- [Local scope, owners, and remaining gates](docs/local-v1/README.md)
+- [Modular architecture, mathematics, evidence, and remaining work](local/modular/STATUS.md)
+- [Earlier local reference scope, owners, and gates](docs/local-v1/README.md)
 - [Broad candidate specification](NEURO_CYBERNETIC_PROTOCOL.md)
 - [Broad candidate security contract](SECURITY.md)
 - [Broad candidate release ledger](RELEASE_READINESS.md)

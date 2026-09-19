@@ -4827,11 +4827,11 @@
       "version": "0.6.2"
     },
     {
-      "bom-ref": "pkg:cargo/rustls-webpki@0.103.13",
+      "bom-ref": "pkg:cargo/rustls-webpki@0.103.14",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e"
+          "content": "0527518605e68109d875e248ea259b6758801cf165e4b2c2733ae3b51f12535a"
         }
       ],
       "licenses": [
@@ -4846,16 +4846,16 @@
           "value": "registry+https://github.com/rust-lang/crates.io-index"
         }
       ],
-      "purl": "pkg:cargo/rustls-webpki@0.103.13",
+      "purl": "pkg:cargo/rustls-webpki@0.103.14",
       "type": "library",
-      "version": "0.103.13"
+      "version": "0.103.14"
     },
     {
-      "bom-ref": "pkg:cargo/rustls@0.23.40",
+      "bom-ref": "pkg:cargo/rustls@0.23.45",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "ef86cd5876211988985292b91c96a8f2d298df24e75989a43a3c73f2d4d8168b"
+          "content": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634"
         }
       ],
       "licenses": [
@@ -4870,9 +4870,9 @@
           "value": "registry+https://github.com/rust-lang/crates.io-index"
         }
       ],
-      "purl": "pkg:cargo/rustls@0.23.40",
+      "purl": "pkg:cargo/rustls@0.23.45",
       "type": "library",
-      "version": "0.23.40"
+      "version": "0.23.45"
     },
     {
       "bom-ref": "pkg:cargo/rustversion@1.0.22",
@@ -10240,7 +10240,7 @@
         "pkg:cargo/rustc-hash@2.1.2",
         "pkg:cargo/rustls-pki-types@1.14.1",
         "pkg:cargo/rustls-platform-verifier@0.6.2",
-        "pkg:cargo/rustls@0.23.40",
+        "pkg:cargo/rustls@0.23.45",
         "pkg:cargo/slab@0.4.12",
         "pkg:cargo/thiserror@2.0.18",
         "pkg:cargo/tinyvec@1.11.0",
@@ -10268,7 +10268,7 @@
         "pkg:cargo/quinn-proto@0.11.15",
         "pkg:cargo/quinn-udp@0.5.14",
         "pkg:cargo/rustc-hash@2.1.2",
-        "pkg:cargo/rustls@0.23.40",
+        "pkg:cargo/rustls@0.23.45",
         "pkg:cargo/socket2@0.6.4",
         "pkg:cargo/thiserror@2.0.18",
         "pkg:cargo/tokio@1.52.3",
@@ -10459,8 +10459,8 @@
         "pkg:cargo/once_cell@1.21.4",
         "pkg:cargo/rustls-native-certs@0.8.4",
         "pkg:cargo/rustls-platform-verifier-android@0.1.1",
-        "pkg:cargo/rustls-webpki@0.103.13",
-        "pkg:cargo/rustls@0.23.40",
+        "pkg:cargo/rustls-webpki@0.103.14",
+        "pkg:cargo/rustls@0.23.45",
         "pkg:cargo/security-framework-sys@2.17.0",
         "pkg:cargo/security-framework@3.7.0",
         "pkg:cargo/webpki-root-certs@1.0.7",
@@ -10474,7 +10474,7 @@
         "pkg:cargo/rustls-pki-types@1.14.1",
         "pkg:cargo/untrusted@0.9.0"
       ],
-      "ref": "pkg:cargo/rustls-webpki@0.103.13"
+      "ref": "pkg:cargo/rustls-webpki@0.103.14"
     },
     {
       "dependsOn": [
@@ -10482,11 +10482,11 @@
         "pkg:cargo/once_cell@1.21.4",
         "pkg:cargo/ring@0.17.14",
         "pkg:cargo/rustls-pki-types@1.14.1",
-        "pkg:cargo/rustls-webpki@0.103.13",
+        "pkg:cargo/rustls-webpki@0.103.14",
         "pkg:cargo/subtle@2.6.1",
         "pkg:cargo/zeroize@1.9.0"
       ],
-      "ref": "pkg:cargo/rustls@0.23.40"
+      "ref": "pkg:cargo/rustls@0.23.45"
     },
     {
       "dependsOn": [],
@@ -10928,7 +10928,7 @@
     },
     {
       "dependsOn": [
-        "pkg:cargo/rustls@0.23.40",
+        "pkg:cargo/rustls@0.23.45",
         "pkg:cargo/tokio@1.52.3"
       ],
       "ref": "pkg:cargo/tokio-rustls@0.26.4"
@@ -11524,8 +11524,8 @@
         "pkg:cargo/rcgen@0.14.8",
         "pkg:cargo/rustls-pemfile@2.2.0",
         "pkg:cargo/rustls-pki-types@1.14.1",
-        "pkg:cargo/rustls-webpki@0.103.13",
-        "pkg:cargo/rustls@0.23.40",
+        "pkg:cargo/rustls-webpki@0.103.14",
+        "pkg:cargo/rustls@0.23.45",
         "pkg:cargo/secrecy@0.8.0",
         "pkg:cargo/serde@1.0.228",
         "pkg:cargo/socket2@0.5.10",
@@ -11549,7 +11549,7 @@
     {
       "dependsOn": [
         "pkg:cargo/async-trait@0.1.89",
-        "pkg:cargo/rustls-webpki@0.103.13",
+        "pkg:cargo/rustls-webpki@0.103.14",
         "pkg:cargo/time@0.3.49",
         "pkg:cargo/tokio-util@0.7.18",
         "pkg:cargo/tracing@0.1.44",
@@ -11581,8 +11581,8 @@
         "pkg:cargo/base64@0.22.1",
         "pkg:cargo/rustls-pemfile@2.2.0",
         "pkg:cargo/rustls-pki-types@1.14.1",
-        "pkg:cargo/rustls-webpki@0.103.13",
-        "pkg:cargo/rustls@0.23.40",
+        "pkg:cargo/rustls-webpki@0.103.14",
+        "pkg:cargo/rustls@0.23.45",
         "pkg:cargo/secrecy@0.8.0",
         "pkg:cargo/socket2@0.5.10",
         "pkg:cargo/time@0.3.49",
@@ -11981,7 +11981,7 @@
       "version": "1.0.0-rc.1"
     }
   },
-  "serialNumber": "urn:uuid:5d5438fa-e020-5c29-9868-9c01203354e8",
+  "serialNumber": "urn:uuid:0434f017-db9a-5be1-8fb6-bfe09d0028a4",
   "specVersion": "1.6",
   "version": 1
 }
