@@ -10,6 +10,7 @@ Reject unnecessary machinery, unsupported claims, and requirements that belong t
 This request and the public source are on GitHub.
 The user supplies the private Engram source through a separate ZIP. No shared local workspace is assumed.
 Start with this document, then [the source and evidence roster](reviews/v1-independent-20260920/STATE.json).
+The [implementation handoff](IMPLEMENTATION_HANDOFF.md) defines the transfer from your review to the next implementation agent.
 The roster fixes commits and distinguishes published work from unfinished candidates.
 For this NCP branch, the implementation under review is commit `2287198dd421ab2408f4426bdce1eccc8944cf20`.
 This branch adds the review packet; it does not turn that candidate into a passing release.

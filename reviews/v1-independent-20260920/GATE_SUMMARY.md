@@ -1,7 +1,8 @@
 # Retained gate results for independent review
 
-This file reports local observations. The complete local execution logs are not included.
-Artifact hashes in `STATE.json` identify retained bytes but do not make those bytes independently reviewable.
+This file reports local observations. Complete local execution logs are not published in this repository.
+The separate private handoff bundle contains selected gate and preparation artifacts, identified by its manifest.
+Artifact hashes in `STATE.json` identify retained bytes. Unavailable bytes remain independently unverifiable.
 
 ## Review packet checks
 

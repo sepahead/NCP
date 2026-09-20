@@ -107,8 +107,8 @@
     "controller_limits": "https://github.com/sepahead/crebain/blob/d397905fe51c687b229a496af3b7dac572595e55/docs/DETERMINISTIC_DYNAMICS.md#observed-controller-and-angular-model-limits",
     "restore_limits": "https://github.com/sepahead/crebain/blob/d397905fe51c687b229a496af3b7dac572595e55/docs/NATIVE_ENVIRONMENT.md#exact-cpu-state-and-reconstructed-static-branches"
   },
-  "unavailable_underlying_evidence": {
-    "meaning": "Private local logs are not attached. Hashes identify retained artifacts; the reviewer cannot verify their contents from this packet alone.",
+  "private_underlying_evidence": {
+    "meaning": "Private local logs are not published here. The separate private handoff bundle contains selected gate and preparation artifacts. Its manifest defines availability; a hash alone does not verify unavailable contents.",
     "sha256": {
       "ncp_full_gate004_result": "9f3875ba9d4af6cecb776fb902b725b78ee71585519b06a403702af044c56da1",
       "ncp_full_gate004_execution": "ca169c50ccb0041d40c550118941ef55fc881507b3963f650c8a957aace7fed9",
@@ -130,9 +130,17 @@
     "bytes": 1193590,
     "sha256": "bcefc5e3544a78f714cec15e5388b6c832a6b4b31b14e36704c3e2a70089223a",
     "manifest_sha256": "fcf8bc8bf86db3c6e6dd5c42f8d791cb46dfa672fc473bc26444a5edd320ad33",
-    "scope": "Complete standalone NEST package and legacy neurocontrol adapter; selected extension coordinator and architecture context",
+    "scope": "Complete standalone NEST package and separate wire-1.0 neurocontrol adapter; selected extension coordinator and architecture context",
     "verification": "ZIP CRC; every source joined to its Git blob and SHA-256; complete selected directories; unique regular safe paths",
     "limits": "Context subset, not the entire Engram application. Full private native process logs and native runtime are omitted."
+  },
+  "implementation_handoff": {
+    "document": "IMPLEMENTATION_HANDOFF.md at repository root",
+    "private_bundle": "NCP-review-and-implementation-handoff-20260920.zip",
+    "delivery": "Supplied directly by the user; not uploaded to this public repository",
+    "purpose": "Review now, then transfer the returned review and exact source/preparation to a successor implementation agent",
+    "prepared_native_campaign": "NOT RUN; local-custody-dependent draft, not a portable runner",
+    "known_preparation_defect": "24 GiB floor is labeled memory in the draft but the retained driver measures free disk"
   },
   "protected_scope": [
     "pid-rs repository and active branches",
