@@ -1,0 +1,454 @@
+{
+  "status": "HISTORICAL_UNQUALIFIED_RECOVERY",
+  "base_commit": "5d6679ce616477501139be717cfe66ade731ff37",
+  "patch_sha256": "4b7856a6d0ab6a751d2fbd1e50fb5d17c7d2502e99ed56480b82cd32c07973ed",
+  "excluded": "977 temporary review images under tmp/; retained in private recovery bundle",
+  "files": [
+    {
+      "path": "KNOWN_LIMITATIONS.md",
+      "bytes": 16037,
+      "sha256": "76827c322ce3b46a2b76c02dc3160e2679299de07e83d675d0544149f1b1efde"
+    },
+    {
+      "path": "PERFORMANCE.md",
+      "bytes": 24416,
+      "sha256": "8d1ee352f7a64b6cb0a0751a2b19c9ac0512debfddccef95b0df500a8564bc79"
+    },
+    {
+      "path": "RATIONALE.md",
+      "bytes": 25651,
+      "sha256": "837a9a3627d57bc0511dfa498fcad556e65242f9053aa6b24255496786f5d223"
+    },
+    {
+      "path": "README.md",
+      "bytes": 23336,
+      "sha256": "6789b8a1ff784b7d5de4494882ad66273ad4011ed348116605c1ae1af6c9f789"
+    },
+    {
+      "path": "docs/diagrams/admission-dark.svg",
+      "bytes": 31774,
+      "sha256": "61b2d6829dc283c8c85e5c06ccecf7d9dc470bbcb80fb3b9c148384c8124dc16"
+    },
+    {
+      "path": "docs/diagrams/admission-light.svg",
+      "bytes": 31781,
+      "sha256": "c9d6d6f992dfd42e5871afea1faf105b486808f5e2694398a312a2cf725127a2"
+    },
+    {
+      "path": "docs/diagrams/closed-loop-dark.svg",
+      "bytes": 41111,
+      "sha256": "1177c2f48fad91d60d38eed6b95b0d096db78e4fe7d06b5b40365bd4a38878de"
+    },
+    {
+      "path": "docs/diagrams/closed-loop-invariants-dark.svg",
+      "bytes": 38613,
+      "sha256": "0223a5b74567f5aa130d4f7e0b35cc88d6b8260df237a574bc1435ed9ae4c92b"
+    },
+    {
+      "path": "docs/diagrams/closed-loop-invariants-light.svg",
+      "bytes": 38620,
+      "sha256": "ca1d8642b450ca51859d18dc76cd54a116ba1b96d3af7dd49265e9e1dbc5d363"
+    },
+    {
+      "path": "docs/diagrams/closed-loop-light.svg",
+      "bytes": 41118,
+      "sha256": "6dc9258c834ad4476359361fe2a491e437ce5d324b1f9a116ee9bd1b7b644912"
+    },
+    {
+      "path": "docs/diagrams/ecosystem-dark.svg",
+      "bytes": 30212,
+      "sha256": "1c691884471476ec18494d6326faef40eafef454a8e252d96aa765cd79d094c3"
+    },
+    {
+      "path": "docs/diagrams/ecosystem-light.svg",
+      "bytes": 30219,
+      "sha256": "ac033b515b47cddbe9d27513a2c4dfef96c42e14c875e66d1701cc7d3adcedb1"
+    },
+    {
+      "path": "docs/diagrams/fsm-dark.svg",
+      "bytes": 33983,
+      "sha256": "64a296eb7a3d307379f95e24249b5324c8c4f7ad4c9cc1cb7886160ac1fb4320"
+    },
+    {
+      "path": "docs/diagrams/fsm-light.svg",
+      "bytes": 33990,
+      "sha256": "33f0c99006c93a664536b49eed297d6285f3fb1f6fd83fea8cec70cf775ac74f"
+    },
+    {
+      "path": "docs/diagrams/lifecycle-dark.svg",
+      "bytes": 36151,
+      "sha256": "75cd9abb3901fc04648f6bc2bc7e3ff95b029ef3397eb56994d514f162777252"
+    },
+    {
+      "path": "docs/diagrams/lifecycle-light.svg",
+      "bytes": 36158,
+      "sha256": "c081dace20600837c3d7bcd54f99d094774e05e044b7d6216451755da1112e00"
+    },
+    {
+      "path": "docs/diagrams/overview-dark.svg",
+      "bytes": 33599,
+      "sha256": "cdb6532723dbe2507c40548510e591a9f2ded920834818ecbd15ed2f247c51c4"
+    },
+    {
+      "path": "docs/diagrams/overview-light.svg",
+      "bytes": 33606,
+      "sha256": "c8523581edf46f33eead933188deb01962530d1b205fb8624977f9a18e0c1e5c"
+    },
+    {
+      "path": "docs/diagrams/purpose-dark.svg",
+      "bytes": 35270,
+      "sha256": "8368440c8e3a5727f7cda21365600abd38a769a68e5ca1cc8a8b31bbf6518a78"
+    },
+    {
+      "path": "docs/diagrams/purpose-light.svg",
+      "bytes": 35277,
+      "sha256": "f0f56dccf1fb711764a307100b1edd2b8751e80d4f8e079ac4ed1078797f46a7"
+    },
+    {
+      "path": "docs/diagrams/runtime-dark.svg",
+      "bytes": 37818,
+      "sha256": "6b450679b851792e685d1348da76f2ba7a7918294a7e40b76e8a7556780fec95"
+    },
+    {
+      "path": "docs/diagrams/runtime-light.svg",
+      "bytes": 37825,
+      "sha256": "30c55a74bc49a978093b278dec0e16dd75903a9508448f7006748021a115e196"
+    },
+    {
+      "path": "docs/diagrams/sequence-dark.svg",
+      "bytes": 29397,
+      "sha256": "8dab2183cde11525a0f177b3a0749d9ac7b7a0d247fe0c68f0620e5ff6a7824e"
+    },
+    {
+      "path": "docs/diagrams/sequence-light.svg",
+      "bytes": 29404,
+      "sha256": "d9d980d02e9ab798622bafcff23230ef63c3bf5bbc7739fd34fd371113e07501"
+    },
+    {
+      "path": "docs/diagrams/topology-dark.svg",
+      "bytes": 30066,
+      "sha256": "bd3543a44da9b2009a4525548c1ad98807df3f389ff9f9b75b43816c0058b353"
+    },
+    {
+      "path": "docs/diagrams/topology-light.svg",
+      "bytes": 30073,
+      "sha256": "fd1745db4fba617833f235b43546c32585868b3f2f458e2ce9364f1ff15d32db"
+    },
+    {
+      "path": "docs/diagrams/versioning-dark.svg",
+      "bytes": 26645,
+      "sha256": "41dad7eab29d2c24f61f6ca772cc7c0f9400b20fe1e253637c8e01fd6dd7ac90"
+    },
+    {
+      "path": "docs/diagrams/versioning-light.svg",
+      "bytes": 26652,
+      "sha256": "135c19e06d0ee332a7a1c1777c885086526b927346aa620c245838240358e8b3"
+    },
+    {
+      "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
+      "bytes": 710353,
+      "sha256": "ae88ed14c2d5a5f565eb54733ad8959ba1edebd78017f3f8ab0a4a1cae4288a2"
+    },
+    {
+      "path": "docs/implementation/NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+      "bytes": 214192,
+      "sha256": "fe95edd29398d547957a9f176684f8a955244ef80cf498bdb1aebf9fad56ecf1"
+    },
+    {
+      "path": "docs/plots/overlap_dark.svg",
+      "bytes": 71343,
+      "sha256": "2a4f40b03f7bf1cb3822d7bb68693954e4a5f221328071014f020684f976e3ed"
+    },
+    {
+      "path": "docs/plots/overlap_light.svg",
+      "bytes": 71343,
+      "sha256": "4dd826ad9e24cf67f33fa933775df144a65394ffc49641df960177efe66590c6"
+    },
+    {
+      "path": "docs/plots/realtime_dark.svg",
+      "bytes": 89177,
+      "sha256": "fabcc52ff70aba1e69892a6b8e2ca35efe8351a383b79b0a45957e10cf2095aa"
+    },
+    {
+      "path": "docs/plots/realtime_light.svg",
+      "bytes": 89177,
+      "sha256": "3a941f4b8ead8182a124689a99b643e7dabb99ef9972d333a387e70d7f5eb4b4"
+    },
+    {
+      "path": "docs/publication/ncp-report.sty",
+      "bytes": 6796,
+      "sha256": "872e7380e261d0d2f40672e01f87c79868cb1c6246377f8cdbf89217fb639db2"
+    },
+    {
+      "path": "docs/publication/ncp-system-design.tex",
+      "bytes": 95956,
+      "sha256": "0a89cb2d1e29900c3a9344b5a3e4fcfc7b3982044d07730272fcb683b9af2b5e"
+    },
+    {
+      "path": "e2e/README.md",
+      "bytes": 8266,
+      "sha256": "998518627b91e312170ae14b3f23058c8d68c6a7fae001cbdf29dfdd0a00e412"
+    },
+    {
+      "path": "e2e/bounded_json.py",
+      "bytes": 15351,
+      "sha256": "6a7d775209fc15cbc06b5d120a6c917be92fab30d046688f86465d581f63a1e2"
+    },
+    {
+      "path": "e2e/nest_five_networks.py",
+      "bytes": 33831,
+      "sha256": "376c78af2314c370512c73327c865385711777c89ee9fbb324980e18f194c475"
+    },
+    {
+      "path": "e2e/test_runner_status.py",
+      "bytes": 21299,
+      "sha256": "9c4aa522e34999886e8e23edbb2454a03924e87d748de178d18fe8116eaa4127"
+    },
+    {
+      "path": "evidence/implementation/task-ledger.v1.json",
+      "bytes": 179455,
+      "sha256": "e97e3f4371a4530c90d40ac8fcf5d2521ea63d680ea25490104b914a595a55f2"
+    },
+    {
+      "path": "ncp-core/bindings/ControlStatus.ts",
+      "bytes": 1146,
+      "sha256": "7855f9589d66b73601567407888f0e4c92b9de5028250076070fc6017e1e9253"
+    },
+    {
+      "path": "ncp-core/src/audit.rs",
+      "bytes": 25907,
+      "sha256": "2ed1830e6612f53ed560d07ea09f2b64771698f25367032480791e6869c26a36"
+    },
+    {
+      "path": "ncp-core/src/bulk.rs",
+      "bytes": 51963,
+      "sha256": "3ebcebf18240c4d4b67be76148b71d1d662eb230e64d89752c7c4e66f8896bba"
+    },
+    {
+      "path": "ncp-core/src/bus.rs",
+      "bytes": 47182,
+      "sha256": "85e84a3e5847b08625a179d24dfd930e8458c252f48ac7fb8fd4883ecb4ca187"
+    },
+    {
+      "path": "ncp-core/src/canonical_digest.rs",
+      "bytes": 7367,
+      "sha256": "48104f71010c0449a0bcdbc39d6a10c668b97fbfe1d10e53e226628ae7907404"
+    },
+    {
+      "path": "ncp-core/src/codec.rs",
+      "bytes": 37014,
+      "sha256": "3d39583e6d7c060c3c6e359330c53e7f4f51a2118203f9ede86f55d7be425c7e"
+    },
+    {
+      "path": "ncp-core/src/idempotency.rs",
+      "bytes": 77630,
+      "sha256": "38001b99a476bf5742034f27c17a1b09814e5e1efdc185d812bcc78496cf6ea8"
+    },
+    {
+      "path": "ncp-core/src/lib.rs",
+      "bytes": 15719,
+      "sha256": "a932a5f147848de22f787c3751b1604539659dedeb614e6f29f261b0532e4508"
+    },
+    {
+      "path": "ncp-core/src/messages.rs",
+      "bytes": 240669,
+      "sha256": "4241ce7b21ce0504696a59823c15e4ff9b39ff0222deae6475877421948ff417"
+    },
+    {
+      "path": "ncp-core/src/request_digest.rs",
+      "bytes": 9948,
+      "sha256": "935e8352477dd4623919a6448153b65110523f5b6e399f4f5668eb23b54e49f6"
+    },
+    {
+      "path": "ncp-core/src/safety.rs",
+      "bytes": 106183,
+      "sha256": "71d3854f25485eba0d91266d2d77cd7fc6bea676b9cc4fbd81cd5e3b77b35aa4"
+    },
+    {
+      "path": "ncp-core/src/stream_fence.rs",
+      "bytes": 15188,
+      "sha256": "c276c865fd927b4562e968ae6dfb3814903528b307b9268ffc4c244dc3c1b3b7"
+    },
+    {
+      "path": "ncp-core/src/transport.rs",
+      "bytes": 84984,
+      "sha256": "46bae321e2457f53f091559744b898ae2b7bb47bcf0178c012fec6a49503d5f7"
+    },
+    {
+      "path": "ncp-cpp/src/lib.rs",
+      "bytes": 63112,
+      "sha256": "992e3d17598e6bb2a34cf0cf0fddaf7c7d4a3237bb850f4b6df63b721861efd2"
+    },
+    {
+      "path": "ncp-gateway/README.md",
+      "bytes": 4961,
+      "sha256": "0a1992707ddbd38fd63a6ae2c05d63115a550a2a3de3d827529485729c42c51a"
+    },
+    {
+      "path": "ncp-gateway/src/main.rs",
+      "bytes": 54210,
+      "sha256": "090c55a0fcca5e6998bf0837555dbe2679987513db0bd4acb329e8939f0d27c3"
+    },
+    {
+      "path": "ncp-ts/README.md",
+      "bytes": 11702,
+      "sha256": "1222fcaa8fe8007e5236a9713fc2a0a18f9a22d1a1ea5768f2026343b711b617"
+    },
+    {
+      "path": "ncp-ts/dist/bounded-json.d.ts",
+      "bytes": 1556,
+      "sha256": "b072d0414f8f9d48ca6a97d6ef2eae11637429db832b27067e90b3dd51f504ff"
+    },
+    {
+      "path": "ncp-ts/dist/bounded-json.d.ts.map",
+      "bytes": 576,
+      "sha256": "b7b1f06623502deece6cc85a283a92ad6e627b9abf63b294e952c9e03717cb5b"
+    },
+    {
+      "path": "ncp-ts/dist/bounded-json.js",
+      "bytes": 12207,
+      "sha256": "198e1ea66e96cbb9a6fd73288aa95e4cd6bc92b95e56dff5fc7d7c47a49ce12a"
+    },
+    {
+      "path": "ncp-ts/dist/bounded-json.js.map",
+      "bytes": 10726,
+      "sha256": "e0a2c632b043b24e978c840f9180979a289cb2eba649197fcb65a74d5c65c9fd"
+    },
+    {
+      "path": "ncp-ts/dist/client.d.ts",
+      "bytes": 11497,
+      "sha256": "0533b678e1c09583af0e3970d8077a83bf9c2278b19a2186129dad05d961cde0"
+    },
+    {
+      "path": "ncp-ts/dist/client.d.ts.map",
+      "bytes": 4418,
+      "sha256": "38e01c91100d5a0ed046664de4e18f7c6eff98f0cd70dc5910c6330d72748f48"
+    },
+    {
+      "path": "ncp-ts/dist/client.js",
+      "bytes": 81481,
+      "sha256": "dbf64b5c8291d88619905ffca0537ee147e3dc974939f21cab6d3c7c3b004e5a"
+    },
+    {
+      "path": "ncp-ts/dist/client.js.map",
+      "bytes": 60274,
+      "sha256": "cb5445c35335127464d7f74a77785fcb44ab5ae5d987de19f8d4294978841d54"
+    },
+    {
+      "path": "ncp-ts/dist/generated/ControlStatus.d.ts",
+      "bytes": 1196,
+      "sha256": "1c6ebbbc3bda97ed9cbf1f19d195c1db9ef8f4d1b2f920e6ac71012c0d4ddc44"
+    },
+    {
+      "path": "ncp-ts/dist/generated/ControlStatus.d.ts.map",
+      "bytes": 658,
+      "sha256": "acaa307f36aea3774f2506735aa5fb3ca81697ab2d2ef3da9269d7de70b5c272"
+    },
+    {
+      "path": "ncp-ts/dist/safety.d.ts.map",
+      "bytes": 3821,
+      "sha256": "19a91d6cf16fceb9bf3d03c94c716bb910df820a4e30597068c1c42aaa629db4"
+    },
+    {
+      "path": "ncp-ts/dist/safety.js",
+      "bytes": 47458,
+      "sha256": "62ca06ce6cd2471664aaf86c92a0ff373d59dd30cc415a70f47ea0937ea6ca87"
+    },
+    {
+      "path": "ncp-ts/dist/safety.js.map",
+      "bytes": 35423,
+      "sha256": "ae296b0175077c44f02f99e94a750fbbd6e6e708617a9846cf74f72d7e8968f8"
+    },
+    {
+      "path": "ncp-ts/dist/ws.d.ts",
+      "bytes": 2040,
+      "sha256": "4dee92f3a6819b399aaef94cde07cc1f040aa0a6a1271285b892f8aae2057a00"
+    },
+    {
+      "path": "ncp-ts/dist/ws.d.ts.map",
+      "bytes": 1245,
+      "sha256": "f78849c8a141b51dfc3ef82611aac78d5c16679128ea0c988eee0f25acb61a90"
+    },
+    {
+      "path": "ncp-ts/dist/ws.js",
+      "bytes": 12416,
+      "sha256": "cfa75bc1f9a1caa2b6cc92aeb5567972271c35b73174b619a8c5d5ba226e8b5d"
+    },
+    {
+      "path": "ncp-ts/dist/ws.js.map",
+      "bytes": 9857,
+      "sha256": "8bd1843696fef591ef3b2ffaed1a34b22fe4480714e106c2292e8624db80aa83"
+    },
+    {
+      "path": "ncp-ts/scripts/check-behavior.mjs",
+      "bytes": 77491,
+      "sha256": "f9dd1ffe54c27fe7726c1fdb3e735cb9b6c8d78f0870c2936c1ffc1b367341b1"
+    },
+    {
+      "path": "ncp-ts/scripts/check-ws.mjs",
+      "bytes": 11684,
+      "sha256": "9fa2cd7b400bf76ee5ff2aea148e9c095ed8420ec468ba24528f558eb9b7bf5a"
+    },
+    {
+      "path": "ncp-ts/src/bounded-json.ts",
+      "bytes": 11180,
+      "sha256": "d701d96eff1d01ae7f07e83329486ab70ab05c2a494619f0aa205b8c84ee4f3e"
+    },
+    {
+      "path": "ncp-ts/src/client.ts",
+      "bytes": 82174,
+      "sha256": "8081216dbbe50e35f07e2e86ce16d08b82277b18cbc86c2c215edaa19d9f189d"
+    },
+    {
+      "path": "ncp-ts/src/generated/ControlStatus.ts",
+      "bytes": 1155,
+      "sha256": "0aba6c56b36e77f90fb427eb9570ffdd6bd4dc344da8028bea0c949d5919a2bf"
+    },
+    {
+      "path": "ncp-ts/src/safety.ts",
+      "bytes": 46192,
+      "sha256": "39d70c4f854c4c712a9f1b3faf3de361590fae5c0d34e4679e429f6ea50229ef"
+    },
+    {
+      "path": "ncp-ts/src/ws.ts",
+      "bytes": 13085,
+      "sha256": "5436c7e34e9bfba4ce6d27668d2a16b44512bb755002b04d00bab0064891f00e"
+    },
+    {
+      "path": "ncp-zenoh/README.md",
+      "bytes": 8926,
+      "sha256": "c6cebad82b4d2f92925b2310e8a88c8f1a37658f7d5a2b1a41c6b39ed876c0f6"
+    },
+    {
+      "path": "ncp-zenoh/src/lib.rs",
+      "bytes": 183688,
+      "sha256": "16d6173c215ab819149e70b7e55595bbee91aff0989a4341918427af1fbf28ea"
+    },
+    {
+      "path": "ncp-zenoh/tests/loopback.rs",
+      "bytes": 11505,
+      "sha256": "ed58379176db25b93f045f2907d60b100eee78202d208a450cdc790ffe977e9b"
+    },
+    {
+      "path": "output/pdf/ncp-system-design.pdf",
+      "bytes": 1597646,
+      "sha256": "8aa538e31f7b620598acc796928aec136c7c7213f8fb4a5f584846a32416906d"
+    },
+    {
+      "path": "scripts/check_ncp_system_design_pdf.sh",
+      "bytes": 12822,
+      "sha256": "72f96c252aeb78053612227421f93eea8a918cdd422ebda734d0dea58a92692a"
+    },
+    {
+      "path": "scripts/gen_diagrams.py",
+      "bytes": 174075,
+      "sha256": "f6d742d27e58d324569e0ab90df2b2573c83b984e44e336086abaa9b83ab6c49"
+    },
+    {
+      "path": "scripts/plot_perf.py",
+      "bytes": 39903,
+      "sha256": "97fc2689b49bfd8167c51c6be91edbfd5f4a18cf7c2e540d023f5ab6150c2208"
+    }
+  ],
+  "release_authorized": false
+}
