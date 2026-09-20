@@ -1,0 +1,142 @@
+{
+  "schema": "ncp.independent-review-packet.v1",
+  "date": "2026-09-20",
+  "scope": "Remote-source review and advice; not a release receipt",
+  "repositories": {
+    "NCP": {
+      "main_snapshot": "e61f4d0e90f717d0631addc0802a26c3fd590cce",
+      "source_url": "https://github.com/sepahead/NCP/tree/e61f4d0e90f717d0631addc0802a26c3fd590cce",
+      "access": "public"
+    },
+    "crebain": {
+      "main_snapshot": "d397905fe51c687b229a496af3b7dac572595e55",
+      "source_url": "https://github.com/sepahead/crebain/tree/d397905fe51c687b229a496af3b7dac572595e55",
+      "access": "public"
+    },
+    "prisoma": {
+      "main_snapshot": "56e835d7d6979df0a2ffeac6050e3860ddf8b1ea",
+      "source_url": "https://github.com/sepahead/prisoma/tree/56e835d7d6979df0a2ffeac6050e3860ddf8b1ea",
+      "access": "public"
+    },
+    "galadriel": {
+      "main_snapshot": "a42f06696a73565f384b452fcce186a7a636dbc5",
+      "source_url": "https://github.com/sepahead/galadriel/tree/a42f06696a73565f384b452fcce186a7a636dbc5",
+      "access": "public"
+    },
+    "haldir": {
+      "main_snapshot": "e51eaa82c6edebccb104c9e483fe382d85038ced",
+      "source_url": "https://github.com/sepahead/haldir/tree/e51eaa82c6edebccb104c9e483fe382d85038ced",
+      "access": "public"
+    },
+    "manwe": {
+      "main_snapshot": "b7cc52fda3c2063db503cd553d90f60c0ee61a53",
+      "source_url": "https://github.com/sepahead/manwe/tree/b7cc52fda3c2063db503cd553d90f60c0ee61a53",
+      "access": "public"
+    },
+    "cortexel": {
+      "main_snapshot": "8f2ea15193994566755d3dcda2dc8113dac3f804",
+      "source_url": "https://github.com/sepahead/cortexel/tree/8f2ea15193994566755d3dcda2dc8113dac3f804",
+      "access": "public"
+    },
+    "sepahead": {
+      "main_snapshot": "d85fe523c6ee8db30c07be2b581b74337612c6ed",
+      "source_url": "https://github.com/sepahead/sepahead/tree/d85fe523c6ee8db30c07be2b581b74337612c6ed",
+      "access": "public"
+    },
+    "Paper2Brain": {
+      "main_snapshot": "4393224656fa573576bea8d9cb14ec931bb3f54c",
+      "source_url": "https://github.com/sepahead/Paper2Brain/tree/4393224656fa573576bea8d9cb14ec931bb3f54c",
+      "access": "private repository permission required"
+    }
+  },
+  "review_candidates": {
+    "NCP": {
+      "branch": "review/ncp-v1-independent-20260920",
+      "implementation_commit": "2287198dd421ab2408f4426bdce1eccc8944cf20",
+      "implementation_tree": "c1d9e6243223e7f710f52722a93d1fd529093ec3",
+      "changes_url": "https://github.com/sepahead/NCP/compare/e61f4d0e90f717d0631addc0802a26c3fd590cce...2287198dd421ab2408f4426bdce1eccc8944cf20",
+      "status": "FAILED_COMPLETE_LOCAL_GATE; not promoted to main",
+      "failure": "Pinned Ruff 0.15.21 format check of scripts/test_local_sdk_gate.py",
+      "following_checks": "NOT_RUN in this full attempt",
+      "source_and_index_unchanged": true
+    },
+    "prisoma": {
+      "branch": "review/ncp-owned-session-20260920",
+      "commit": "dd756d2ddd88777c75a3f7cdf7834fbc8b4dc09e",
+      "base": "56e835d7d6979df0a2ffeac6050e3860ddf8b1ea",
+      "source_url": "https://github.com/sepahead/prisoma/tree/dd756d2ddd88777c75a3f7cdf7834fbc8b4dc09e",
+      "changes_url": "https://github.com/sepahead/prisoma/compare/56e835d7d6979df0a2ffeac6050e3860ddf8b1ea...dd756d2ddd88777c75a3f7cdf7834fbc8b4dc09e",
+      "status": "UNFINISHED_REVIEW_SOURCE; not promoted to main",
+      "reported_local_checks": "sdist/wheel/install; 48 installed Python tests; focused lint/format PASS",
+      "unpassed_checks": [
+        "capability projection stale",
+        "candidate audit LIVE_SOURCE_DRIFT",
+        "complete development gate NOT_RUN",
+        "native owned-helper campaign NOT_RUN"
+      ],
+      "code_sha256": {
+        "integrations/agent-bridge/python/prisoma_agent_bridge/crebain.py": "00207dce6808baabd859c2b180065341c4c46d35d029aed7f027f5b2fbb3236a",
+        "integrations/agent-bridge/tests/test_owned_crebain.py": "ec724f551fd0180308b623c340ab8ffb55fe2aa4430e30d0c34a5a840580134b"
+      }
+    }
+  },
+  "original_inputs": [
+    {
+      "original_name": "NCP_closed_loop_review.md",
+      "path": "inputs/NCP_closed_loop_review.md.txt",
+      "bytes": 123139,
+      "sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f"
+    },
+    {
+      "original_name": "NCP_acceptance_plan_70.md",
+      "path": "inputs/NCP_acceptance_plan_70.md.txt",
+      "bytes": 19770,
+      "sha256": "26674219d478830d544acca6eb1d19d894d459aa1180def6a7801ca246af2116"
+    },
+    {
+      "original_name": "NCP_closed_loop_review.pdf",
+      "path": "inputs/NCP_closed_loop_review.pdf",
+      "bytes": 288198,
+      "sha256": "c55561404736eb3d197a7f0a5d39f51d1e57548f8b537c505bec040b89e48d14"
+    }
+  ],
+  "accessible_evidence": {
+    "crebain_installed_native": "https://github.com/sepahead/crebain/blob/d397905fe51c687b229a496af3b7dac572595e55/integrations/ncp-force-ground-sensors/evidence/owned-installed-native-2026-09-19.json",
+    "engram_isolated_native_requires_private_access": "https://github.com/sepahead/Paper2Brain/blob/4393224656fa573576bea8d9cb14ec931bb3f54c/packages/ncp-nest/docs/isolated-native-evidence.json",
+    "engram_600_readouts_requires_private_access": "https://github.com/sepahead/Paper2Brain/blob/4393224656fa573576bea8d9cb14ec931bb3f54c/packages/ncp-nest/docs/isolated-native-observations.csv",
+    "controller_limits": "https://github.com/sepahead/crebain/blob/d397905fe51c687b229a496af3b7dac572595e55/docs/DETERMINISTIC_DYNAMICS.md#observed-controller-and-angular-model-limits",
+    "restore_limits": "https://github.com/sepahead/crebain/blob/d397905fe51c687b229a496af3b7dac572595e55/docs/NATIVE_ENVIRONMENT.md#exact-cpu-state-and-reconstructed-static-branches"
+  },
+  "unavailable_underlying_evidence": {
+    "meaning": "Private local logs are not attached. Hashes identify retained artifacts; the reviewer cannot verify their contents from this packet alone.",
+    "sha256": {
+      "ncp_full_gate004_result": "9f3875ba9d4af6cecb776fb902b725b78ee71585519b06a403702af044c56da1",
+      "ncp_full_gate004_execution": "ca169c50ccb0041d40c550118941ef55fc881507b3963f650c8a957aace7fed9",
+      "ncp_full_gate004_log": "6f00a457479be8b74d2e620e474b71d674198354ba1c42d71f2cadbc67cae894",
+      "isolated_neural_freeze": "d02c96fb6c4040e2dffa7aa22160d01f390529b36093b55d7495e5963bc82ce0",
+      "isolated_neural_result": "2a9f8eabc77f8aadbf5f6f89b2b1616fa2d46ab523b4f3bae37d833cbccd412d",
+      "prisoma_helper_independent_review": "1247e662645782b7d35e16531709be3fafd077ec311944eddd75c08535d46f2d"
+    }
+  },
+  "private_supplement": {
+    "filename": "NCP-independent-review-private-engram-20260920.zip",
+    "delivery": "Supplied directly by the user; not uploaded to this public repository",
+    "repository": "sepahead/Paper2Brain",
+    "commit": "4393224656fa573576bea8d9cb14ec931bb3f54c",
+    "tree": "bd4549388fdc9c70d149fe44be82fe55ca0aecb8",
+    "source_prefix": "engram/",
+    "source_files": 141,
+    "zip_entries": 143,
+    "bytes": 1193590,
+    "sha256": "bcefc5e3544a78f714cec15e5388b6c832a6b4b31b14e36704c3e2a70089223a",
+    "manifest_sha256": "fcf8bc8bf86db3c6e6dd5c42f8d791cb46dfa672fc473bc26444a5edd320ad33",
+    "scope": "Complete standalone NEST package and legacy neurocontrol adapter; selected extension coordinator and architecture context",
+    "verification": "ZIP CRC; every source joined to its Git blob and SHA-256; complete selected directories; unique regular safe paths",
+    "limits": "Context subset, not the entire Engram application. Full private native process logs and native runtime are omitted."
+  },
+  "protected_scope": [
+    "pid-rs repository and active branches",
+    "Engram KG, ingestion, oMLX and other agents worktrees"
+  ],
+  "full_release_complete": false
+}
