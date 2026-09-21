@@ -3991,9 +3991,9 @@
       },
       {
         "path": "ncp-core/src/messages.rs",
-        "bytes": 240669,
-        "sha256": "4241ce7b21ce0504696a59823c15e4ff9b39ff0222deae6475877421948ff417",
-        "git_blob_oid": "f0331c2d7ef649d69fc0001e72a12b4c924d14ae",
+        "bytes": 240661,
+        "sha256": "0899176f8591c1bb10a8196f761fc6445a169ac40d0f5519fec07c3afa7a48b7",
+        "git_blob_oid": "d6e39e81629daecc935392500b33ea6b9cb3e07a",
         "indexed": true
       },
       {
@@ -11255,7 +11255,7 @@
       "column": 33,
       "token_id": "M008",
       "line_sha256": "ae7a5b83ff6c1fd6334b5ff314feb4561467f3401288fab2ad4fd3e0e4952546",
-      "file_sha256": "4241ce7b21ce0504696a59823c15e4ff9b39ff0222deae6475877421948ff417",
+      "file_sha256": "0899176f8591c1bb10a8196f761fc6445a169ac40d0f5519fec07c3afa7a48b7",
       "disposition": "BOUNDED_DIAGNOSTIC_ONLY",
       "claim_effect": "NO_SEMANTIC_REPARSE",
       "evidence_paths": [
