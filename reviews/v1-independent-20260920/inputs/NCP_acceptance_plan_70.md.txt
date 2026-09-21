@@ -1,0 +1,317 @@
+# NCP closed-loop acceptance plan
+
+
+**Status: proposed, not executed against the repositories during this review.** The original 50 cases are retained below. Cases 51–70 cover the expanded NCP-only boundary and new findings. The finite mathematical checks in Appendix C do not turn these integration cases into passing results.
+
+Run against recorded immutable commits and installed artifacts. Retain exact input, initial state, output, final state, rejection/outcome classification, and relevant timing/resource measurements. Record the profile, bindings, NEST build and model identity, seeds, thread/MPI placement, adapter identities, and each case's scope: unit, process boundary, or deployment qualification. An FFI wrapper around the same validator is not an independent implementation.
+
+P0 denotes semantic correctness or containment before trusting a run. P1 denotes a required behavior of the selected deployment/performance profile. P2 denotes broader distribution and interoperability hardening; it is still mandatory when the advertised release includes that scope.
+
+## A. Causality and clocks
+
+**01 · P0. Drive a known plant observation through neural input, one neural advance, controller output, and one plant advance.**
+
+Required: Every returned observation and applied action has the declared step index and causal predecessor. No action is applied a step early or late.
+
+**02 · P0. Request a neural/plant cadence that cannot be represented by the selected common integer timebase.**
+
+Required: Preparation rejects it; there is no silent rounding or accumulated drift.
+
+**03 · P0. Mix timestamps from unrelated monotonic clock domains.**
+
+Required: The runtime refuses unsupported age/one-way-latency calculations. Logical time remains independent of wall-clock measurements.
+
+**04 · P0. Receive a valid advancing sensor, stall the control loop past its freshness budget, then consume the pending sample.**
+
+Required: Original receive time is retained; consuming the frame does not make it fresh again. This bounds post-ingress waiting; test 55 covers body-source-to-application age.
+
+**05 · P0. Execute the same prepared deterministic case at different wall-clock pacing rates, without changing logical inputs.**
+
+Required: Results satisfy the declared reproducibility policy. Wall-clock pacing does not silently change the numerical experiment.
+
+## B. Stream positions and delivery semantics
+
+**06 · P0. Deliver every 200 Hz sensor sample while a 50 Hz controller intentionally consumes only the latest.**
+
+Required: Ingress loss remains zero. Coalescing is counted separately. No loss-triggered emergency latch is set solely by downsampling.
+
+**07 · P0. Inject genuine ingress gaps, duplicates, and bounded reordering separately.**
+
+Required: Counters distinguish the cases; duplicates cannot refresh freshness or conceal missing positions. Attribution is not stronger than the evidence.
+
+**08 · P0. Use a very large accepted loss-detector threshold and a huge sequence gap.**
+
+Required: Configuration is rejected or the bounded-time mathematical update gives the correct restrictive result. No iteration cap silently suppresses the threshold crossing.
+
+**09 · P0. Deliver an old generation after reconnect, including an emergency command.**
+
+Required: It cannot change the new generation's state. Restart requires a new prepared binding.
+
+**10 · P0. Replace an unsent latest-value command while a recorder observes controller proposals.**
+
+Required: Candidate identity, transport admission, actual publication, and application remain distinguishable. One published stream position never acquires conflicting committed payloads.
+
+## C. Stateful execution and retries
+
+**11 · P0. Lose a successful step reply and resend the identical operation identity and payload.**
+
+Required: The retained outcome is returned; the neural simulator and plant are not advanced again.
+
+**12 · P0. Reuse an operation identity with changed input bytes or semantic content.**
+
+Required: Conflict is rejected before mutation. Canonicalization policy is explicit.
+
+**13 · P0. Fill the outcome store while all retained outcomes are still contractually owed.**
+
+Required: New mutations are rejected before execution, or an explicitly negotiated acknowledgement releases retention. Required outcomes are not silently evicted.
+
+**14 · P0. Query a retained result after the original execution deadline or lease expires.**
+
+Required: An authorized result-lookup policy can recover the outcome without granting new mutation authority. Unauthorized callers receive no protected result.
+
+**15 · P0. Kill, time out, or cancel a backend after execution starts but before commit can be established.**
+
+Required: The result is marked indeterminate and that mutable generation is retired. Cancellation is not reported as rollback. No retry advances uncertain state again.
+
+## D. Layout, units, and missingness
+
+**16 · P0. Transport a six-component position/velocity observation and a three-component acceleration action.**
+
+Required: Units and frames remain component-correct. Position is not labeled as velocity, and velocity setpoints are not silently treated as acceleration.
+
+**17 · P0. Omit a required population readout whose configured command range is [0, 10].**
+
+Required: The absence is explicit. It cannot become an apparently observed Active command of 5 merely through midpoint substitution.
+
+**18 · P0. Compare an available zero-valued signal, an unavailable signal, an empty spike window, and missing recording evidence.**
+
+Required: All four retain their distinct meanings through NCP and Prisoma.
+
+**19 · P0. Prepare duplicate, sparse, contradictory-unit, or reordered component mappings.**
+
+Required: Invalid layouts are rejected before running. Accepted permutations have explicit immutable mappings and identical interpreted meaning.
+
+**20 · P0. Inject non-finite values, overflowing counters, wrong arity, invalid availability padding, and forbidden numeric ranges.**
+
+Required: Bounded rejection occurs before state mutation. An invalid frame is not repaired into valid actuation.
+
+## E. NEST adapter behavior
+
+**21 · P0. Execute many control steps with a prepared persistent NEST network.**
+
+Required: The network is built and prepared according to the selected adapter contract, not reset or rebuilt per tick. Neural state persists. A single Prepare across all steps is required only when the qualified update mechanism permits it.
+
+**22 · P0. Change each supported stimulus parameter between successive Run calls in the exact selected NEST build.**
+
+Required: Measured neuron/device behavior proves the input actually takes effect in the promised interval. Unsupported mutations are rejected at preparation.
+
+**23 · P0. Place spikes exactly on observation-window boundaries and, where supported, off-grid timestamps.**
+
+Required: Every event is counted once under the declared endpoint convention; precise offsets are not silently rounded away.
+
+**24 · P1. Compare long-run per-step extraction cost for counters and bounded event tails.**
+
+Required: Cost and retained memory do not grow with total historical recording length when only a bounded current window is requested. Counter reset semantics are handled explicitly.
+
+**25 · P1. Repeat the adapter workload with declared thread/MPI configurations and transport/observer contention.**
+
+Required: Reproducibility and deadline claims remain scoped to measured configurations. Simulator workers do not silently consume all service capacity needed for feedback.
+
+## F. CREBAIN and controller behavior
+
+**26 · P0. Run one-, two-, and three-entity cases through the selected real CREBAIN adapter.**
+
+Required: Roster ordering, per-entity state, and action routing remain exact. No cross-entity substitution occurs.
+
+**27 · P0. Compare a direct closed-loop baseline against the NCP-bound loop using the same controller, inputs, seeds, and schedule.**
+
+Required: Trajectory and event differences satisfy the declared numerical policy; transport introduction does not change the experiment unintentionally. The direct oracle is an isolated test target, unreachable as an alternative path in the distributed runtime.
+
+**28 · P0. Remove one entity's observation while others remain valid.**
+
+Required: Missingness and fallback are per entity. Valid peers are neither fabricated nor inadvertently discarded.
+
+**29 · P0. Trigger HOLD and emergency behavior for every declared plant profile.**
+
+Required: The runtime applies the profile-specific behavior. Zero acceleration is not represented as a universal physical stop.
+
+**30 · P0. Expire or revoke command authority at the actual application boundary.**
+
+Required: An accepted or queued command cannot bypass current application-time authority and freshness checks. Simulator-only credentials cannot authorize physical actuation.
+
+## G. Prisoma and evidence integrity
+
+**31 · P0. Record a successful step end to end.**
+
+Required: Evidence binds input snapshot, neural request/result, controller proposal, admitted/applied action, output snapshot, and outcome without conflating them.
+
+**32 · P0. Remove every event belonging to one whole step.**
+
+Required: The terminal plan/progress record reveals incomplete capture. A self-consistent retained subset is not declared complete.
+
+**33 · P0. Deliver observation and command events out of order, twice, and with conflicting payloads.**
+
+Required: Bounded joins, duplicate handling, and conflicts are explicit; arrival order does not fabricate causality.
+
+**34 · P0. Exceed recording capacity under the lossless logical-time profile.**
+
+Required: The host pauses at a defined boundary or terminates the capture/run according to policy. It does not silently lose records while claiming completeness.
+
+**35 · P1. Exceed recording capacity under the real-time best-effort profile.**
+
+Required: Feedback stays within its selected resource policy; drops and affected completeness claims are explicitly recorded. Recorder lag is not mislabeled as simulator or network failure.
+
+## H. Resource bounds and scheduling
+
+**36 · P1. Send maximum-size accepted observation messages to all permitted subscribers.**
+
+Required: Aggregate bytes, not only item counts, stay within declared reservations including retained buffer ownership.
+
+**37 · P1. Use a slow, continuously busy, panicking, and non-returning observer callback.**
+
+Required: Observer work cannot monopolize the control executor. Containment and teardown policy are demonstrated, not inferred from an async function name.
+
+**38 · P1. Saturate lifecycle/backend requests with slow or stuck operations.**
+
+Required: Admission remains bounded. Per-backend mutation is serialized, and terminal cleanup/containment has a defined path.
+
+**39 · P1. Instrument a warmed-up small-frame step with allocation, copy, serialization, and profile-hash counters.**
+
+Required: The selected fast-path budget is met; unexpected repeated work is a test failure rather than an undocumented optimization opportunity.
+
+**40 · P1. Repeatedly prepare, run, cancel, finish, and disconnect sessions.**
+
+Required: Threads, tasks, subscribers, handles, memory, and generation state return to their declared baseline or bounded retained state.
+
+## I. Transport identity and conformance
+
+**41 · P0. Use a valid certificate or local capability for the wrong principal, route, operation, role, or session kind.**
+
+Required: Receiver-owned authorization rejects it; a payload identity claim cannot substitute for authenticated origin.
+
+**42 · P0. Rotate/revoke a principal while messages are queued.**
+
+Required: Each admission is tied to a defined immutable policy generation, and the selected revocation boundary is enforced consistently.
+
+**43 · P0. Request an unavailable secure profile or attempt downgrade to an unauthenticated binding.**
+
+Required: Connection/admission fails closed. Local research transport is selected explicitly, never as a silent fallback.
+
+**44 · P1. Run horizon vectors at exact expiry, beyond the maximum TTL, and with a non-finite ratio.**
+
+Required: Independent implementations produce identical acceptance and executable-window decisions.
+
+**45 · P1. Omit or alter the selected semantic/profile identity during preparation.**
+
+Required: A prepared strict session cannot form from advisory compatibility alone. Optional-feature negotiation does not change already-prepared meaning.
+
+## J. Performance evidence and release usability
+
+**46 · P1. Measure complete sample-to-application latency and each internal stage.**
+
+Required: Report p50, p99, p99.9, maximum observed, deadlines, and failures. A timer ending before serialization or publication is not called closed-loop latency.
+
+**47 · P1. Compare matched direct and NCP runs, including instrumentation overhead.**
+
+Required: Attribute transport/integration cost with a justified paired methodology; do not subtract unrelated percentile summaries.
+
+**48 · P1. Exercise scheduled arrivals during stalls, background load, and slow recording.**
+
+Required: Missed work and delay are counted against the intended schedule. The benchmark does not hide stalls by generating less offered work.
+
+**49 · P2. Install and build CREBAIN/Prisoma consumers outside the NCP workspace, from the intended published artifacts.**
+
+Required: Dependency pins, patches, features, names, schemas, and bindings work without undocumented workspace inheritance.
+
+**50 · P2. Reproduce the complete chosen-profile run from clean artifacts and retained inputs.**
+
+Required: Another operator obtains the declared behavior and scoped performance results. Unsupported profiles remain visibly unsupported.
+
+## K. Expanded boundary, numerical, and recovery tests
+
+**51 · P0. Run Engram against all approved ecosystem peers with only NCP endpoints enabled.**
+
+Required: The full declared workflow succeeds without Host API, custom HTTP/IPC, direct engine import, shared storage, or file-polling integration. NEST remains private to its owner.
+
+**52 · P0. Attempt each forbidden cross-project path deliberately.**
+
+Required: Package policy and runtime sandboxing reject the bypass. Log the rejection without granting access through a helper process or broad inherited credential.
+
+**53 · P1. Move a control-loop object between execution threads with different thread-local elapsed origins.**
+
+Required: Time remains in one defined domain or migration is disallowed explicitly. A valid move does not create false expiry or a spurious clock-rewind hold.
+
+**54 · P0. Encode endpoints of a finite positive range narrower than machine epsilon near one.**
+
+Required: The upper endpoint maps to the declared upper output, or preparation rejects the explicitly unsupported scale. Unit changes do not silently collapse valid ranges.
+
+**55 · P0. Delay a body-originated source grant by 15 ms in each direction with a 20 ms budget.**
+
+Required: Final application rejects expiry relative to the original body event. No receiver or relay restarts the deadline.
+
+**56 · P0. Return a grant from a different source, generation, authority term, or evicted record.**
+
+Required: No application occurs from a guessed or substituted reference. A receiver never falls back to the newest grant.
+
+**57 · P0. Cut execution after each neural/body commit and before each receipt or pair closure.**
+
+Required: The maximal known closed prefix is preserved. The uncertain suffix is explicitly classified and no dependent step advances an unresolved coupled generation.
+
+**58 · P0. Lose a committed response, then retrieve it after the result was acknowledged or while still retained.**
+
+Required: Retained exact payload and receipt are replayed when owed. After payload release, high-water state prevents re-execution and the declared unavailable outcome is returned.
+
+**59 · P0. Force result serialization or byte-reservation failure after a backend mutation.**
+
+Required: The outcome is never labeled rejected-before-execution. Required containment or retirement occurs and no alternate operation ID retries the uncertain effect.
+
+**60 · P0. Select Haldir-gated mode, then attempt direct Engram command and gate-timeout fallback.**
+
+Required: CREBAIN rejects Engram as commander. Gate failure follows the prepared restrictive policy; it does not activate a parallel direct route.
+
+**61 · P0. Feed the Galadriel adapter missing uncertainty, wrong units, invalid covariance, or an unsupported detector profile.**
+
+Required: The actual selected detector contract rejects or abstains explicitly. It does not fabricate uncertainty or label absent assessment nominal.
+
+**62 · P0. Submit a favorable or forged Galadriel assessment without independently granted action authority.**
+
+Required: No lease, permission widening, final command, or reset capability is created. Advisory composition is monotone with respect to existing permission.
+
+**63 · P0. Compare asynchronous monitoring and step-bound online-guard profiles under reordered assessments.**
+
+Required: Monitoring cannot affect state. The guard consumes only its declared exact-step dependency and has explicit missing/stale/abstention policy.
+
+**64 · P0. Give a private worker, presentation panel, or extension parser an attempted out-of-role request.**
+
+Required: It has neither credentials nor inherited handles that allow role escalation, command publication, or direct access to another project's mutable state.
+
+**65 · P2. Rebuild the real Engram host and all adapters from the recorded repository identities.**
+
+Required: The executable host, not a placeholder repository, is used. Dirty or mismatched builds and unrecorded private patches cannot receive a qualification receipt.
+
+**66 · P0. Remove or conflict the terminal run record while all retained individual rows remain valid.**
+
+Required: Capture completeness is unresolved or invalid, not inferred from the apparently consistent subset. Planned versus completed counts stay distinct.
+
+**67 · P1. Saturate observer and result reservations before the next lossless logical step.**
+
+Required: Admission pauses or rejects before neural/body mutation. Reservation release after acknowledgement is bounded and cannot be counted twice.
+
+**68 · P0. Make a GUI projection stale, altered, or disconnected while the NCP data path remains active.**
+
+Required: No agent/controller consumes the presentation projection as authoritative input. UI status cannot refresh source grants or authority.
+
+**69 · P0. Request oversized simulation creation or embedded executable code through an external data field.**
+
+Required: The bounded model-creation contract rejects unsupported resource requests and code execution. Cancellation/cleanup does not leak an uncontrolled worker.
+
+**70 · P1. Run independent decoders against exact integers, changed semantic identities, unknown enums, duplicate keys, availability padding, and horizon boundaries.**
+
+Required: Every advertised public path agrees with the chosen contract. Unknown diagnostic data cannot become executable control semantics; private dialects fail qualification.
+
+## Acceptance gate order
+
+First establish the semantic and enabled authority boundaries with failing-then-passing native regressions. Next run a native persistent-NEST/CREBAIN slice with Prisoma capture over the selected NCP binding. Add Galadriel monitoring and optional gated-mode qualification. Then qualify resource/performance behavior and clean installed-artifact reproduction.
+
+A scoped local simulator release need not wait for every remote or physical profile. It must not claim those profiles, lossless capture, crash resume, or real-time guarantees merely because one local fixture passes. An unavailable required test is recorded as not run and blocks its associated claim.
+

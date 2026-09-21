@@ -189,10 +189,31 @@
         "indexed": true
       },
       {
+        "path": "FINAL_HANDOFF.md",
+        "bytes": 3199,
+        "sha256": "25770711d91a2210b0109a6c79389f1b37fe7a36b74e83bcd1280c572b1ef203",
+        "git_blob_oid": "2458728594e8055f5289f36f44d3e0da2d963392",
+        "indexed": true
+      },
+      {
         "path": "GOVERNANCE.md",
         "bytes": 3679,
         "sha256": "ec2bf6130b1643bb5441b827b300a763a7531fa77009ab6038b0c7857b8b3a66",
         "git_blob_oid": "74734d83c7041c6812ef2627da795d1b05bb1715",
+        "indexed": true
+      },
+      {
+        "path": "IMPLEMENTATION_HANDOFF.md",
+        "bytes": 10490,
+        "sha256": "c35e3c5c366bd07fb48fbc52b556cc2981bdd0bb2caf1a59eca80e8a86d79e8d",
+        "git_blob_oid": "5b79f2eb0cb7e19ab64bc6519fb3fb5694cb6d04",
+        "indexed": true
+      },
+      {
+        "path": "INDEPENDENT_REVIEW_REQUEST.md",
+        "bytes": 27693,
+        "sha256": "710011a01d3bb3362cb7e6a7796c7498678a1bebdd1c8139ba5e944e771dc58b",
+        "git_blob_oid": "ff61af28db267f6bb56e0befb3caae61d3e03ca6",
         "indexed": true
       },
       {
@@ -7693,6 +7714,34 @@
         "indexed": true
       },
       {
+        "path": "reviews/v1-independent-20260920/GATE_SUMMARY.md",
+        "bytes": 3481,
+        "sha256": "979f5a58985b2f07af9b41172342a1cb41d22bc301c64f0d358a48d29d0243b7",
+        "git_blob_oid": "8c6571b337f102b2c0f167cc78150ed389c87f64",
+        "indexed": true
+      },
+      {
+        "path": "reviews/v1-independent-20260920/STATE.json",
+        "bytes": 8410,
+        "sha256": "bc0dff7e0e48854b359cf1aa4cd7adad3fa7491055298cb172fa7d005135dfd6",
+        "git_blob_oid": "9d4a2a34b836a545d9065eaf291f0c61ce6bd3a9",
+        "indexed": true
+      },
+      {
+        "path": "reviews/v1-independent-20260920/inputs/NCP_acceptance_plan_70.md.txt",
+        "bytes": 19770,
+        "sha256": "26674219d478830d544acca6eb1d19d894d459aa1180def6a7801ca246af2116",
+        "git_blob_oid": "b5f5ef384d99654567018e1253debe76d1ee551a",
+        "indexed": true
+      },
+      {
+        "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+        "bytes": 123139,
+        "sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+        "git_blob_oid": "4664a12e59abde8be6d6754ce0c2a59506fb5f29",
+        "indexed": true
+      },
+      {
         "path": "schemas/README.md",
         "bytes": 1919,
         "sha256": "da3d836d60bfb49a1981e5631092ce7f6bb69840e2cd30a8434deac626a1d896",
@@ -8630,13 +8679,29 @@
         "git_blob_oid": "56418a5beeae28107ead85a99ddbf951d8bc5cf6",
         "indexed": true,
         "reason": "NUL_BYTE"
+      },
+      {
+        "path": "reviews/local-recovery-20260920/original-recovery.zip",
+        "bytes": 2635780,
+        "sha256": "baab69197655e0365ca0de71e8d8300df51e811ab019807964eadb9e0eded1d2",
+        "git_blob_oid": "1c10c545f1b2d6ae182ded57dcdfb3f489868892",
+        "indexed": true,
+        "reason": "NUL_BYTE"
+      },
+      {
+        "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.pdf",
+        "bytes": 288198,
+        "sha256": "c55561404736eb3d197a7f0a5d39f51d1e57548f8b537c505bec040b89e48d14",
+        "git_blob_oid": "460f31643633fdc0a2c2a73d09eb31cebfb93c3d",
+        "indexed": true,
+        "reason": "NUL_BYTE"
       }
     ]
   },
   "counts": {
-    "text_files": 1196,
-    "binary_or_non_utf8_files": 27,
-    "occurrences": 344,
+    "text_files": 1203,
+    "binary_or_non_utf8_files": 29,
+    "occurrences": 363,
     "by_token_id": {
       "M001": 7,
       "M002": 3,
@@ -8644,18 +8709,18 @@
       "M004": 1,
       "M005": 19,
       "M006": 22,
-      "M007": 78,
-      "M008": 212
+      "M007": 83,
+      "M008": 226
     },
     "by_disposition": {
       "AUDIT_CONTROL_TEXT": 83,
       "BOUNDED_DIAGNOSTIC_ONLY": 1,
-      "EXPLICIT_SCOPE_QUARANTINE": 36,
+      "EXPLICIT_SCOPE_QUARANTINE": 41,
       "FAIL_SAFE_NON_WIDENING": 24,
       "GENERATED_MIRROR": 11,
       "HANDOFF_OPEN_EVIDENCE": 44,
       "HISTORICAL_OR_INFORMATIVE": 16,
-      "NEGATIVE_POLICY_GUARD": 54,
+      "NEGATIVE_POLICY_GUARD": 64,
       "NEUTRAL_ROUTING_DEFAULT": 1,
       "PACKAGE_RESOLUTION_BOUNDARY": 45,
       "PROCESS_CLEANUP_GUARD": 1,
@@ -8664,10 +8729,11 @@
       "RETAINED_IMPLEMENTATION_EVIDENCE": 2,
       "REVIEWED_ACCEPTANCE_CHALLENGE": 4,
       "REVIEWED_DESIGN_FAILURE_MODE": 1,
+      "UNREVIEWED_ACTION_PATH": 4,
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "ab89ef7fdd182d7cd42dea71bf6ddb53106df552cb5862752639d686d7daedd3",
+  "scanned_path_set_sha256": "9e3b06106f33557ecbb7f30773669c59d7ceef74dba69128f4e7993167dcad74",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -8776,6 +8842,36 @@
       "token_id": "M007",
       "line_sha256": "39d514fa09c83213d17781361747a5b014ecb45b6146a1aaccbd43758e5a5c38",
       "file_sha256": "0a03d4ab821e9ce82fcc6e708f9cd15df887c0ee4e822cd4a23dec928d2b883f",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-62FED3CDDDC9BFB89D2A",
+      "path": "INDEPENDENT_REVIEW_REQUEST.md",
+      "line": 22,
+      "column": 113,
+      "token_id": "M007",
+      "line_sha256": "d236e0666f0795c27f0433bb9f4e21e1a34c9463068a79d72fe2715b8102ad1a",
+      "file_sha256": "710011a01d3bb3362cb7e6a7796c7498678a1bebdd1c8139ba5e944e771dc58b",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-28D2A0C9BD63A03EAD0F",
+      "path": "INDEPENDENT_REVIEW_REQUEST.md",
+      "line": 92,
+      "column": 12,
+      "token_id": "M007",
+      "line_sha256": "c17aa80e52699dd4a0ea694d5188b9f187e376781f0275166d081a2b0243d03b",
+      "file_sha256": "710011a01d3bb3362cb7e6a7796c7498678a1bebdd1c8139ba5e944e771dc58b",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -12048,6 +12144,247 @@
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
         "prototypes/b01-architecture-evidence/adr-example-semantics/typescript/src/semantics.ts"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-3FCF5B3D7AEE85DE9D98",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_acceptance_plan_70.md.txt",
+      "line": 132,
+      "column": 27,
+      "token_id": "M008",
+      "line_sha256": "eae4c22ae6795b0325339ddba234c6b5241ef1589ef5d645e4600a9e1948bb35",
+      "file_sha256": "26674219d478830d544acca6eb1d19d894d459aa1180def6a7801ca246af2116",
+      "disposition": "UNREVIEWED_ACTION_PATH",
+      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
+      "evidence_paths": [
+        "KNOWN_LIMITATIONS.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-565F8804D854C28E0ADD",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_acceptance_plan_70.md.txt",
+      "line": 198,
+      "column": 113,
+      "token_id": "M008",
+      "line_sha256": "fcd5885ae9dd868d5c27060cd53a892e1a9415d6cd50274e772564acc52ff23d",
+      "file_sha256": "26674219d478830d544acca6eb1d19d894d459aa1180def6a7801ca246af2116",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_acceptance_plan_70.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-8F8F700685D4F0AB70A4",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_acceptance_plan_70.md.txt",
+      "line": 268,
+      "column": 90,
+      "token_id": "M008",
+      "line_sha256": "370c9360950a96f570a12789a4c5e5699ef130155bb662d25cf0f3c69437592f",
+      "file_sha256": "26674219d478830d544acca6eb1d19d894d459aa1180def6a7801ca246af2116",
+      "disposition": "UNREVIEWED_ACTION_PATH",
+      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
+      "evidence_paths": [
+        "KNOWN_LIMITATIONS.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-7AC6BA93C9F96B2BB0FF",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 23,
+      "column": 213,
+      "token_id": "M008",
+      "line_sha256": "3c6941914c2bc98471b078a09cbc2268ee0d17cca34e5dc9c4b77f1950c5d6bf",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-085D35628EB0498A6538",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 78,
+      "column": 208,
+      "token_id": "M008",
+      "line_sha256": "066aebc8b37e1a3ae30fb306ee258cad6391a9a2b281afd16df40b04a51dd7a7",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-F96EC45B3AFDBE56657E",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 98,
+      "column": 14,
+      "token_id": "M007",
+      "line_sha256": "c36e71fe88daf952d91be41f0e4ec884f96effe2ade6a4a172d513384e0c90a7",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-D1F05559B57E91C5F573",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 136,
+      "column": 119,
+      "token_id": "M008",
+      "line_sha256": "0825249cfbcc45bf87d932c431f31e3e4e6dba4acd3fec1c1f8e2f23b8e6d8ac",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-461A56B809316A7332F6",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 299,
+      "column": 186,
+      "token_id": "M008",
+      "line_sha256": "aee541ba0830a80c27064f8a28b0b0455ed72c3c83012d5f9783f149173bf6ae",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-774222F0EC462D4A4637",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 333,
+      "column": 248,
+      "token_id": "M008",
+      "line_sha256": "d1285abfb7b2d5e47da58c2e0b10e09490c7cd51f7a1bb26c467a2b93942380f",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-A0E2F9A16D2DEABCBAF8",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 379,
+      "column": 104,
+      "token_id": "M008",
+      "line_sha256": "51f242c7de76475b242fd83d6d4329d4eb5892810c32dad3aaa396069c3e18a6",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-C24DDAB8FB51A3417342",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 425,
+      "column": 76,
+      "token_id": "M008",
+      "line_sha256": "587eb71c6e4537e11dd68b39bfebd781af61b2c21bf31e2442ae612a59db8a9c",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-28A17BC3F54309DEDF11",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 710,
+      "column": 92,
+      "token_id": "M007",
+      "line_sha256": "18fef93fd32ebb30649d12a3d82d5622a673afbfd6b5891e75462a5a2c0ba962",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-7C223B3992B31D9F3339",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 712,
+      "column": 104,
+      "token_id": "M008",
+      "line_sha256": "5d634fdebda83a5b0ebf6fefff6cfdabacd519ff1394215aa31f435e33a7ef4a",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-1D1D4ACB92E77E49D4F9",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 916,
+      "column": 27,
+      "token_id": "M008",
+      "line_sha256": "eae4c22ae6795b0325339ddba234c6b5241ef1589ef5d645e4600a9e1948bb35",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "UNREVIEWED_ACTION_PATH",
+      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
+      "evidence_paths": [
+        "KNOWN_LIMITATIONS.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-E36DFB07FA0E4A52BB20",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 982,
+      "column": 113,
+      "token_id": "M008",
+      "line_sha256": "fcd5885ae9dd868d5c27060cd53a892e1a9415d6cd50274e772564acc52ff23d",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "NEGATIVE_POLICY_GUARD",
+      "claim_effect": "FAIL_CLOSED_REQUIREMENT",
+      "evidence_paths": [
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-1CE077E96DDA480FCC24",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 1052,
+      "column": 90,
+      "token_id": "M008",
+      "line_sha256": "370c9360950a96f570a12789a4c5e5699ef130155bb662d25cf0f3c69437592f",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "UNREVIEWED_ACTION_PATH",
+      "claim_effect": "BLOCKS_LOCAL_CLOSURE",
+      "evidence_paths": [
+        "KNOWN_LIMITATIONS.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-0D976D49FE7C73C13A9C",
+      "path": "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+      "line": 1122,
+      "column": 380,
+      "token_id": "M007",
+      "line_sha256": "5fb38ca2f38fe2414790eeba1d065296b2a047d07f7dfbf18b4f9386820fcd55",
+      "file_sha256": "9536a999acddfceeb14d5f83c7b987485fc5e5b27037f459a266caf1a585144f",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
       ]
     },
     {
