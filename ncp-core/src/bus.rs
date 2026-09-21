@@ -155,19 +155,31 @@ pub type QueryHandler = Arc<dyn Fn(&[u8]) -> Vec<u8> + Send + Sync>;
 pub type SubCallback = Arc<dyn Fn(&str, &[u8]) + Send + Sync>;
 
 /// Minimal zenoh-style key match: exact, `prefix/**`, or `*` single-segment.
+///
+/// Segment iterators avoid two temporary vectors on every publication. The
+/// recursive suffix check first removes the literal prefix, then requires a
+/// slash boundary. A plain byte-prefix test would incorrectly match `a/**`
+/// against `ab/c`.
 pub fn key_matches(pattern: &str, key: &str) -> bool {
     if pattern == key {
         return true;
     }
     if let Some(prefix) = pattern.strip_suffix("/**") {
-        return key == prefix || key.starts_with(&format!("{prefix}/"));
+        return key == prefix
+            || key
+                .strip_prefix(prefix)
+                .is_some_and(|suffix| suffix.starts_with('/'));
     }
-    let pp: Vec<&str> = pattern.split('/').collect();
-    let kp: Vec<&str> = key.split('/').collect();
-    if pp.len() != kp.len() {
-        return false;
+    let mut pattern_segments = pattern.split('/');
+    let mut key_segments = key.split('/');
+    loop {
+        match (pattern_segments.next(), key_segments.next()) {
+            (Some(pattern_segment), Some(key_segment))
+                if pattern_segment == "*" || pattern_segment == key_segment => {}
+            (None, None) => return true,
+            _ => return false,
+        }
     }
-    pp.iter().zip(kp.iter()).all(|(p, k)| *p == "*" || p == k)
 }
 
 /// A raw data-centric byte bus: queryable RPC + pub/sub streaming.
@@ -656,8 +668,10 @@ mod tests {
         assert!(key_matches("a/b", "a/b"));
         assert!(key_matches("a/**", "a"));
         assert!(key_matches("a/**", "a/b/c"));
+        assert!(!key_matches("a/**", "ab/c"));
         assert!(key_matches("a/*/c", "a/b/c"));
         assert!(!key_matches("a/*/c", "a/b/d"));
+        assert!(!key_matches("a/*", "a/b/c"));
         assert!(!key_matches("a/b", "a/b/c"));
     }
 

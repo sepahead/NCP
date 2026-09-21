@@ -96,24 +96,24 @@ It must retain sample distributions and tail latency. This work is **NOT RUN**.
 Engram's native-1.0 migration is in progress. Crebain and Prisoma remain on wire
 0.8. The multi-consumer shape is a target, not interoperability evidence.
 
-### Candidate optimization: avoid one owned-buffer copy
+### Implemented candidate path: avoid one redundant action-buffer copy
 
-One wire-neutral optimization candidate is in [`ncp-zenoh`](ncp-zenoh): the current
-slice-based `ZenohBus::put` makes an owned copy for Zenoh.
+The slice-based public `ZenohBus::put` still makes one bounded owned copy because
+its caller retains the input slice:
 
 ```rust
 // ncp-zenoh/src/lib.rs — ZenohBus::put
-self.session.put(key, payload.to_vec())   // clones an already-owned Vec<u8>
+self.put_owned(key, payload.to_vec(), plane) // caller keeps the borrowed slice
 ```
 
-Some callers already own the serialized `Vec<u8>`. Adding an owned-buffer path,
-for example
-`put_owned(key, payload: Vec<u8>, plane)`, or making `put` generic over
-`impl Into<ZBytes>`, could remove that one allocation/copy without changing wire
-bytes. It does **not** by itself establish shared-memory zero-copy: ownership,
-buffer compatibility, Zenoh behavior, backpressure, and end-to-end measurement all
-need separate implementation and verification. No benefit is claimed until that
-path is benchmarked in the release-bound matrix.
+The command dispatcher now owns its one final validated `Vec<u8>` and moves it
+through a private `put_owned` path. This removes the prior second `to_vec()` on
+that action-worker handoff without changing the bytes. Borrowed public publishes
+still copy, and serialization, bounded preflight, typed decode, Zenoh conversion,
+kernel work, and receiver work remain. The change does **not** establish
+shared-memory zero-copy or a latency improvement. Ownership, buffer compatibility,
+Zenoh behavior, backpressure, and end-to-end measurement still need qualification.
+No numeric benefit is claimed until the release-bound matrix is run.
 
 This optimization and the remaining audited risks are catalogued individually in
 [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). All original high-severity findings
@@ -392,6 +392,7 @@ known caveats so a future release-bound campaign can replace the historical valu
 - Continuing adversarial audits of NCP (correctness, safety, robustness, overhead)
   are catalogued in [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). Its old numeric
   summary is retired; treat the per-finding ledger as the live status register. The
-  top *performance* item there (the `ncp-zenoh`
-  `payload.to_vec()` copy) is still open and is discussed in
-  [candidate copy-avoidance optimization](#candidate-optimization-avoid-one-owned-buffer-copy) above.
+  action dispatcher no longer makes the redundant second `payload.to_vec()` copy,
+  but the complete installed-path performance matrix remains open. See
+  [the implemented candidate path](#implemented-candidate-path-avoid-one-redundant-action-buffer-copy)
+  above.

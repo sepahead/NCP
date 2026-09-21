@@ -2,13 +2,12 @@
 //!
 //! The built-in chain detects mutation/deletion/reordering within a retained
 //! segment. Production deployments anchor chain heads in an independent durable
-//! system; this module does not claim that an in-process hash is a signature.
+//! system. This module does not claim that an in-process hash is a signature.
 
 use std::collections::BTreeMap;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use crate::authority::LifecycleState;
 use crate::bounded_json::MAX_KEY_BYTES;
@@ -125,11 +124,6 @@ impl std::error::Error for AuditError {}
 pub struct AuditChain {
     next_sequence: u64,
     previous_digest: String,
-}
-
-fn sha256_hex(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn is_digest(value: &str) -> bool {
@@ -296,13 +290,16 @@ impl AuditEvent {
                 "audit event digest field is absent from its projection",
             ));
         }
+        // Preserve the selected audit-chain preimage: canonical event JSON with
+        // `event_digest_sha256` omitted. Domain framing would be a wire-visible
+        // digest-profile change and requires a deliberate contract migration.
         let canonical = serde_json::to_vec(&value).map_err(|error| {
             AuditError::new(
                 "NCP-AUDIT-001",
                 format!("event canonicalization failed: {error}"),
             )
         })?;
-        Ok(sha256_hex(&canonical))
+        Ok(crate::canonical_digest::sha256_hex(&canonical))
     }
 }
 

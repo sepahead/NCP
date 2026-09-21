@@ -13,7 +13,7 @@ The four local QoS classes are explicit:
 |---|---|---|
 | control | reliable request/reply, backpressure | reject overflow |
 | perception | high-priority freshness, drop congestion | replace latest |
-| action | express real-time, drop congestion | highest fail-safe severity: ESTOP, HOLD/non-active, Active; equal severity latest |
+| action | express RealTime priority, drop congestion | highest logical restrictive severity: ESTOP, HOLD/non-active, Active; equal severity latest |
 | observation | low-priority diagnostic, drop congestion | drop oldest and count |
 
 Plane-specific publish/subscribe methods require the live `SessionRef` returned by
@@ -37,12 +37,29 @@ JSON-safe sequence allocator across Active, HOLD, and ESTOP. Caller and emergenc
 positions are always replaced by that single action-stream identity.
 `send_command()` reports the result of bounded slot admission
 (`Accepted`, `ReplacedPending`, `StreamExhausted`, or `Rejected`), not Zenoh
-delivery. The admitted variants carry the exact transport-assigned position. A
-pending pre-publication replacement reuses that position, so it creates no local
-gap. This also means an earlier `Accepted` result does not durably identify the
-bytes that will later use that position. It is not body admission or the selected
-low-overhead publisher boundary. Once a put is attempted, the position is consumed.
-If a fail-safe put is rejected or delivery-ambiguous,
+delivery. The admitted variants carry the exact transport-assigned position.
+Each accepted pre-publication replacement consumes a newer position. The
+displaced command leaves a visible local-supersession gap, and no position can
+identify different bytes. This is still not body admission or a durable command
+disposition. Once a put is attempted, the position remains consumed.
+The dispatcher borrows caller fields into one final-position serialization. It
+does not clone the complete command or serialize a provisional position first.
+The exact resulting bytes pass one bounded structural and typed plane gate before
+slot retention. The retained private value couples those immutable bytes to the
+stream position decoded from them. The worker therefore rechecks the immutable
+session binding and stream fence without a second JSON scan or typed decode. A
+dedicated producer-order guard keeps concurrent position assignment and
+completion monotonic. Serialization and typed validation run without the
+worker-facing slot-state lock, so they cannot prevent the worker from taking an
+already retained command. A stronger fail-safe removes an unpublished weaker
+slot before that work starts. A malformed or over-budget local ESTOP discards its
+diagnostic payload and uses one small canonical ESTOP instead. The dispatcher
+clears `source` when it must rebind a local ESTOP from another session because a
+bare stream position cannot prove cross-session causal attribution. It then
+transfers the owned vector into the Zenoh payload at the final handoff.
+Serialization and the first typed validation still allocate bounded state, so
+this is not a zero-copy transport claim. If a fail-safe put is rejected or
+delivery-ambiguous,
 `fail_safe_delivery_pending()` remains true. Active admission then rejects until
 the caller submits a new logical fail-safe at a new position and it publishes
 successfully. The dispatcher does not busy-loop or

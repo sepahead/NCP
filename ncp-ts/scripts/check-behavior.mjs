@@ -1403,11 +1403,11 @@ for (const c of corpus.cases.action_buffer) {
     gateway_permitted: false,
     gateway: null,
   }
-  const invoke = async (reply, call) => {
+  const invoke = async (reply, call, openReply = opened) => {
     const client = new NeuroSimClient(
       async (request) =>
         request.kind === 'open_session'
-          ? opened
+          ? openReply
           : typeof reply === 'function'
             ? reply(request)
             : reply,
@@ -1426,6 +1426,151 @@ for (const c of corpus.cases.action_buffer) {
     responder_principal_id: 'body-principal',
     responder_entity_id: 'simulator',
   })
+  const observationReply = (request, receiptChanges = {}) => ({
+    kind: 'observation_frame',
+    ncp_version: NCP_VERSION,
+    session_id: 's',
+    stream: { epoch: EP, seq: 1 },
+    session: { generation: GEN },
+    records: {},
+    is_simulation_output: true,
+    calibrated_posterior: false,
+    receipt: {
+      ...receipt(request.operation.request_digest, request.operation.operation_id),
+      ...receiptChanges,
+    },
+  })
+  {
+    const wrongResponder = await rejectionMessage(
+      invoke(
+        (request) => observationReply(request, { responder_principal_id: 'other-body' }),
+        (client) => client.step('s', MUTATION),
+      ),
+    )
+    const regressingState = await rejectionMessage(
+      invoke(
+        (request) => observationReply(request, { state_version: 0 }),
+        (client) =>
+          client.step('s', {
+            ...MUTATION,
+            operation: { ...MUTATION.operation, expected_state_version: 1 },
+          }),
+        { ...opened, state_version: 1 },
+      ),
+    )
+    check(
+      wrongResponder.includes('body coordinate carried by open') &&
+        regressingState.includes('precedes'),
+      'client receipt binding: mutation receipts preserve the opened payload body coordinate and never regress state',
+    )
+  }
+  {
+    const nextOperation = '30000000-0000-4000-8000-000000000096'
+    let mutationSends = 0
+    const client = new NeuroSimClient(async (request) => {
+      if (request.kind === 'open_session') return opened
+      mutationSends += 1
+      return {
+        ...observationReply(request, { state_version: mutationSends }),
+        stream: { epoch: EP, seq: mutationSends },
+      }
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    await client.step('s', MUTATION)
+    const staleMessage = await rejectionMessage(client.step('s', {
+      ...MUTATION,
+      operation: { ...MUTATION.operation, operation_id: nextOperation },
+    }))
+    await client.step('s', {
+      ...MUTATION,
+      operation: {
+        ...MUTATION.operation,
+        operation_id: nextOperation,
+        expected_state_version: 1,
+      },
+    })
+    check(
+      staleMessage.includes('does not match the client-known state 1') && mutationSends === 2,
+      'client mutation state: a new operation uses the exact state version learned from the last receipt',
+    )
+  }
+  {
+    const nextOperation = '30000000-0000-4000-8000-000000000095'
+    let mutationSends = 0
+    const client = new NeuroSimClient(async (request) => {
+      if (request.kind === 'open_session') return opened
+      mutationSends += 1
+      if (mutationSends === 1) {
+        return {
+          kind: 'error',
+          ncp_version: NCP_VERSION,
+          code: 'NCP-OP-004',
+          error: 'compare-and-swap rejected',
+          session_id: 's',
+          session: { generation: GEN },
+          request_kind: 'step_request',
+          receipt: {
+            ...receipt(request.operation.request_digest, request.operation.operation_id),
+            outcome: 'rejected',
+            state_version: 0,
+          },
+        }
+      }
+      return observationReply(request, { state_version: 1 })
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    const rejectedMessage = await rejectionMessage(client.step('s', MUTATION))
+    await client.step('s', {
+      ...MUTATION,
+      operation: { ...MUTATION.operation, operation_id: nextOperation },
+    })
+    check(
+      rejectedMessage.includes('compare-and-swap rejected') && mutationSends === 2,
+      'client mutation state: a correlated terminal rejection preserves the receipt state for the next operation',
+    )
+  }
+  {
+    let mutationSends = 0
+    const client = new NeuroSimClient(async (request) => {
+      if (request.kind === 'open_session') return opened
+      mutationSends += 1
+      throw new Error('delivery outcome unavailable')
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    const unavailable = await rejectionMessage(client.step('s', MUTATION))
+    const afterUnavailable = await rejectionMessage(client.step('s', MUTATION))
+    check(
+      unavailable.includes('delivery outcome unavailable') &&
+        afterUnavailable.includes('has no live generation') &&
+        mutationSends === 1,
+      'client mutation state: an uncorrelated transport failure retires the generation before any guessed follow-up',
+    )
+  }
+  {
+    const concurrentOperation = '30000000-0000-4000-8000-000000000094'
+    let pendingMutation
+    let mutationSends = 0
+    const client = new NeuroSimClient((request) => {
+      if (request.kind === 'open_session') return Promise.resolve(opened)
+      mutationSends += 1
+      const promise = new Promise((resolve) => {
+        pendingMutation = { request, resolve }
+      })
+      return promise
+    }, NEGOTIATION)
+    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+    const first = client.step('s', MUTATION)
+    const concurrentMessage = await rejectionMessage(client.step('s', {
+      ...MUTATION,
+      operation: { ...MUTATION.operation, operation_id: concurrentOperation },
+    }))
+    pendingMutation.resolve(observationReply(pendingMutation.request, { state_version: 1 }))
+    await first
+    check(
+      concurrentMessage.includes('already has a mutation in flight') && mutationSends === 1,
+      'client mutation state: one live generation admits at most one unresolved mutation',
+    )
+  }
   {
     let sends = 0
     const restarted = new NeuroSimClient(async () => {
@@ -1521,65 +1666,85 @@ for (const c of corpus.cases.action_buffer) {
   {
     const OP2 = '30000000-0000-4000-8000-000000000098'
     const OP3 = '30000000-0000-4000-8000-000000000097'
-    const mutation2 = {
-      operation: { ...MUTATION.operation, operation_id: OP2 },
+    const mutationFor = (operationId, expectedStateVersion) => ({
+      operation: {
+        ...MUTATION.operation,
+        operation_id: operationId,
+        expected_state_version: expectedStateVersion,
+      },
       authority: MUTATION.authority,
+    })
+    const fenceReply = (request, seq, bodyChanges = {}, receiptChanges = {}) => ({
+      kind: 'observation_frame',
+      ncp_version: NCP_VERSION,
+      session_id: 's',
+      stream: { epoch: EP, seq },
+      session: { generation: GEN },
+      records: {},
+      is_simulation_output: true,
+      calibrated_posterior: false,
+      ...bodyChanges,
+      receipt: {
+        ...receipt(request.operation.request_digest, request.operation.operation_id),
+        ...receiptChanges,
+      },
+    })
+    const makeFenceClient = async (replyForMutation) => {
+      let mutationReplies = 0
+      const client = new NeuroSimClient(async (request) => {
+        if (request.kind === 'open_session') return opened
+        mutationReplies += 1
+        return replyForMutation(request, mutationReplies)
+      }, NEGOTIATION)
+      await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
+      return { client, mutationReplies: () => mutationReplies }
     }
-    const mutation3 = {
-      operation: { ...MUTATION.operation, operation_id: OP3 },
-      authority: MUTATION.authority,
-    }
-    let mutationReplies = 0
-    const client = new NeuroSimClient(async (request) => {
-      if (request.kind === 'open_session') return opened
-      mutationReplies += 1
-      const responseReceipt = receipt(
-        request.operation.request_digest,
-        request.operation.operation_id,
-      )
-      if (mutationReplies === 4) responseReceipt.state_version = 2
-      return {
-        kind: 'observation_frame',
-        ncp_version: NCP_VERSION,
-        session_id: 's',
-        stream: {
-          epoch: EP,
-          seq: request.operation.operation_id === OP3
-            ? 3
-            : request.operation.operation_id === OP2
-              ? 2
-              : 1,
-        },
-        session: { generation: GEN },
-        records: {},
-        ...(mutationReplies === 3 ? { sim_time_ms: 1 } : {}),
-        is_simulation_output: true,
-        calibrated_posterior: false,
-        receipt: responseReceipt,
-      }
-    }, NEGOTIATION)
-    await client.open('s', { kind: 'builtin', ref: 'test' }, [], [])
-    await client.step('s', MUTATION)
-    await client.step('s', {
+
+    const exact = await makeFenceClient((request) => fenceReply(request, 2))
+    await exact.client.step('s', MUTATION)
+    await exact.client.step('s', {
       ...MUTATION,
       operation: { ...MUTATION.operation, retry: true },
     })
-    const changedBodyMessage = await rejectionMessage(client.step('s', {
+
+    const changedBody = await makeFenceClient((request, count) =>
+      fenceReply(request, 2, count === 2 ? { sim_time_ms: 1 } : {}))
+    await changedBody.client.step('s', MUTATION)
+    const changedBodyMessage = await rejectionMessage(changedBody.client.step('s', {
       ...MUTATION,
       operation: { ...MUTATION.operation, retry: true },
     }))
-    const changedReceiptMessage = await rejectionMessage(client.step('s', {
+    const afterChangedBody = await rejectionMessage(changedBody.client.step('s', MUTATION))
+
+    const changedReceipt = await makeFenceClient((request, count) =>
+      fenceReply(request, 2, {}, count === 2 ? { state_version: 2 } : {}))
+    await changedReceipt.client.step('s', MUTATION)
+    const changedReceiptMessage = await rejectionMessage(changedReceipt.client.step('s', {
       ...MUTATION,
       operation: { ...MUTATION.operation, retry: true },
     }))
-    await client.step('s', mutation3)
-    const replayMessage = await rejectionMessage(client.step('s', mutation2))
+    const afterChangedReceipt = await rejectionMessage(changedReceipt.client.step('s', MUTATION))
+
+    const reordered = await makeFenceClient((request, count) => {
+      const seq = count === 1 ? 2 : count === 2 ? 4 : 3
+      return fenceReply(request, seq, {}, { state_version: count })
+    })
+    await reordered.client.step('s', MUTATION)
+    await reordered.client.step('s', mutationFor(OP3, 1))
+    const replayMessage = await rejectionMessage(
+      reordered.client.step('s', mutationFor(OP2, 2)),
+    )
     check(
-      mutationReplies === 6 &&
+      exact.mutationReplies() === 2 &&
+        changedBody.mutationReplies() === 2 &&
+        changedReceipt.mutationReplies() === 2 &&
+        reordered.mutationReplies() === 3 &&
         changedBodyMessage.includes('replayed, reordered, or non-increasing') &&
+        afterChangedBody.includes('has no live generation') &&
         changedReceiptMessage.includes('replayed, reordered, or non-increasing') &&
+        afterChangedReceipt.includes('has no live generation') &&
         replayMessage.includes('replayed, reordered, or non-increasing'),
-      'client observation fence: only a full-reply-fingerprint-identical terminal retry repeats a position; changed content under an identical receipt rejects',
+      'client observation fence: late join and exact retry pass; changed or reordered results reject and retire unknown state',
     )
   }
   {

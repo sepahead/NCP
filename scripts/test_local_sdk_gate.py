@@ -211,7 +211,7 @@ class GateIntegrity(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             gate.require_probe(alias)
 
-    def repository(self):
+    def repository(self, files=("input.txt",)):
         root = self.scratch / "repository"
         root.mkdir()
         environment = gate.git_environment()
@@ -226,8 +226,11 @@ class GateIntegrity(unittest.TestCase):
             )
 
         git("init", "--quiet", "--template=")
-        (root / "input.txt").write_bytes(b"source bytes\n")
-        git("add", "input.txt")
+        for name in files:
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"source bytes\n")
+        git("add", "--", *files)
         git(
             "-c",
             "user.name=Gate fixture",
@@ -262,6 +265,51 @@ class GateIntegrity(unittest.TestCase):
             gate.source_unchanged(rows, root)
         (root / "extra.txt").unlink()
         gate.source_unchanged(rows, root)
+
+    def test_updated_root_lock_remains_in_current_source_inventory(self):
+        root, revision = self.repository((*gate.REFERENCE_FILES, "Cargo.lock"))
+        updated = b"updated root dependency lock\n"
+        (root / "Cargo.lock").write_bytes(updated)
+        before = gate.source_rows(root)
+        self.assertEqual(
+            before["Cargo.lock"]["sha256"], hashlib.sha256(updated).hexdigest()
+        )
+        gate.reference_parity(root, revision)
+        gate.source_unchanged(before, root)
+
+    def test_historical_sdk_drift_still_rejects_after_root_lock_update(self):
+        root, revision = self.repository((*gate.REFERENCE_FILES, "Cargo.lock"))
+        (root / "Cargo.lock").write_bytes(b"updated root dependency lock\n")
+        gate.reference_parity(root, revision)
+        for name in (
+            "ncp-core/src/local.rs",
+            "local/python/ncp_local/protocol.py",
+            "local/rust/Cargo.lock",
+        ):
+            with self.subTest(path=name):
+                path = root / name
+                original = path.read_bytes()
+                path.write_bytes(b"changed historical SDK input\n")
+                with self.assertRaisesRegex(
+                    RuntimeError, "historical reference changed"
+                ):
+                    gate.reference_parity(root, revision)
+                path.write_bytes(original)
+                gate.reference_parity(root, revision)
+
+    def test_root_lock_mutation_during_gate_still_rejects(self):
+        root, revision = self.repository((*gate.REFERENCE_FILES, "Cargo.lock"))
+        path = root / "Cargo.lock"
+        updated = b"updated root dependency lock\n"
+        path.write_bytes(updated)
+        before = gate.source_rows(root)
+        gate.reference_parity(root, revision)
+        gate.source_unchanged(before, root)
+        path.write_bytes(b"changed root lock during gate\n")
+        with self.assertRaisesRegex(RuntimeError, "changed source bytes"):
+            gate.source_unchanged(before, root)
+        path.write_bytes(updated)
+        gate.source_unchanged(before, root)
 
     def test_actual_git_replacement_cannot_rewrite_historical_reference(self):
         root, revision = self.repository()

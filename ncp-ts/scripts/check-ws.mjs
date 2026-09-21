@@ -125,6 +125,20 @@ try {
     assert.deepEqual(await send, { ok: true })
   }
 
+  // A record-level toJSON hook cannot replace the message with a primitive or
+  // array and still reserve a FIFO position.
+  {
+    const transport = new WebSocketNeuroSim('ws://hostile-to-json')
+    const socket = latestSocket()
+    socket.open()
+    await rejectsPromptly(
+      transport.send({ toJSON: () => null }),
+      /message did not serialize to a JSON object/,
+    )
+    assert.equal(socket.sent.length, 0)
+    transport.close()
+  }
+
   // A post-open transport failure must still reject every queued request.
   {
     const transport = new WebSocketNeuroSim('ws://in-flight-error')
@@ -230,6 +244,28 @@ try {
     assert.equal(outcomes.filter(({ status }) => status === 'rejected').length, pending.length)
   }
 
+  // Count and exact UTF-8 bytes are reserved together before an unopened socket
+  // can retain a payload. Eight maximum-sized frames fit the experimental local
+  // byte budget exactly; the ninth is rejected without consuming a FIFO slot.
+  {
+    assert.equal(
+      WEBSOCKET_TRANSPORT_DEFAULTS.maxPendingPayloadBytes,
+      8 * JSON_LIMITS.maxFrameBytes,
+    )
+    const transport = new WebSocketNeuroSim('ws://pre-open-payload-capacity')
+    const socket = latestSocket()
+    const message = asciiMessageAtFrameLimit()
+    const pending = Array.from({ length: 8 }, () => transport.send(message))
+    const settlements = Promise.allSettled(pending)
+    await rejectsPromptly(
+      transport.send(message),
+      /queued payload capacity exceeded \(8388608 bytes\)/,
+    )
+    assert.equal(socket.sent.length, 0)
+    transport.close()
+    await settlements
+  }
+
   // The exact 1 MiB JSON boundary is accepted; one additional byte is rejected
   // before WebSocket.send or FIFO reservation.
   {
@@ -309,4 +345,4 @@ try {
   else globalThis.WebSocket = originalWebSocket
 }
 
-console.log('WebSocket transport smoke: 19 scenarios passed')
+console.log('WebSocket transport smoke: 21 scenarios passed')

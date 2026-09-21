@@ -399,10 +399,10 @@ fn sanitize_govern_inputs(
 /// `session_id`. `frame_id` may be NULL (=> "world"); `mode` is one of
 /// init/active/hold/estop and may be NULL (=> "hold") — an unknown mode returns
 /// NULL. `epoch`, `session_generation` and `session_id` are required (NULL =>
-/// NULL). Returns NULL on malformed input, invalid codec configuration, or an
-/// `authority_json` is required for Active mode and may be NULL otherwise. Returns
-/// NULL on malformed input, invalid codec configuration, or an invalid generated
-/// command (e.g. a non-canonical epoch, seq 0, or missing Active authority). Caller frees.
+/// NULL). `authority_json` is required for Active mode and may be NULL otherwise.
+/// Returns NULL on malformed input, invalid codec configuration, or an invalid
+/// generated command, such as a non-canonical epoch, sequence zero, or missing
+/// Active authority. Caller frees.
 /// # Safety
 /// Arguments must be NULL or valid C strings.
 #[no_mangle]

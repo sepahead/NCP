@@ -26,6 +26,12 @@ export declare class BoundedJsonError extends Error {
     readonly offset: number;
     constructor(code: JsonLimitCode, offset: number, detail: string);
 }
-export declare function preflightJson(input: string): void;
+/** Validate one JSON text and return its exact UTF-8 byte length.
+ *
+ * Callers that retain the admitted text can use the returned length for an
+ * aggregate byte reservation without materializing a second encoded buffer or
+ * rescanning the complete frame.
+ */
+export declare function preflightJson(input: string): number;
 export declare function parseBoundedJson(input: string): unknown;
 //# sourceMappingURL=bounded-json.d.ts.map

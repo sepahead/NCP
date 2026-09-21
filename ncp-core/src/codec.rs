@@ -193,7 +193,8 @@ fn validate_range(range: (f64, f64), path: &str, nonnegative: bool) -> Result<()
 fn clamp(x: f64, lo: f64, hi: f64) -> f64 {
     // A non-finite input (NaN/±inf) has no defensible clamped value and would
     // otherwise poison the whole pipeline (NaN sensor -> NaN rate -> NaN
-    // command). Fail safe to the low bound rather than propagate it.
+    // command). The unchecked mapper uses the deterministic low bound rather
+    // than propagating it. This is not a plant-specific safe-action claim.
     if !x.is_finite() {
         return lo;
     }
@@ -847,6 +848,17 @@ mod tests {
             .unwrap();
         assert_eq!(command.mode, Mode::Hold);
         command.validate_wire().unwrap();
+    }
+
+    #[test]
+    fn midpoint_does_not_overflow_for_a_valid_large_range() {
+        let lo = 1.0e308;
+        let hi = 1.1e308;
+        validate_range((lo, hi), "large", false).unwrap();
+
+        let value = midpoint(lo, hi);
+        assert!(value.is_finite());
+        assert!((lo..=hi).contains(&value));
     }
 
     #[test]

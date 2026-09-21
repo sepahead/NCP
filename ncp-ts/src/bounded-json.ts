@@ -319,12 +319,19 @@ class Scanner {
   }
 }
 
-export function preflightJson(input: string): void {
+/** Validate one JSON text and return its exact UTF-8 byte length.
+ *
+ * Callers that retain the admitted text can use the returned length for an
+ * aggregate byte reservation without materializing a second encoded buffer or
+ * rescanning the complete frame.
+ */
+export function preflightJson(input: string): number {
   const bytes = utf8ByteLength(input, input.length, JSON_LIMITS.maxFrameBytes)
   if (bytes > JSON_LIMITS.maxFrameBytes) {
     throw new BoundedJsonError('NCP-LIMIT-001', JSON_LIMITS.maxFrameBytes, 'JSON frame byte limit exceeded')
   }
   new Scanner(input).scan()
+  return bytes
 }
 
 export function parseBoundedJson(input: string): unknown {

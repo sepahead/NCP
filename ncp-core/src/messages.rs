@@ -1799,7 +1799,15 @@ pub struct ControlStatus {
     pub t: f64,
     pub mode: Mode,
     pub sim_time_ms: f64,
+    /// Local elapsed time from the start of one controller tick through final
+    /// safety governance. This excludes transport-slot admission, network
+    /// delivery, body admission, body disposition, physical effect, and
+    /// observation delivery.
     pub loop_latency_ms: f64,
+    /// Publisher-reported logical health. The reference loop clears this for a
+    /// latched ESTOP, configuration fault, invalid rate or clock, or retired
+    /// controller. A transient HOLD can coexist with `true`. This field does not
+    /// certify physical safety or achieved effect.
     pub safety_ok: bool,
     pub note: Option<String>,
     /// This status stream's own incarnation + strictly positive position. A

@@ -14,8 +14,8 @@
 //! reliability API):
 //! - **perception** — CongestionControl=DROP + DataHigh priority; the typed control
 //!   transport keeps one replace-latest receive slot;
-//! - **action** — express + DROP + RealTime priority (lowest-latency setpoint),
-//!   safety-gated by the sender with one ESTOP-prioritized publish slot;
+//! - **action** — express + DROP + RealTime priority, which is a transport intent
+//!   rather than measured latency, with one locally governed ESTOP-prioritized slot;
 //! - **observation** — DROP + Data priority; the typed subscriber uses an explicit
 //!   64-frame drop-oldest queue and exposes its cumulative drop counter;
 //! - **control** — CongestionControl=BLOCK plus a 128-request admission limit that
@@ -215,7 +215,10 @@ pub enum Plane {
 impl Plane {
     fn congestion(self) -> CongestionControl {
         match self {
-            // Drop-oldest on the wire for high-rate / latency-critical streams.
+            // Ask Zenoh to drop under congestion for high-rate or
+            // latency-critical streams. Zenoh does not guarantee which queued
+            // sample is discarded, so replace-latest and drop-oldest behavior is
+            // implemented only in the explicit local slots documented above.
             Plane::Perception | Plane::Action | Plane::Observation => CongestionControl::Drop,
             Plane::Control => CongestionControl::Block,
         }
@@ -570,7 +573,14 @@ fn enqueue_observation(
     let mut queue = queue.lock().unwrap_or_else(|error| error.into_inner());
     if queue.len() >= OBSERVATION_QUEUE_CAPACITY {
         queue.pop_front();
-        drops.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        // The counter is diagnostic, but wrapping it to zero would turn severe
+        // sustained loss into an apparently healthy value. Saturation preserves
+        // monotonic meaning without affecting queue admission.
+        let _ = drops.fetch_update(
+            std::sync::atomic::Ordering::Relaxed,
+            std::sync::atomic::Ordering::Relaxed,
+            |current| Some(current.saturating_add(1)),
+        );
     }
     queue.push_back(item);
 }
@@ -1135,8 +1145,8 @@ impl ZenohBus {
         }))
     }
 
-    /// Publish an observation frame on a session's observation key: either a JSON
-    /// complete, versioned JSON `observation_frame`.
+    /// Publish a complete, versioned JSON `observation_frame` on a session's
+    /// observation key.
     ///
     /// Wire 1.0 candidate: a JSON frame published on the **observation plane** owns
     /// its stream position (`seq >= 1`) and carries an optional driving sensor
@@ -1178,12 +1188,12 @@ impl ZenohBus {
             .map_err(TypedCommandPublishError::into_inner)
     }
 
-    async fn publish_command_classified(
+    fn admit_command_publish(
         &self,
         session_id: &str,
         session: &ncp_core::SessionRef,
         payload: &[u8],
-    ) -> std::result::Result<(), TypedCommandPublishError> {
+    ) -> std::result::Result<String, TypedCommandPublishError> {
         check_id("session", session_id).map_err(TypedCommandPublishError::Rejected)?;
         check_live_session_ref(session).map_err(TypedCommandPublishError::Rejected)?;
         let route = self.keys.command(session_id);
@@ -1197,7 +1207,44 @@ impl ZenohBus {
             &frame.stream,
         )
         .map_err(TypedCommandPublishError::Rejected)?;
+        Ok(route)
+    }
+
+    async fn publish_command_classified(
+        &self,
+        session_id: &str,
+        session: &ncp_core::SessionRef,
+        payload: &[u8],
+    ) -> std::result::Result<(), TypedCommandPublishError> {
+        let route = self.admit_command_publish(session_id, session, payload)?;
         self.put(&route, payload, Plane::Action)
+            .await
+            .map_err(TypedCommandPublishError::DeliveryAmbiguous)
+    }
+
+    /// Fence and transfer command bytes that this module has already decoded,
+    /// validated, and bound to `session_id`/`session`. The private
+    /// [`ValidatedCommandPayload`] retains the stream position decoded from those
+    /// exact immutable bytes, so the controller worker does not repeat the whole
+    /// bounded JSON scan and semantic decode before the Zenoh handoff.
+    async fn publish_validated_owned_command_classified(
+        &self,
+        session_id: &str,
+        session: &ncp_core::SessionRef,
+        payload: ValidatedCommandPayload,
+    ) -> std::result::Result<(), TypedCommandPublishError> {
+        check_id("session", session_id).map_err(TypedCommandPublishError::Rejected)?;
+        check_live_session_ref(session).map_err(TypedCommandPublishError::Rejected)?;
+        let route = self.keys.command(session_id);
+        accept_publisher_stream(
+            &self.publisher_streams,
+            &route,
+            "command_frame",
+            session,
+            &payload.stream,
+        )
+        .map_err(TypedCommandPublishError::Rejected)?;
+        self.put_owned(&route, payload.bytes, Plane::Action)
             .await
             .map_err(TypedCommandPublishError::DeliveryAmbiguous)
     }
@@ -1394,8 +1441,12 @@ impl ZenohBus {
     /// decision, or monotonicity fencing. It is suitable only for diagnostics or
     /// callers that independently enforce the complete typed boundary.
     pub async fn put(&self, key: &str, payload: &[u8], plane: Plane) -> Result<()> {
+        self.put_owned(key, payload.to_vec(), plane).await
+    }
+
+    async fn put_owned(&self, key: &str, payload: Vec<u8>, plane: Plane) -> Result<()> {
         self.session
-            .put(key, payload.to_vec())
+            .put(key, payload)
             .congestion_control(plane.congestion())
             .priority(plane.priority())
             .express(plane.express())
@@ -1498,11 +1549,13 @@ impl ZenohBus {
 }
 
 /// A [`ncp_core::ControlTransport`] backed by Zenoh — the **controller side** of
-/// the streaming closed loop. It subscribes to the perception plane
+/// the streaming sensor-to-command leg. It subscribes to the perception plane
 /// (`…/session/{id}/sensor`), keeping the latest `SensorFrame`, and publishes
 /// `CommandFrame`s to the safety-gated action plane (`…/command`). Drop it into a
 /// `ncp_core::NeuroControlLoop` to run a spiking or reflex controller over Zenoh
-/// **streaming** — no per-tick RPC round trip. Construct within a tokio runtime.
+/// **streaming** — no per-tick RPC round trip. A complete causal loop also needs
+/// body admission or disposition, a plant transition, and a later sample that
+/// reflects that transition. Construct within a tokio runtime.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum CommandPriority {
     Active,
@@ -1510,10 +1563,174 @@ enum CommandPriority {
     Estop,
 }
 
+/// Owned bytes plus the position decoded from those exact bytes by the complete
+/// typed action-plane gate. Keeping this proof-bearing pair private prevents the
+/// dispatch worker from accepting arbitrary caller bytes on its decode-free path.
+#[derive(Debug)]
+struct ValidatedCommandPayload {
+    bytes: Vec<u8>,
+    stream: ncp_core::StreamPosition,
+}
+
 #[derive(Debug)]
 struct PendingCommand {
-    bytes: Vec<u8>,
+    payload: ValidatedCommandPayload,
     priority: CommandPriority,
+}
+
+/// Borrow every caller-owned command field while substituting the one
+/// transport-owned stream position. The field order deliberately matches
+/// `CommandFrame` so its bounded JSON bytes are identical to serializing an
+/// owned frame after replacing only `stream`.
+#[derive(serde::Serialize)]
+struct PositionedCommand<'a> {
+    ncp_version: &'a str,
+    kind: &'a str,
+    t: f64,
+    frame_id: &'a str,
+    mode: &'a ncp_core::Mode,
+    ttl_ms: f64,
+    channels: &'a ncp_core::Map<ncp_core::ChannelValue>,
+    horizon: &'a [ncp_core::Map<ncp_core::ChannelValue>],
+    horizon_dt_ms: &'a Option<f64>,
+    stream: &'a ncp_core::StreamPosition,
+    source: Option<&'a ncp_core::StreamPosition>,
+    source_t: f64,
+    session: &'a ncp_core::SessionRef,
+    session_id: &'a str,
+    authority: Option<&'a ncp_core::AuthorityLease>,
+}
+
+impl<'a> PositionedCommand<'a> {
+    fn new(command: &'a ncp_core::CommandFrame, stream: &'a ncp_core::StreamPosition) -> Self {
+        // Destructure every field without `..`. A future CommandFrame member must
+        // therefore update this zero-copy projection instead of silently
+        // disappearing from the transport serialization.
+        let ncp_core::CommandFrame {
+            ncp_version,
+            kind,
+            t,
+            frame_id,
+            mode,
+            ttl_ms,
+            channels,
+            horizon,
+            horizon_dt_ms,
+            stream: _,
+            source,
+            source_t,
+            session,
+            session_id,
+            authority,
+        } = command;
+        Self {
+            ncp_version,
+            kind,
+            t: *t,
+            frame_id,
+            mode,
+            ttl_ms: *ttl_ms,
+            channels,
+            horizon,
+            horizon_dt_ms,
+            stream,
+            source: source.as_ref(),
+            source_t: *source_t,
+            session,
+            session_id,
+            authority: authority.as_ref(),
+        }
+    }
+
+    fn bound_estop(
+        command: &'a ncp_core::CommandFrame,
+        stream: &'a ncp_core::StreamPosition,
+        authoritative_session_id: &'a str,
+        authoritative_session: &'a ncp_core::SessionRef,
+    ) -> Self {
+        let mut positioned = Self::new(command, stream);
+        let changes_session = command.session_id != authoritative_session_id
+            || command.session != *authoritative_session;
+        positioned.session_id = authoritative_session_id;
+        positioned.session = authoritative_session;
+        if changes_session {
+            // A StreamPosition does not carry its source session. Once a local
+            // emergency command is rebound from a foreign or malformed session,
+            // retaining its caller-supplied source would manufacture causal
+            // attribution inside the authoritative session.
+            positioned.source = None;
+            positioned.source_t = 0.0;
+        }
+        // A local ESTOP can omit its lease, but it cannot reuse a malformed or
+        // foreign caller lease as remote authority.
+        positioned.authority = None;
+        positioned
+    }
+}
+
+#[derive(Clone, Copy)]
+struct EstopPublisherBinding<'a> {
+    session_id: &'a str,
+    session: &'a ncp_core::SessionRef,
+}
+
+fn checked_command_bytes<T: serde::Serialize + ?Sized>(
+    command: &T,
+    session_id: &str,
+    session: &ncp_core::SessionRef,
+) -> Option<ValidatedCommandPayload> {
+    let payload = ncp_core::bounded_json::to_bounded_vec(command).ok()?;
+    // The typed plane gate performs the universal structural preflight once,
+    // decodes once, validates the exact wire shape, and checks the concrete
+    // route/session binding. Retain the position from that exact decoded frame;
+    // the private worker path can then fence it without decoding the immutable
+    // payload a second time.
+    let frame = check_command_payload_for(session_id, session, &payload).ok()?;
+    Some(ValidatedCommandPayload {
+        bytes: payload,
+        stream: frame.stream,
+    })
+}
+
+/// Serialize exactly one final positioned command. A locally generated ESTOP
+/// borrows all caller payload fields while replacing only publisher-owned
+/// identity. Invalid or over-budget diagnostics collapse to one small canonical
+/// ESTOP; they are never cloned into a second payload-sized object.
+fn serialize_command_for_position(
+    command: &ncp_core::CommandFrame,
+    position: &ncp_core::StreamPosition,
+    estop_binding: Option<EstopPublisherBinding<'_>>,
+) -> Option<ValidatedCommandPayload> {
+    let Some(binding) = estop_binding else {
+        return checked_command_bytes(
+            &PositionedCommand::new(command, position),
+            &command.session_id,
+            &command.session,
+        );
+    };
+
+    debug_assert_eq!(command.mode, ncp_core::Mode::Estop);
+    if let Some(payload) = checked_command_bytes(
+        &PositionedCommand::bound_estop(command, position, binding.session_id, binding.session),
+        binding.session_id,
+        binding.session,
+    ) {
+        return Some(payload);
+    }
+
+    // A programmatic ESTOP can contain resource-invalid diagnostic data that is
+    // unsafe to echo. Retain only emergency intent plus the authoritative
+    // publisher/session identity. The empty command map is deliberate: the body
+    // applies its content-addressed plant-profile ESTOP action. This transport
+    // must not invent a universal actuator value.
+    let fallback = ncp_core::CommandFrame {
+        stream: position.clone(),
+        session: binding.session.clone(),
+        session_id: binding.session_id.to_owned(),
+        mode: ncp_core::Mode::Estop,
+        ..Default::default()
+    };
+    checked_command_bytes(&fallback, binding.session_id, binding.session)
 }
 
 #[derive(Debug, Default)]
@@ -1542,65 +1759,97 @@ fn candidate_command_sequence(counter: &std::sync::atomic::AtomicI64) -> Option<
 
 /// Store at most one not-yet-published command. The transport is the action-stream
 /// publisher, so it assigns every new slot one position from a single allocator.
-/// Replacing an unattempted slot consumes a fresh position and reports local replacement.
-fn enqueue_command(
+/// Replacing an unattempted slot assigns a newer position. The displaced position
+/// remains a visible local-supersession gap and can never identify different bytes.
+fn enqueue_command_with_binding(
+    preparation: &std::sync::Mutex<()>,
     state: &std::sync::Mutex<CommandDispatchState>,
-    mut command: ncp_core::CommandFrame,
+    command: impl std::borrow::Borrow<ncp_core::CommandFrame>,
     stream_epoch: &str,
     sequence: &std::sync::atomic::AtomicI64,
+    estop_binding: Option<EstopPublisherBinding<'_>>,
 ) -> ncp_core::transport::CommandSendOutcome {
+    let command = command.borrow();
     let priority = command_priority(&command.mode);
+    // Serialize producers without holding the worker-facing slot mutex. This
+    // prevents two concurrent callers from completing positions out of order,
+    // while an already retained command remains available to the publisher.
+    let _preparation = preparation
+        .lock()
+        .unwrap_or_else(|error| error.into_inner());
+    let (seq, displaced_lower_priority) = {
+        let mut state = state.lock().unwrap_or_else(|error| error.into_inner());
+        if state
+            .required_fail_safe
+            .is_some_and(|required| priority < required)
+        {
+            return ncp_core::transport::CommandSendOutcome::Rejected;
+        }
+        if state
+            .pending
+            .as_ref()
+            .is_some_and(|current| current.priority > priority)
+        {
+            return ncp_core::transport::CommandSendOutcome::Rejected;
+        }
+        let Some(seq) = candidate_command_sequence(sequence) else {
+            if priority != CommandPriority::Active {
+                state.required_fail_safe = Some(
+                    state
+                        .required_fail_safe
+                        .map_or(priority, |old| old.max(priority)),
+                );
+                if state
+                    .pending
+                    .as_ref()
+                    .is_some_and(|pending| pending.priority < priority)
+                {
+                    state.pending = None;
+                }
+            }
+            return ncp_core::transport::CommandSendOutcome::StreamExhausted;
+        };
+        // Once assigned, the position is consumed even when serialization or
+        // slot installation later rejects. The producer guard serializes this
+        // relaxed atomic store with every other local sender.
+        sequence.store(seq, std::sync::atomic::Ordering::Relaxed);
+
+        // A stronger fail-safe must prevent an unpublished weaker frame from
+        // escaping while its exact bytes are prepared. Equal-priority pending
+        // work remains available to the worker and is replaced only if it has
+        // not crossed publication when preparation completes.
+        let displaced_lower_priority = state
+            .pending
+            .as_ref()
+            .is_some_and(|pending| pending.priority < priority);
+        if displaced_lower_priority {
+            state.pending = None;
+        }
+        (seq, displaced_lower_priority)
+    };
+    let position = ncp_core::StreamPosition {
+        epoch: stream_epoch.to_owned(),
+        seq,
+    };
+    // The transport-owned position is the final wire identity. Validate and
+    // serialize after assigning it so sequence-digit growth cannot move an
+    // otherwise near-limit frame past the universal byte ceiling in the async
+    // worker. No worker-facing slot lock is held during this bounded work.
+    let payload = serialize_command_for_position(
+        command,
+        &position,
+        estop_binding.filter(|_| priority == CommandPriority::Estop),
+    );
     let mut state = state.lock().unwrap_or_else(|error| error.into_inner());
+    // A fail-safe publication can become ambiguous while this candidate is
+    // being prepared. Recheck the latch before retaining the new bytes.
     if state
         .required_fail_safe
         .is_some_and(|required| priority < required)
     {
         return ncp_core::transport::CommandSendOutcome::Rejected;
     }
-    if state
-        .pending
-        .as_ref()
-        .is_some_and(|current| current.priority > priority)
-    {
-        return ncp_core::transport::CommandSendOutcome::Rejected;
-    }
-    let replaced = state.pending.is_some();
-    // One admitted position must never identify different payloads, including
-    // proposals observed before publication. Coalescing can leave an unpublished gap.
-    let Some(seq) = candidate_command_sequence(sequence) else {
-        if priority != CommandPriority::Active {
-            state.required_fail_safe = Some(
-                state
-                    .required_fail_safe
-                    .map_or(priority, |old| old.max(priority)),
-            );
-            if state
-                .pending
-                .as_ref()
-                .is_some_and(|pending| pending.priority < priority)
-            {
-                state.pending = None;
-            }
-        }
-        return ncp_core::transport::CommandSendOutcome::StreamExhausted;
-    };
-    command.stream = ncp_core::StreamPosition {
-        epoch: stream_epoch.to_owned(),
-        seq,
-    };
-    let position = command.stream.clone();
-    // The transport-owned position is the final wire identity. Validate and
-    // serialize after assigning it so sequence-digit growth cannot move an
-    // otherwise near-limit frame past the universal byte ceiling in the async
-    // worker. A rejected fail-safe blocks later weaker output because the caller
-    // cannot treat local construction as delivery.
-    let bytes = ncp_core::bounded_json::to_bounded_vec(&command)
-        .ok()
-        .filter(|payload| {
-            ncp_core::bounded_json::preflight(payload).is_ok()
-                && ncp_core::decode_validated::<ncp_core::CommandFrame>(payload).is_ok()
-        });
-    let Some(bytes) = bytes else {
+    let Some(payload) = payload else {
         if priority != CommandPriority::Active {
             state.required_fail_safe = Some(
                 state
@@ -1620,13 +1869,34 @@ fn enqueue_command(
         }
         return ncp_core::transport::CommandSendOutcome::Rejected;
     };
-    sequence.store(position.seq, std::sync::atomic::Ordering::Relaxed);
-    state.pending = Some(PendingCommand { bytes, priority });
+    debug_assert_eq!(payload.stream, position);
+    let replaced = displaced_lower_priority || state.pending.is_some();
+    state.pending = Some(PendingCommand { payload, priority });
     if replaced {
         ncp_core::transport::CommandSendOutcome::ReplacedPending(position)
     } else {
         ncp_core::transport::CommandSendOutcome::Accepted(position)
     }
+}
+
+#[cfg(test)]
+static TEST_COMMAND_PREPARATION: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+fn enqueue_command(
+    state: &std::sync::Mutex<CommandDispatchState>,
+    command: impl std::borrow::Borrow<ncp_core::CommandFrame>,
+    stream_epoch: &str,
+    sequence: &std::sync::atomic::AtomicI64,
+) -> ncp_core::transport::CommandSendOutcome {
+    enqueue_command_with_binding(
+        &TEST_COMMAND_PREPARATION,
+        state,
+        command,
+        stream_epoch,
+        sequence,
+        None,
+    )
 }
 
 fn note_publish_failure(state: &std::sync::Mutex<CommandDispatchState>, priority: CommandPriority) {
@@ -1679,7 +1949,7 @@ async fn dispatch_commands(
                 break;
             };
             match bus
-                .publish_command_classified(&session_id, &session, &pending.bytes)
+                .publish_validated_owned_command_classified(&session_id, &session, pending.payload)
                 .await
             {
                 Ok(()) => note_publish_success(&state, pending.priority),
@@ -1707,6 +1977,7 @@ pub struct ZenohControlTransport {
     session_id: String,
     session: ncp_core::SessionRef,
     latest: Arc<std::sync::Mutex<ncp_core::transport::SensorInbox>>,
+    command_preparation: std::sync::Mutex<()>,
     command_state: Arc<std::sync::Mutex<CommandDispatchState>>,
     command_notify: Arc<tokio::sync::Notify>,
     command_worker: tokio::task::JoinHandle<()>,
@@ -1776,6 +2047,7 @@ impl ZenohControlTransport {
             session_id,
             session,
             latest,
+            command_preparation: std::sync::Mutex::new(()),
             command_state,
             command_notify,
             command_worker,
@@ -1834,103 +2106,11 @@ fn command_publish_decision(cmd: &ncp_core::CommandFrame) -> PublishDecision {
     }
 }
 
-/// Repair the publisher identity on a locally submitted ESTOP and bind it to the
-/// transport's immutable live session. Caller-provided cross-session identity is
-/// never allowed to choose the action-plane key or latch.
-fn ensure_publishable_estop_identity(
-    frame: &mut ncp_core::CommandFrame,
-    authoritative_session_id: &str,
-    authoritative_session: &ncp_core::SessionRef,
-    command_stream_epoch: &str,
-    provisional_seq: i64,
-) {
-    if !ncp_core::is_canonical_uuid_v4(&frame.stream.epoch)
-        || !(1..=ncp_core::JSON_SAFE_INTEGER_MAX).contains(&frame.stream.seq)
-    {
-        frame.stream.epoch = command_stream_epoch.to_string();
-        frame.stream.seq = provisional_seq;
-    }
-    frame.session_id = authoritative_session_id.to_string();
-    frame.session = authoritative_session.clone();
-    // The protocol admits ESTOP without a lease. This local publisher binding is
-    // not transport authentication; a production adapter must separately bind the
-    // sender to its verified transport principal. Carrying a malformed or foreign
-    // lease would only make the normalized local emergency envelope invalid.
-    frame.authority = None;
-}
-
-fn normalize_command_for_publish<'a>(
-    command: &'a ncp_core::CommandFrame,
-    authoritative_session_id: &str,
-    authoritative_session: &ncp_core::SessionRef,
-    command_stream_epoch: &str,
-    provisional_seq: i64,
-) -> std::borrow::Cow<'a, ncp_core::CommandFrame> {
-    if command.mode == ncp_core::Mode::Estop {
-        let raw_is_bounded = ncp_core::bounded_json::to_bounded_vec(command)
-            .ok()
-            .is_some_and(|payload| ncp_core::bounded_json::preflight(&payload).is_ok());
-        if raw_is_bounded {
-            let mut safe = command.clone();
-            // Bind a local ESTOP to this transport's session and publisher identity.
-            // This clears caller authority rather than inventing or repairing it.
-            ensure_publishable_estop_identity(
-                &mut safe,
-                authoritative_session_id,
-                authoritative_session,
-                command_stream_epoch,
-                provisional_seq,
-            );
-            let exact_wire = ncp_core::bounded_json::to_bounded_vec(&safe)
-                .ok()
-                .is_some_and(|payload| {
-                    ncp_core::bounded_json::preflight(&payload).is_ok()
-                        && check_command_payload_for(
-                            authoritative_session_id,
-                            authoritative_session,
-                            &payload,
-                        )
-                        .is_ok()
-                });
-            if exact_wire {
-                return std::borrow::Cow::Owned(safe);
-            }
-        }
-        // A programmatic ESTOP can contain resource-invalid diagnostic data
-        // that is unsafe to echo. Retain only the emergency mode and
-        // authoritative publisher/session identity. An empty command map is
-        // deliberate: the body applies its content-addressed plant-profile
-        // ESTOP action; the transport must not manufacture a universal action.
-        let safe = ncp_core::CommandFrame {
-            stream: ncp_core::StreamPosition {
-                epoch: command_stream_epoch.to_owned(),
-                seq: provisional_seq,
-            },
-            session: authoritative_session.clone(),
-            session_id: authoritative_session_id.to_owned(),
-            mode: ncp_core::Mode::Estop,
-            ..Default::default()
-        };
-        std::borrow::Cow::Owned(safe)
-    } else {
-        std::borrow::Cow::Borrowed(command)
-    }
-}
-
 impl ncp_core::ControlTransport for ZenohControlTransport {
     fn send_command(
         &self,
         command: &ncp_core::CommandFrame,
     ) -> ncp_core::transport::CommandSendOutcome {
-        // Bound a programmatic non-ESTOP before any owned clone. ESTOP takes the
-        // bounded-or-minimal path in `normalize_command_for_publish` below.
-        if command.mode != ncp_core::Mode::Estop
-            && ncp_core::bounded_json::to_bounded_vec(command)
-                .ok()
-                .is_none_or(|payload| ncp_core::bounded_json::preflight(&payload).is_err())
-        {
-            return ncp_core::transport::CommandSendOutcome::Rejected;
-        }
         // Never publish a wire-invalid remote frame. A local ESTOP is normalized
         // into a complete envelope below; the remote publisher gate has no envelope
         // exception.
@@ -1954,21 +2134,20 @@ impl ncp_core::ControlTransport for ZenohControlTransport {
             );
             return ncp_core::transport::CommandSendOutcome::Rejected;
         }
-        // Normalize a malformed in-memory ESTOP to a complete minimal wire frame;
-        // enqueue_command then replaces every caller stream position with the one
-        // transport-owned action stream, avoiding mixed emergency/caller epochs.
-        let command = normalize_command_for_publish(
-            command,
-            &self.session_id,
-            &self.session,
-            &self.command_stream_epoch,
-            1,
-        );
-        let outcome = enqueue_command(
+        // Every candidate receives one final transport-owned position. A local
+        // ESTOP is serialized through a borrowed identity projection; invalid
+        // diagnostics fall back to a small canonical frame. Neither path clones
+        // the complete command or performs a provisional serialization.
+        let outcome = enqueue_command_with_binding(
+            &self.command_preparation,
             &self.command_state,
-            command.into_owned(),
+            command,
             &self.command_stream_epoch,
             &self.command_seq,
+            Some(EstopPublisherBinding {
+                session_id: &self.session_id,
+                session: &self.session,
+            }),
         );
         if matches!(
             outcome,
@@ -2436,6 +2615,18 @@ mod tests {
             format!("key-{OBSERVATION_QUEUE_CAPACITY}")
         );
         assert_eq!(drops.load(std::sync::atomic::Ordering::Relaxed), 1);
+
+        drops.store(u64::MAX, std::sync::atomic::Ordering::Relaxed);
+        enqueue_observation(
+            &std::sync::Mutex::new(queue),
+            ("last".into(), vec![]),
+            &drops,
+        );
+        assert_eq!(
+            drops.load(std::sync::atomic::Ordering::Relaxed),
+            u64::MAX,
+            "the cumulative loss counter must saturate instead of wrapping"
+        );
     }
 
     #[test]
@@ -2974,13 +3165,23 @@ mod tests {
             "bad\nchannel".into(),
             ncp_core::ChannelValue::scalar(f64::NAN, None),
         );
-        let normalized = normalize_command_for_publish(
+        let normalized_position = ncp_core::StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 7,
+        };
+        let normalized_payload = serialize_command_for_position(
             &invalid_estop,
-            "bound-session",
-            &live,
-            "40000000-0000-4000-8000-000000000004",
-            7,
-        );
+            &normalized_position,
+            Some(EstopPublisherBinding {
+                session_id: "bound-session",
+                session: &live,
+            }),
+        )
+        .expect("malformed local ESTOP must produce a bounded fallback");
+        let normalized =
+            ncp_core::decode_validated::<ncp_core::CommandFrame>(&normalized_payload.bytes)
+                .expect("fallback must decode as one exact typed command");
+        assert_eq!(normalized_payload.stream, normalized_position);
         assert_eq!(normalized.mode, ncp_core::Mode::Estop);
         assert_eq!(normalized.session_id, "bound-session");
         assert_eq!(normalized.session, live);
@@ -2991,14 +3192,10 @@ mod tests {
             normalized.channels.is_empty(),
             "transport fallback must leave the plant-profile action to the body"
         );
-        ncp_core::WireFrame::validate_wire(normalized.as_ref())
+        ncp_core::WireFrame::validate_wire(&normalized)
             .expect("transport must normalize an in-memory ESTOP to a publishable minimal frame");
-        check_command_payload_for(
-            "bound-session",
-            &live,
-            &serde_json::to_vec(normalized.as_ref()).unwrap(),
-        )
-        .expect("normalized malformed ESTOP must pass the typed publisher gate");
+        check_command_payload_for("bound-session", &live, &normalized_payload.bytes)
+            .expect("normalized malformed ESTOP must pass the typed publisher gate");
 
         let cross_session_estop = ncp_core::CommandFrame {
             session_id: "other-session".into(),
@@ -3009,7 +3206,13 @@ mod tests {
             session: ncp_core::SessionRef {
                 generation: "20000000-0000-4000-8000-000000000002".into(),
             },
+            source: Some(ncp_core::StreamPosition {
+                epoch: "30000000-0000-4000-8000-000000000003".into(),
+                seq: 6,
+            }),
+            source_t: 1.0,
             mode: ncp_core::Mode::Estop,
+            authority: Some(test_authority()),
             channels: [(
                 "deployment_stop".into(),
                 ncp_core::ChannelValue::scalar(0.25, Some("plant-unit")),
@@ -3018,26 +3221,49 @@ mod tests {
             .collect(),
             ..Default::default()
         };
-        let normalized = normalize_command_for_publish(
+        let normalized_position = ncp_core::StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 8,
+        };
+        let normalized_payload = serialize_command_for_position(
             &cross_session_estop,
-            "bound-session",
-            &live,
-            "40000000-0000-4000-8000-000000000004",
-            8,
-        );
+            &normalized_position,
+            Some(EstopPublisherBinding {
+                session_id: "bound-session",
+                session: &live,
+            }),
+        )
+        .expect("bounded ESTOP must serialize through the authoritative binding");
+        let normalized =
+            ncp_core::decode_validated::<ncp_core::CommandFrame>(&normalized_payload.bytes)
+                .expect("bound ESTOP must decode as one exact typed command");
+        assert_eq!(normalized_payload.stream, normalized_position);
         assert_eq!(normalized.session_id, "bound-session");
         assert_eq!(normalized.session, live);
+        assert_eq!(normalized.stream, normalized_position);
+        assert_eq!(normalized.source, None);
+        assert_eq!(normalized.source_t, 0.0);
+        assert_eq!(normalized.authority, None);
         assert_eq!(
             normalized.channels.get("deployment_stop"),
             cross_session_estop.channels.get("deployment_stop"),
             "a bounded valid ESTOP payload must not be replaced by a transport action"
         );
-        check_command_payload_for(
-            "bound-session",
-            &live,
-            &serde_json::to_vec(normalized.as_ref()).unwrap(),
-        )
-        .expect("typed ESTOP must reach its bound live-session publisher");
+        let mut expected = cross_session_estop.clone();
+        expected.stream = normalized_position;
+        expected.session_id = "bound-session".into();
+        expected.session = live.clone();
+        expected.source = None;
+        expected.source_t = 0.0;
+        expected.authority = None;
+        assert_eq!(
+            normalized_payload.bytes,
+            ncp_core::bounded_json::to_bounded_vec(&expected)
+                .expect("equivalent owned ESTOP must serialize"),
+            "borrowed ESTOP binding must alter only publisher-owned identity and unverifiable correlation"
+        );
+        check_command_payload_for("bound-session", &live, &normalized_payload.bytes)
+            .expect("typed ESTOP must reach its bound live-session publisher");
     }
 
     #[test]
@@ -3068,13 +3294,22 @@ mod tests {
             "programmatic input must hit the output cap before an oversized clone is retained"
         );
 
-        let normalized = normalize_command_for_publish(
+        let normalized_position = ncp_core::StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 9,
+        };
+        let payload = serialize_command_for_position(
             &command,
-            "bound-session",
-            &live,
-            "40000000-0000-4000-8000-000000000004",
-            9,
-        );
+            &normalized_position,
+            Some(EstopPublisherBinding {
+                session_id: "bound-session",
+                session: &live,
+            }),
+        )
+        .expect("oversized local ESTOP must produce a bounded fallback");
+        let normalized = ncp_core::decode_validated::<ncp_core::CommandFrame>(&payload.bytes)
+            .expect("fallback must decode as one exact typed command");
+        assert_eq!(payload.stream, normalized_position);
 
         assert_eq!(normalized.mode, ncp_core::Mode::Estop);
         assert_eq!(normalized.session_id, "bound-session");
@@ -3084,13 +3319,51 @@ mod tests {
             normalized.channels.is_empty(),
             "transport fallback must not manufacture an actuator command"
         );
-        let payload = serde_json::to_vec(normalized.as_ref()).unwrap();
-        ncp_core::bounded_json::preflight(&payload)
+        ncp_core::bounded_json::preflight(&payload.bytes)
             .expect("canonical ESTOP fallback must satisfy the ingress resource budget");
-        ncp_core::WireFrame::validate_wire(normalized.as_ref())
+        ncp_core::WireFrame::validate_wire(&normalized)
             .expect("canonical ESTOP fallback must satisfy typed wire validation");
-        check_command_payload_for("bound-session", &live, &payload)
+        check_command_payload_for("bound-session", &live, &payload.bytes)
             .expect("canonical ESTOP fallback must pass the publisher gate");
+    }
+
+    #[test]
+    fn borrowed_positioned_command_matches_owned_frame_serialization() {
+        let channels = ncp_core::Map::from([(
+            "velocity_setpoint".into(),
+            ncp_core::ChannelValue::vec3(0.5, -0.25, 0.0, Some("m/s")),
+        )]);
+        let mut command = ncp_core::CommandFrame {
+            t: 1.25,
+            frame_id: "serialization-parity".into(),
+            mode: ncp_core::Mode::Active,
+            ttl_ms: 75.0,
+            channels: channels.clone(),
+            horizon: vec![channels],
+            horizon_dt_ms: Some(25.0),
+            session: live_session(),
+            session_id: "s".into(),
+            source: Some(ncp_core::StreamPosition {
+                epoch: "10000000-0000-4000-8000-000000000001".into(),
+                seq: 7,
+            }),
+            source_t: 1.2,
+            authority: Some(test_authority()),
+            ..Default::default()
+        };
+        let position = ncp_core::StreamPosition {
+            epoch: "40000000-0000-4000-8000-000000000004".into(),
+            seq: 11,
+        };
+
+        let borrowed =
+            ncp_core::bounded_json::to_bounded_vec(&PositionedCommand::new(&command, &position))
+                .expect("borrowed projection must serialize");
+        command.stream = position;
+        let owned = ncp_core::bounded_json::to_bounded_vec(&command)
+            .expect("equivalent owned frame must serialize");
+
+        assert_eq!(borrowed, owned);
     }
 
     #[test]
@@ -3129,15 +3402,36 @@ mod tests {
             ttl_ms: f64::NAN,
             ..Default::default()
         };
-        let normalized = normalize_command_for_publish(&estop, "s", &live, STREAM, 1);
-        let payload = serde_json::to_vec(normalized.as_ref()).unwrap();
-        check_command_payload_for("s", &live, &payload)
+        let positioned = ncp_core::StreamPosition {
+            epoch: STREAM.into(),
+            seq: 2,
+        };
+        let payload = serialize_command_for_position(
+            &estop,
+            &positioned,
+            Some(EstopPublisherBinding {
+                session_id: "s",
+                session: &live,
+            }),
+        )
+        .expect("invalid ESTOP fields must collapse to a bounded fallback");
+        check_command_payload_for("s", &live, &payload.bytes)
             .expect("ESTOP normalization must fall back to exact typed wire bytes");
         assert_eq!(
-            enqueue_command(&state, normalized.into_owned(), STREAM, &sequence,),
+            enqueue_command_with_binding(
+                &TEST_COMMAND_PREPARATION,
+                &state,
+                &estop,
+                STREAM,
+                &sequence,
+                Some(EstopPublisherBinding {
+                    session_id: "s",
+                    session: &live,
+                }),
+            ),
             ncp_core::transport::CommandSendOutcome::Accepted(ncp_core::StreamPosition {
                 epoch: STREAM.into(),
-                seq: 1,
+                seq: 2,
             })
         );
     }
@@ -3174,6 +3468,14 @@ mod tests {
             epoch: STREAM.into(),
             seq: 1,
         };
+        let second = ncp_core::StreamPosition {
+            epoch: STREAM.into(),
+            seq: 2,
+        };
+        let third = ncp_core::StreamPosition {
+            epoch: STREAM.into(),
+            seq: 3,
+        };
         assert_eq!(
             enqueue_command(
                 &state,
@@ -3185,10 +3487,7 @@ mod tests {
         );
         assert_eq!(
             enqueue_command(&state, command(2, CommandPriority::Hold), STREAM, &sequence,),
-            ncp_core::transport::CommandSendOutcome::ReplacedPending(ncp_core::StreamPosition {
-                epoch: STREAM.into(),
-                seq: 2,
-            })
+            ncp_core::transport::CommandSendOutcome::ReplacedPending(second)
         );
         assert_eq!(
             enqueue_command(
@@ -3207,10 +3506,7 @@ mod tests {
                 STREAM,
                 &sequence,
             ),
-            ncp_core::transport::CommandSendOutcome::ReplacedPending(ncp_core::StreamPosition {
-                epoch: STREAM.into(),
-                seq: 3,
-            })
+            ncp_core::transport::CommandSendOutcome::ReplacedPending(third)
         );
         assert_eq!(
             enqueue_command(&state, command(5, CommandPriority::Hold), STREAM, &sequence,),
@@ -3218,13 +3514,16 @@ mod tests {
             "HOLD must not overwrite a pending ESTOP"
         );
         let queued = state.into_inner().unwrap().pending.unwrap();
-        let queued_command: ncp_core::CommandFrame = serde_json::from_slice(&queued.bytes).unwrap();
+        let queued_frame =
+            ncp_core::decode_validated::<ncp_core::CommandFrame>(&queued.payload.bytes)
+                .expect("pending slot retains exact validated command bytes");
         assert_eq!(queued.priority, CommandPriority::Estop);
-        assert_eq!(queued_command.frame_id, "4");
-        assert_eq!(queued_command.stream.epoch, STREAM);
+        assert_eq!(queued.payload.stream, queued_frame.stream);
+        assert_eq!(queued_frame.frame_id, "4");
+        assert_eq!(queued_frame.stream.epoch, STREAM);
         assert_eq!(
-            queued_command.stream.seq, 3,
-            "every admitted replacement has one distinct payload position"
+            queued_frame.stream.seq, 3,
+            "each accepted replacement has a distinct transport identity"
         );
         assert_eq!(sequence.load(std::sync::atomic::Ordering::Relaxed), 3);
     }
@@ -3261,8 +3560,11 @@ mod tests {
             })
         );
         let failed = state.lock().unwrap().pending.take().unwrap();
-        let failed_command: ncp_core::CommandFrame = serde_json::from_slice(&failed.bytes).unwrap();
-        assert_eq!(failed_command.stream.seq, 1);
+        let failed_frame =
+            ncp_core::decode_validated::<ncp_core::CommandFrame>(&failed.payload.bytes)
+                .expect("failed slot retains exact validated command bytes");
+        assert_eq!(failed.payload.stream, failed_frame.stream);
+        assert_eq!(failed_frame.stream.seq, 1);
         note_publish_failure(&state, failed.priority);
 
         assert_eq!(
@@ -3280,11 +3582,11 @@ mod tests {
             })
         );
         let retry = state.lock().unwrap().pending.take().unwrap();
-        let retry_command: ncp_core::CommandFrame = serde_json::from_slice(&retry.bytes).unwrap();
-        assert_eq!(
-            retry_command.stream.seq, 2,
-            "recovery is a new logical frame"
-        );
+        let retry_frame =
+            ncp_core::decode_validated::<ncp_core::CommandFrame>(&retry.payload.bytes)
+                .expect("retry slot retains exact validated command bytes");
+        assert_eq!(retry.payload.stream, retry_frame.stream);
+        assert_eq!(retry_frame.stream.seq, 2, "recovery is a new logical frame");
         note_publish_success(&state, retry.priority);
 
         assert_eq!(
@@ -3301,7 +3603,7 @@ mod tests {
     fn final_position_preflight_rejects_and_displaces_weaker_pending_command() {
         const STREAM: &str = "40000000-0000-4000-8000-000000000004";
         let state = std::sync::Mutex::new(CommandDispatchState::default());
-        let sequence = std::sync::atomic::AtomicI64::new(ncp_core::JSON_SAFE_INTEGER_MAX - 2);
+        let sequence = std::sync::atomic::AtomicI64::new(8);
         let mut active_channels = ncp_core::Map::new();
         active_channels.insert("setpoint".into(), ncp_core::ChannelValue::scalar(0.0, None));
         let active = ncp_core::CommandFrame {
@@ -3320,7 +3622,7 @@ mod tests {
             enqueue_command(&state, active.clone(), STREAM, &sequence),
             ncp_core::transport::CommandSendOutcome::Accepted(ncp_core::StreamPosition {
                 epoch: STREAM.into(),
-                seq: ncp_core::JSON_SAFE_INTEGER_MAX - 1,
+                seq: 9,
             })
         );
 
@@ -3372,6 +3674,11 @@ mod tests {
         );
         assert_eq!(guarded.required_fail_safe, Some(CommandPriority::Hold));
         drop(guarded);
+        assert_eq!(
+            sequence.load(std::sync::atomic::Ordering::Relaxed),
+            10,
+            "the rejected final frame still consumes its assigned position"
+        );
         assert_eq!(
             enqueue_command(&state, active, STREAM, &sequence),
             ncp_core::transport::CommandSendOutcome::Rejected,

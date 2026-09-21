@@ -28,16 +28,19 @@ pub const MAX_STREAM_FENCE_KIND_BYTES: usize = 128;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct StreamState {
+    route: Box<str>,
+    kind: Box<str>,
+    generation: Box<str>,
     epoch: String,
     high_water_seq: i64,
 }
 
 /// A bounded, non-evicting high-water fence for typed stream positions.
 ///
-/// State is keyed by a fixed-size SHA-256 digest of the concrete route, message
-/// kind, and immutable live session generation. The digest prevents caller-sized
-/// strings from being retained while preserving the same domain-separated identity
-/// convention used by the rest of the NCP contract.
+/// State is indexed by a fixed-size SHA-256 digest of the concrete route, message
+/// kind, and immutable live session generation. The bounded exact strings are
+/// retained once and compared after lookup. The digest therefore accelerates
+/// lookup but never substitutes for exact identity.
 #[derive(Debug)]
 pub struct StreamMonotonicityFence {
     capacity: usize,
@@ -97,6 +100,12 @@ impl StreamMonotonicityFence {
 
         let key = stream_fence_key(route, kind, &live_session.generation);
         if let Some(state) = self.streams.get_mut(&key) {
+            if state.route.as_ref() != route
+                || state.kind.as_ref() != kind
+                || state.generation.as_ref() != live_session.generation
+            {
+                return Err(StreamFenceError::IdentityDigestCollision);
+            }
             if stream.epoch != state.epoch {
                 return Err(StreamFenceError::ForeignEpoch {
                     expected: state.epoch.clone(),
@@ -121,6 +130,9 @@ impl StreamMonotonicityFence {
         self.streams.insert(
             key,
             StreamState {
+                route: route.into(),
+                kind: kind.into(),
+                generation: live_session.generation.clone().into_boxed_str(),
                 epoch: stream.epoch.clone(),
                 high_water_seq: stream.seq,
             },
@@ -193,6 +205,8 @@ pub enum StreamFenceError {
     InvalidSequence(i64),
     /// A new key could not be retained without exceeding the configured bound.
     CapacityExceeded { capacity: usize },
+    /// The lookup digest matched but the retained bounded identity did not.
+    IdentityDigestCollision,
     /// The key was already bound to another stream incarnation.
     ForeignEpoch { expected: String, actual: String },
     /// The sequence duplicated or preceded the accepted high-water mark.
@@ -222,6 +236,10 @@ impl std::fmt::Display for StreamFenceError {
             Self::CapacityExceeded { capacity } => write!(
                 formatter,
                 "stream fence capacity {capacity} exhausted; entries are never evicted"
+            ),
+            Self::IdentityDigestCollision => write!(
+                formatter,
+                "stream fence identity digest collision: retained state is unchanged"
             ),
             Self::ForeignEpoch { expected, actual } => write!(
                 formatter,
@@ -404,5 +422,34 @@ mod tests {
                 .unwrap_err(),
             StreamFenceError::CapacityExceeded { capacity: 1 }
         );
+    }
+
+    #[test]
+    fn digest_lookup_never_substitutes_for_exact_identity() {
+        let key = stream_fence_key(ROUTE, "sensor_frame", GENERATION);
+        let mut fence = StreamMonotonicityFence::with_capacity(1).unwrap();
+        fence.streams.insert(
+            key,
+            StreamState {
+                route: "ncp/session/other/sensor".into(),
+                kind: "sensor_frame".into(),
+                generation: GENERATION.into(),
+                epoch: EPOCH_A.into(),
+                high_water_seq: 7,
+            },
+        );
+
+        assert_eq!(
+            fence
+                .accept(
+                    ROUTE,
+                    "sensor_frame",
+                    &live_session(),
+                    &position(EPOCH_A, 8),
+                )
+                .unwrap_err(),
+            StreamFenceError::IdentityDigestCollision
+        );
+        assert_eq!(fence.streams[&key].high_water_seq, 7);
     }
 }

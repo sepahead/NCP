@@ -1,8 +1,9 @@
-# Modular local SDK under development
+# Modular local SDK
 
-This component implements bounded payload primitives and a closed generic request owner under development.
+This development SDK implements bounded payload primitives and a closed generic request owner.
 It is not an installed application profile, launcher, or release.
 The existing `ncp.local-lockstep.v1` descriptor and envelopes remain unchanged.
+The [current guide](STATUS.md) explains modular architecture, interface mathematics, implemented applications, measured cases, and remaining work.
 
 The Rust and Python modules independently implement chunks, manifests, owned buffers, imports, and logical capacity checks.
 The [owner contract](owner.md) adds request admission, retained outcomes, acknowledgements, local reservation tickets, selected input leases, and terminal resource checks.
@@ -124,7 +125,7 @@ The client retains uncertain dispatches and prevents further operations on that 
 
 The generic SDK implements no sensor-specific admission.
 CREBAIN's [separate sensor application](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-ground-sensors) defines RGB, thermal radiance, and acoustic pressure contracts.
-Its construction and native engineering evidence do not close installed application qualification.
+Its current guide distinguishes source controls, selected native observations, and installed application qualification.
 The test-only tensor consumer checks finite `f32le` components and exact two-dimensional byte lengths.
 Those controls do not implement an installed sensor profile.
 The byte manifest carries no tensor dimensions, scalar type, layout, units, or sensor clock.
@@ -136,9 +137,11 @@ The receiver must verify dimensions times scalar width against the payload lengt
 No field may be added silently to a published byte-manifest v1.
 Primitive publication alone cannot qualify typed sensor transfer.
 
-The actual CREBAIN environment uses Bun, Node, Playwright, and Chromium Metal.
-Its runtime does not fit the existing reference body's executable or Engram sandbox policy.
-A modular launcher requires its own process, network, lifetime, and cleanup contract.
+CREBAIN uses Bun with its selected native environment.
+Camera selections additionally use Node, Playwright, and Chromium Metal.
+The [installed body API](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-ground-sensors/python) supplies an explicit runtime installer and process guardian.
+Its lifecycle and trusted-runtime contract differs from the earlier reference body and Engram sandbox.
+Installed native qualification remains specific to the selected artifacts, sensor configurations, and observed cleanup paths.
 The typed bridge must preserve declared binary representations, including permitted signed zero.
 
 CPU fork handles may remain local capabilities in the first sensor-transfer profile.
@@ -146,10 +149,10 @@ A 64 MiB serialized checkpoint cannot fit in one 8 MiB buffer.
 Checkpoint export requires a separately typed segmentation contract.
 Capture-only import grants no live branch, restore, or scientific completion authority.
 
-The frozen composition council matrix remains the application acceptance plan.
+The frozen composition council matrix remains a preserved application control roster.
 The owner has a separate reviewed SDK boundary matrix.
 Primitive and owner controls cover only their named structural requirements.
-Real compositions, maximum sensor workloads, and installed qualification remain open.
+The [current status](STATUS.md#implemented-and-observed) distinguishes selected native compositions from the remaining installed and maximum-workload qualification.
 
 ## Focused verification
 

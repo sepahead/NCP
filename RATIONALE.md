@@ -145,13 +145,13 @@ its routing, QoS, queryable, and topology features. A deployment must measure th
 shipped NCP copy path, security profile, topology, payload, and load before it sets a
 latency budget.
 
-One wire-shape-neutral optimization candidate is worth recording.
-`ZenohBus::put` in `ncp-zenoh/src/lib.rs` currently calls `payload.to_vec()` for
-each publish. An owned-buffer or compatible `ZBytes` path could remove that copy.
-It would not establish shared-memory zero-copy by itself. Ownership, buffer
-compatibility, backpressure, security behavior, and end-to-end measurements still
-need implementation and verification. See `KNOWN_LIMITATIONS.md` for the current
-bus and safety boundaries.
+The public borrowed `ZenohBus::put` calls `payload.to_vec()` because its caller
+retains the slice. The command dispatcher instead moves its final owned, validated
+buffer through a private `put_owned` path, so it does not make that second copy.
+This is not shared-memory zero-copy: command serialization, bounded validation,
+Zenoh conversion, backpressure, security behavior, and end-to-end measurements
+still need qualification. See `KNOWN_LIMITATIONS.md` for the current bus and safety
+boundaries.
 
 
 **MAVLink / MAVROS.** MAVLink or MAVROS can own a UAV actuation edge that an NCP

@@ -9,7 +9,6 @@
 
 use crate::bounded_json::{MAX_FINITE_NUMBER_MAGNITUDE, MAX_NESTING_DEPTH};
 use serde_json::{Map, Value};
-use sha2::{Digest, Sha256};
 use std::fmt;
 
 /// Exact domain prefix for the NCP request-digest-v1 byte stream.
@@ -190,8 +189,7 @@ pub fn canonical_request_projection(request: &Value) -> Result<Vec<u8>, RequestD
 /// Compute the lowercase SHA-256 digest of a mutation's canonical projection.
 pub fn request_digest(request: &Value) -> Result<String, RequestDigestError> {
     let projection = canonical_request_projection(request)?;
-    let digest = Sha256::digest(projection);
-    Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
+    Ok(crate::canonical_digest::sha256_hex(&projection))
 }
 
 /// Verify the embedded `operation.request_digest` against the canonical request.

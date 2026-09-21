@@ -222,11 +222,11 @@ mod wire_tests {
     }
 
     /// codec-bus-1: the decoder's readout populations (`vel_*`) are absent from
-    /// `pop_rates` here, so each component must fall to the NEUTRAL midpoint (0.0
-    /// for the symmetric ±1.5 range) — NOT the value-range low bound (-1.5 m/s,
-    /// full-reverse actuation that the governor's magnitude clamp would pass).
+    /// `pop_rates` here, so each component must fall to the declared midpoint (0.0
+    /// for the symmetric ±1.5 range), not the value-range low bound (-1.5 m/s).
+    /// This unchecked proposal is not a plant-specific safe action.
     #[test]
-    fn codec_absent_population_maps_to_neutral_not_full_reverse() {
+    fn codec_absent_population_maps_to_midpoint_not_full_reverse() {
         let codec = default_uav_velocity_codec();
         let cmd = codec.decode(
             &Map::new(),
@@ -240,16 +240,15 @@ mod wire_tests {
         for c in &cmd.channels["velocity_setpoint"].data {
             assert!(
                 c.abs() < 1e-9,
-                "absent population must decode to neutral 0.0, got {c}"
+                "absent population must decode to midpoint 0.0, got {c}"
             );
         }
     }
 
-    /// A non-finite sensor sample must not poison the rate pipeline: a NaN error
-    /// component encodes to the low bound of the rate range (fail-safe), never
-    /// to a NaN rate.
+    /// The unchecked mapper must not propagate a non-finite sensor value. It uses
+    /// the low rate bound. Checked ingress rejects the source frame instead.
     #[test]
-    fn codec_nan_sensor_fails_safe_to_low_bound() {
+    fn codec_unchecked_nan_sensor_maps_to_low_bound() {
         let codec = default_uav_velocity_codec();
         let mut channels = Map::new();
         channels.insert(

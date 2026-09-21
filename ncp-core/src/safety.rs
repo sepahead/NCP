@@ -326,9 +326,11 @@ impl SafetyGovernor {
         }
     }
 
-    /// Whether the last governed command was safe. False under a latched ESTOP or a
-    /// config-level fail-closed (undeclared limit channel). The loop reports this
-    /// in `ControlStatus.safety_ok`.
+    /// Whether the governor has neither a latched ESTOP nor a configuration-level
+    /// fail-closed state. A transient HOLD can coexist with `true`. This predicate
+    /// is logical health telemetry, not proof of physical safety or effect. The
+    /// reference loop combines it with rate, clock, and controller health in
+    /// `ControlStatus.safety_ok`.
     pub fn safety_ok(&self) -> bool {
         !self.estop && !self.config_fail_closed
     }
@@ -681,8 +683,10 @@ impl SafetyGovernor {
                 let pos = sensor.channels.get(&self.position_channel);
                 match pos {
                     None => {
-                        // Cannot evaluate the fence -> fail closed. HOLD (non-latching:
-                        // the channel may reappear) with safety_ok=false at the caller.
+                        // Cannot evaluate the fence -> fail closed. HOLD remains
+                        // non-latching because the channel may reappear. The
+                        // status mode reports HOLD; `safety_ok` continues to mean
+                        // that no ESTOP or configuration fault is latched.
                         return self.hold_frame(command);
                     }
                     Some(pos) => {

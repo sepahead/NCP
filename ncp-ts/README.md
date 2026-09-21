@@ -59,6 +59,15 @@ only when it already matches. Placeholders and payload/digest divergence fail
 before transport. A successful open must also preserve the precommitted security
 profile, security-state digest, gateway permission, and gateway attribution.
 
+The client retains the authoritative state version from `open()` and each
+correlated terminal receipt. A new mutation must use that exact version. A retry
+keeps the original compare-and-swap coordinate because it identifies an earlier
+operation rather than a new state transition. Only one mutation can remain in
+flight for a live generation. A correlated rejected or cancelled receipt supplies
+the next known state. A transport failure, malformed result, uncorrelated error, or
+replay-fence violation does not. Those cases retire the local generation, so the
+caller cannot guess a version and continue.
+
 Session generations are process-local client state. A newly constructed client
 cannot mutate a session until its own successful `open()`. Starting a reopen retires
 the previous local generation before the transport wait, so an unavailable reopen
@@ -69,8 +78,9 @@ generation after its transport wait, so a late old result cannot overwrite or
 complete against a newer opening. Generations observed by that client instance are
 retained in a bounded non-evicting fence and cannot be revived during the same
 instance lifetime. Step/run observations bind the fresh generation to one stream
-epoch. The first reply must use sequence 1. Later
-positions must advance the high-water mark, forward gaps are tolerated, and only a
+epoch. The first reply seen by this client may have any positive JSON-safe sequence
+because the receiver can join after loss. Later positions must advance the
+high-water mark, forward gaps are tolerated, and only a
 full-reply-fingerprint-identical terminal retry may repeat a retained position. The
 generation and observation fences each fail closed at 4096 globally retained
 entries, and at most 4096 unresolved openings may exist at once.
@@ -82,15 +92,18 @@ inventing wire semantics. That remains an open release blocker; receipt correlat
 alone is not result-body certification.
 
 `WebSocketNeuroSim` is an experimental FIFO-correlated binding. It uses the bounded
-parser, rejects binary and malformed replies, preflights outbound JSON against the
-1 MiB frame ceiling, and caps outstanding requests at the control-plane capacity of
-128. Connection, browser write-buffer drain, reply read, and overall request waits
-have finite defaults exposed by `WEBSOCKET_TRANSPORT_DEFAULTS`; smaller or otherwise
+parser, rejects binary and malformed replies, and preflights outbound JSON against
+the 1 MiB frame ceiling. It admits at most 128 outstanding requests and reserves at
+most 8 MiB for exact UTF-8 payloads that the client has not yet handed to
+`WebSocket.send`. Thus, eight maximum-sized frames or 128 sufficiently small frames
+can wait locally; each reservation is released after the synchronous handoff.
+Connection, browser write-buffer drain, reply read, and overall request waits have
+finite defaults exposed by `WEBSOCKET_TRANSPORT_DEFAULTS`; smaller or otherwise
 deployment-specific positive timer-safe values may be supplied as the constructor's
 second argument. A timeout after a send closes the FIFO transport so a late reply
-cannot satisfy a later request. Its UTF-8 byte gate counts without allocating a
-second full reply buffer; the browser WebSocket API itself delivers a complete
-message, so the server and deployment proxy must also enforce the normative frame
+cannot satisfy a later request. The byte reservation does not bound
+`JSON.stringify`'s initial allocation, the browser's internal write buffer, or a
+deployment proxy. The server and proxy must also enforce the normative frame
 ceiling before browser allocation. WebSocket is not a `stable-1.0` transport.
 The candidate's `stable-1.0` binding is Zenoh. A deployment endpoint cannot answer
 this client natively until its full negotiation, lifecycle, authority, digest,
@@ -120,13 +133,11 @@ admit that position, the exact route, and the live session generation.
 `LinkStatus` observation high-water fields. These controls are not physical safety
 certification.
 
-`maxHorizonLen` and the `ActionBuffer` watchdog apply the 60-second local TTL cap.
-The generic `assertNcpMessage` horizon-length check currently uses uncapped
-`ttl_ms`. It can accept steps beyond the executable window when `ttl_ms > 60_000`.
-It can also accept a nonempty horizon when a tiny positive `horizon_dt_ms` makes the
-ratio non-finite. The dependency-gated N07 implementation and corpus work must
-correct this parity gap. Until then, generic TypeScript validation alone is not
-horizon-admission evidence.
+`maxHorizonLen`, `assertNcpMessage`, and the `ActionBuffer` watchdog use the same
+60-second effective TTL cap. A future horizon step must occur strictly before that
+deadline. A non-finite cadence ratio permits no future step. The independent
+validator therefore rejects both an oversized executable window and a tiny cadence
+that would overflow the ratio.
 
 The canonicalization helpers validate first, then independently reproduce the
 Rust reference's typed round trip: serde defaults are materialized, unknown members

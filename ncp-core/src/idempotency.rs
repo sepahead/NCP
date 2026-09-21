@@ -12,7 +12,6 @@ use crate::request_digest::verify_request_digest;
 use crate::security::{AuthenticatedActor, PrincipalRole};
 use crate::{AuthorityLease, AuthorityMachine};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt;
 
@@ -169,8 +168,7 @@ pub struct IdempotencyCache {
 }
 
 pub fn sha256_hex(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    crate::canonical_digest::sha256_hex(bytes)
 }
 
 fn valid_digest(value: &str) -> bool {

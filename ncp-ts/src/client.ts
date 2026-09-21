@@ -25,6 +25,7 @@ import type {
   ObservationFrame,
   OperationContext,
   RecordTarget,
+  ResponderReceipt,
   SessionClosed,
   SessionOpened,
   SimConfig,
@@ -33,9 +34,9 @@ import type {
 import { requestDigest, sha256Hex, verifyRequestDigest } from './request-digest.js'
 
 /** The protocol version this client stamps on every request (`ncp_version`).
- * Wire 0.8 splits the overloaded `seq` into a per-stream `stream` position + a
- * correlation-only `source`, adds `session` (generation) + `session_id` on every
- * session-scoped frame, and retires the top-level `seq`/`last_seq`. */
+ * The current wire uses a per-stream `stream` position and a correlation-only
+ * `source`. Every session-scoped frame carries `session` generation and
+ * `session_id`. */
 export const NCP_VERSION = '1.0'
 
 /**
@@ -51,9 +52,10 @@ export const NCP_CONTRACT_HASH = '163acc57d8a62b66'
 export const JSON_SAFE_INTEGER_MAX = 9_007_199_254_740_991
 export const JSON_SAFE_INTEGER_MIN = -JSON_SAFE_INTEGER_MAX
 export const MAX_HORIZON_STEPS = 65_536
-/** Receiver watchdog ceiling shared with the independent safety implementation. */
-export const MAX_COMMAND_TTL_MS = 60_000
 export const MAX_CHANNELS = 4_096
+/** Plant-side execution caps any command deadline at 60 seconds. Predictive
+ * horizon admission uses the same effective deadline. */
+export const MAX_COMMAND_TTL_MS = 60_000
 const MAX_CLIENT_GENERATIONS = 4_096
 const MAX_CLIENT_OBSERVATION_POSITIONS = 4_096
 
@@ -514,7 +516,6 @@ function requireResponderReceipt(
   return receipt
 }
 
-/** Bound the executable horizon by the receiver watchdog ceiling. */
 function maximumExecutableHorizon(ttlMs: number, horizonDtMs: number): number {
   if (!Number.isFinite(ttlMs) || !Number.isFinite(horizonDtMs) || horizonDtMs <= 0) return 0
   const ratio = Math.min(Math.max(ttlMs, 0), MAX_COMMAND_TTL_MS) / horizonDtMs
@@ -1217,7 +1218,7 @@ export function assertNcpMessage(value: unknown, expectedKind?: string): asserts
  * JSON-wire view of a canonical type. ts-rs emits Rust `i64` fields (ids,
  * `population_sizes`, `senders`, `resolved`, `seq`, `seed`, …) as `bigint` for
  * precision-safety, but `JSON.stringify` cannot serialize a `bigint` and
- * `JSON.parse` yields `number`; NCP uses small integers, so the JSON wire uses
+ * `JSON.parse` yields `number`. NCP uses JSON-safe integers, so the JSON wire uses
  * `number` (see `ncp-core/bindings/README.md`). `Wire<T>` maps `bigint → number`
  * recursively so the generated shapes stay aligned with the contract while
  * remaining JSON-(de)serializable.
@@ -1281,8 +1282,35 @@ function sealMutationRequest<T extends { operation: Record<string, unknown> }>(r
 }
 
 /** Any transport: serialize `message`, deliver it to the NCP session service, and
- *  resolve with the reply payload (already parsed from the wire). */
+ * resolve with the reply payload after bounded parsing. The adapter remains
+ * responsible for authenticating the remote peer and binding its transport
+ * principal to payload identity. This client checks payload-coordinate
+ * continuity; that comparison does not authenticate an otherwise untrusted
+ * reply. */
 export type Send = (message: Record<string, unknown>) => Promise<unknown>
+
+type ResponderBinding = Readonly<{
+  principalId: string
+  entityId: string
+}>
+
+type CorrelatedReceipt = Wire<ResponderReceipt>
+
+class NcpRemoteError extends Error {
+  constructor(
+    message: string,
+    readonly receipt?: CorrelatedReceipt,
+  ) {
+    super(message)
+    this.name = 'NcpRemoteError'
+  }
+}
+
+type MutationState = {
+  readonly generation: string
+  stateVersion: number
+  inFlight: boolean
+}
 
 function unwrap<T>(
   reply: unknown,
@@ -1291,6 +1319,7 @@ function unwrap<T>(
   expectedSessionId: string,
   expectedGeneration?: string,
   expectedOperation?: Wire<OperationContext>,
+  expectedResponder?: ResponderBinding,
 ): T {
   assertNcpMessage(reply)
   if (reply.kind === 'error') {
@@ -1314,10 +1343,16 @@ function unwrap<T>(
         `NCP error generation mismatch: expected ${JSON.stringify(expectedGeneration)}, got ${JSON.stringify(error.session.generation)}`,
       )
     }
+    let correlatedReceipt: CorrelatedReceipt | undefined
     if (expectedOperation !== undefined && error.receipt != null) {
-      assertReceiptCorrelation(error.receipt, expectedOperation, 'error.receipt')
+      correlatedReceipt = assertReceiptCorrelation(
+        error.receipt,
+        expectedOperation,
+        'error.receipt',
+        expectedResponder,
+      )
     }
-    throw new Error(`NCP error ${error.code}: ${error.error}`)
+    throw new NcpRemoteError(`NCP error ${error.code}: ${error.error}`, correlatedReceipt)
   }
   const kind = reply.kind
   if (kind !== expectedKind) {
@@ -1350,7 +1385,12 @@ function unwrap<T>(
   }
   if (expectedOperation !== undefined) {
     const receipt = (reply as { receipt?: unknown }).receipt
-    assertReceiptCorrelation(receipt, expectedOperation, `${expectedKind}.receipt`)
+    assertReceiptCorrelation(
+      receipt,
+      expectedOperation,
+      `${expectedKind}.receipt`,
+      expectedResponder,
+    )
     if (
       expectedKind === 'observation_frame' &&
       (reply as { source?: unknown }).source != null
@@ -1375,7 +1415,8 @@ function assertReceiptCorrelation(
   receipt: unknown,
   operation: Wire<OperationContext>,
   path: string,
-): void {
+  expectedResponder: ResponderBinding | undefined,
+): CorrelatedReceipt {
   const validated = requireResponderReceipt(receipt, path)
   if (validated.operation_id !== operation.operation_id) {
     throw new Error(`${path}.operation_id does not match the request operation`)
@@ -1383,6 +1424,17 @@ function assertReceiptCorrelation(
   if (validated.request_digest !== operation.request_digest) {
     throw new Error(`${path}.request_digest does not match the request operation`)
   }
+  if (
+    expectedResponder !== undefined &&
+    (validated.responder_principal_id !== expectedResponder.principalId ||
+      validated.responder_entity_id !== expectedResponder.entityId)
+  ) {
+    throw new Error(`${path} responder identity differs from the body coordinate carried by open`)
+  }
+  if ((validated.state_version as number) < operation.expected_state_version) {
+    throw new Error(`${path}.state_version precedes the request's expected state`)
+  }
+  return validated as CorrelatedReceipt
 }
 
 const REPLAY_FINGERPRINT_DOMAIN = 'ncp.observation-replay-fingerprint.v1\0'
@@ -1455,6 +1507,11 @@ function observationReplyFingerprint(frame: ObservationFrameReply): string {
 export class NeuroSimClient {
   /** session_id -> the server-issued generation, learned at open(). */
   private readonly generations = new Map<string, string>()
+  /** Exact payload responder coordinate carried by each successful open.
+   * Transport authentication remains the adapter's responsibility. */
+  private readonly responders = new Map<string, { generation: string; binding: ResponderBinding }>()
+  /** Receiver-known state and the single in-flight mutation for each live generation. */
+  private readonly mutationStates = new Map<string, MutationState>()
   /** Non-evicting retired/seen generations; a logical session never revives one. */
   private readonly seenGenerations = new Map<string, Set<string>>()
   /** Global count backing the bounded non-evicting generation fence. */
@@ -1567,6 +1624,18 @@ export class NeuroSimClient {
       seen.add(generation)
       this.seenGenerationCount += 1
       this.generations.set(sessionId, generation)
+      this.responders.set(sessionId, {
+        generation,
+        binding: {
+          principalId: opened.identity.principal_id,
+          entityId: opened.identity.entity_id,
+        },
+      })
+      this.mutationStates.set(sessionId, {
+        generation,
+        stateVersion: opened.state_version,
+        inFlight: false,
+      })
       return opened
     } finally {
       this.inFlightOpenCount -= 1
@@ -1576,6 +1645,8 @@ export class NeuroSimClient {
 
   private retireGeneration(sessionId: string): void {
     this.generations.delete(sessionId)
+    this.responders.delete(sessionId)
+    this.mutationStates.delete(sessionId)
     const observation = this.observationFences.get(sessionId)
     if (observation !== undefined) {
       this.observationPositionCount -= observation.replyFingerprints.size
@@ -1601,6 +1672,78 @@ export class NeuroSimClient {
     }
   }
 
+  private requireResponderBinding(sessionId: string, generation: string): ResponderBinding {
+    const responder = this.responders.get(sessionId)
+    if (responder === undefined || responder.generation !== generation) {
+      throw new Error(
+        `NCP session ${JSON.stringify(sessionId)} has no responder binding for its live generation`,
+      )
+    }
+    return responder.binding
+  }
+
+  private beginMutation(
+    sessionId: string,
+    generation: string,
+    operation: Wire<OperationContext>,
+  ): MutationState {
+    const state = this.mutationStates.get(sessionId)
+    if (state === undefined || state.generation !== generation) {
+      throw new Error(
+        `NCP session ${JSON.stringify(sessionId)} has no mutation state for its live generation`,
+      )
+    }
+    if (state.inFlight) {
+      throw new Error(
+        `NCP session ${JSON.stringify(sessionId)} already has a mutation in flight`,
+      )
+    }
+    // A retry names an already reserved operation whose original CAS coordinate
+    // remains part of its digest. A new operation must use the latest state
+    // version learned from open or an authenticated, correlated receipt.
+    if (!operation.retry && operation.expected_state_version !== state.stateVersion) {
+      throw new Error(
+        `NCP mutation expected_state_version ${operation.expected_state_version} does not match the client-known state ${state.stateVersion}`,
+      )
+    }
+    state.inFlight = true
+    return state
+  }
+
+  private mutationStateIsCurrent(sessionId: string, state: MutationState): boolean {
+    return this.mutationStates.get(sessionId) === state
+  }
+
+  private completeMutation(
+    sessionId: string,
+    state: MutationState,
+    receipt: CorrelatedReceipt,
+  ): void {
+    if (!this.mutationStateIsCurrent(sessionId, state)) {
+      throw new Error(
+        `NCP session ${JSON.stringify(sessionId)} generation changed while a mutation was in flight; its result is stale`,
+      )
+    }
+    // A retained retry can report an older operation after later commits. It
+    // must never move the locally known state backwards.
+    state.stateVersion = Math.max(state.stateVersion, receipt.state_version)
+    state.inFlight = false
+  }
+
+  private failMutation(sessionId: string, state: MutationState, error: unknown): never {
+    if (this.mutationStateIsCurrent(sessionId, state)) {
+      if (error instanceof NcpRemoteError && error.receipt !== undefined) {
+        this.completeMutation(sessionId, state, error.receipt)
+      } else {
+        // A transport error, malformed reply, uncorrelated error, or replay-fence
+        // violation leaves both outcome and next state unknown. Retire the local
+        // generation instead of permitting a guessed follow-up mutation.
+        this.retireGeneration(sessionId)
+      }
+    }
+    throw error
+  }
+
   private acceptObservationPosition(
     sessionId: string,
     generation: string,
@@ -1617,17 +1760,17 @@ export class NeuroSimClient {
     const fingerprint = observationReplyFingerprint(frame)
     const fence = this.observationFences.get(sessionId)
     if (fence === undefined) {
-      if (seq !== 1) {
-        throw new Error('NCP first observation reply for a fresh session generation must use stream.seq 1')
-      }
       if (this.observationPositionCount >= MAX_CLIENT_OBSERVATION_POSITIONS) {
         throw new Error('NCP observation replay fence reached its non-evicting capacity')
       }
+      // A publisher starts its epoch at one, but this receiver can first see a
+      // later positive position after loss or a late join. Wire validation has
+      // already proved that `seq` is a positive JSON-safe integer.
       this.observationFences.set(sessionId, {
         generation,
         epoch,
-        highWater: 1,
-        replyFingerprints: new Map([[1, fingerprint]]),
+        highWater: seq,
+        replyFingerprints: new Map([[seq, fingerprint]]),
       })
       this.observationPositionCount += 1
       return
@@ -1660,6 +1803,7 @@ export class NeuroSimClient {
     advanceMs?: number,
   ): Promise<ObservationFrameReply> {
     const generation = this.requireOpenGeneration(sessionId)
+    const responder = this.requireResponderBinding(sessionId, generation)
     const request = sealMutationRequest({
       kind: 'step_request',
       ncp_version: NCP_VERSION,
@@ -1677,18 +1821,26 @@ export class NeuroSimClient {
       },
     })
     assertNcpMessage(request, 'step_request')
-    const reply = await this.send(request)
-    this.requireCurrentGeneration(sessionId, generation)
-    const observation = unwrap<ObservationFrameReply>(
-      reply,
-      'step_request',
-      'observation_frame',
-      sessionId,
-      generation,
-      request.operation as Wire<OperationContext>,
-    )
-    this.acceptObservationPosition(sessionId, generation, observation)
-    return observation
+    const operation = request.operation as Wire<OperationContext>
+    const state = this.beginMutation(sessionId, generation, operation)
+    try {
+      const reply = await this.send(request)
+      this.requireCurrentGeneration(sessionId, generation)
+      const observation = unwrap<ObservationFrameReply>(
+        reply,
+        'step_request',
+        'observation_frame',
+        sessionId,
+        generation,
+        operation,
+        responder,
+      )
+      this.acceptObservationPosition(sessionId, generation, observation)
+      this.completeMutation(sessionId, state, observation.receipt as CorrelatedReceipt)
+      return observation
+    } catch (error) {
+      return this.failMutation(sessionId, state, error)
+    }
   }
 
   /** Batch: advance `durationMs` holding `stimulus`; returns an observation frame. */
@@ -1699,6 +1851,7 @@ export class NeuroSimClient {
     stimulus: Record<string, ChannelInput> = {},
   ): Promise<ObservationFrameReply> {
     const generation = this.requireOpenGeneration(sessionId)
+    const responder = this.requireResponderBinding(sessionId, generation)
     const request = sealMutationRequest({
       kind: 'run_request',
       ncp_version: NCP_VERSION,
@@ -1716,23 +1869,32 @@ export class NeuroSimClient {
       },
     })
     assertNcpMessage(request, 'run_request')
-    const reply = await this.send(request)
-    this.requireCurrentGeneration(sessionId, generation)
-    const observation = unwrap<ObservationFrameReply>(
-      reply,
-      'run_request',
-      'observation_frame',
-      sessionId,
-      generation,
-      request.operation as Wire<OperationContext>,
-    )
-    this.acceptObservationPosition(sessionId, generation, observation)
-    return observation
+    const operation = request.operation as Wire<OperationContext>
+    const state = this.beginMutation(sessionId, generation, operation)
+    try {
+      const reply = await this.send(request)
+      this.requireCurrentGeneration(sessionId, generation)
+      const observation = unwrap<ObservationFrameReply>(
+        reply,
+        'run_request',
+        'observation_frame',
+        sessionId,
+        generation,
+        operation,
+        responder,
+      )
+      this.acceptObservationPosition(sessionId, generation, observation)
+      this.completeMutation(sessionId, state, observation.receipt as CorrelatedReceipt)
+      return observation
+    } catch (error) {
+      return this.failMutation(sessionId, state, error)
+    }
   }
 
   /** Close the session. */
   async close(sessionId: string, mutation: MutationInput): Promise<SessionClosedReply> {
     const generation = this.requireOpenGeneration(sessionId)
+    const responder = this.requireResponderBinding(sessionId, generation)
     const request = sealMutationRequest({
       kind: 'close_session',
       ncp_version: NCP_VERSION,
@@ -1742,6 +1904,8 @@ export class NeuroSimClient {
       authority: mutation.authority,
     })
     assertNcpMessage(request, 'close_session')
+    const operation = request.operation as Wire<OperationContext>
+    this.beginMutation(sessionId, generation, operation)
     // A close attempt makes the prior generation unavailable immediately. A
     // timeout or lost reply leaves the outcome unknown; it never restores local
     // mutation authority. A concurrent successful open may install a new
@@ -1754,7 +1918,8 @@ export class NeuroSimClient {
       'session_closed',
       sessionId,
       generation,
-      request.operation as Wire<OperationContext>,
+      operation,
+      responder,
     )
   }
 }

@@ -65,6 +65,17 @@ struct GatewayRestartState {
 }
 
 impl GatewayRestartState {
+    fn retire_generation(&mut self, session_id: &str, generation: &str) -> Result<(), String> {
+        if self
+            .live
+            .get(session_id)
+            .is_some_and(|live| live.generation == generation)
+        {
+            self.retire_live(session_id)?;
+        }
+        Ok(())
+    }
+
     fn retire_live(&mut self, session_id: &str) -> Result<(), String> {
         if let Some(live) = self.live.remove(session_id) {
             let retained = live
@@ -180,7 +191,17 @@ impl GatewayRestartState {
                 generation,
                 kind,
             } => {
-                if ncp_core::message_kind(reply) == Some("error") || kind == "close_session" {
+                if ncp_core::message_kind(reply) == Some("error") {
+                    // Only a correlated terminal receipt supplies authoritative
+                    // post-attempt state. An absent receipt leaves both outcome
+                    // and next version unknown, so this gateway must not forward
+                    // another mutation under the old local binding.
+                    if reply.get("receipt").is_none_or(serde_json::Value::is_null) {
+                        self.retire_generation(session_id, generation)?;
+                    }
+                    return Ok(());
+                }
+                if kind == "close_session" {
                     return Ok(());
                 }
                 let live = self.live.get_mut(session_id).ok_or_else(|| {
@@ -213,7 +234,7 @@ impl GatewayRestartState {
                         |error| format!("observation reply cannot be fingerprinted: {error}"),
                     )?);
                 match &mut live.observation {
-                    None if seq == 1 => {
+                    None => {
                         if self.observation_positions >= MAX_GATEWAY_OBSERVATION_POSITIONS {
                             return Err(
                                 "gateway observation fence reached its non-evicting capacity"
@@ -222,15 +243,12 @@ impl GatewayRestartState {
                         }
                         live.observation = Some(GatewayObservationFence {
                             epoch: epoch.to_owned(),
-                            high_water: 1,
-                            reply_fingerprints: BTreeMap::from([(1, fingerprint)]),
+                            high_water: seq,
+                            reply_fingerprints: BTreeMap::from([(seq, fingerprint)]),
                         });
                         self.observation_positions += 1;
                         Ok(())
                     }
-                    None => Err(
-                        "first observation reply for a fresh generation must use seq 1".to_owned(),
-                    ),
                     Some(observation) if observation.epoch != epoch => Err(
                         "observation reply changed epoch without a fresh successful open".to_owned(),
                     ),
@@ -261,16 +279,33 @@ impl GatewayRestartState {
         }
     }
 
-    fn finish_request(&mut self, fence: &GatewayRequestFence) {
-        if let GatewayRequestFence::Open {
-            session_id,
-            attempt,
-        } = fence
-        {
-            if self.openings.get(session_id) == Some(attempt) {
-                self.openings.remove(session_id);
+    fn finish_request(
+        &mut self,
+        fence: &GatewayRequestFence,
+        accepted_backend_reply: bool,
+    ) -> Result<(), String> {
+        match fence {
+            GatewayRequestFence::Open {
+                session_id,
+                attempt,
+            } => {
+                if self.openings.get(session_id) == Some(attempt) {
+                    self.openings.remove(session_id);
+                }
             }
+            GatewayRequestFence::Mutation {
+                session_id,
+                generation,
+                kind,
+            } if !accepted_backend_reply && kind != "close_session" => {
+                // The request may have reached the backend. Without an admitted
+                // correlated reply, retaining this generation would let a caller
+                // guess the mutation outcome or next state version.
+                self.retire_generation(session_id, generation)?;
+            }
+            GatewayRequestFence::Mutation { .. } => {}
         }
+        Ok(())
     }
 }
 
@@ -526,7 +561,11 @@ fn forward_to_python(endpoint: BridgeEndpoint, request: &[u8]) -> std::io::Resul
 }
 
 fn error_frame(code: ncp_core::RpcErrorCode, message: &str, request: &[u8]) -> Vec<u8> {
-    let request = serde_json::from_slice::<serde_json::Value>(request).ok();
+    // The caller can reach this path because bounded preflight rejected the
+    // request. Do not fall back to an unbounded semantic parse while building
+    // the rejection frame. Invalid, duplicate-key, or oversized input carries
+    // no trustworthy correlation coordinate.
+    let request = ncp_core::bounded_json::parse_value(request).ok();
     let session_id = request
         .as_ref()
         .and_then(|value| value.get("session_id"))
@@ -645,6 +684,7 @@ async fn main() {
                 }
             };
             tokio::task::block_in_place(|| {
+                let mut accepted_backend_reply = false;
                 let response = match forward_to_python(endpoint, &req) {
                     Ok(reply) if !reply.is_empty() => {
                         match validate_bridge_reply_for_request(&req, &reply) {
@@ -662,7 +702,10 @@ async fn main() {
                                         })
                                 });
                                 match accepted {
-                                    Ok(()) => reply,
+                                    Ok(()) => {
+                                        accepted_backend_reply = true;
+                                        reply
+                                    }
                                     Err(error) => error_frame(
                                         ncp_core::RpcErrorCode::ContainedInternalFailure,
                                         &format!("gateway restart fence rejected reply: {error}"),
@@ -691,7 +734,9 @@ async fn main() {
                 let completed = callback_state
                     .lock()
                     .map_err(|_| "gateway restart-state lock is poisoned".to_owned())
-                    .map(|mut state| state.finish_request(&request_fence));
+                    .and_then(|mut state| {
+                        state.finish_request(&request_fence, accepted_backend_reply)
+                    });
                 match completed {
                     Ok(()) => response,
                     Err(error) => error_frame(
@@ -948,6 +993,27 @@ mod tests {
     }
 
     #[test]
+    fn error_frame_does_not_correlate_from_invalid_json() {
+        let request = br#"{
+            "ncp_version":"1.0",
+            "kind":"step_request",
+            "session_id":"first",
+            "session_id":"second",
+            "session":{"generation":"293279f3-d459-4bfd-aeeb-604799e96925"}
+        }"#;
+        let reply = error_frame(
+            ncp_core::RpcErrorCode::InvalidMessage,
+            "request rejected",
+            request,
+        );
+        let reply: serde_json::Value = serde_json::from_slice(&reply).unwrap();
+        ncp_core::validate(&reply).unwrap();
+        assert!(reply["session_id"].is_null());
+        assert!(reply["session"].is_null());
+        assert!(reply["request_kind"].is_null());
+    }
+
+    #[test]
     fn bridge_reply_gate_accepts_exact_generation_operation_and_digest() {
         let request = close_request(GENERATION_A, "10000000-0000-4000-8000-000000000001");
         let reply = close_reply(&request, GENERATION_A);
@@ -1118,7 +1184,7 @@ mod tests {
         let fence = state.begin_request(&request).unwrap();
         assert_eq!(state.openings.len(), 1);
 
-        state.finish_request(&fence);
+        state.finish_request(&fence, false).unwrap();
 
         assert!(state.openings.is_empty());
         assert!(state.begin_request(&request).is_ok());
@@ -1131,11 +1197,84 @@ mod tests {
         let older = state.begin_request(&request).unwrap();
         let newer = state.begin_request(&request).unwrap();
 
-        state.finish_request(&older);
+        state.finish_request(&older, false).unwrap();
 
         assert_eq!(state.openings.get("s"), Some(&2));
         state.accept_reply(&newer, &reply).unwrap();
         assert!(!state.openings.contains_key("s"));
+    }
+
+    #[test]
+    fn receiptless_mutation_error_retires_the_gateway_generation() {
+        let mut state = GatewayRestartState::default();
+        let (request, reply) = open_pair();
+        let open = state.begin_request(&request).unwrap();
+        state.accept_reply(&open, &reply).unwrap();
+        let step = serde_json::json!({
+            "kind": "step_request",
+            "session_id": "s",
+            "session": {"generation": GENERATION_A}
+        });
+        let fence = state.begin_request(&step).unwrap();
+
+        state
+            .accept_reply(
+                &fence,
+                &serde_json::json!({"kind": "error", "receipt": null}),
+            )
+            .unwrap();
+
+        assert!(!state.live.contains_key("s"));
+        assert!(state
+            .begin_request(&step)
+            .unwrap_err()
+            .contains("fresh successful open"));
+    }
+
+    #[test]
+    fn ambiguous_backend_mutation_completion_retires_the_gateway_generation() {
+        let mut state = GatewayRestartState::default();
+        let (request, reply) = open_pair();
+        let open = state.begin_request(&request).unwrap();
+        state.accept_reply(&open, &reply).unwrap();
+        let step = serde_json::json!({
+            "kind": "step_request",
+            "session_id": "s",
+            "session": {"generation": GENERATION_A}
+        });
+        let fence = state.begin_request(&step).unwrap();
+
+        state.finish_request(&fence, false).unwrap();
+
+        assert!(!state.live.contains_key("s"));
+    }
+
+    #[test]
+    fn delayed_ambiguous_mutation_does_not_retire_a_new_generation() {
+        for receiptless_error in [false, true] {
+            let mut state = GatewayRestartState::default();
+            let (request, reply) = open_pair();
+            let open = state.begin_request(&request).unwrap();
+            state.accept_reply(&open, &reply).unwrap();
+            let step = serde_json::json!({
+                "kind": "step_request",
+                "session_id": "s",
+                "session": {"generation": GENERATION_A}
+            });
+            let old = state.begin_request(&step).unwrap();
+            let new_open = state.begin_request(&request).unwrap();
+            let mut new_reply = reply;
+            new_reply["session"]["generation"] = serde_json::Value::from(GENERATION_B);
+            state.accept_reply(&new_open, &new_reply).unwrap();
+            if receiptless_error {
+                state
+                    .accept_reply(&old, &serde_json::json!({"kind": "error", "receipt": null}))
+                    .unwrap();
+            } else {
+                state.finish_request(&old, false).unwrap();
+            }
+            assert_eq!(state.live["s"].generation, GENERATION_B);
+        }
     }
 
     #[test]
@@ -1186,7 +1325,9 @@ mod tests {
         let fence = state.begin_request(&step).unwrap();
         let observation = serde_json::json!({
             "kind": "observation_frame",
-            "stream": {"epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1", "seq": 1},
+            // The gateway can join an already advancing publisher after loss.
+            // The first observed position need not be the publisher's first.
+            "stream": {"epoch": "3ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1", "seq": 7},
             "receipt": {
                 "operation_id": "10000000-0000-4000-8000-000000000001",
                 "request_digest": "a".repeat(64),
@@ -1219,13 +1360,13 @@ mod tests {
             .contains("replayed"));
 
         let mut gap = observation.clone();
-        gap["stream"]["seq"] = serde_json::Value::from(3);
+        gap["stream"]["seq"] = serde_json::Value::from(9);
         gap["receipt"]["operation_id"] =
             serde_json::Value::String("10000000-0000-4000-8000-000000000088".into());
         state.accept_reply(&fence, &gap).unwrap();
 
         let mut reordered = observation.clone();
-        reordered["stream"]["seq"] = serde_json::Value::from(2);
+        reordered["stream"]["seq"] = serde_json::Value::from(8);
         reordered["receipt"]["operation_id"] =
             serde_json::Value::String("10000000-0000-4000-8000-000000000077".into());
         assert!(state
@@ -1236,7 +1377,7 @@ mod tests {
         let mut foreign_epoch = observation;
         foreign_epoch["stream"]["epoch"] =
             serde_json::Value::String("4ef6f0ad-8ee6-4c6a-9e3f-86dc9ce849a1".into());
-        foreign_epoch["stream"]["seq"] = serde_json::Value::from(2);
+        foreign_epoch["stream"]["seq"] = serde_json::Value::from(10);
         assert!(state
             .accept_reply(&fence, &foreign_epoch)
             .unwrap_err()

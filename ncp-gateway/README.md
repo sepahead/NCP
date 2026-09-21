@@ -56,13 +56,16 @@ or close retires the prior live generation before bridge I/O; failed or lost I/O
 never restores it, and a generation observed by that gateway process cannot be
 revived during the same process lifetime. Completed failed opens release their
 attempt fence; completion of an older concurrent open cannot remove a newer one. For
-step/run replies, the first observation of a fresh generation must use sequence 1;
-later accepted positions retain one epoch and a strictly increasing high-water
-mark, while only a full-reply-fingerprint-identical terminal retry may repeat an
-already retained position. Forward gaps are tolerated; unseen lower positions,
-foreign epochs, and content-conflicting replays reject. Generation and observation
-fences each retain at most 4096 entries globally, unresolved openings are also
-capped at 4096, and all three fences fail closed at capacity.
+step/run, a bridge failure or an admitted error without a correlated terminal
+receipt retires the gateway-local generation because the outcome and next state are
+unknown. The first observation seen for a fresh generation may use any positive
+JSON-safe sequence because a receiver can join after loss. Later accepted positions
+retain one epoch and a strictly increasing high-water mark, while only a
+full-reply-fingerprint-identical terminal retry may repeat an already retained
+position. Forward gaps are tolerated; unseen lower positions, foreign epochs, and
+content-conflicting replays reject. Generation and observation fences each retain
+at most 4096 entries globally, unresolved openings are also capped at 4096, and all
+three fences fail closed at capacity.
 
 The gateway checks `result_digest` syntax and uses it in replay correlation, but it
 does not independently recompute it: the candidate has no normative nonrecursive

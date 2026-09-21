@@ -8,6 +8,7 @@ import type { Send } from './client.js';
 export declare const WEBSOCKET_TRANSPORT_DEFAULTS: Readonly<{
     maxPendingRequests: 128;
     maxOutboundFrameBytes: 1048576;
+    maxPendingPayloadBytes: number;
     connectTimeoutMs: 10000;
     writeTimeoutMs: 10000;
     readTimeoutMs: 30000;
@@ -32,6 +33,8 @@ export declare class WebSocketNeuroSim {
     private connectTimer;
     private writeTimer;
     private writePollTimer;
+    /** Exact UTF-8 bytes still retained in `writeQueue` or in a synchronous send. */
+    private queuedPayloadBytes;
     constructor(url: string, options?: WebSocketNeuroSimOptions);
     private static messageOf;
     private static validTimeout;
@@ -40,6 +43,7 @@ export declare class WebSocketNeuroSim {
     private clearConnectTimer;
     private clearWriteMonitor;
     private clearRequestTimers;
+    private releasePayload;
     private resolveRequest;
     private rejectRequest;
     /** Reject and drop every queued request; new sends fail fast afterwards. */

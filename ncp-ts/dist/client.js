@@ -15,9 +15,9 @@
  */
 import { requestDigest, sha256Hex, verifyRequestDigest } from './request-digest.js';
 /** The protocol version this client stamps on every request (`ncp_version`).
- * Wire 0.8 splits the overloaded `seq` into a per-stream `stream` position + a
- * correlation-only `source`, adds `session` (generation) + `session_id` on every
- * session-scoped frame, and retires the top-level `seq`/`last_seq`. */
+ * The current wire uses a per-stream `stream` position and a correlation-only
+ * `source`. Every session-scoped frame carries `session` generation and
+ * `session_id`. */
 export const NCP_VERSION = '1.0';
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
@@ -31,9 +31,10 @@ export const NCP_CONTRACT_HASH = '163acc57d8a62b66';
 export const JSON_SAFE_INTEGER_MAX = 9_007_199_254_740_991;
 export const JSON_SAFE_INTEGER_MIN = -JSON_SAFE_INTEGER_MAX;
 export const MAX_HORIZON_STEPS = 65_536;
-/** Receiver watchdog ceiling shared with the independent safety implementation. */
-export const MAX_COMMAND_TTL_MS = 60_000;
 export const MAX_CHANNELS = 4_096;
+/** Plant-side execution caps any command deadline at 60 seconds. Predictive
+ * horizon admission uses the same effective deadline. */
+export const MAX_COMMAND_TTL_MS = 60_000;
 const MAX_CLIENT_GENERATIONS = 4_096;
 const MAX_CLIENT_OBSERVATION_POSITIONS = 4_096;
 /** Closed stable wire-1.0 error-code registry. Keep this in exact parity with
@@ -452,7 +453,6 @@ function requireResponderReceipt(value, path, context = 'terminal') {
     requireBoundedId(receipt.responder_entity_id, `${path}.responder_entity_id`);
     return receipt;
 }
-/** Bound the executable horizon by the receiver watchdog ceiling. */
 function maximumExecutableHorizon(ttlMs, horizonDtMs) {
     if (!Number.isFinite(ttlMs) || !Number.isFinite(horizonDtMs) || horizonDtMs <= 0)
         return 0;
@@ -1122,7 +1122,15 @@ function sealMutationRequest(request) {
     request.operation.request_digest = digest;
     return request;
 }
-function unwrap(reply, requestKind, expectedKind, expectedSessionId, expectedGeneration, expectedOperation) {
+class NcpRemoteError extends Error {
+    receipt;
+    constructor(message, receipt) {
+        super(message);
+        this.receipt = receipt;
+        this.name = 'NcpRemoteError';
+    }
+}
+function unwrap(reply, requestKind, expectedKind, expectedSessionId, expectedGeneration, expectedOperation, expectedResponder) {
     assertNcpMessage(reply);
     if (reply.kind === 'error') {
         const error = reply;
@@ -1137,10 +1145,11 @@ function unwrap(reply, requestKind, expectedKind, expectedSessionId, expectedGen
             error.session.generation !== expectedGeneration) {
             throw new Error(`NCP error generation mismatch: expected ${JSON.stringify(expectedGeneration)}, got ${JSON.stringify(error.session.generation)}`);
         }
+        let correlatedReceipt;
         if (expectedOperation !== undefined && error.receipt != null) {
-            assertReceiptCorrelation(error.receipt, expectedOperation, 'error.receipt');
+            correlatedReceipt = assertReceiptCorrelation(error.receipt, expectedOperation, 'error.receipt', expectedResponder);
         }
-        throw new Error(`NCP error ${error.code}: ${error.error}`);
+        throw new NcpRemoteError(`NCP error ${error.code}: ${error.error}`, correlatedReceipt);
     }
     const kind = reply.kind;
     if (kind !== expectedKind) {
@@ -1167,7 +1176,7 @@ function unwrap(reply, requestKind, expectedKind, expectedSessionId, expectedGen
     }
     if (expectedOperation !== undefined) {
         const receipt = reply.receipt;
-        assertReceiptCorrelation(receipt, expectedOperation, `${expectedKind}.receipt`);
+        assertReceiptCorrelation(receipt, expectedOperation, `${expectedKind}.receipt`, expectedResponder);
         if (expectedKind === 'observation_frame' &&
             reply.source != null) {
             throw new Error('NCP step/run RPC observation reply must omit observation-plane source');
@@ -1185,7 +1194,7 @@ function unwrap(reply, requestKind, expectedKind, expectedSessionId, expectedGen
     }
     return reply;
 }
-function assertReceiptCorrelation(receipt, operation, path) {
+function assertReceiptCorrelation(receipt, operation, path, expectedResponder) {
     const validated = requireResponderReceipt(receipt, path);
     if (validated.operation_id !== operation.operation_id) {
         throw new Error(`${path}.operation_id does not match the request operation`);
@@ -1193,6 +1202,15 @@ function assertReceiptCorrelation(receipt, operation, path) {
     if (validated.request_digest !== operation.request_digest) {
         throw new Error(`${path}.request_digest does not match the request operation`);
     }
+    if (expectedResponder !== undefined &&
+        (validated.responder_principal_id !== expectedResponder.principalId ||
+            validated.responder_entity_id !== expectedResponder.entityId)) {
+        throw new Error(`${path} responder identity differs from the body coordinate carried by open`);
+    }
+    if (validated.state_version < operation.expected_state_version) {
+        throw new Error(`${path}.state_version precedes the request's expected state`);
+    }
+    return validated;
 }
 const REPLAY_FINGERPRINT_DOMAIN = 'ncp.observation-replay-fingerprint.v1\0';
 const replayFingerprintEncoder = new TextEncoder();
@@ -1267,6 +1285,11 @@ export class NeuroSimClient {
     negotiation;
     /** session_id -> the server-issued generation, learned at open(). */
     generations = new Map();
+    /** Exact payload responder coordinate carried by each successful open.
+     * Transport authentication remains the adapter's responsibility. */
+    responders = new Map();
+    /** Receiver-known state and the single in-flight mutation for each live generation. */
+    mutationStates = new Map();
     /** Non-evicting retired/seen generations; a logical session never revives one. */
     seenGenerations = new Map();
     /** Global count backing the bounded non-evicting generation fence. */
@@ -1357,6 +1380,18 @@ export class NeuroSimClient {
             seen.add(generation);
             this.seenGenerationCount += 1;
             this.generations.set(sessionId, generation);
+            this.responders.set(sessionId, {
+                generation,
+                binding: {
+                    principalId: opened.identity.principal_id,
+                    entityId: opened.identity.entity_id,
+                },
+            });
+            this.mutationStates.set(sessionId, {
+                generation,
+                stateVersion: opened.state_version,
+                inFlight: false,
+            });
             return opened;
         }
         finally {
@@ -1367,6 +1402,8 @@ export class NeuroSimClient {
     }
     retireGeneration(sessionId) {
         this.generations.delete(sessionId);
+        this.responders.delete(sessionId);
+        this.mutationStates.delete(sessionId);
         const observation = this.observationFences.get(sessionId);
         if (observation !== undefined) {
             this.observationPositionCount -= observation.replyFingerprints.size;
@@ -1385,6 +1422,56 @@ export class NeuroSimClient {
             throw new Error(`NCP session ${JSON.stringify(sessionId)} generation changed while a mutation was in flight; its result is stale`);
         }
     }
+    requireResponderBinding(sessionId, generation) {
+        const responder = this.responders.get(sessionId);
+        if (responder === undefined || responder.generation !== generation) {
+            throw new Error(`NCP session ${JSON.stringify(sessionId)} has no responder binding for its live generation`);
+        }
+        return responder.binding;
+    }
+    beginMutation(sessionId, generation, operation) {
+        const state = this.mutationStates.get(sessionId);
+        if (state === undefined || state.generation !== generation) {
+            throw new Error(`NCP session ${JSON.stringify(sessionId)} has no mutation state for its live generation`);
+        }
+        if (state.inFlight) {
+            throw new Error(`NCP session ${JSON.stringify(sessionId)} already has a mutation in flight`);
+        }
+        // A retry names an already reserved operation whose original CAS coordinate
+        // remains part of its digest. A new operation must use the latest state
+        // version learned from open or an authenticated, correlated receipt.
+        if (!operation.retry && operation.expected_state_version !== state.stateVersion) {
+            throw new Error(`NCP mutation expected_state_version ${operation.expected_state_version} does not match the client-known state ${state.stateVersion}`);
+        }
+        state.inFlight = true;
+        return state;
+    }
+    mutationStateIsCurrent(sessionId, state) {
+        return this.mutationStates.get(sessionId) === state;
+    }
+    completeMutation(sessionId, state, receipt) {
+        if (!this.mutationStateIsCurrent(sessionId, state)) {
+            throw new Error(`NCP session ${JSON.stringify(sessionId)} generation changed while a mutation was in flight; its result is stale`);
+        }
+        // A retained retry can report an older operation after later commits. It
+        // must never move the locally known state backwards.
+        state.stateVersion = Math.max(state.stateVersion, receipt.state_version);
+        state.inFlight = false;
+    }
+    failMutation(sessionId, state, error) {
+        if (this.mutationStateIsCurrent(sessionId, state)) {
+            if (error instanceof NcpRemoteError && error.receipt !== undefined) {
+                this.completeMutation(sessionId, state, error.receipt);
+            }
+            else {
+                // A transport error, malformed reply, uncorrelated error, or replay-fence
+                // violation leaves both outcome and next state unknown. Retire the local
+                // generation instead of permitting a guessed follow-up mutation.
+                this.retireGeneration(sessionId);
+            }
+        }
+        throw error;
+    }
     acceptObservationPosition(sessionId, generation, frame) {
         const { epoch, seq } = frame.stream;
         const receipt = frame.receipt;
@@ -1397,17 +1484,17 @@ export class NeuroSimClient {
         const fingerprint = observationReplyFingerprint(frame);
         const fence = this.observationFences.get(sessionId);
         if (fence === undefined) {
-            if (seq !== 1) {
-                throw new Error('NCP first observation reply for a fresh session generation must use stream.seq 1');
-            }
             if (this.observationPositionCount >= MAX_CLIENT_OBSERVATION_POSITIONS) {
                 throw new Error('NCP observation replay fence reached its non-evicting capacity');
             }
+            // A publisher starts its epoch at one, but this receiver can first see a
+            // later positive position after loss or a late join. Wire validation has
+            // already proved that `seq` is a positive JSON-safe integer.
             this.observationFences.set(sessionId, {
                 generation,
                 epoch,
-                highWater: 1,
-                replyFingerprints: new Map([[1, fingerprint]]),
+                highWater: seq,
+                replyFingerprints: new Map([[seq, fingerprint]]),
             });
             this.observationPositionCount += 1;
             return;
@@ -1432,6 +1519,7 @@ export class NeuroSimClient {
     /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */
     async step(sessionId, mutation, stimulus = {}, advanceMs) {
         const generation = this.requireOpenGeneration(sessionId);
+        const responder = this.requireResponderBinding(sessionId, generation);
         const request = sealMutationRequest({
             kind: 'step_request',
             ncp_version: NCP_VERSION,
@@ -1449,15 +1537,24 @@ export class NeuroSimClient {
             },
         });
         assertNcpMessage(request, 'step_request');
-        const reply = await this.send(request);
-        this.requireCurrentGeneration(sessionId, generation);
-        const observation = unwrap(reply, 'step_request', 'observation_frame', sessionId, generation, request.operation);
-        this.acceptObservationPosition(sessionId, generation, observation);
-        return observation;
+        const operation = request.operation;
+        const state = this.beginMutation(sessionId, generation, operation);
+        try {
+            const reply = await this.send(request);
+            this.requireCurrentGeneration(sessionId, generation);
+            const observation = unwrap(reply, 'step_request', 'observation_frame', sessionId, generation, operation, responder);
+            this.acceptObservationPosition(sessionId, generation, observation);
+            this.completeMutation(sessionId, state, observation.receipt);
+            return observation;
+        }
+        catch (error) {
+            return this.failMutation(sessionId, state, error);
+        }
     }
     /** Batch: advance `durationMs` holding `stimulus`; returns an observation frame. */
     async run(sessionId, durationMs, mutation, stimulus = {}) {
         const generation = this.requireOpenGeneration(sessionId);
+        const responder = this.requireResponderBinding(sessionId, generation);
         const request = sealMutationRequest({
             kind: 'run_request',
             ncp_version: NCP_VERSION,
@@ -1475,15 +1572,24 @@ export class NeuroSimClient {
             },
         });
         assertNcpMessage(request, 'run_request');
-        const reply = await this.send(request);
-        this.requireCurrentGeneration(sessionId, generation);
-        const observation = unwrap(reply, 'run_request', 'observation_frame', sessionId, generation, request.operation);
-        this.acceptObservationPosition(sessionId, generation, observation);
-        return observation;
+        const operation = request.operation;
+        const state = this.beginMutation(sessionId, generation, operation);
+        try {
+            const reply = await this.send(request);
+            this.requireCurrentGeneration(sessionId, generation);
+            const observation = unwrap(reply, 'run_request', 'observation_frame', sessionId, generation, operation, responder);
+            this.acceptObservationPosition(sessionId, generation, observation);
+            this.completeMutation(sessionId, state, observation.receipt);
+            return observation;
+        }
+        catch (error) {
+            return this.failMutation(sessionId, state, error);
+        }
     }
     /** Close the session. */
     async close(sessionId, mutation) {
         const generation = this.requireOpenGeneration(sessionId);
+        const responder = this.requireResponderBinding(sessionId, generation);
         const request = sealMutationRequest({
             kind: 'close_session',
             ncp_version: NCP_VERSION,
@@ -1493,13 +1599,15 @@ export class NeuroSimClient {
             authority: mutation.authority,
         });
         assertNcpMessage(request, 'close_session');
+        const operation = request.operation;
+        this.beginMutation(sessionId, generation, operation);
         // A close attempt makes the prior generation unavailable immediately. A
         // timeout or lost reply leaves the outcome unknown; it never restores local
         // mutation authority. A concurrent successful open may install a new
         // generation without a late close result deleting it.
         this.retireGeneration(sessionId);
         const reply = await this.send(request);
-        return unwrap(reply, 'close_session', 'session_closed', sessionId, generation, request.operation);
+        return unwrap(reply, 'close_session', 'session_closed', sessionId, generation, operation, responder);
     }
 }
 //# sourceMappingURL=client.js.map

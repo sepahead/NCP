@@ -15,9 +15,9 @@
  */
 import type { AuthorityLease, ChannelValue, ErrorFrame as GeneratedErrorFrame, GatewayAttribution, IdentityClaim, NetworkRef, Observation, ObservationFrame, OperationContext, RecordTarget, SessionClosed, SessionOpened, SimConfig, StimulusTarget } from './generated/index.js';
 /** The protocol version this client stamps on every request (`ncp_version`).
- * Wire 0.8 splits the overloaded `seq` into a per-stream `stream` position + a
- * correlation-only `source`, adds `session` (generation) + `session_id` on every
- * session-scoped frame, and retires the top-level `seq`/`last_seq`. */
+ * The current wire uses a per-stream `stream` position and a correlation-only
+ * `source`. Every session-scoped frame carries `session` generation and
+ * `session_id`. */
 export declare const NCP_VERSION = "1.0";
 /**
  * This peer's contract-hash (`ncp_core::CONTRACT_HASH` — FNV-1a of the canonicalized
@@ -31,9 +31,10 @@ export declare const NCP_CONTRACT_HASH = "163acc57d8a62b66";
 export declare const JSON_SAFE_INTEGER_MAX = 9007199254740991;
 export declare const JSON_SAFE_INTEGER_MIN: number;
 export declare const MAX_HORIZON_STEPS = 65536;
-/** Receiver watchdog ceiling shared with the independent safety implementation. */
-export declare const MAX_COMMAND_TTL_MS = 60000;
 export declare const MAX_CHANNELS = 4096;
+/** Plant-side execution caps any command deadline at 60 seconds. Predictive
+ * horizon admission uses the same effective deadline. */
+export declare const MAX_COMMAND_TTL_MS = 60000;
 /** Closed stable wire-1.0 error-code registry. Keep this in exact parity with
  * `contract/errors.v1.json`; the shared mandatory corpus exercises rejection of
  * missing and unknown values in every implementation. */
@@ -82,7 +83,7 @@ export declare function assertNcpMessage(value: unknown, expectedKind?: string):
  * JSON-wire view of a canonical type. ts-rs emits Rust `i64` fields (ids,
  * `population_sizes`, `senders`, `resolved`, `seq`, `seed`, …) as `bigint` for
  * precision-safety, but `JSON.stringify` cannot serialize a `bigint` and
- * `JSON.parse` yields `number`; NCP uses small integers, so the JSON wire uses
+ * `JSON.parse` yields `number`. NCP uses JSON-safe integers, so the JSON wire uses
  * `number` (see `ncp-core/bindings/README.md`). `Wire<T>` maps `bigint → number`
  * recursively so the generated shapes stay aligned with the contract while
  * remaining JSON-(de)serializable.
@@ -127,13 +128,22 @@ export type MutationInput = {
     authority: Wire<AuthorityLease>;
 };
 /** Any transport: serialize `message`, deliver it to the NCP session service, and
- *  resolve with the reply payload (already parsed from the wire). */
+ * resolve with the reply payload after bounded parsing. The adapter remains
+ * responsible for authenticating the remote peer and binding its transport
+ * principal to payload identity. This client checks payload-coordinate
+ * continuity; that comparison does not authenticate an otherwise untrusted
+ * reply. */
 export type Send = (message: Record<string, unknown>) => Promise<unknown>;
 export declare class NeuroSimClient {
     private readonly send;
     private readonly negotiation;
     /** session_id -> the server-issued generation, learned at open(). */
     private readonly generations;
+    /** Exact payload responder coordinate carried by each successful open.
+     * Transport authentication remains the adapter's responsibility. */
+    private readonly responders;
+    /** Receiver-known state and the single in-flight mutation for each live generation. */
+    private readonly mutationStates;
     /** Non-evicting retired/seen generations; a logical session never revives one. */
     private readonly seenGenerations;
     /** Global count backing the bounded non-evicting generation fence. */
@@ -152,6 +162,11 @@ export declare class NeuroSimClient {
     private retireGeneration;
     private requireOpenGeneration;
     private requireCurrentGeneration;
+    private requireResponderBinding;
+    private beginMutation;
+    private mutationStateIsCurrent;
+    private completeMutation;
+    private failMutation;
     private acceptObservationPosition;
     /** Advance one chunk; optionally inject `stimulus`; returns an observation frame. */
     step(sessionId: string, mutation: MutationInput, stimulus?: Record<string, ChannelInput>, advanceMs?: number): Promise<ObservationFrameReply>;

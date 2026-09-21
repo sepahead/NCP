@@ -193,10 +193,11 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   a `production-secure` implementation is complete.
 - `BulkBlock` remains a bounded local/offline codec. It has no stable transport
   envelope and must never be published bare.
-- `ZenohBus::put` currently clones each serialized payload with `to_vec()` before
-  handing it to Zenoh. This is bounded and wire-neutral but prevents a true owned-
-  buffer/shared-memory zero-copy action path; performance certification must measure
-  the shipped copy rather than claim zero-copy.
+- The public borrowed `ZenohBus::put` clones its slice before handing it to Zenoh.
+  The command dispatcher now moves its final owned validated vector through a
+  private path and avoids that second action-worker copy. Serialization, validation,
+  Zenoh conversion, borrowed publishes, and receiver work remain; this is not a
+  shared-memory zero-copy or performance-qualification result.
 - The reference idempotency cache is bounded and snapshot-capable, but exactly-once
   claims require server integration and durable restart evidence. If an outcome
   cannot be proved, the only valid response is `outcome_unknown`. Pending entries

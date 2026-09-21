@@ -128,14 +128,15 @@ pub fn mint_stream_epoch() -> Result<String, ControlLoopConfigError> {
 /// Result of handing one governed command to a transport-owned publication slot.
 ///
 /// An admitted outcome carries the exact stream position assigned to the stored
-/// command. Every admitted replacement receives a fresh position. `Accepted` is bounded local
-/// slot admission, not a delivery acknowledgement; an asynchronous put can still
-/// be delivery-ambiguous and must consume its transport position. Within one
-/// transport binding, `Accepted` must retain one canonical epoch and strictly
-/// advance its position; `ReplacedPending` must also advance that stream.
-/// Local coalescing can leave unpublished positions. A malformed outcome is a transport contract
-/// violation, never operation success. A panic is also an ambiguous admission:
-/// the loop contains the unwind and permanently retires that transport binding.
+/// command. `ReplacedPending` means that this newly positioned command superseded
+/// an older command that had not crossed transport publication; it never reuses
+/// the displaced command's position. Both admitted outcomes retain one canonical
+/// epoch and strictly advance the stream. `Accepted` is bounded local slot
+/// admission, not a delivery acknowledgement; an asynchronous put can still be
+/// delivery-ambiguous and must consume its transport position. A malformed or
+/// inconsistent admitted outcome is a transport contract violation, never
+/// operation success. A panic is also an ambiguous admission: the loop contains
+/// the unwind and permanently retires that transport binding.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CommandSendOutcome {
     Accepted(StreamPosition),
@@ -537,8 +538,8 @@ pub struct NeuroControlLoop<T: ControlTransport, C: Controller> {
     command_stream_epoch: String,
     command_seq: i64,
     /// Last transport-owned action position accepted by this loop. It binds all
-    /// later admission receipts to one epoch, strict advancement for new slots,
-    /// and strict advancement for every pre-publication replacement.
+    /// later admission receipts to one epoch and requires strict advancement for
+    /// every accepted command, including a pre-publication replacement.
     last_admitted_command_position: Option<StreamPosition>,
     status_stream_epoch: String,
     /// Last consumed position in the loop-owned status stream. Zero means no
@@ -812,10 +813,13 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         // profile; the burst does not prove jamming or define a universal physical
         // action. Checked every tick so the latch persists once tripped.
         let mut cmd = self.gov.govern(&cmd, sensor, now, self.last_sensor_t)?;
-        // loop_latency_ms is a real health field: emit the measured tick cost (not a
-        // constant 0.0) and flag an overrun past the loop period in `note`. Measure
-        // before publishing: if the clock failed during computation, force this
-        // very command to HOLD rather than merely reporting the fault afterward.
+        // loop_latency_ms is a real local-compute health field: emit the elapsed
+        // time from tick entry through final governance, not a constant 0.0. It
+        // deliberately excludes transport-slot admission, network delivery, body
+        // admission or effect, and observation delivery. Flag a local-compute
+        // overrun past the loop period in `note`. Measure before publication: if
+        // the clock failed during computation, force this command to HOLD rather
+        // than merely reporting the fault afterward.
         let end = (self.now_fn)();
         let measured_latency_ms = (end - now) * 1000.0;
         let clock_ok =
@@ -895,9 +899,9 @@ impl<T: ControlTransport, C: Controller> NeuroControlLoop<T, C> {
         } else if controller_fault {
             Some("controller failure latched; fresh loop/controller required".into())
         } else if !clock_ok {
-            Some("control-loop clock anomaly; command forced safe by governor".into())
+            Some("control-loop clock anomaly; command forced to logical HOLD".into())
         } else if !sensor_is_fresh {
-            Some("sensor unavailable or stale; command forced safe by governor".into())
+            Some("sensor unavailable or stale; command forced to logical HOLD".into())
         } else if loop_latency_ms > dt_ms {
             Some(format!("overrun: {loop_latency_ms:.1}ms > {dt_ms:.1}ms"))
         } else {
@@ -2017,8 +2021,9 @@ mod tests {
 
     #[test]
     fn loop_latency_ms_is_measured() {
-        // A clock advancing per read => the post-send read exceeds the tick-start
-        // read, so loop_latency_ms is a real measured value, not a constant 0.0.
+        // A clock advancing per read makes the post-governance sample exceed the
+        // tick-start sample, so this local-compute latency is measured rather than
+        // a constant 0.0. It does not claim transport or end-to-end loop latency.
         let transport = in_process();
         let clock = Arc::new(Mutex::new(0.0_f64));
         let clock2 = clock.clone();

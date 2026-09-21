@@ -1235,13 +1235,13 @@
       "license_file_declared": false
     },
     {
-      "bom_ref": "pkg:cargo/rustls-webpki@0.103.13",
+      "bom_ref": "pkg:cargo/rustls-webpki@0.103.14",
       "license_expression_normalized": "ISC",
       "license_expression_raw": "ISC",
       "license_file_declared": false
     },
     {
-      "bom_ref": "pkg:cargo/rustls@0.23.40",
+      "bom_ref": "pkg:cargo/rustls@0.23.45",
       "license_expression_normalized": "Apache-2.0 OR ISC OR MIT",
       "license_expression_raw": "Apache-2.0 OR ISC OR MIT",
       "license_file_declared": false

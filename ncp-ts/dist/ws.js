@@ -10,6 +10,11 @@ const WRITE_DRAIN_POLL_MS = 10;
 export const WEBSOCKET_TRANSPORT_DEFAULTS = Object.freeze({
     maxPendingRequests: 128,
     maxOutboundFrameBytes: JSON_LIMITS.maxFrameBytes,
+    // Keep the 128-entry control-plane concurrency ceiling useful for small
+    // lifecycle messages without allowing 128 maximum-sized strings to remain
+    // queued before the socket opens. Eight full frames is a local experimental
+    // bound, not a qualified production profile.
+    maxPendingPayloadBytes: 8 * JSON_LIMITS.maxFrameBytes,
     connectTimeoutMs: 10_000,
     writeTimeoutMs: 10_000,
     readTimeoutMs: 30_000,
@@ -27,6 +32,8 @@ export class WebSocketNeuroSim {
     connectTimer = null;
     writeTimer = null;
     writePollTimer = null;
+    /** Exact UTF-8 bytes still retained in `writeQueue` or in a synchronous send. */
+    queuedPayloadBytes = 0;
     constructor(url, options = {}) {
         this.options = {
             connectTimeoutMs: WebSocketNeuroSim.validTimeout(options.connectTimeoutMs, WEBSOCKET_TRANSPORT_DEFAULTS.connectTimeoutMs, 'connectTimeoutMs'),
@@ -93,11 +100,13 @@ export class WebSocketNeuroSim {
     static encode(message) {
         try {
             const payload = JSON.stringify(message);
-            if (typeof payload !== 'string') {
+            if (typeof payload !== 'string' ||
+                payload.charCodeAt(0) !== 0x7b ||
+                payload.charCodeAt(payload.length - 1) !== 0x7d) {
                 throw new TypeError('message did not serialize to a JSON object');
             }
-            preflightJson(payload);
-            return payload;
+            const payloadBytes = preflightJson(payload);
+            return { payload, payloadBytes };
         }
         catch (error) {
             throw new Error(`NCP outbound message was not valid bounded JSON: ${WebSocketNeuroSim.messageOf(error)}`);
@@ -128,10 +137,18 @@ export class WebSocketNeuroSim {
         request.requestTimer = null;
         request.readTimer = null;
     }
+    releasePayload(request) {
+        if (request.payloadBytes === 0)
+            return;
+        this.queuedPayloadBytes -= request.payloadBytes;
+        request.payloadBytes = 0;
+        request.payload = '';
+    }
     resolveRequest(request, reply) {
         if (request.settled)
             return;
         request.settled = true;
+        this.releasePayload(request);
         this.clearRequestTimers(request);
         request.resolve(reply);
     }
@@ -139,6 +156,7 @@ export class WebSocketNeuroSim {
         if (request.settled)
             return;
         request.settled = true;
+        this.releasePayload(request);
         this.clearRequestTimers(request);
         request.reject(error);
     }
@@ -200,7 +218,7 @@ export class WebSocketNeuroSim {
             this.pendingResponses.push(request);
             try {
                 this.ws.send(request.payload);
-                request.payload = '';
+                this.releasePayload(request);
             }
             catch (error) {
                 this.failTransport(new Error(`NCP send failed: ${WebSocketNeuroSim.messageOf(error)}`), true);
@@ -221,9 +239,9 @@ export class WebSocketNeuroSim {
         if (this.outstandingCount() >= WEBSOCKET_TRANSPORT_DEFAULTS.maxPendingRequests) {
             return Promise.reject(new Error(`NCP WebSocket pending request capacity exceeded (${WEBSOCKET_TRANSPORT_DEFAULTS.maxPendingRequests})`));
         }
-        let payload;
+        let encoded;
         try {
-            payload = WebSocketNeuroSim.encode(message);
+            encoded = WebSocketNeuroSim.encode(message);
         }
         catch (error) {
             return Promise.reject(error instanceof Error
@@ -237,9 +255,14 @@ export class WebSocketNeuroSim {
         if (this.outstandingCount() >= WEBSOCKET_TRANSPORT_DEFAULTS.maxPendingRequests) {
             return Promise.reject(new Error(`NCP WebSocket pending request capacity exceeded (${WEBSOCKET_TRANSPORT_DEFAULTS.maxPendingRequests})`));
         }
+        if (encoded.payloadBytes >
+            WEBSOCKET_TRANSPORT_DEFAULTS.maxPendingPayloadBytes - this.queuedPayloadBytes) {
+            return Promise.reject(new Error(`NCP WebSocket queued payload capacity exceeded (${WEBSOCKET_TRANSPORT_DEFAULTS.maxPendingPayloadBytes} bytes)`));
+        }
         return new Promise((resolve, reject) => {
             const request = {
-                payload,
+                payload: encoded.payload,
+                payloadBytes: encoded.payloadBytes,
                 resolve,
                 reject,
                 requestTimer: null,
@@ -249,6 +272,7 @@ export class WebSocketNeuroSim {
             request.requestTimer = setTimeout(() => {
                 this.failTransport(new Error(`NCP WebSocket request timeout after ${this.options.requestTimeoutMs} ms`), true);
             }, this.options.requestTimeoutMs);
+            this.queuedPayloadBytes += request.payloadBytes;
             this.writeQueue.push(request);
             this.pumpWrites();
         });

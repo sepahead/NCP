@@ -328,7 +328,7 @@ def _enforce_named_collection_limits(value: Any) -> None:
 
 
 def parse_bounded_json_line(reader: BinaryIO) -> Any:
-    """Read and parse one newline-delimited canonical JSON frame."""
+    """Read and parse one newline-delimited JSON frame under universal limits."""
 
     framed = reader.readline(MAX_FRAME_BYTES + 2)
     if not framed:
