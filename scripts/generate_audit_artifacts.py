@@ -131,6 +131,24 @@ LOCAL_REVIEWED_SCOPE_LINES = {
     ("docs/local-v1/decision.md", "M008"): {
         "| Enable Haldir and online guard immediately | Policy-constrained experiments are required now. | Missing acceleration semantics or advisory authority creates an unsafe fallback. | Select gated mode and test all direct-command bypasses. |": "REVIEWED_DESIGN_FAILURE_MODE",
     },
+    # Retained verbatim reviewer-input copies. Each line below states the same
+    # requirement already reviewed in docs/local-v1/acceptance-70.md, which
+    # differs only in its Markdown prefix. The disposition carries the same
+    # NO_RUNTIME_OR_RELEASE_AUTHORIZATION claim effect.
+    (
+        "reviews/v1-independent-20260920/inputs/NCP_acceptance_plan_70.md.txt",
+        "M008",
+    ): {
+        "Required: Missingness and fallback are per entity. Valid peers are neither fabricated nor inadvertently discarded.": "REVIEWED_ACCEPTANCE_CHALLENGE",
+        "**60 · P0. Select Haldir-gated mode, then attempt direct Engram command and gate-timeout fallback.**": "REVIEWED_ACCEPTANCE_CHALLENGE",
+    },
+    (
+        "reviews/v1-independent-20260920/inputs/NCP_closed_loop_review.md.txt",
+        "M008",
+    ): {
+        "Required: Missingness and fallback are per entity. Valid peers are neither fabricated nor inadvertently discarded.": "REVIEWED_ACCEPTANCE_CHALLENGE",
+        "**60 · P0. Select Haldir-gated mode, then attempt direct Engram command and gate-timeout fallback.**": "REVIEWED_ACCEPTANCE_CHALLENGE",
+    },
 }
 
 COUNTERFACTUALS = {
