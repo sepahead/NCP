@@ -11,19 +11,7 @@ export type ControlStatus = {
     t: number;
     mode: Mode;
     sim_time_ms: number;
-    /**
-     * Local elapsed time from the start of one controller tick through final
-     * safety governance. This excludes transport-slot admission, network
-     * delivery, body admission, body disposition, physical effect, and
-     * observation delivery.
-     */
     loop_latency_ms: number;
-    /**
-     * Publisher-reported logical health. The reference loop clears this for a
-     * latched ESTOP, configuration fault, invalid rate or clock, or retired
-     * controller. A transient HOLD can coexist with `true`. This field does not
-     * certify physical safety or achieved effect.
-     */
     safety_ok: boolean;
     note: string | null;
     /**

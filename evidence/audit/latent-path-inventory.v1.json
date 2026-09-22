@@ -3550,9 +3550,9 @@
       },
       {
         "path": "ncp-core/bindings/ControlStatus.ts",
-        "bytes": 1454,
-        "sha256": "157698920c3bbd16cd4494d1a06c47e576982d7c3fd514b51a08eeab77b005d0",
-        "git_blob_oid": "73c3072c36d5e33d0af01942e9dd0137df96efe5",
+        "bytes": 929,
+        "sha256": "9cac49c9d56cfd4a1f719b2f6b69610f671e929db86dd283afd83dd9bd1c9043",
+        "git_blob_oid": "9894be76f2f7d357332a6ca731ee9700c596ae6f",
         "indexed": true
       },
       {
@@ -5111,16 +5111,16 @@
       },
       {
         "path": "ncp-ts/dist/generated/ControlStatus.d.ts",
-        "bytes": 1532,
-        "sha256": "d130b433796c40c441170e35cced8489a1f5cd91cee77b5f9beab319a13a207d",
-        "git_blob_oid": "9ca1a0d709b9ca1a83cb60e3b40604d8c35a7381",
+        "bytes": 959,
+        "sha256": "71fbbfebe58b28cf2818bf174aadbc1a4422ed7497ed1d8f390b345ae3ebdd76",
+        "git_blob_oid": "11a2717185899ba4ecb4633fa78b7d90c40eff44",
         "indexed": true
       },
       {
         "path": "ncp-ts/dist/generated/ControlStatus.d.ts.map",
-        "bytes": 674,
-        "sha256": "f5f3b1b0b7365e2dbfcdcad26c5d21b1c92f1fc3cffc42d8bfe112aa79a04d46",
-        "git_blob_oid": "4b9568c2e7cd861a245f61859b0ea3053f8e69e6",
+        "bytes": 644,
+        "sha256": "ecd2d3ca0b9cfb8dfad3baa89279030f3a631bb515a97ada6c5023a9ceff9d2f",
+        "git_blob_oid": "ae0e2f2e0c97699670bf0ef244fb32c96b50829e",
         "indexed": true
       },
       {
@@ -6490,9 +6490,9 @@
       },
       {
         "path": "ncp-ts/src/generated/ControlStatus.ts",
-        "bytes": 1463,
-        "sha256": "a88cf8939c3342baf1d52942467ebdfccbe960a8f727f9fbe000f041b84277b8",
-        "git_blob_oid": "ff4cd7e1e2dbc8bbb525e9897201dbecee238ee8",
+        "bytes": 938,
+        "sha256": "86d339102a2e56564be4ddbd0ac2e1f16dd7d29a02f555a9c711378d78a0fd0e",
+        "git_blob_oid": "50816a462b4400270590b3667cddfcc1ad81c670",
         "indexed": true
       },
       {
