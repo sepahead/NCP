@@ -33,19 +33,24 @@ The [target ownership flow](local/modular/STATUS.md#target-a-paper-driven-experi
 | Component | Implemented use | Current evidence boundary |
 | --- | --- | --- |
 | [NCP modular SDK](local/modular/owner.md) | Independent Rust and Python owners and clients for installed application contracts and bounded buffers. | SDK controls do not qualify an application's native behavior or resources. |
-| [Engram NEST application (private source)](https://github.com/sepahead/Paper2Brain/tree/main/packages/ncp-nest) | Run a persistent local neural network with typed currents and spike-count readouts. | Seven installed sessions passed 700 readout comparisons, including optional capture. Private repository access is required. |
+| [Engram NEST application (private source)](https://github.com/sepahead/Paper2Brain/tree/main/packages/ncp-nest) | Run a persistent neural network or select the guarded body/neural host CLI. | Native host comparisons retain exact count/rate and payload results. Private repository access is required. |
 | [CREBAIN sensor application](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-ground-sensors) | Run an explicitly installed body through `body_session`, or use caller-owned streams through `SensorSession`. | Installed CLI and body/neural cases cover selected workloads. Each advertised configuration needs its own qualification. |
+| [CREBAIN checkpoint family](https://github.com/sepahead/crebain/blob/main/integrations/ncp-force-ground-sensors/FAMILY.md) | Retain a live native checkpoint and serve separately bound restored continuations. | The selected E1 study checks original pressure bytes and final CPU equality. It does not restore arbitrary runtime state. |
+| [CREBAIN city sources](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-city-sources) | Control 1–256 entities in one world with separately selected world-fixed sensor sources. | Native cases retain their declared delivery and fault bounds. Complete resource and continuous-contact qualification remain open. |
 | [Prisoma transcript](https://github.com/sepahead/prisoma/tree/main/integrations/ncp-transcript) | Capture original NCP exchanges from selected peers and verify terminal completeness. | Capture does not launch a simulator or validate an experiment's scientific result. |
-| [Prisoma Agent Bridge](https://github.com/sepahead/prisoma/tree/main/integrations/agent-bridge) | Bind CREBAIN commands, execution receipts, original exchanges, and sensor bytes to canonical experiment events. | A native sensor execution case exists. Forecasts and independently restored outcome labels remain separate work. |
+| [Prisoma Agent Bridge](https://github.com/sepahead/prisoma/tree/main/integrations/agent-bridge) | Record sensor execution, forecast commitments, and restored labels through the selected application contract. | The native E1 study completed 112 episodes. Its forecast result was null or inconclusive under the frozen useful-margin requirement. |
 
 Engram, CREBAIN, and capture are independently selectable.
 A selected composition must satisfy every participating application's contract and resource limits.
 The SDK supplies no automatic application discovery, downloaded decoder, or mandatory central runtime.
 
-CREBAIN's current sensor application admits one simulated drone and no city solids.
+CREBAIN's scalar sensor application admits one simulated drone and no city solids.
 It supports zero through four RGB cameras, thermal cameras, or microphones, with at least one sensor overall.
 Camera-free selections require no Node or graphics process.
 The [installed body guide](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-ground-sensors/python) explains the runtime prerequisites and lifecycle contract.
+
+The separate city contract adds whole-roster control and source recipients without widening the scalar or checkpoint-family contracts.
+The [current evidence](local/modular/STATUS.md#implemented-and-observed) links each campaign to its owning source, workload, result, and limitations.
 
 ## Remaining product v1 work
 
@@ -53,8 +58,8 @@ The remaining work includes:
 
 - Complete installed qualification, lifecycle controls, and reproducible distribution for each advertised optional combination.
 - Measure the declared workload and resource envelope, including supported sensor sizes and entity counts.
-- Extend and qualify the modular body interface for the requested many-drone experiments.
-- Complete Prisoma's embodied and world-model experiment path, including forecasts, applied actions, independent outcome labels, and comparisons.
+- Qualify declared many-drone workloads, including continuous-contact and complete resource requirements.
+- Extend experiment evidence beyond E1's null or inconclusive forecast result before claiming general model quality or policy benefit.
 - Qualify additional advertised application roles, including selected monitoring, through their own typed contracts.
 
 These requirements need implementation or operating evidence according to the owning application contract.
