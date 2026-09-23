@@ -2507,16 +2507,16 @@
       },
       {
         "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
-        "bytes": 32653,
-        "sha256": "b67ba994bfdca65ff9227383bdcd5cfac141cc3a23ae8534c2be7dff3714cc04",
-        "git_blob_oid": "17d2dec9314e59c500e3b7a54a44581c8b5bc29d",
+        "bytes": 32935,
+        "sha256": "b4dbaf8fde2faed4a0783668eb23b39ef2f726853074b0fa1cd161b264c044eb",
+        "git_blob_oid": "a41968f00d79485f9d9d088827f8e81b6f919687",
         "indexed": true
       },
       {
         "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
-        "bytes": 177247,
-        "sha256": "109f0c7764ff05066fa8557ab68b3b2c49b3ac71404009fb08bb7f5010047fd6",
-        "git_blob_oid": "35da8b8ce78290f7795a120081c7372d3c1e8f65",
+        "bytes": 177529,
+        "sha256": "b4eba3db1453594c82c9e54b06267776fbd1a2f6fc35abaf38f92319f95e42de",
+        "git_blob_oid": "77ae3a723cc21e000cbe53a84a9b6253cee66436",
         "indexed": true
       },
       {
@@ -2948,9 +2948,9 @@
       },
       {
         "path": "evidence/implementation/task-ledger.v1.json",
-        "bytes": 188521,
-        "sha256": "0ab9c3a45734f23b7eee6f71371781a5eb842c342b3fdf7d8285ce06dca7da4d",
-        "git_blob_oid": "89d2aa6c3411424dd773ea5b7c92c6d7571e3ae4",
+        "bytes": 188803,
+        "sha256": "3da5e3521cc3742908c5ea3ad3c5bf928e72f58312ab2d4b63aa93a45e055991",
+        "git_blob_oid": "78e307c952157a20aa546eb19227b56678b876ec",
         "indexed": true
       },
       {
@@ -6378,9 +6378,9 @@
       },
       {
         "path": "ncp-ts/scripts/check-ws.mjs",
-        "bytes": 11684,
-        "sha256": "9fa2cd7b400bf76ee5ff2aea148e9c095ed8420ec468ba24528f558eb9b7bf5a",
-        "git_blob_oid": "8992a42910aa80c5e1fb098ab54ebe6434e3b60f",
+        "bytes": 21558,
+        "sha256": "cc449febec3e8a043a6fd6dab2db1b03d5e2b54720a91e38381aad27dcbf479b",
+        "git_blob_oid": "748f48cf3c3d0d003d252406ae1e00360ca4a134",
         "indexed": true
       },
       {
@@ -8701,7 +8701,7 @@
   "counts": {
     "text_files": 1203,
     "binary_or_non_utf8_files": 29,
-    "occurrences": 367,
+    "occurrences": 373,
     "by_token_id": {
       "M001": 7,
       "M002": 3,
@@ -8709,13 +8709,13 @@
       "M004": 1,
       "M005": 19,
       "M006": 22,
-      "M007": 83,
+      "M007": 89,
       "M008": 230
     },
     "by_disposition": {
       "AUDIT_CONTROL_TEXT": 87,
       "BOUNDED_DIAGNOSTIC_ONLY": 1,
-      "EXPLICIT_SCOPE_QUARANTINE": 41,
+      "EXPLICIT_SCOPE_QUARANTINE": 47,
       "FAIL_SAFE_NON_WIDENING": 24,
       "GENERATED_MIRROR": 11,
       "HANDOFF_OPEN_EVIDENCE": 44,
@@ -10405,11 +10405,41 @@
       "column": 59,
       "token_id": "M008",
       "line_sha256": "83a0de8a512144c0c838fd064c2c0a0fb9e53ed7bd2f8d9499a70d080c3fb70a",
-      "file_sha256": "b67ba994bfdca65ff9227383bdcd5cfac141cc3a23ae8534c2be7dff3714cc04",
+      "file_sha256": "b4dbaf8fde2faed4a0783668eb23b39ef2f726853074b0fa1cd161b264c044eb",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
         "docs/implementation/NCP_1_0_RESUMPTION.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-23F2DED32C436EA9E82F",
+      "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
+      "line": 124,
+      "column": 7,
+      "token_id": "M007",
+      "line_sha256": "abadef8a3b5d189f1b2924e69c18d38852c852e03495481270ba25e39bebee33",
+      "file_sha256": "b4dbaf8fde2faed4a0783668eb23b39ef2f726853074b0fa1cd161b264c044eb",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-05D131A665056EBCFBD7",
+      "path": "docs/implementation/NCP_1_0_RESUMPTION.md",
+      "line": 142,
+      "column": 7,
+      "token_id": "M007",
+      "line_sha256": "e2bc7d84418a77c5a3c68a3ed0fa831a72cad1701172153bac2cdc734512b4db",
+      "file_sha256": "b4dbaf8fde2faed4a0783668eb23b39ef2f726853074b0fa1cd161b264c044eb",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
       ]
     },
     {
@@ -10419,11 +10449,41 @@
       "column": 59,
       "token_id": "M008",
       "line_sha256": "83a0de8a512144c0c838fd064c2c0a0fb9e53ed7bd2f8d9499a70d080c3fb70a",
-      "file_sha256": "109f0c7764ff05066fa8557ab68b3b2c49b3ac71404009fb08bb7f5010047fd6",
+      "file_sha256": "b4eba3db1453594c82c9e54b06267776fbd1a2f6fc35abaf38f92319f95e42de",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
         "docs/implementation/NCP_1_0_TASK_LEDGER.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-8B3F897C47B78E5F0C91",
+      "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
+      "line": 70,
+      "column": 7,
+      "token_id": "M007",
+      "line_sha256": "abadef8a3b5d189f1b2924e69c18d38852c852e03495481270ba25e39bebee33",
+      "file_sha256": "b4eba3db1453594c82c9e54b06267776fbd1a2f6fc35abaf38f92319f95e42de",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-A41E096DB8AE7C9DECB0",
+      "path": "docs/implementation/NCP_1_0_TASK_LEDGER.md",
+      "line": 88,
+      "column": 7,
+      "token_id": "M007",
+      "line_sha256": "e2bc7d84418a77c5a3c68a3ed0fa831a72cad1701172153bac2cdc734512b4db",
+      "file_sha256": "b4eba3db1453594c82c9e54b06267776fbd1a2f6fc35abaf38f92319f95e42de",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
       ]
     },
     {
@@ -11167,11 +11227,41 @@
       "column": 66,
       "token_id": "M008",
       "line_sha256": "d80450cb7715d4c045e02ac59e3acb42fa8b833e1b84bfee3716d7bce057f6ff",
-      "file_sha256": "0ab9c3a45734f23b7eee6f71371781a5eb842c342b3fdf7d8285ce06dca7da4d",
+      "file_sha256": "3da5e3521cc3742908c5ea3ad3c5bf928e72f58312ab2d4b63aa93a45e055991",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [
         "evidence/implementation/task-ledger.v1.json"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-B83B4933042D732FDACF",
+      "path": "evidence/implementation/task-ledger.v1.json",
+      "line": 1823,
+      "column": 14,
+      "token_id": "M007",
+      "line_sha256": "a55d2e98c9f296c562d05ffe3d7d2803a2e8f1a6275ff3195b12ad6c19019480",
+      "file_sha256": "3da5e3521cc3742908c5ea3ad3c5bf928e72f58312ab2d4b63aa93a45e055991",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
+      ]
+    },
+    {
+      "id": "NCP-LATENT-69315DC3FBB1AD33C8E0",
+      "path": "evidence/implementation/task-ledger.v1.json",
+      "line": 1841,
+      "column": 14,
+      "token_id": "M007",
+      "line_sha256": "89d013fdf3d9d5ec6d0eb50f898741708794935724752b7b27336250f3b24c6a",
+      "file_sha256": "3da5e3521cc3742908c5ea3ad3c5bf928e72f58312ab2d4b63aa93a45e055991",
+      "disposition": "EXPLICIT_SCOPE_QUARANTINE",
+      "claim_effect": "NOT_STABLE_BY_IMPLICATION",
+      "evidence_paths": [
+        "contract/surface.v1.json",
+        "docs/1.0-scope.md"
       ]
     },
     {
@@ -11688,13 +11778,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-75E21FADD1690CB2954A",
+      "id": "NCP-LATENT-37190D44F6902B95B685",
       "path": "ncp-ts/scripts/check-ws.mjs",
-      "line": 248,
+      "line": 366,
       "column": 63,
       "token_id": "M007",
       "line_sha256": "c9ec2667234ec062d5aee0e9248400e22cd8c3a90d5865ee19d59607788a2922",
-      "file_sha256": "9fa2cd7b400bf76ee5ff2aea148e9c095ed8420ec468ba24528f558eb9b7bf5a",
+      "file_sha256": "cc449febec3e8a043a6fd6dab2db1b03d5e2b54720a91e38381aad27dcbf479b",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
