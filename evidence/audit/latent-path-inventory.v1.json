@@ -288,9 +288,9 @@
       },
       {
         "path": "README.md",
-        "bytes": 14470,
-        "sha256": "7718076ea8f85901459a6b76c57a65547513bdb239d674b5d3808c5ea6fcb87d",
-        "git_blob_oid": "0fc22832e25ef034d8d5cedbd0aa68b9f1a3d514",
+        "bytes": 15425,
+        "sha256": "fc11c4bf3d499f0683a28c5303ff158afc96c5ae3085deafa3a0617ed3b609cb",
+        "git_blob_oid": "e6470856b011b99f4fc0e03640babdec0622e085",
         "indexed": true
       },
       {
@@ -3018,9 +3018,9 @@
       },
       {
         "path": "local/modular/STATUS.md",
-        "bytes": 17602,
-        "sha256": "764e16c7ae3439a9d40b49c6ca3a28de89930004efb02bd32220dfa61c2f95bc",
-        "git_blob_oid": "2e1dd76d7840c2c4bc3a24899c043a2dc058e726",
+        "bytes": 20915,
+        "sha256": "351d4daf7e01156db3c7c480c6945931c798b99650eb985ca203844b03ece782",
+        "git_blob_oid": "5d50a4c5a2ad76bc001ce0bb320b56019175b55a",
         "indexed": true
       },
       {
@@ -11286,7 +11286,7 @@
       "column": 48,
       "token_id": "M007",
       "line_sha256": "58cc80425201795e1c81ec7a6286f8635c57263e81a20665fcd8bc7cd4cc5e6b",
-      "file_sha256": "764e16c7ae3439a9d40b49c6ca3a28de89930004efb02bd32220dfa61c2f95bc",
+      "file_sha256": "351d4daf7e01156db3c7c480c6945931c798b99650eb985ca203844b03ece782",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
@@ -11295,13 +11295,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-171C78A5973E0B095DCB",
+      "id": "NCP-LATENT-23EE33974F3359692FAD",
       "path": "local/modular/STATUS.md",
-      "line": 210,
+      "line": 225,
       "column": 50,
       "token_id": "M007",
       "line_sha256": "e687c4e42afcea5bd9d21f5f9e5496c852151727ef1ac8bb14029fdb634c069d",
-      "file_sha256": "764e16c7ae3439a9d40b49c6ca3a28de89930004efb02bd32220dfa61c2f95bc",
+      "file_sha256": "351d4daf7e01156db3c7c480c6945931c798b99650eb985ca203844b03ece782",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [
