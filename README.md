@@ -219,6 +219,8 @@ Measured timing and resource results must state their exact host, workload, and 
 - [Contribution workflow](CONTRIBUTING.md)
 - [Versioning policy](VERSIONING.md)
 
+Author and maintainer: **[Sepehr Mahmoudian](https://github.com/sepahead)**.
+
 NCP uses either the [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE) license.
 Use an immutable release's citation metadata when citing that release.
 Repository HEAD and the local candidate are not published release evidence.
