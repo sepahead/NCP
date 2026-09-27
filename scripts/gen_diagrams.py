@@ -1,31 +1,54 @@
 #!/usr/bin/env python3
-"""Generate NCP's bespoke "Instrument Datasheet" SVG diagrams (light + dark).
+"""Generate NCP's documentation and publication diagrams as light and dark SVG.
 
-Replaces the flat Mermaid diagrams with hand-composed, GitHub-<img>-safe SVGs:
-one semantic design system, depth (gradients + soft shadow + restrained glow),
-bespoke duotone icons, an 8px drafting grid, and a prominent vermillion
-body-gated ACTION trace where the subject includes actuation. Two committed files per diagram
-(``*-light.svg`` + ``*-dark.svg``), embedded via a ``prefers-color-scheme``
-``<picture>`` (mirrors docs/plots/). Core plane hues follow the performance-plot
-palette so diagrams and benchmarks read as one instrument.
+The figures use the repository's adaptation of the pid-rs publication design
+language: an ivory sheet, lapis and turquoise structure, saffron accent rules,
+Source Sans Pro labels, and Latin Modern Roman body text. Every state and
+relationship has a text label. Color only repeats that meaning.
 
-Output: docs/diagrams/{overview,topology,ecosystem,versioning,fsm,sequence,
-        admission,runtime,lifecycle}-{light,dark}.svg
-Run:    python3 scripts/gen_diagrams.py [--check]    (from repo root)
+The generator measures every label with committed advance widths from the exact
+font files (``scripts/diagram_font_metrics.v1.json``). It then checks each
+figure before it writes or accepts any byte:
 
-Pure stdlib. GitHub-safe: gradients/filters/patterns/markers/real <text> only —
-no <script>, <foreignObject>, external href/font/CSS, animation, or interactivity.
+* each label fits inside its container with the primary font and with the
+  Arial-metric Liberation fonts that a browser can substitute;
+* labels do not overlap each other, connectors, or unrelated boxes;
+* connectors start and end on their named boxes and cross no other box;
+* text contrast is at least 4.5:1 in both themes;
+* each public SVG meets the direct-view accessibility contract.
+
+Output: docs/diagrams/<name>-{light,dark}.svg for every entry in DIAGRAMS.
+
+Run from the repository root:
+
+    python3 scripts/gen_diagrams.py                        # write the SVGs
+    python3 scripts/gen_diagrams.py --check                # compare and validate
+    python3 scripts/gen_diagrams.py --write-font-metrics   # refresh the widths
+    python3 scripts/gen_diagrams.py --check-font-metrics   # compare the widths
+
+The font-metric modes read the installed TeX Live and Liberation font files.
+The other modes use only the Python standard library and the committed widths.
+The SVGs are presentation material. They carry no protocol semantics.
 """
 
 from __future__ import annotations
+
 import argparse
+import hashlib
 import json
-import os
+import math
 import re
+import shutil
+import struct
+import subprocess
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+OUT_DIR = ROOT / "docs" / "diagrams"
+METRICS_PATH = ROOT / "scripts" / "diagram_font_metrics.v1.json"
+
 CONTRACT_IDENTITY = json.loads(
     (ROOT / "contract" / "manifest.v1.json").read_text(encoding="utf-8")
 )
@@ -37,13 +60,6 @@ if not all(
     for value in (CANDIDATE_VERSION, WIRE_VERSION, CONTRACT_HASH)
 ):
     raise ValueError("contract manifest has incomplete diagram identity")
-WIRE_MAJOR = WIRE_VERSION.split(".", 1)[0]
-if not WIRE_MAJOR.isascii() or not WIRE_MAJOR.isdigit():
-    raise ValueError("contract manifest wire version has no canonical major")
-CURRENT_META = (
-    f"NCP · UNRELEASED {CANDIDATE_VERSION} · WIRE {WIRE_VERSION} · "
-    f"COMPACT PROTO HASH {CONTRACT_HASH}"
-)
 
 EXPECTED_PLANE_KEY_GRAMMAR = (
     "{realm}/rpc/{request_kind} | "
@@ -53,3375 +69,3284 @@ EXPECTED_PLANE_KEY_GRAMMAR = (
 PLANE_CONTRACT = json.loads(
     (ROOT / "contract" / "planes.v1.json").read_text(encoding="utf-8")
 )
-PLANE_KEY_GRAMMAR = PLANE_CONTRACT.get("key_grammar")
-if PLANE_KEY_GRAMMAR != EXPECTED_PLANE_KEY_GRAMMAR:
+if PLANE_CONTRACT.get("key_grammar") != EXPECTED_PLANE_KEY_GRAMMAR:
     raise ValueError("plane contract key grammar changed; review every diagram route")
-RPC_ROUTE, SESSION_ROUTE_TEMPLATE, OBSERVATION_ROUTE = PLANE_KEY_GRAMMAR.split(" | ")
-if SESSION_ROUTE_TEMPLATE.count("{sensor|command}") != 1:
-    raise ValueError("plane contract has no singular sensor/command route selector")
+RPC_ROUTE, SESSION_ROUTE_TEMPLATE, OBSERVATION_ROUTE = EXPECTED_PLANE_KEY_GRAMMAR.split(
+    " | "
+)
 SENSOR_ROUTE = SESSION_ROUTE_TEMPLATE.replace("{sensor|command}", "sensor")
 COMMAND_ROUTE = SESSION_ROUTE_TEMPLATE.replace("{sensor|command}", "command")
+CANDIDATE_LABEL = f"UNRELEASED {CANDIDATE_VERSION} · WIRE {WIRE_VERSION}"
 
-SVG_ACCESSIBILITY = {
-    "overview": (
-        "NCP protocol function overview",
-        f"Informative proposed B01 overview for the UNRELEASED {CANDIDATE_VERSION} "
-        "candidate. It shows five shared gates: raw bounds, authenticated ingress, "
-        "wire and stable-core identity, session and stream checks, and typed delivery. "
-        "Action adds a sixth, conditional body-effect predicate. The four planes are "
-        "bounded. Direct production-secure Zenoh ingress is unavailable. This is not "
-        "implementation, release, or certification evidence.",
-    ),
-    "topology": (
-        "NCP commander-body topology",
-        f"Informative topology for the UNRELEASED {CANDIDATE_VERSION} candidate. "
-        "It shows the commander, body, observer, and four core planes. It is not a "
-        "release, interoperability qualification, or certification claim.",
-    ),
-    "ecosystem": (
-        "NCP ecosystem integration map",
-        f"Informative UNRELEASED {CANDIDATE_VERSION} candidate ecosystem map. "
-        "It lists eleven roles and four isolated Haldir processes. Its policy authority "
-        "is not an NCP peer. X02 uses composite 1/2/3-drone sessions with 6N/3N frames "
-        "and remains open. MUSIC owns shared clocks. SVG is presentation-only. "
-        "Qualifications are not run. Not release or certification evidence.",
-    ),
-    "versioning": (
-        "NCP version and identity gate",
-        f"Informative proposed native-session gate for the UNRELEASED {CANDIDATE_VERSION} "
-        f"candidate and wire {WIRE_VERSION}. Canonical same-major parsing and the exact "
-        "stable-core digest are both required. Release, corpus, extension, package, and "
-        "compact-proto identities do not independently authorize a native session. "
-        "This diagram is not an implementation, release, or certification claim.",
-    ),
-    "fsm": (
-        "NCP plant-admission state model",
-        f"Informative plant-admission model for the UNRELEASED {CANDIDATE_VERSION} "
-        "candidate. It distinguishes normalized wire candidates from installed plant-profile "
-        "actions, including ACTIVE, HOLD, latched ESTOP, configuration failure, local no-wire "
-        "failure, publisher-position admission, and generation-cut reset. It is not a release "
-        "claim or physical-safety certification.",
-    ),
-    "sequence": (
-        "NCP simulation-session sequence",
-        f"Informative proposed simulation-session sequence for the UNRELEASED "
-        f"{CANDIDATE_VERSION} candidate. It traces the native wire and stable-core gate, "
-        "simulation open, bounded step or run, result, and close messages. It grants no "
-        "plant authority and is not an implemented wire, release, interoperability, or "
-        "certification claim.",
-    ),
-    "admission": (
-        "NCP body command admission",
-        f"Informative proposed B01 low-overhead target for the UNRELEASED {CANDIDATE_VERSION} "
-        "candidate. It is not the implemented contract. It shows raw bounds, authentication, "
-        "one decode, no-reuse, ESTOP latching, admission, and the body effect gate. "
-        "It is not a release, interoperability, or physical-safety certification claim.",
-    ),
-    "runtime": (
-        "NCP low-overhead runtime path",
-        f"Informative proposed B01 runtime path for the UNRELEASED {CANDIDATE_VERSION} "
-        "candidate. It separates prepare-once work from a bounded frame path, a short "
-        "owner transition, and an unlocked handoff. Its latency and memory equations "
-        "are symbolic design bounds, not measurements. It is not implementation, "
-        "release, performance qualification, or certification evidence.",
-    ),
-    "lifecycle": (
-        "NCP session lifecycle mutation owner",
-        f"Informative proposed B01 lifecycle model for the UNRELEASED {CANDIDATE_VERSION} "
-        "candidate. One namespace slot serializes each operation through pending, ambiguous, "
-        "and terminal commit. Terminal commit publishes the reserved result and high-water "
-        "before releasing the slot. Exact retries compare retained coordinates and bytes. "
-        "Shared finite stores avoid per-session services. This is not implementation, release, "
-        "or certification evidence.",
-    ),
+# ─────────────────────────────── font metrics ───────────────────────────────
+
+# Each role names one exact font file. The browser stack in SVG_FONT_STACKS can
+# substitute the "check" font on a host that lacks the primary font.
+FONT_FILES = {
+    "sans-400": ("kpsewhich", "SourceSansPro-Regular.otf"),
+    "sans-600": ("kpsewhich", "SourceSansPro-Semibold.otf"),
+    "sans-700": ("kpsewhich", "SourceSansPro-Bold.otf"),
+    "sans-400-italic": ("kpsewhich", "SourceSansPro-RegularIt.otf"),
+    "sans-600-italic": ("kpsewhich", "SourceSansPro-SemiboldIt.otf"),
+    "serif-400": ("kpsewhich", "lmroman10-regular.otf"),
+    "serif-400-italic": ("kpsewhich", "lmroman10-italic.otf"),
+    "check-sans-400": ("fc-match", "Liberation Sans:style=Regular"),
+    "check-sans-700": ("fc-match", "Liberation Sans:style=Bold"),
+    "check-sans-400-italic": ("fc-match", "Liberation Sans:style=Italic"),
+    "check-sans-700-italic": ("fc-match", "Liberation Sans:style=Bold Italic"),
+    "check-serif-400": ("fc-match", "Liberation Serif:style=Regular"),
+    "check-serif-400-italic": ("fc-match", "Liberation Serif:style=Italic"),
 }
-
-# ───────────────────────────── theme tokens ─────────────────────────────
-DARK = dict(
-    name="dark",
-    bg_top="#11161d",
-    bg_bot="#0d1117",
-    surf_top="#161b22",
-    surf_bot="#11161d",
-    surf_chip="#1b232c",
-    border="#30363d",
-    grid="#8b949e",
-    grid_dot_op=0.5,
-    grid_major_op=0.22,
-    tprim="#e6edf3",
-    tsec="#c9d1d9",
-    tmut="#8b949e",
-    control="#3a9ad9",
-    perception="#56b4e9",
-    action="#e8783c",
-    action_hi="#ff8a4c",
-    observation="#8b949e",
-    contract="#a78bfa",
-    contract_lo="#8c72d9",
-    active="#33c295",
-    hold="#f0b429",
-    configfail="#e08cbf",
-    fsm_active_text="#33c295",
-    fsm_hold_text="#f0b429",
-    fsm_configfail_text="#e08cbf",
-    fsm_action_text="#e8783c",
-    fsm_active_badge="#33c295",
-    fsm_active_badge_text="#06281e",
-    fsm_estop_badge_text="#0d1117",
-    fsm_hero_ink="#0d1117",
-    shadow="#05070b",
-    shadow_op=0.6,
-    shadow_dy=4,
-    shadow_sd=7,
-    halo_op=0.40,
-    glow_flood="#ff8a4c",
-    glow_op=0.9,
-    glow_double=True,
-    bus_stops=[
-        ("0", "#e8783c", "0.85"),
-        ("0.5", "#ff8a4c", "1"),
-        ("1", "#e8783c", "0.85"),
-    ],
-    fsm_bus_stops=[
-        ("0", "#e8783c", "0.85"),
-        ("0.5", "#ff8a4c", "1"),
-        ("1", "#e8783c", "0.85"),
-    ],
-    wash_op=0.06,
-)
-LIGHT = dict(
-    name="light",
-    bg_top="#ffffff",
-    bg_bot="#f3f5f8",
-    surf_top="#ffffff",
-    surf_bot="#eef1f5",
-    surf_chip="#eef1f5",
-    border="#d0d7de",
-    grid="#57606a",
-    grid_dot_op=0.5,
-    grid_major_op=0.26,
-    tprim="#1b2733",
-    tsec="#24292f",
-    tmut="#57606a",
-    control="#0072B2",
-    perception="#56B4E9",
-    action="#D55E00",
-    action_hi="#D55E00",
-    observation="#999999",
-    contract="#6D28D9",
-    contract_lo="#5b21b6",
-    active="#009E73",
-    hold="#E69F00",
-    configfail="#CC79A7",
-    fsm_active_text="#006B4F",
-    fsm_hold_text="#8A5A00",
-    fsm_configfail_text="#8C3F6F",
-    fsm_action_text="#8C3B00",
-    fsm_active_badge="#007A59",
-    fsm_active_badge_text="#ffffff",
-    fsm_estop_badge_text="#0d1117",
-    fsm_hero_ink="#1b2733",
-    shadow="#1b2733",
-    shadow_op=0.18,
-    shadow_dy=3,
-    shadow_sd=5,
-    halo_op=0.22,
-    glow_flood="#D55E00",
-    glow_op=0.4,
-    glow_double=False,
-    bus_stops=[("0", "#D55E00", "1"), ("0.5", "#D55E00", "1"), ("1", "#b94f00", "1")],
-    fsm_bus_stops=[
-        ("0", "#F07A32", "1"),
-        ("0.5", "#F58A45", "1"),
-        ("1", "#E66F24", "1"),
-    ],
-    wash_op=0.05,
+# Browsers render these fonts when the primary font is absent. Liberation Sans
+# and Liberation Serif have Arial and Times New Roman metrics.
+CHECK_FONT = {
+    "sans-400": "check-sans-400",
+    "sans-600": "check-sans-700",
+    "sans-700": "check-sans-700",
+    "sans-400-italic": "check-sans-400-italic",
+    "sans-600-italic": "check-sans-700-italic",
+    "serif-400": "check-serif-400",
+    "serif-400-italic": "check-serif-400-italic",
+}
+SVG_FONT_STACKS = {
+    "sans": "'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', "
+    "'Helvetica Neue', Helvetica, sans-serif",
+    "serif": "'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', "
+    "'Liberation Serif', Times, serif",
+}
+METRIC_CHARACTERS = "".join(chr(code) for code in range(32, 127)) + (
+    "·→←↑↓↔≤≥×−–—…≠∑ΔΣτλρ≈′°µ‖∞⇒‘’“”§"
 )
 
-SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif"
-MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace"
+
+def _sfnt_tables(data: bytes) -> dict[str, tuple[int, int]]:
+    count = struct.unpack(">H", data[4:6])[0]
+    tables = {}
+    for index in range(count):
+        tag, _checksum, offset, length = struct.unpack(
+            ">4sIII", data[12 + 16 * index : 28 + 16 * index]
+        )
+        tables[tag.decode("latin-1")] = (offset, length)
+    return tables
 
 
-# ───────────────────────────── primitives ─────────────────────────────
-def _relative_luminance(color: str) -> float:
-    if len(color) != 7 or not color.startswith("#"):
-        raise ValueError(f"expected six-digit hex color, got {color!r}")
+def _sfnt_cmap(data: bytes, tables: dict[str, tuple[int, int]]) -> dict[int, int]:
+    offset, _ = tables["cmap"]
+    count = struct.unpack(">H", data[offset + 2 : offset + 4])[0]
+    ranked = {(3, 10): 0, (0, 4): 1, (3, 1): 2, (0, 3): 3}
+    best = None
+    for index in range(count):
+        platform, encoding, sub = struct.unpack(
+            ">HHI", data[offset + 4 + 8 * index : offset + 12 + 8 * index]
+        )
+        fmt = struct.unpack(">H", data[offset + sub : offset + sub + 2])[0]
+        rank = ranked.get((platform, encoding))
+        if rank is not None and fmt in (4, 12) and (best is None or rank < best[0]):
+            best = (rank, offset + sub, fmt)
+    if best is None:
+        raise ValueError("font has no Unicode cmap subtable")
+    _, base, fmt = best
+    mapping: dict[int, int] = {}
+    if fmt == 12:
+        groups = struct.unpack(">I", data[base + 12 : base + 16])[0]
+        for group in range(groups):
+            start, end, glyph = struct.unpack(
+                ">III", data[base + 16 + 12 * group : base + 28 + 12 * group]
+            )
+            for code in range(start, end + 1):
+                mapping[code] = glyph + code - start
+        return mapping
+    segments = struct.unpack(">H", data[base + 6 : base + 8])[0] // 2
+    width = 2 * segments
+    ends = struct.unpack(f">{segments}H", data[base + 14 : base + 14 + width])
+    starts = struct.unpack(
+        f">{segments}H", data[base + 16 + width : base + 16 + 2 * width]
+    )
+    deltas = struct.unpack(
+        f">{segments}h", data[base + 16 + 2 * width : base + 16 + 3 * width]
+    )
+    range_base = base + 16 + 3 * width
+    ranges = struct.unpack(f">{segments}H", data[range_base : range_base + width])
+    for index in range(segments):
+        for code in range(starts[index], ends[index] + 1):
+            if code == 0xFFFF:
+                continue
+            if ranges[index] == 0:
+                glyph = (code + deltas[index]) & 0xFFFF
+            else:
+                address = (
+                    range_base + 2 * index + ranges[index] + 2 * (code - starts[index])
+                )
+                glyph = struct.unpack(">H", data[address : address + 2])[0]
+                if glyph:
+                    glyph = (glyph + deltas[index]) & 0xFFFF
+            if glyph:
+                mapping[code] = glyph
+    return mapping
+
+
+def _font_record(path: Path) -> dict:
+    data = path.read_bytes()
+    tables = _sfnt_tables(data)
+    head = tables["head"][0]
+    units = struct.unpack(">H", data[head + 18 : head + 20])[0]
+    hhea = tables["hhea"][0]
+    metric_count = struct.unpack(">H", data[hhea + 34 : hhea + 36])[0]
+    hmtx = tables["hmtx"][0]
+    advances = [
+        struct.unpack(">H", data[hmtx + 4 * index : hmtx + 4 * index + 2])[0]
+        for index in range(metric_count)
+    ]
+    os2 = tables["OS/2"][0]
+    ascender, descender = struct.unpack(">hh", data[os2 + 68 : os2 + 72])
+    cmap = _sfnt_cmap(data, tables)
+    widths = {}
+    for character in METRIC_CHARACTERS:
+        glyph = cmap.get(ord(character))
+        if glyph is None:
+            continue
+        advance = advances[glyph] if glyph < metric_count else advances[-1]
+        widths[character] = round(advance * 1000 / units)
+    return {
+        "file": path.name,
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "ascender": round(ascender * 1000 / units),
+        "descender": round(descender * 1000 / units),
+        "widths": widths,
+    }
+
+
+def _locate_font(method: str, name: str) -> Path:
+    tool = shutil.which("kpsewhich" if method == "kpsewhich" else "fc-match")
+    if tool is None:
+        raise SystemExit(f"font lookup tool is absent for {name}")
+    command = [tool, name] if method == "kpsewhich" else [tool, "-f", "%{file}", name]
+    found = subprocess.run(command, capture_output=True, text=True, check=False)
+    path = Path(found.stdout.strip())
+    if found.returncode != 0 or not path.is_file():
+        raise SystemExit(f"font file is absent: {name}")
+    return path
+
+
+def measured_font_metrics() -> dict:
+    fonts = {}
+    for role, (method, name) in FONT_FILES.items():
+        path = _locate_font(method, name)
+        record = _font_record(path)
+        if role.startswith("check-") is False and len(record["widths"]) != len(
+            METRIC_CHARACTERS
+        ):
+            missing = "".join(c for c in METRIC_CHARACTERS if c not in record["widths"])
+            if role.startswith("sans"):
+                raise SystemExit(f"{name} lacks required glyphs: {missing!r}")
+        fonts[role] = record
+    return {
+        "schema": "ncp.diagram-font-metrics.v1",
+        "units": "advance width in thousandths of one em",
+        "characters": METRIC_CHARACTERS,
+        "fonts": fonts,
+    }
+
+
+def _metrics_bytes(metrics: dict) -> bytes:
+    return (
+        json.dumps(metrics, ensure_ascii=False, indent=1, sort_keys=True) + "\n"
+    ).encode("utf-8")
+
+
+FONT_METRICS = (
+    json.loads(METRICS_PATH.read_text(encoding="utf-8"))
+    if METRICS_PATH.is_file()
+    else None
+)
+
+
+def text_width(text: str, role: str, size: float, letter_spacing: float = 0.0) -> float:
+    """Return the advance width of text in SVG user units."""
+    if FONT_METRICS is None:
+        raise SystemExit("run: python3 scripts/gen_diagrams.py --write-font-metrics")
+    widths = FONT_METRICS["fonts"][role]["widths"]
+    total = 0.0
+    for character in text:
+        advance = widths.get(character)
+        if advance is None:
+            if role.startswith("check-"):
+                # A host font substitutes one missing symbol. Charge one em.
+                advance = 1000
+            else:
+                raise ValueError(f"font {role} has no measured glyph {character!r}")
+        total += advance
+    return total * size / 1000 + letter_spacing * len(text)
+
+
+def font_extent(role: str, size: float) -> tuple[float, float]:
+    record = FONT_METRICS["fonts"][role]
+    return record["ascender"] * size / 1000, -record["descender"] * size / 1000
+
+
+# ───────────────────────────────── themes ───────────────────────────────────
+
+LIGHT = {
+    "name": "light",
+    "sheet": "#F7F3E9",  # ivory
+    "card": "#FBF9F3",
+    "tint": "#E4EDEE",  # mineral wash for emphasis
+    "note": "#D2E0E2",  # mineral blue
+    "ink": "#2C3E50",
+    "muted": "#4D5C64",
+    "lapis": "#1F3F60",
+    "turquoise": "#1F6968",
+    "mineral": "#D2E0E2",
+    "rule": "#C3D3D6",
+    "saffron": "#B28218",
+    "bronze": "#7A5500",
+    "pomegranate": "#743E37",
+    "on_accent": "#F7F3E9",
+    "hatch": "#B28218",
+}
+DARK = {
+    "name": "dark",
+    "sheet": "#131D26",
+    "card": "#1A2631",
+    "tint": "#1F3340",
+    "note": "#1E3240",
+    "ink": "#ECE5D5",
+    "muted": "#AAB7BE",
+    "lapis": "#8DB2D8",
+    "turquoise": "#6FC1BD",
+    "mineral": "#35495A",
+    "rule": "#3D5263",
+    "saffron": "#D8AA45",
+    "bronze": "#E2B75A",
+    "pomegranate": "#E6A095",
+    "on_accent": "#10202B",
+    "hatch": "#D8AA45",
+}
+THEMES = (LIGHT, DARK)
+TEXT_TOKENS = ("ink", "muted", "lapis", "turquoise", "bronze", "pomegranate")
+
+
+def _luminance(color: str) -> float:
     channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
     linear = [
-        channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
-        for channel in channels
+        value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+        for value in channels
     ]
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
 
-def _contrast_ratio(foreground: str, background_color: str) -> float:
-    foreground_luminance = _relative_luminance(foreground)
-    background_luminance = _relative_luminance(background_color)
-    lighter = max(foreground_luminance, background_luminance)
-    darker = min(foreground_luminance, background_luminance)
-    return (lighter + 0.05) / (darker + 0.05)
+def contrast_ratio(first: str, second: str) -> float:
+    high, low = sorted((_luminance(first), _luminance(second)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
 
 
-def _composite_color(foreground: str, background_color: str, opacity: float) -> str:
-    if not 0 <= opacity <= 1:
-        raise ValueError(f"opacity must be in [0, 1], got {opacity}")
-    foreground_channels = [
-        int(foreground[index : index + 2], 16) for index in (1, 3, 5)
-    ]
-    background_channels = [
-        int(background_color[index : index + 2], 16) for index in (1, 3, 5)
-    ]
-    channels = [
-        round(opacity * front + (1 - opacity) * back)
-        for front, back in zip(foreground_channels, background_channels)
-    ]
-    return "#" + "".join(f"{channel:02x}" for channel in channels)
+# ─────────────────────────────── text styles ────────────────────────────────
 
 
-def contrast_ink(*background_colors: str) -> str:
-    """Select one normal-text ink that clears 4.5:1 on every background."""
-    candidates = ("#0d1117", "#ffffff")
-    ink = max(
-        candidates,
-        key=lambda candidate: min(
-            _contrast_ratio(candidate, background) for background in background_colors
-        ),
-    )
-    minimum = min(_contrast_ratio(ink, background) for background in background_colors)
-    if minimum < 4.5:
-        raise ValueError(
-            "no black-or-white text ink clears 4.5:1 on " + ", ".join(background_colors)
+@dataclass(frozen=True)
+class Style:
+    family: str
+    size: float
+    weight: int = 400
+    italic: bool = False
+    color: str = "ink"
+    spacing: float = 0.0
+
+    @property
+    def role(self) -> str:
+        role = f"{self.family}-{self.weight}"
+        return role + "-italic" if self.italic else role
+
+
+EYEBROW = Style("sans", 24, 700, color="muted", spacing=2.0)
+HEADING = Style("sans", 38, 700, color="lapis")
+TITLE = Style("sans", 28, 700)
+TITLE_NARROW = Style("sans", 26, 700)
+SUBTITLE = Style("sans", 25, 600, color="turquoise")
+LABEL = Style("sans", 25, 600, color="muted")
+SMALL = Style("sans", 24, 600, color="muted")
+BODY = Style("serif", 25)
+BODY_ITALIC = Style("serif", 25, italic=True)
+BADGE = Style("sans", 24, 700, color="on_accent", spacing=1.0)
+MIN_TEXT_SIZE = 24
+
+
+def esc(value: str) -> str:
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def fmt(value: float) -> str:
+    text = f"{value:.1f}"
+    return text[:-2] if text.endswith(".0") else text
+
+
+# ──────────────────────────────── geometry ──────────────────────────────────
+
+
+@dataclass(frozen=True)
+class Box:
+    x: float
+    y: float
+    w: float
+    h: float
+
+    @property
+    def right(self) -> float:
+        return self.x + self.w
+
+    @property
+    def bottom(self) -> float:
+        return self.y + self.h
+
+    @property
+    def cx(self) -> float:
+        return self.x + self.w / 2
+
+    @property
+    def cy(self) -> float:
+        return self.y + self.h / 2
+
+    def inset(self, amount: float) -> Box:
+        return Box(
+            self.x + amount, self.y + amount, self.w - 2 * amount, self.h - 2 * amount
         )
-    return ink
 
-
-def esc(s: str) -> str:
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-
-def semantic_text_color(theme: dict, hue: str) -> str:
-    """Return a semantic text color with at least normal-text contrast."""
-    if theme["name"] == "dark":
-        return hue
-    return {
-        theme["control"]: "#005F8A",
-        theme["perception"]: "#006A94",
-        theme["action"]: "#8C3B00",
-        theme["observation"]: "#595959",
-        theme["contract"]: "#6D28D9",
-        theme["active"]: "#006B4F",
-        theme["hold"]: "#8A5A00",
-        theme["configfail"]: "#8C3F6F",
-    }.get(hue, hue)
-
-
-def T(
-    x,
-    y,
-    s,
-    size,
-    weight=400,
-    fill="#000",
-    *,
-    family=SANS,
-    anchor="start",
-    track=0,
-    italic=False,
-    op=None,
-    mono=False,
-):
-    fam = MONO if mono else family
-    style = "italic" if italic else "normal"
-    extra = f' letter-spacing="{track}"' if track else ""
-    opa = f' fill-opacity="{op}"' if op is not None else ""
-    return (
-        f'<text x="{x}" y="{y}" font-family="{fam}" font-size="{size}" '
-        f'font-weight="{weight}" font-style="{style}" fill="{fill}"{opa} '
-        f'text-anchor="{anchor}"{extra} text-rendering="geometricPrecision">{esc(s)}</text>'
-    )
-
-
-def rect(
-    x, y, w, h, rx=0, fill="none", stroke="none", sw=0, dash=None, op=None, filt=None
-):
-    d = f' stroke-dasharray="{dash}"' if dash else ""
-    o = f' fill-opacity="{op}"' if op is not None else ""
-    f = f' filter="url(#{filt})"' if filt else ""
-    s = f' stroke="{stroke}" stroke-width="{sw}"' if stroke != "none" else ""
-    return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{rx}" fill="{fill}"{s}{d}{o}{f}/>'
-
-
-def line(
-    x1, y1, x2, y2, stroke, sw, dash=None, cap="round", op=None, marker=None, filt=None
-):
-    d = f' stroke-dasharray="{dash}"' if dash else ""
-    o = f' stroke-opacity="{op}"' if op is not None else ""
-    m = f' marker-end="url(#{marker})"' if marker else ""
-    f = f' filter="url(#{filt})"' if filt else ""
-    return (
-        f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke}" '
-        f'stroke-width="{sw}" stroke-linecap="{cap}"{d}{o}{m}{f}/>'
-    )
-
-
-def path(
-    d,
-    stroke="none",
-    sw=0,
-    fill="none",
-    cap="round",
-    join="round",
-    op=None,
-    marker=None,
-    filt=None,
-    dash=None,
-):
-    o = f' stroke-opacity="{op}"' if op is not None else ""
-    m = f' marker-end="url(#{marker})"' if marker else ""
-    f = f' filter="url(#{filt})"' if filt else ""
-    dd = f' stroke-dasharray="{dash}"' if dash else ""
-    s = (
-        f' stroke="{stroke}" stroke-width="{sw}" stroke-linecap="{cap}" stroke-linejoin="{join}"'
-        if stroke != "none"
-        else ""
-    )
-    return f'<path d="{d}" fill="{fill}"{s}{dd}{o}{m}{f}/>'
-
-
-# ───────────────────────────── defs kit ─────────────────────────────
-def defs(th, *, include_fsm=False) -> str:
-    bus = "".join(
-        f'<stop offset="{o}" stop-color="{c}" stop-opacity="{op}"/>'
-        for o, c, op in th["bus_stops"]
-    )
-    fsm_gradient = ""
-    if include_fsm:
-        fsm_bus = "".join(
-            f'<stop offset="{o}" stop-color="{c}" stop-opacity="{op}"/>'
-            for o, c, op in th["fsm_bus_stops"]
+    def contains(
+        self, other: Box, margin: float = 0.0, vertical: float | None = None
+    ) -> bool:
+        vertical = margin if vertical is None else vertical
+        return (
+            other.x >= self.x + margin - 1e-6
+            and other.y >= self.y + vertical - 1e-6
+            and other.right <= self.right - margin + 1e-6
+            and other.bottom <= self.bottom - vertical + 1e-6
         )
-        fsm_gradient = (
-            '  <linearGradient id="fsmAction" x1="0" y1="0" x2="1" y2="0">'
-            f"{fsm_bus}</linearGradient>\n"
+
+    def intersects(self, other: Box, gap: float = 0.0) -> bool:
+        return not (
+            other.x >= self.right + gap
+            or other.right <= self.x - gap
+            or other.y >= self.bottom + gap
+            or other.bottom <= self.y - gap
         )
-    glow_merge = (
-        '<feMergeNode in="g"/><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/>'
-        if th["glow_double"]
-        else '<feMergeNode in="g"/><feMergeNode in="SourceGraphic"/>'
-    )
-    glow_in = "SourceGraphic" if th["glow_double"] else "SourceAlpha"
-    return f'''<defs>
-  <linearGradient id="pageBg" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="{th["bg_top"]}"/><stop offset="1" stop-color="{th["bg_bot"]}"/>
-  </linearGradient>
-  <linearGradient id="surface" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="{th["surf_top"]}"/><stop offset="1" stop-color="{th["surf_bot"]}"/>
-  </linearGradient>
-  <linearGradient id="busAction" x1="0" y1="0" x2="1" y2="0">{bus}</linearGradient>
-{fsm_gradient}  <linearGradient id="contractHero" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="{th["contract"]}"/><stop offset="1" stop-color="{th["contract_lo"]}"/>
-  </linearGradient>
-  <radialGradient id="gridDot" cx="0.5" cy="0.5" r="0.5">
-    <stop offset="0" stop-color="{th["grid"]}" stop-opacity="{th["grid_dot_op"]}"/>
-    <stop offset="1" stop-color="{th["grid"]}" stop-opacity="0"/>
-  </radialGradient>
-  <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse">
-    <circle cx="2" cy="2" r="1.4" fill="url(#gridDot)"/>
-  </pattern>
-  <pattern id="gridMajor" width="110" height="110" patternUnits="userSpaceOnUse">
-    <path d="M110 0H0V110" fill="none" stroke="{th["grid"]}" stroke-width="0.75" stroke-opacity="{th["grid_major_op"]}"/>
-  </pattern>
-  <filter id="soft" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
-    <feDropShadow dx="0" dy="{th["shadow_dy"]}" stdDeviation="{th["shadow_sd"]}" flood-color="{th["shadow"]}" flood-opacity="{th["shadow_op"]}"/>
-  </filter>
-  <filter id="halo" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
-    <feGaussianBlur stdDeviation="3"/>
-  </filter>
-  <filter id="glow" x="-90%" y="-90%" width="280%" height="280%" color-interpolation-filters="sRGB">
-    <feGaussianBlur in="{glow_in}" stdDeviation="3.4" result="b"/>
-    <feFlood flood-color="{th["glow_flood"]}" flood-opacity="{th["glow_op"]}"/>
-    <feComposite in2="b" operator="in" result="g"/>
-    <feMerge>{glow_merge}</feMerge>
-  </filter>
-  <marker id="arrowAction" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["action"]}"/></marker>
-  <marker id="arrowControl" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["control"]}"/></marker>
-  <marker id="replyControl" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M2,1.5 L9,5.5 L2,9.5" fill="none" stroke="{th["control"]}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
-  <marker id="arrowPercep" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["perception"]}"/></marker>
-  <marker id="tapObserve" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto"><circle cx="5" cy="5" r="3.2" fill="none" stroke="{th["observation"]}" stroke-width="1.5"/></marker>
-  <marker id="arrowContract" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["contract"]}"/></marker>
-  <marker id="submoduleArrow" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M2,1.5 L9,5.5 L2,9.5" fill="none" stroke="{th["observation"]}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
-  <marker id="arrowActive" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["active"]}"/></marker>
-  <marker id="arrowEstop" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["action"]}" stroke="#ffd9c2" stroke-width="0.6"/></marker>
-  <marker id="arrowHold" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["hold"]}"/></marker>
-  <marker id="arrowMut" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["tmut"]}"/></marker>
-  <marker id="arrowConfig" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="9" refY="5.5" orient="auto"><path d="M1,1 L9,5.5 L1,10 Z" fill="{th["configfail"]}"/></marker>
-  <filter id="glowContract" x="-90%" y="-90%" width="280%" height="280%" color-interpolation-filters="sRGB">
-    <feGaussianBlur in="{glow_in}" stdDeviation="3.4" result="b"/>
-    <feFlood flood-color="{th["contract"]}" flood-opacity="{th["glow_op"]}"/>
-    <feComposite in2="b" operator="in" result="g"/>
-    <feMerge>{glow_merge}</feMerge>
-  </filter>
-  <filter id="glowActive" x="-90%" y="-90%" width="280%" height="280%" color-interpolation-filters="sRGB">
-    <feGaussianBlur in="{glow_in}" stdDeviation="3.4" result="b"/>
-    <feFlood flood-color="{th["active"]}" flood-opacity="{th["glow_op"]}"/>
-    <feComposite in2="b" operator="in" result="g"/>
-    <feMerge>{glow_merge}</feMerge>
-  </filter>
-</defs>'''
+
+    def on_border(self, x: float, y: float, tolerance: float = 0.6) -> bool:
+        inside_x = self.x - tolerance <= x <= self.right + tolerance
+        inside_y = self.y - tolerance <= y <= self.bottom + tolerance
+        near_x = abs(x - self.x) <= tolerance or abs(x - self.right) <= tolerance
+        near_y = abs(y - self.y) <= tolerance or abs(y - self.bottom) <= tolerance
+        return (near_x and inside_y) or (near_y and inside_x)
 
 
-# ───────────────────────────── bespoke icons (24x24 → placed) ─────────────────────────────
-def _icon(inner, x, y, size, hue):
-    s = size / 24.0
-    return (
-        f'<g transform="translate({x},{y}) scale({s:.4f})" fill="none" stroke="{hue}" '
-        f'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{inner}</g>'
-    )
+def segment_hits_box(a: tuple[float, float], b: tuple[float, float], box: Box) -> bool:
+    """Return true when an open segment passes through a box interior."""
+    (x0, y0), (x1, y1) = a, b
+    left, top, right, bottom = box.x, box.y, box.right, box.bottom
+    t0, t1 = 0.0, 1.0
+    dx, dy = x1 - x0, y1 - y0
+    for p, q in (
+        (-dx, x0 - left),
+        (dx, right - x0),
+        (-dy, y0 - top),
+        (dy, bottom - y0),
+    ):
+        if abs(p) < 1e-9:
+            if q <= 0:
+                return False
+            continue
+        r = q / p
+        if p < 0:
+            t0 = max(t0, r)
+        else:
+            t1 = min(t1, r)
+        if t0 >= t1:
+            return False
+    # Ignore contact that only touches the boundary at an endpoint.
+    return t1 - t0 > 1e-6 and not (t1 - t0) * math.hypot(dx, dy) < 0.5
 
 
-def ic_brain(x, y, size, hue):
-    inner = (
-        f'<path d="M9.5 5.2A3.2 3.2 0 0 0 4 7.6a3 3 0 0 0-1 5.6a3.2 3.2 0 0 0 4 3.6a2.6 2.6 0 0 0 2.5 1.6"/>'
-        f'<path d="M14.5 5.2A3.2 3.2 0 0 1 20 7.6a3 3 0 0 1 1 5.6a3.2 3.2 0 0 1-4 3.6a2.6 2.6 0 0 1-2.5 1.6"/>'
-        f'<path d="M12 5v13.4"/>'
-        f'<circle cx="12" cy="5" r="0.5" fill="{hue}" stroke="{hue}"/>'
-        f'<circle cx="7.5" cy="9" r="0.5" fill="{hue}" stroke="{hue}"/>'
-        f'<circle cx="16.5" cy="9" r="0.5" fill="{hue}" stroke="{hue}"/>'
-        f'<circle cx="8" cy="14" r="0.5" fill="{hue}" stroke="{hue}"/>'
-        f'<circle cx="16" cy="14" r="0.5" fill="{hue}" stroke="{hue}"/>'
-        f'<path d="M12 8.2 7.5 9M12 8.2 16.5 9M12 12.5 8 14M12 12.5 16 14"/>'
-    )
-    return _icon(inner, x, y, size, hue)
+# ──────────────────────────────── canvas ────────────────────────────────────
 
 
-def ic_robot(x, y, size, hue):
-    inner = (
-        f'<rect x="5" y="8" width="14" height="11" rx="3"/>'
-        f'<path d="M12 8V5"/>'
-        f'<circle cx="12" cy="3.6" r="1.4" fill="{hue}" stroke="none"/>'
-        f'<circle cx="9" cy="12.5" r="1.2" fill="{hue}" stroke="none"/>'
-        f'<circle cx="15" cy="12.5" r="1.2" fill="{hue}" stroke="none"/>'
-        f'<path d="M9.5 16h5"/><path d="M5 12.5H3M19 12.5h2"/>'
-    )
-    return _icon(inner, x, y, size, hue)
+@dataclass
+class Text:
+    x: float
+    y: float
+    runs: list[tuple[str, Style]]
+    anchor: str
+    container: str | None
+    primary: Box = field(init=False)
+    check: Box = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.primary = self._box("primary")
+        self.check = self._box("check")
+
+    @property
+    def content(self) -> str:
+        return "".join(text for text, _ in self.runs)
+
+    def width(self, which: str) -> float:
+        total = 0.0
+        for text, style in self.runs:
+            role = style.role if which == "primary" else CHECK_FONT[style.role]
+            total += text_width(text, role, style.size, style.spacing)
+        return total
+
+    def _box(self, which: str) -> Box:
+        width = self.width(which)
+        ascent = max(font_extent(style.role, style.size)[0] for _, style in self.runs)
+        descent = max(font_extent(style.role, style.size)[1] for _, style in self.runs)
+        # Typographic extents include accent room. Use the cap and descender box.
+        top = self.y - 0.72 * max(style.size for _, style in self.runs)
+        bottom = self.y + 0.22 * max(style.size for _, style in self.runs)
+        del ascent, descent
+        if self.anchor == "start":
+            left = self.x
+        elif self.anchor == "middle":
+            left = self.x - width / 2
+        else:
+            left = self.x - width
+        return Box(left, top, width, bottom - top)
 
 
-def ic_eye(x, y, size, hue):
-    inner = (
-        '<path d="M2.5 12c2.2-4 6-6 9.5-6s7.3 2 9.5 6c-2.2 4-6 6-9.5 6s-7.3-2-9.5-6Z"/>'
-        '<circle cx="12" cy="12" r="3"/>'
-    )
-    return _icon(inner, x, y, size, hue)
+@dataclass
+class Node:
+    name: str
+    box: Box
+    parent: str | None
+    solid: bool = True
 
 
-def ic_key(x, y, size, hue):
-    inner = (
-        '<circle cx="7.5" cy="7.5" r="3.5"/><path d="M10 10l8.5 8.5"/>'
-        '<path d="M16 16l2-2M18.5 18.5l2-2"/>'
-    )
-    return _icon(inner, x, y, size, hue)
+@dataclass
+class Connector:
+    name: str
+    points: list[tuple[float, float]]
+    start: str
+    end: str
+    color: str
+    dashed: bool
+    arrow_end: bool
+    arrow_start: bool
+    width: float
+    through: tuple[str, ...] = ()
 
 
-def ic_lock(x, y, size, hue):
-    inner = '<rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2.5"/>'
-    return _icon(inner, x, y, size, hue)
+class Canvas:
+    """Collect one figure, then render or validate it for either theme."""
 
+    def __init__(self, name: str, width: float, height: float, title: str, desc: str):
+        self.name = name
+        self.width = width
+        self.height = height
+        self.title = title
+        self.desc = desc
+        self.nodes: dict[str, Node] = {}
+        self.texts: list[Text] = []
+        self.connectors: list[Connector] = []
+        self.shapes: list[tuple] = []
+        self.overlays: list[tuple] = []
+        self.node("canvas", Box(0, 0, width, height), parent=None, solid=False)
 
-def ic_power(x, y, size, hue):
-    inner = '<path d="M12 3v8"/><path d="M7.6 6.2a8 8 0 1 0 8.8 0"/>'
-    return _icon(inner, x, y, size, hue)
+    # Registration ---------------------------------------------------------
 
+    def node(
+        self, name: str, box: Box, parent: str | None = "canvas", solid: bool = True
+    ) -> Box:
+        if name in self.nodes:
+            raise ValueError(f"{self.name}: duplicate node {name}")
+        self.nodes[name] = Node(name, box, parent, solid)
+        return box
 
-def ic_pause(x, y, size, hue):
-    inner = '<path d="M9 6v12M15 6v12"/>'
-    return _icon(inner, x, y, size, hue)
+    def shape(self, kind: str, overlay: bool = False, **values) -> None:
+        (self.overlays if overlay else self.shapes).append((kind, values))
 
+    def text(
+        self,
+        x: float,
+        y: float,
+        value: str | list[tuple[str, Style]],
+        style: Style = BODY,
+        anchor: str = "start",
+        container: str | None = "canvas",
+    ) -> Text:
+        runs = [(value, style)] if isinstance(value, str) else value
+        item = Text(x, y, runs, anchor, container)
+        self.texts.append(item)
+        return item
 
-def ic_warn(x, y, size, hue):
-    inner = (
-        f'<path d="M12 4.3 20.6 19.2a1 1 0 0 1-0.87 1.5H4.27a1 1 0 0 1-0.87-1.5L12 4.3Z"/>'
-        f'<path d="M12 10v3.6"/><circle cx="12" cy="16.8" r="1.05" fill="{hue}" stroke="none"/>'
-    )
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_antenna(x, y, size, hue):
-    inner = (
-        f'<path d="M12 13v7"/><circle cx="12" cy="11" r="1.6" fill="{hue}" stroke="none"/>'
-        f'<path d="M8.8 14.2a4.5 4.5 0 0 1 0-6.4M15.2 7.8a4.5 4.5 0 0 1 0 6.4"/>'
-        f'<path d="M6.5 16.5a7.8 7.8 0 0 1 0-11M17.5 5.5a7.8 7.8 0 0 1 0 11"/><path d="M9.5 20h5"/>'
-    )
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_book(x, y, size, hue):
-    inner = (
-        '<path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H19v15H6.5A1.5 1.5 0 0 0 5 20.5Z"/>'
-        '<path d="M5 5.5v15"/><path d="M9 8h6M9 11h6"/>'
-    )
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_gauge(x, y, size, hue):
-    inner = (
-        f'<path d="M3.5 17.5a8.5 8.5 0 0 1 17 0"/><path d="M12 17.5 16.2 11.8"/>'
-        f'<circle cx="12" cy="17.5" r="1.5" fill="{hue}" stroke="none"/>'
-    )
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_break(x, y, size, hue):
-    inner = f'<path d="M13 3 L8.5 11 H12.5 L10 21 L17 10 H12.5 L15 3 Z" fill="{hue}" fill-opacity="0.18"/>'
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_noentry(x, y, size, hue):
-    inner = '<circle cx="12" cy="12" r="8.5"/><path d="M6.5 12 H17.5"/>'
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_play(x, y, size, hue):
-    inner = f'<circle cx="12" cy="12" r="8.5"/><path d="M10 8 L16 12 L10 16 Z" fill="{hue}" stroke="none"/>'
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_approx(x, y, size, hue):
-    inner = '<path d="M3 9.5q3 -3.5 6 0t6 0"/><path d="M3 15q3 -3.5 6 0t6 0"/>'
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_octagon(x, y, size, hue):
-    inner = '<path d="M8.5 3.5 H15.5 L20.5 8.5 V15.5 L15.5 20.5 H8.5 L3.5 15.5 V8.5 Z"/><path d="M7.5 12 H16.5"/>'
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_terminal(x, y, size, hue):
-    inner = '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 10l3 2.5-3 2.5"/><path d="M12.5 15h4.5"/>'
-    return _icon(inner, x, y, size, hue)
-
-
-def ic_wave(x, y, size, hue):
-    inner = (
-        '<rect x="3" y="5" width="18" height="14" rx="2.5"/>'
-        '<path d="M6 12h2l1.5-3 2 6 1.5-4 1 1h3"/>'
-    )
-    return _icon(inner, x, y, size, hue)
-
-
-def diamond(cx, cy, d, th, ring_hue):
-    """Rounded decision diamond (rotated rounded square) with soft shadow + identity ring."""
-    L = d * 1.414
-    x, y = cx - L / 2, cy - L / 2
-    tr = f"rotate(45 {cx} {cy})"
-    return (
-        f'<g transform="{tr}">'
-        + rect(x, y, L, L, rx=16, fill="url(#surface)", stroke="none", filt="soft")
-        + rect(x, y, L, L, rx=16, fill="none", stroke=th["border"], sw=1.5)
-        + rect(
-            x + 5,
-            y + 5,
-            L - 10,
-            L - 10,
-            rx=12,
-            fill="none",
-            stroke=ring_hue,
-            sw=2,
-            op=0.85,
+    def connector(
+        self,
+        name: str,
+        points: list[tuple[float, float]],
+        start: str,
+        end: str,
+        color: str = "turquoise",
+        dashed: bool = False,
+        arrow_end: bool = True,
+        arrow_start: bool = False,
+        width: float = 4.0,
+        through: tuple[str, ...] = (),
+    ) -> None:
+        self.connectors.append(
+            Connector(
+                name,
+                points,
+                start,
+                end,
+                color,
+                dashed,
+                arrow_end,
+                arrow_start,
+                width,
+                through,
+            )
         )
-        + "</g>"
+
+    # Rendering ------------------------------------------------------------
+
+    def render(self, theme: dict) -> str:
+        colors = sorted(
+            {c.color for c in self.connectors if c.arrow_end or c.arrow_start}
+        )
+        slug = re.sub(r"[^a-z0-9]+", "-", self.name)
+        out = [
+            f'<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="{fmt(self.width)}" '
+            f'height="{fmt(self.height)}" viewBox="0 0 {fmt(self.width)} {fmt(self.height)}" '
+            f'role="img" aria-labelledby="{slug}-title {slug}-desc">',
+            f'<title id="{slug}-title">{esc(self.title)}</title>',
+            f'<desc id="{slug}-desc">{esc(self.desc)}</desc>',
+            "<defs>",
+            "<style>"
+            f".s{{font-family:{SVG_FONT_STACKS['sans']}}}"
+            f".r{{font-family:{SVG_FONT_STACKS['serif']}}}"
+            "</style>",
+        ]
+        for color in colors:
+            fill = theme[color]
+            out.append(
+                f'<marker id="{slug}-arrow-{color}" viewBox="0 0 16 14" refX="16" refY="7" '
+                'markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" '
+                f'orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="{fill}"/>'
+                "</marker>"
+            )
+        out.append(
+            f'<pattern id="{slug}-hatch" width="12" height="12" patternUnits="userSpaceOnUse" '
+            f'patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" '
+            f'stroke="{theme["hatch"]}" stroke-width="3"/></pattern>'
+        )
+        out.append("</defs>")
+        out.append(
+            f'<rect width="{fmt(self.width)}" height="{fmt(self.height)}" fill="{theme["sheet"]}"/>'
+        )
+        for kind, values in self.shapes:
+            out.append(self._shape(kind, values, theme, slug))
+        for connector in self.connectors:
+            out.append(self._connector(connector, theme, slug))
+        for kind, values in self.overlays:
+            out.append(self._shape(kind, values, theme, slug))
+        for item in self.texts:
+            out.append(self._text(item, theme))
+        out.append("</svg>")
+        return "\n".join(out) + "\n"
+
+    def _shape(self, kind: str, v: dict, theme: dict, slug: str) -> str:
+        def color(token: str | None) -> str:
+            if token is None:
+                return "none"
+            if token == "hatch":
+                return f"url(#{slug}-hatch)"
+            return theme[token]
+
+        if kind == "rect":
+            dash = f' stroke-dasharray="{v["dash"]}"' if v.get("dash") else ""
+            stroke = (
+                f' stroke="{color(v.get("stroke"))}" stroke-width="{fmt(v.get("stroke_width", 3))}"'
+                if v.get("stroke")
+                else ""
+            )
+            return (
+                f'<rect x="{fmt(v["x"])}" y="{fmt(v["y"])}" width="{fmt(v["w"])}" '
+                f'height="{fmt(v["h"])}" rx="{fmt(v.get("rx", 0))}" fill="{color(v.get("fill"))}"'
+                f"{stroke}{dash}/>"
+            )
+        if kind == "line":
+            dash = f' stroke-dasharray="{v["dash"]}"' if v.get("dash") else ""
+            return (
+                f'<path d="M{fmt(v["x1"])} {fmt(v["y1"])} L{fmt(v["x2"])} {fmt(v["y2"])}" '
+                f'stroke="{color(v["stroke"])}" stroke-width="{fmt(v.get("width", 2))}" '
+                f'fill="none" stroke-linecap="butt"{dash}/>'
+            )
+        if kind == "circle":
+            stroke = (
+                f' stroke="{color(v["stroke"])}" stroke-width="{fmt(v.get("stroke_width", 3))}"'
+                if v.get("stroke")
+                else ""
+            )
+            return (
+                f'<circle cx="{fmt(v["cx"])}" cy="{fmt(v["cy"])}" r="{fmt(v["r"])}" '
+                f'fill="{color(v.get("fill"))}"{stroke}/>'
+            )
+        if kind == "cap":
+            # A header bar with rounded top corners that matches its card.
+            x, y, w, h, r = v["x"], v["y"], v["w"], v["h"], v["rx"]
+            return (
+                f'<path d="M{fmt(x)} {fmt(y + h)} L{fmt(x)} {fmt(y + r)} '
+                f"Q{fmt(x)} {fmt(y)} {fmt(x + r)} {fmt(y)} L{fmt(x + w - r)} {fmt(y)} "
+                f'Q{fmt(x + w)} {fmt(y)} {fmt(x + w)} {fmt(y + r)} L{fmt(x + w)} {fmt(y + h)} Z" '
+                f'fill="{color(v["fill"])}"/>'
+            )
+        raise ValueError(f"unknown shape {kind}")
+
+    def _connector(self, c: Connector, theme: dict, slug: str) -> str:
+        d = "M" + " L".join(f"{fmt(x)} {fmt(y)}" for x, y in c.points)
+        dash = ' stroke-dasharray="12 9"' if c.dashed else ""
+        marker = ""
+        if c.arrow_end:
+            marker += f' marker-end="url(#{slug}-arrow-{c.color})"'
+        if c.arrow_start:
+            marker += f' marker-start="url(#{slug}-arrow-{c.color})"'
+        # Shorten the stroke under an arrowhead so the square cap cannot show.
+        return (
+            f'<path d="{d}" fill="none" stroke="{theme[c.color]}" '
+            f'stroke-width="{fmt(c.width)}" stroke-linejoin="round"{dash}{marker}/>'
+        )
+
+    def _text(self, item: Text, theme: dict) -> str:
+        parts = []
+        for index, (value, style) in enumerate(item.runs):
+            attributes = self._style_attributes(style, theme)
+            if index == 0:
+                first = attributes
+            else:
+                parts.append(f"<tspan {attributes}>{esc(value)}</tspan>")
+                continue
+            parts.append(esc(value))
+        anchor = "" if item.anchor == "start" else f' text-anchor="{item.anchor}"'
+        return (
+            f'<text x="{fmt(item.x)}" y="{fmt(item.y)}" {first}{anchor}>'
+            + "".join(parts)
+            + "</text>"
+        )
+
+    @staticmethod
+    def _style_attributes(style: Style, theme: dict) -> str:
+        family = "s" if style.family == "sans" else "r"
+        attributes = [
+            f'class="{family}"',
+            f'font-size="{fmt(style.size)}"',
+            f'fill="{theme[style.color]}"',
+        ]
+        if style.weight != 400:
+            attributes.append(f'font-weight="{style.weight}"')
+        if style.italic:
+            attributes.append('font-style="italic"')
+        if style.spacing:
+            attributes.append(f'letter-spacing="{fmt(style.spacing)}"')
+        return " ".join(attributes)
+
+    # Validation -----------------------------------------------------------
+
+    def ancestors(self, name: str) -> set[str]:
+        result = set()
+        current = self.nodes[name].parent
+        while current is not None:
+            result.add(current)
+            current = self.nodes[current].parent
+        return result
+
+    def problems(self) -> list[str]:
+        problems: list[str] = []
+        label = self.name
+        canvas = self.nodes["canvas"].box
+        for item in self.texts:
+            for _, style in item.runs:
+                if style.size < MIN_TEXT_SIZE:
+                    problems.append(
+                        f"{label}: text {item.content!r} is below {MIN_TEXT_SIZE}"
+                    )
+            container = self.nodes.get(item.container or "canvas")
+            if container is None:
+                problems.append(
+                    f"{label}: text {item.content!r} names an unknown container"
+                )
+                continue
+            margin = 12 if container.name != "canvas" else 20
+            if not container.box.contains(item.primary, margin, 6):
+                problems.append(
+                    f"{label}: text {item.content!r} does not fit {container.name} "
+                    f"with {margin} units of padding"
+                )
+            if not container.box.contains(item.check, 4, 2):
+                problems.append(
+                    f"{label}: text {item.content!r} does not fit {container.name} "
+                    "with the Arial-metric browser font"
+                )
+            if not canvas.contains(item.check, 8):
+                problems.append(f"{label}: text {item.content!r} leaves the canvas")
+        for index, first in enumerate(self.texts):
+            for second in self.texts[index + 1 :]:
+                if first.primary.intersects(second.primary, 2):
+                    problems.append(
+                        f"{label}: texts {first.content!r} and {second.content!r} overlap"
+                    )
+                elif first.check.intersects(second.check, 0):
+                    problems.append(
+                        f"{label}: texts {first.content!r} and {second.content!r} overlap "
+                        "with the Arial-metric browser font"
+                    )
+        solid = [
+            node for node in self.nodes.values() if node.solid and node.name != "canvas"
+        ]
+        for index, first in enumerate(solid):
+            for second in solid[index + 1 :]:
+                if first.parent != second.parent:
+                    continue
+                if first.box.intersects(second.box, 0):
+                    problems.append(
+                        f"{label}: boxes {first.name} and {second.name} overlap"
+                    )
+        for item in self.texts:
+            owner = item.container or "canvas"
+            for node in solid:
+                if node.name == owner or node.name in self.ancestors(owner):
+                    continue
+                if owner in self.ancestors(node.name):
+                    # A text can sit in its container beside a nested box.
+                    if node.box.intersects(item.primary, 2):
+                        problems.append(
+                            f"{label}: text {item.content!r} overlaps nested box {node.name}"
+                        )
+                    continue
+                if node.box.intersects(item.primary, 2):
+                    problems.append(
+                        f"{label}: text {item.content!r} overlaps box {node.name}"
+                    )
+        for connector in self.connectors:
+            name = f"{label}: connector {connector.name}"
+            start = self.nodes.get(connector.start)
+            end = self.nodes.get(connector.end)
+            if start is None or end is None:
+                problems.append(f"{name} names an unknown endpoint")
+                continue
+            if not start.box.on_border(*connector.points[0]):
+                problems.append(f"{name} does not start on {connector.start}")
+            if not end.box.on_border(*connector.points[-1]):
+                problems.append(f"{name} does not end on {connector.end}")
+            allowed = {connector.start, connector.end, "canvas", *connector.through}
+            allowed |= self.ancestors(connector.start) | self.ancestors(connector.end)
+            segments = list(zip(connector.points, connector.points[1:]))
+            for a, b in segments:
+                if a[0] != b[0] and a[1] != b[1]:
+                    problems.append(f"{name} has a diagonal segment")
+                for node in solid:
+                    if node.name in allowed:
+                        continue
+                    if segment_hits_box(a, b, node.box):
+                        problems.append(f"{name} crosses box {node.name}")
+                for item in self.texts:
+                    if item.container in connector.through:
+                        continue
+                    if segment_hits_box(a, b, item.primary.inset(-3)):
+                        problems.append(f"{name} crosses text {item.content!r}")
+            for a, b in segments[1:-1]:
+                if math.hypot(b[0] - a[0], b[1] - a[1]) < 12:
+                    problems.append(f"{name} has a segment shorter than 12 units")
+            if connector.arrow_end:
+                a, b = segments[-1]
+                if math.hypot(b[0] - a[0], b[1] - a[1]) < 30:
+                    problems.append(f"{name} has no room for its arrowhead")
+            if connector.arrow_start:
+                a, b = segments[0]
+                if math.hypot(b[0] - a[0], b[1] - a[1]) < 30:
+                    problems.append(f"{name} has no room for its start arrowhead")
+        return problems
+
+
+# ─────────────────────────────── components ────────────────────────────────
+
+WIDTH = 1600
+MARGIN = 52
+LINE = 33  # body line pitch
+TITLE_LINE = 32
+
+
+def measure(text: str, style: Style) -> float:
+    """Return the wider of the primary and browser-substitute widths."""
+    return max(
+        text_width(text, style.role, style.size, style.spacing),
+        text_width(text, CHECK_FONT[style.role], style.size, style.spacing),
     )
 
 
-# ───────────────────────────── components ─────────────────────────────
-def background(th, w, h):
-    return (
-        rect(0, 0, w, h, fill="url(#pageBg)")
-        + rect(0, 0, w, h, fill="url(#gridMajor)")
-        + rect(0, 0, w, h, fill="url(#grid)")
+NBSP = "\u00a0"
+
+
+def wrap(text: str, style: Style, width: float) -> list[str]:
+    """Wrap on ordinary spaces only. A no-break space keeps a formula together."""
+    text = text.replace("NOT RUN", f"NOT{NBSP}RUN")
+    lines: list[str] = []
+    current = ""
+    for word in [part.replace(NBSP, " ") for part in text.split(" ") if part]:
+        trial = word if not current else f"{current} {word}"
+        if measure(trial, style) <= width:
+            current = trial
+            continue
+        if not current:
+            raise ValueError(f"word {word!r} is wider than {width}")
+        lines.append(current)
+        current = word
+        if measure(current, style) > width:
+            raise ValueError(f"word {word!r} is wider than {width}")
+    if current:
+        lines.append(current)
+    return lines
+
+
+def header(
+    c: Canvas,
+    eyebrow: str,
+    heading: str,
+    status: str | None = None,
+    color: str = "lapis",
+) -> float:
+    if status:
+        pill(c, "status", c.width - MARGIN, 18, status, color, anchor="end")
+    c.text(MARGIN, 46, eyebrow, EYEBROW)
+    c.shape(
+        "line", x1=MARGIN, y1=66, x2=c.width - MARGIN, y2=66, stroke="rule", width=2
     )
+    c.shape("line", x1=MARGIN, y1=66, x2=MARGIN + 208, y2=66, stroke="saffron", width=7)
+    c.text(MARGIN, 114, heading, HEADING)
+    return 146
 
 
-def reg_ticks(th, x, y, w, h):
-    """Two 6px L-bracket registration ticks at opposite (TR + BL) corners."""
-    c = th["tmut"]
-    tr = path(f"M{x + w - 6},{y} L{x + w},{y} L{x + w},{y + 6}", stroke=c, sw=1, op=0.5)
-    bl = path(f"M{x},{y + h - 6} L{x},{y + h} L{x + 6},{y + h}", stroke=c, sw=1, op=0.5)
-    return tr + bl
+@dataclass
+class CardLayout:
+    box: Box
+    body_x: float
+    body_y: float
+    body_width: float
 
 
 def card(
-    th, x, y, w, h, rail_hue, designator, *, dashed=False, glow=False, filled=None
-):
-    """Surface card: soft shadow, optional dashed enclosure, left accent rail, designator well."""
-    out = []
-    if filled:
-        out.append(
-            rect(
-                x,
-                y,
-                w,
-                h,
-                rx=12,
-                fill=filled,
-                stroke=th["border"],
-                sw=1.5,
-                filt="glow" if glow else "soft",
-            )
-        )
+    c: Canvas,
+    name: str,
+    x: float,
+    y: float,
+    w: float,
+    title: str | list[str],
+    body: str | list[str] = (),
+    *,
+    h: float | None = None,
+    accent: str = "lapis",
+    number: str | None = None,
+    subtitle: str | None = None,
+    parent: str = "canvas",
+    tint: bool = False,
+    dashed: bool = False,
+    title_style: Style = TITLE,
+    body_style: Style = BODY,
+    extra: float = 0.0,
+    rule_offset: float | None = None,
+    measure_only: bool = False,
+) -> CardLayout | tuple[float, float]:
+    """Draw a pid-rs card: accent cap, optional step number, title, rule, and body."""
+    pad = 26
+    title_x = x + (70 if number else pad)
+    title_width = x + w - (22 if number else pad) - title_x
+    titles: list[str] = []
+    for part in title if isinstance(title, list) else [title]:
+        titles.extend(wrap(part, title_style, title_width))
+    subtitles = wrap(subtitle, SUBTITLE, w - 2 * pad) if subtitle else []
+    body_width = w - 2 * pad
+    lines: list[str] = []
+    for paragraph in [body] if isinstance(body, str) else body:
+        lines.extend(wrap(paragraph, body_style, body_width))
+    title_base = y + 60
+    subtitle_base = title_base + (len(titles) - 1) * TITLE_LINE + 32
+    last_head = (
+        subtitle_base + (len(subtitles) - 1) * 30
+        if subtitles
+        else title_base + (len(titles) - 1) * TITLE_LINE
+    )
+    rule_y = last_head + 20
+    if rule_offset is not None:
+        if y + rule_offset + 1e-6 < rule_y:
+            raise ValueError(f"{c.name}: card {name} needs a larger rule offset")
+        rule_y = y + rule_offset
+    body_y = rule_y + 38
+    if lines:
+        needed = (body_y - y) + (len(lines) - 1) * LINE + 22 + extra
     else:
-        stroke = rail_hue if dashed else th["border"]
-        dash = "5 4" if dashed else None
-        op = 0.7 if dashed else None
-        # shadow + surface
-        out.append(
-            rect(x, y, w, h, rx=12, fill="url(#surface)", stroke="none", filt="soft")
-        )
-        out.append(
-            rect(
-                x, y, w, h, rx=12, fill="none", stroke=stroke, sw=1.5, dash=dash, op=op
-            )
-        )
-    # accent rail (skip for filled hero where the fill IS the identity)
-    if not filled:
-        out.append(rect(x + 6, y + 12, 4, h - 24, rx=2, fill=rail_hue))
-    out.append(reg_ticks(th, x, y, w, h))
-    # designator well
-    dw, dh = 26, 15
-    out.append(
-        rect(
-            x + 14,
-            y + 10,
-            dw,
-            dh,
-            rx=4,
-            fill=th["surf_chip"],
-            stroke=th["border"],
-            sw=1,
-        )
+        needed = rule_y - y + 10 + extra
+    if measure_only:
+        return needed, rule_y - y
+    if h is None:
+        h = needed
+    elif h + 1e-6 < needed:
+        raise ValueError(f"{c.name}: card {name} needs {needed} units of height")
+    box = c.node(name, Box(x, y, w, h), parent)
+    c.shape(
+        "rect",
+        x=x,
+        y=y,
+        w=w,
+        h=h,
+        rx=14,
+        fill="tint" if tint else "card",
+        stroke=accent,
+        stroke_width=3,
+        dash="12 8" if dashed else None,
     )
-    out.append(
-        T(x + 27, y + 20.5, designator, 10, 700, th["tsec"], mono=True, anchor="middle")
-    )
-    return "".join(out)
+    if not dashed:
+        c.shape("cap", x=x, y=y, w=w, h=14, rx=14, fill=accent)
+    if number:
+        badge(c, f"{name}-number", x + 38, y + 51, number, accent, parent=name)
+    for index, line in enumerate(titles):
+        c.text(
+            title_x, title_base + index * TITLE_LINE, line, title_style, container=name
+        )
+    for index, line in enumerate(subtitles):
+        c.text(x + pad, subtitle_base + index * 30, line, SUBTITLE, container=name)
+    if lines:
+        c.shape(
+            "line",
+            x1=x + pad,
+            y1=rule_y,
+            x2=x + w - pad,
+            y2=rule_y,
+            stroke="rule",
+            width=2,
+        )
+        for index, line in enumerate(lines):
+            c.text(x + pad, body_y + index * LINE, line, body_style, container=name)
+    return CardLayout(box, x + pad, body_y + len(lines) * LINE, body_width)
 
 
-def svg_open(w, h, visual_id):
-    title, description = SVG_ACCESSIBILITY[visual_id]
-    title_id = f"ncp-{visual_id}-title"
-    description_id = f"ncp-{visual_id}-desc"
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
-        f'viewBox="0 0 {w} {h}" font-family="{SANS}" role="img" '
-        f'aria-labelledby="{title_id} {description_id}">'
-        f'<title id="{title_id}">{esc(title)}</title>'
-        f'<desc id="{description_id}">{esc(description)}</desc>'
-    )
+def badge(
+    c: Canvas,
+    name: str,
+    cx: float,
+    cy: float,
+    label: str,
+    color: str,
+    parent: str = "canvas",
+    overlay: bool = False,
+) -> Box:
+    """Draw a filled circle with a short label, such as a step number."""
+    radius = max(21.0, measure(label, BADGE) / 2 + 14)
+    box = c.node(name, Box(cx - radius, cy - radius, 2 * radius, 2 * radius), parent)
+    c.shape("circle", overlay=overlay, cx=cx, cy=cy, r=radius, fill=color)
+    c.text(cx, cy + 8.5, label, BADGE, anchor="middle", container=name)
+    return box
 
 
-def sheet_meta(th, x, y, s):
-    return T(x, y, s, 10, 600, th["tmut"], mono=True, anchor="end", track=0.8)
+def card_row(
+    c: Canvas,
+    y: float,
+    specs: list[dict],
+    *,
+    x: float = MARGIN,
+    width: float | None = None,
+    gap: float = 32,
+) -> list[CardLayout]:
+    """Draw equal-width, equal-height cards. Each spec holds card() arguments."""
+    width = (c.width - 2 * MARGIN) if width is None else width
+    count = len(specs)
+    each = (width - (count - 1) * gap) / count
 
+    def arguments(spec: dict) -> dict:
+        return {k: v for k, v in spec.items() if k != "name"}
 
-def title_block(th, title, eyebrow, w):
-    out = [T(28, 50, title, 24, 800, th["tprim"], track=-0.3)]
-    out.append(T(29, 64, eyebrow, 10.5, 600, th["tmut"], track=1.0))
-    out.append(line(28, 74, w - 28, 74, th["border"], 1, cap="butt"))
-    return "".join(out)
-
-
-# ───────────────────────────── 1. TOPOLOGY (hero) ─────────────────────────────
-def topology(th):
-    W, H = 860, 610
-    s = [svg_open(W, H, "topology"), defs(th), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "TOPOLOGY",
-            "PROPOSED B01 TARGET  ·  4 CORE QoS PLANES  ·  READ-ONLY OBSERVER",
-            W,
-        )
-    )
-    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
-
-    # node coords
-    U1 = (44, 252, 200, 96)  # commander  (center 144,300)
-    U2 = (616, 252, 200, 96)  # body       (center 716,300)
-    O1 = (298, 466, 264, 76)  # observer (lower bay)
-
-    # ---- edges (painted bottom-up: OBSERVATION, PERCEPTION, CONTROL, then ACTION on top) ----
-    # OBSERVATION O1 — the Body is the canonical publisher of the read-only stream.
-    obs = th["observation"]
-    s.append(
-        path(
-            "M716,348 L716,438 Q716,442 712,442 L504,442 Q500,442 500,446 L500,466",
-            stroke=obs,
-            sw=1.5,
-            dash="3 3",
-            marker="tapObserve",
-        )
-    )
-    # PERCEPTION P1 (body → commander), dashed, lane y=210 (risers offset from CONTROL)
-    per = th["perception"]
-    s.append(
-        path(
-            "M680,252 L680,210 L184,210 L184,252",
-            stroke=per,
-            sw=2.5,
-            dash="6 4",
-            marker="arrowPercep",
-        )
-    )
-    # CONTROL C1 (commander ⇄ body), solid, lane y=168, bidirectional
-    ctl = th["control"]
-    s.append(
-        path(
-            "M120,252 L120,168 L740,168 L740,252",
-            stroke=ctl,
-            sw=2.5,
-            marker="arrowControl",
-        )
-    )
-    s.append(
-        path("M120,240 L120,248", stroke=ctl, sw=2.5, marker="replyControl")
-    )  # reply chevron pointing into commander
-    # ACTION A1 — the hero bus, dead-straight at y=300
-    act = th["action"]
-    # fat translucent halo (a bbox filter degenerates on a flat line), then solid bright core
-    s.append(line(244, 300, 620, 300, act, 12, op=0.22))
-    s.append(line(244, 300, 620, 300, th["action_hi"], 4.5, marker="arrowAction"))
-    for tx in (300, 372, 444, 516):
-        s.append(line(tx, 295, tx, 305, act, 1, op=0.7))
-
-    # ---- cards ----
-    s.append(card(th, *U1, th["control"], "U1"))
-    s.append(ic_brain(58, 286, 24, th["control"]))
-    s.append(T(90, 300, "NEST brain", 14, 700, th["tprim"]))
-    s.append(T(90, 316, "the commander", 10.5, 500, th["tsec"]))
-    s.append(T(90, 329, "point + rate neurons", 10.5, 500, th["tsec"]))
-
-    s.append(card(th, *U2, th["observation"], "U2"))
-    s.append(ic_robot(630, 286, 24, th["observation"]))
-    s.append(T(662, 300, "robot / UAV body", 14, 700, th["tprim"]))
-    s.append(T(662, 316, "generic plant role", 10.5, 500, th["tsec"]))
-    s.append(T(662, 329, "qualification: NOT RUN", 10.5, 500, th["tsec"]))
-
-    s.append(card(th, *O1, th["observation"], "O1", dashed=True))
-    s.append(ic_eye(312, 494, 22, th["observation"]))
-    s.append(T(342, 500, "analysis / observer client", 14, 700, th["tprim"]))
-    s.append(T(342, 515, "manifest-authorized · read-only tap", 10.5, 500, th["tsec"]))
-
-    # ---- plane label chips (knockout pill on the edge) ----
-    def chip(cx, cy, w, desig, dh_hue, concept, key, body, h=30):
-        x = cx - w / 2
-        y = cy - h / 2
-        o = [
-            rect(x - 1.5, y - 1.5, w + 3, h + 3, rx=9, fill=th["bg_bot"]),  # knockout
-            rect(x, y, w, h, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1),
-            rect(x + 6, y + 7, 16, 16, rx=3, fill=dh_hue),
-            T(
-                x + 14,
-                y + 18.5,
-                desig,
-                9,
-                700,
-                contrast_ink(dh_hue),
-                mono=True,
-                anchor="middle",
-            ),
-            T(
-                x + 28,
-                y + 13,
-                concept,
-                10.5,
-                700,
-                semantic_text_color(th, dh_hue),
-                track=1.0,
-            ),
-            T(x + 28, y + 25, key, 9.5, 500, th["tmut"], mono=True),
-        ]
-        if body:
-            # Fixed columns preserve separation under both publication fonts.
-            o.append(T(x + 28 + 110 + 12, y + 13, body, 9.5, 500, th["tsec"]))
-        return "".join(o)
-
-    s.append(
-        chip(
-            430,
-            168,
-            390,
-            "C1",
-            ctl,
-            "CONTROL",
-            RPC_ROUTE,
-            "reliable · request/reply · queryable",
-        )
-    )
-    s.append(
-        chip(
-            430,
-            210,
-            390,
-            "P1",
-            per,
-            "PERCEPTION",
-            SENSOR_ROUTE,
-            "best-effort-replace-latest · lossy",
-        )
-    )
-    s.append(
-        chip(
-            430, 442, 390, "O1", obs, "OBSERVATION", OBSERVATION_ROUTE, "body publishes"
-        )
-    )
-
-    # ---- THE HERO: ACTION chip (the one glow) ----
-    aw, ah = 360, 96
-    ax = int(430 - aw / 2)
-    ay = 326
-    s.append(line(430, 300, 430, ay, act, 2))  # connector bus → chip
-    s.append(
-        rect(
-            ax, ay, aw, ah, rx=10, fill="url(#surface)", stroke=act, sw=1.5, filt="glow"
-        )
-    )
-    s.append(rect(ax, ay, aw, ah, rx=10, fill=act, op=th["wash_op"]))
-    # header row: designator · ACTION eyebrow · right tags
-    s.append(rect(ax + 14, ay + 13, 20, 20, rx=4, fill=act))
-    s.append(
-        T(
-            ax + 24,
-            ay + 27,
-            "A1",
-            10,
-            700,
-            contrast_ink(act),
-            mono=True,
-            anchor="middle",
-        )
-    )
-    s.append(
-        T(
-            ax + 42,
-            ay + 27,
-            "ACTION",
-            12,
-            700,
-            semantic_text_color(th, act),
-            track=1.6,
-        )
-    )
-    s.append(
-        T(
-            ax + aw - 16,
-            ay + 27,
-            "express · RealTime · body-gated",
-            9,
-            600,
-            semantic_text_color(th, act),
-            anchor="end",
-            op=0.95,
-        )
-    )
-    # wire key row
-    s.append(T(ax + 14, ay + 46, COMMAND_ROUTE, 8.5, 500, th["tmut"], mono=True))
-    # Mode-pill row. Keep this aligned with the current wire enum.
-    py = ay + 56
-    s.append(T(ax + 14, py + 13, "mode", 9, 600, th["tmut"], mono=True))
-    pills = [
-        ("active", True, th["active"]),
-        ("hold", False, th["hold"]),
-        ("estop", True, th["action"]),
-    ]
-    px = ax + 50
-    for label, filled, col in pills:
-        pw = 10 + len(label) * 6.4
-        if filled is True:
-            s.append(rect(px, py, pw, 19, rx=6, fill=col))
-        elif filled is None:
-            s.append(rect(px, py, pw, 19, rx=6, fill=col, stroke=th["border"], sw=1))
-        else:
-            s.append(rect(px, py, pw, 19, rx=6, fill="none", stroke=col, sw=1.3))
-        text_color = contrast_ink(col) if filled else semantic_text_color(th, col)
-        s.append(
-            T(
-                px + pw / 2,
-                py + 13,
-                label,
-                9,
-                700,
-                text_color,
-                anchor="middle",
-                mono=True,
-            )
-        )
-        px += pw + 7
-    s.append(
-        T(
-            px + 4,
-            py + 13,
-            "· Init rejects · grant deadline",
-            8,
-            600,
-            semantic_text_color(th, th["hold"]),
-            mono=True,
-        )
-    )
-    # footnote
-    s.append(
-        T(
-            ax + 14,
-            ay + ah - 10,
-            "body final authority · profile-declared actions · no universal zero",
-            8.5,
-            500,
-            th["tmut"],
-            italic=True,
-            track=0.2,
-        )
-    )
-
-    # ---- bottom legend rail ----
-    ly = 568
-    s.append(
-        rect(28, ly, W - 56, 28, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
-    )
-    legend = [
-        ("A1", act, "ACTION", "heaviest · body-gated", 4, None),
-        ("C1", ctl, "CONTROL", "reliable · queryable", 2.5, None),
-        ("P1", per, "PERCEPTION", "best-effort", 2.5, "6 4"),
-        ("O1", obs, "OBSERVATION", "read-only tap", 1.5, "3 3"),
-    ]
-    lx = 48
-    for desig, hue, concept, tail, sw, dash in legend:
-        text_color = semantic_text_color(th, hue)
-        s.append(T(lx, ly + 18, desig, 10, 700, text_color, mono=True))
-        s.append(line(lx + 22, ly + 14, lx + 44, ly + 14, hue, sw, dash=dash))
-        s.append(T(lx + 52, ly + 18, concept, 10.5, 700, text_color, track=0.6))
-        lx += 196
-    s.append("</svg>")
-    return "".join(s)
-
-
-# ───────────────────────────── 2. ECOSYSTEM ─────────────────────────────
-def ecosystem(th):
-    W, H = 1180, 850
-    s = [svg_open(W, H, "ecosystem"), defs(th), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "ECOSYSTEM",
-            "PROPOSED B01 BOUNDARY  ·  11 EXACT ROLE SUBJECTS  ·  X02 OPEN",
-            W,
-        )
-    )
-    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
-    ctr, obs, ctl, act, hold = (
-        th["contract"],
-        th["observation"],
-        th["control"],
-        th["action"],
-        th["hold"],
-    )
-    hero_ink = contrast_ink(th["contract"], th["contract_lo"])
-
-    engram = (28, 104, 330, 206)
-    hub = (390, 112, 400, 150)
-    observers = (822, 104, 330, 206)
-    haldir = (28, 340, 720, 250)
-    crebain = (780, 340, 372, 250)
-    hx, hy, hw, hh = hub
-    cx = hx + hw / 2
-
-    # Consumer adapters depend on NCP. Arrows end at the provider boundary.
-    s.append(
-        line(
-            engram[0] + engram[2],
-            208,
-            hx,
-            208,
-            ctr,
-            2,
-            marker="arrowContract",
-        )
-    )
-    s.append(
-        line(
-            observers[0],
-            208,
-            hx + hw,
-            208,
-            ctr,
-            2,
-            marker="arrowContract",
-        )
-    )
-    s.append(
-        path(
-            "M470,340 L470,262",
-            stroke=ctr,
-            sw=2,
-            marker="arrowContract",
-        )
-    )
-    s.append(
-        path(
-            "M966,340 L966,292 Q966,276 950,276 L710,276 Q690,276 690,262",
-            stroke=ctr,
-            sw=2,
-            marker="arrowContract",
-        )
-    )
-
-    def role_row(x, y, ordinal, label, hue, *, size=9.2):
-        s.append(rect(x, y - 12, 22, 18, rx=5, fill=th["surf_chip"], stroke=hue, sw=1))
-        s.append(
-            T(
-                x + 11,
-                y + 1,
-                str(ordinal),
-                9,
-                700,
-                th["tsec"],
-                mono=True,
-                anchor="middle",
-            )
-        )
-        s.append(T(x + 31, y + 1, label, size, 600, th["tsec"]))
-
-    def group_header(box, designator, hue, title, qualifier):
-        x, y, w, h = box
-        s.append(card(th, x, y, w, h, hue, designator))
-        s.append(T(x + 50, y + 34, title, 15, 750, th["tprim"]))
-        s.append(
-            T(
-                x + w - 16,
-                y + 33,
-                qualifier,
-                8.5,
-                650,
-                th["tmut"],
-                mono=True,
-                anchor="end",
-            )
-        )
-        s.append(line(x + 16, y + 48, x + w - 16, y + 48, th["border"], 1, cap="butt"))
-
-    group_header(engram, "E", ctl, "Engram", "3 ROLE RECEIPTS · NOT RUN")
-    role_row(48, 178, 1, "Engram simulation responder", ctl)
-    role_row(48, 214, 2, "Engram plant commander", act)
-    role_row(48, 250, 3, "Engram Haldir-intent extension publisher", hold, size=8.4)
-    s.append(
-        T(
-            48,
-            288,
-            "direct command XOR registered Haldir intent",
-            8.2,
-            550,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    group_header(
-        observers,
-        "O",
-        obs,
-        "Galadriel + Prisoma",
-        "3 ROLES · NOT RUN",
-    )
-    role_row(842, 178, 7, "Galadriel NCP observer", obs)
-    role_row(842, 214, 8, "Galadriel raw-advisory publisher", hold)
-    role_row(842, 250, 11, "Prisoma NCP observer", obs)
-    s.append(
-        T(
-            842,
-            288,
-            "read-only or advisory · never command authority",
-            8.2,
-            550,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    # Project-neutral provider hub.
-    s.append(
-        rect(
-            hx,
-            hy,
-            hw,
-            hh,
-            rx=12,
-            fill="url(#contractHero)",
-            stroke=th["border"],
-            sw=1.5,
-            filt="glowContract",
-        )
-    )
-    s.append(rect(hx + 14, hy + 13, hw - 28, 2, rx=1, fill="#ffffff", op=0.5))
-    s.append(rect(hx + 16, hy + 14, 26, 15, rx=4, fill="#ffffff", op=0.16))
-    s.append(T(hx + 29, hy + 24.5, "U1", 10, 700, hero_ink, mono=True, anchor="middle"))
-    s.append(ic_key(cx - 12, hy + 20, 24, hero_ink))
-    s.append(T(cx, hy + 58, "NCP 1.0 CANDIDATE", 18, 800, hero_ink, anchor="middle"))
-    s.append(
-        T(
-            cx,
-            hy + 78,
-            "project-neutral provider",
-            11,
-            600,
-            hero_ink,
-            anchor="middle",
-            op=0.92,
-        )
-    )
-    s.append(
-        T(
-            cx,
-            hy + 100,
-            "extensions: bounded canonical JSON · large bytes: enrolled stores",
-            9,
-            700,
-            hero_ink,
-            anchor="middle",
-            op=0.9,
-            mono=True,
-        )
-    )
-    s.append(line(hx + 22, hy + 108, hx + hw - 22, hy + 108, "#ffffff", 1, op=0.18))
-    s.append(
-        T(
-            cx,
-            hy + 124,
-            "cross-project runtime semantics · NCP only",
-            8.5,
-            500,
-            hero_ink,
-            anchor="middle",
-            op=0.76,
-            mono=True,
-        )
-    )
-    s.append(rect(cx - 120, hy + 130, 240, 14, rx=6, fill="#ffffff", op=0.13))
-    s.append(
-        T(
-            cx,
-            hy + 140.5,
-            f"WIRE {WIRE_VERSION} · OPTIONAL ADAPTERS · RELEASE BLOCKED",
-            8.5,
-            700,
-            hero_ink,
-            anchor="middle",
-            mono=True,
-        )
-    )
-
-    # Haldir process boundary. Three processes are NCP roles; policy is local.
-    group_header(
-        haldir, "H", hold, "Haldir · 4 isolated processes", "3 ROLE RECEIPTS · NOT RUN"
-    )
-
-    def process_card(x, y, title, role, detail, hue):
-        w, h = 326, 68
-        s.append(rect(x, y, w, h, rx=8, fill=th["surf_chip"], stroke=hue, sw=1.2))
-        s.append(T(x + 10, y + 19, title, 11, 750, th["tprim"]))
-        s.append(T(x + 10, y + 39, role, 8.2, 700, th["tsec"], mono=True))
-        s.append(T(x + 10, y + 57, detail, 7.4, 520, th["tmut"], mono=True))
-
-    process_card(
-        46,
-        400,
-        "intent receiver",
-        "Haldir Engram-intent extension receiver",
-        "transport · fetch · replay · no policy/command credential",
-        hold,
-    )
-    process_card(
-        388,
-        400,
-        "assessment receiver",
-        "Haldir Galadriel-assessment receiver",
-        "evidence ingress · replay · no intent/command credential",
-        obs,
-    )
-    process_card(
-        46,
-        478,
-        "policy-state authority",
-        "LOCAL · NOT AN NCP PEER",
-        "profiles · policy · grants · no transport/command credential",
-        ctl,
-    )
-    process_card(
-        388,
-        478,
-        "commander",
-        "Haldir NCP commander",
-        "publication · reconciliation · no policy/raw evidence store",
-        act,
-    )
-    s.append(rect(46, 558, 684, 20, rx=7, fill="none", stroke=hold, sw=1.2, dash="5 4"))
-    s.append(
-        T(
-            388,
-            572,
-            "Standalone Gate = separate deployment mode · not fifth process",
-            8.5,
-            650,
-            th["tsec"],
-            mono=True,
-            anchor="middle",
-        )
-    )
-
-    # Crebain body and the selected composite-fleet qualification profile.
-    group_header(crebain, "C", act, "Crebain", "2 ROLE RECEIPTS · NOT RUN")
-    role_row(800, 410, 9, "Crebain body", act)
-    role_row(800, 444, 10, "Crebain Galadriel-producer surface", obs, size=8.6)
-    s.append(rect(798, 468, 336, 104, rx=8, fill=th["surf_chip"], stroke=act, sw=1.2))
-    s.append(
-        T(
-            814,
-            489,
-            "X02 OPEN · COMPOSITE FLEET SESSION",
-            9,
-            750,
-            th["tprim"],
-            mono=True,
-        )
-    )
-    s.append(T(814, 511, "1 / 2 / 3 drones · sorted stable IDs", 8.8, 600, th["tsec"]))
-    s.append(
-        T(
-            814,
-            533,
-            "SensorFrame = 6N · CommandFrame = 3N",
-            8.8,
-            600,
-            th["tsec"],
-            mono=True,
-        )
-    )
-    s.append(
-        T(814, 555, "Host API 2 = historical only", 8.4, 600, th["tmut"], mono=True)
-    )
-
-    # Non-overlapping protocol, time, presentation, and evidence boundaries.
-    def boundary_box(x, w, hue, title, lines):
-        y, h = 620, 170
-        s.append(
-            rect(x, y, w, h, rx=10, fill=th["surf_chip"], stroke=th["border"], sw=1)
-        )
-        s.append(rect(x, y, 4, h, rx=2, fill=hue))
-        s.append(T(x + 18, y + 28, title, 10.5, 750, th["tprim"], track=0.4))
-        s.append(line(x + 18, y + 38, x + w - 16, y + 38, th["border"], 1, cap="butt"))
-        for index, line_text in enumerate(lines):
-            s.append(
-                T(
-                    x + 18,
-                    y + 64 + index * 24,
-                    line_text,
-                    8.4,
-                    560,
-                    th["tsec"],
-                    mono=True,
-                )
-            )
-
-    boundary_box(
-        28,
-        356,
-        hold,
-        "MUSIC · SHARED-CLOCK OWNER",
-        (
-            "MUSIC owns shared-clock coupling",
-            "NCP does not tunnel or replace MUSIC",
-            "X02 uses independent clocks",
-            "shared-clock claims need MUSIC evidence",
-        ),
-    )
-    boundary_box(
-        402,
-        356,
-        ctr,
-        "PRESENTATION PLANE",
-        (
-            "SVG is presentation-only and non-contract",
-            "no protocol semantics or runtime evidence",
-            "host UI stays inside Engram",
-            "only its adapter crosses projects through NCP",
-        ),
-    )
-    boundary_box(
-        776,
-        376,
-        act,
-        "AUTHORITY + EVIDENCE",
-        (
-            "Crebain = final software body authority",
-            "direct Engram XOR Haldir per term",
-            "11 exact role receipts · all NOT RUN",
-            "pid-rs / Cortexel: no NCP role edge",
-        ),
-    )
-    s.append(
-        T(
-            W - 28,
-            H - 20,
-            "solid arrow = optional consumer dependency on NCP · diagram = presentation, not contract",
-            8.5,
-            500,
-            th["tmut"],
-            mono=True,
-            anchor="end",
-            italic=True,
-        )
-    )
-    s.append("</svg>")
-    return "".join(s)
-
-
-# ───────────────────────────── 3. VERSIONING ─────────────────────────────
-def versioning(th):
-    W, H = 820, 520
-    s = [svg_open(W, H, "versioning"), defs(th), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "VERSION GATE",
-            f"PROPOSED B01 TARGET  ·  CANONICAL {WIRE_MAJOR} OR {WIRE_MAJOR}.<MINOR>  ·  EXACT STABLE CORE",
-            W,
-        )
-    )
-    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
-    ctr, verm, grn, ctl, obs = (
-        th["contract"],
-        th["action"],
-        th["active"],
-        th["control"],
-        th["observation"],
-    )
-
-    # ---- edges (painted under cards) ----
-    s.append(path("M276,260 L364,260", stroke=ctl, sw=2.5, marker="arrowControl"))
-    for tx in (300, 324, 348):
-        s.append(line(tx, 256, tx, 264, ctl, 1, op=0.7))
-    # reject fork (up)
-    s.append(
-        path(
-            "M508,260 L532,260 Q540,260 540,252 L540,154 Q540,146 548,146 L568,146",
-            stroke=verm,
-            sw=3,
-            marker="arrowEstop",
-        )
-    )
-    # accept fork (down) — the ONE halo
-    s.append(line(540, 268, 540, 350, grn, 11, op=0.22))
-    s.append(
-        path(
-            "M508,260 L532,260 Q540,260 540,268 L540,342 Q540,350 548,350 L568,350",
-            stroke=grn,
-            sw=3,
-            marker="arrowActive",
-        )
-    )
-    # advisory drop (dashed)
-    s.append(
-        path("M678,400 L678,432", stroke=obs, sw=1.5, dash="3 3", marker="tapObserve")
-    )
-
-    # ---- N1 native 1.x offer; immutable 0.8 never enters this gate ----
-    bx, by, bw, bh = 56, 196, 220, 128
-    s.append(card(th, bx, by, bw, bh, ctr, "S0"))
-    s.append(ic_break(bx + 16, by + 38, 24, ctr))
-    s.append(T(bx + 48, by + 46, "NATIVE 1.x OFFER", 14, 700, th["tprim"]))
-    s.append(
-        T(bx + 48, by + 61, "0.8 cannot enter or upgrade here", 10, 500, th["tsec"])
-    )
-    s.append(
-        T(
-            bx + 18,
-            by + 86,
-            "unreleased candidate · canonical version",
-            9.5,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-    s.append(
-        T(
-            bx + 18,
-            by + 103,
-            "compact proto diagnostic:",
-            9.5,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-    s.append(T(bx + 18, by + 116, CONTRACT_HASH, 9.5, 700, ctr, mono=True))
-
-    # ---- N2 GATE (diamond) ----
-    s.append(diamond(440, 260, 76, th, ctr))
-    s.append(ic_key(426, 212, 26, ctr))
-    s.append(
-        T(440, 253, "wire + core", 11.5, 700, th["tprim"], mono=True, anchor="middle")
-    )
-    s.append(T(440, 268, "HARD", 9.5, 700, ctr, anchor="middle", track=0.6))
-    s.append(T(440, 281, "both pass", 9.5, 600, th["tsec"], anchor="middle"))
-    s.append(
-        T(
-            440,
-            294,
-            "FAIL-CLOSED",
-            9.5,
-            700,
-            semantic_text_color(th, verm),
-            anchor="middle",
-            track=0.6,
-        )
-    )
-
-    # ---- N3 REJECT ----
-    rx_, ry, rw, rh = 568, 96, 220, 100
-    s.append(card(th, rx_, ry, rw, rh, verm, "R0"))
-    s.append(ic_noentry(rx_ + rw - 40, ry + 8, 22, verm))
-    s.append(rect(rx_ + 18, ry + 40, 9, 9, rx=2, fill=verm))
-    s.append(T(rx_ + 33, ry + 48, "REJECTED", 14, 700, th["tprim"]))
-    s.append(
-        T(rx_ + 18, ry + 66, "invalid wire or core mismatch", 10.5, 500, th["tsec"])
-    )
-    s.append(
-        T(
-            rx_ + 18,
-            ry + 84,
-            "no native session · gateway may terminate",
-            9,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    # ---- N4 ACCEPT (hero, green glow) ----
-    ax, ay, aw, ah = 568, 300, 220, 100
-    s.append(
-        rect(
-            ax,
-            ay,
-            aw,
-            ah,
-            rx=12,
-            fill="url(#surface)",
-            stroke="none",
-            filt="glowActive",
-        )
-    )
-    s.append(rect(ax, ay, aw, ah, rx=12, fill="none", stroke=grn, sw=1.5))
-    s.append(rect(ax + 6, ay + 12, 4, ah - 24, rx=2, fill=grn))
-    s.append(reg_ticks(th, ax, ay, aw, ah))
-    s.append(
-        rect(
-            ax + 14,
-            ay + 10,
-            26,
-            15,
-            rx=4,
-            fill=th["surf_chip"],
-            stroke=th["border"],
-            sw=1,
-        )
-    )
-    s.append(
-        T(ax + 27, ay + 20.5, "A0", 10, 700, th["tsec"], mono=True, anchor="middle")
-    )
-    s.append(ic_play(ax + aw - 40, ay + 8, 22, grn))
-    s.append(T(ax + 18, ay + 50, "SESSION MAY OPEN", 14, 700, th["tprim"]))
-    s.append(
-        T(
-            ax + 18,
-            ay + 68,
-            f"canonical {WIRE_MAJOR} or {WIRE_MAJOR}.<minor> + exact core",
-            10.5,
-            500,
-            th["tsec"],
-        )
-    )
-    s.append(
-        T(
-            ax + 18,
-            ay + 86,
-            "both hard checks pass",
-            9.5,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    # ---- N5 ADVISORY ----
-    vx, vy, vw, vh = 568, 432, 220, 56
-    s.append(
-        rect(vx, vy, vw, vh, rx=10, fill="url(#surface)", stroke="none", filt="soft")
-    )
-    s.append(rect(vx, vy, vw, vh, rx=10, fill="none", stroke=th["border"], sw=1.5))
-    s.append(rect(vx + 6, vy + 10, 4, vh - 20, rx=2, fill=obs, op=0.7))
-    s.append(
-        rect(
-            vx + 14,
-            vy + 9,
-            26,
-            15,
-            rx=4,
-            fill=th["surf_chip"],
-            stroke=th["border"],
-            sw=1,
-        )
-    )
-    s.append(
-        T(vx + 27, vy + 19.5, "H0", 10, 700, th["tmut"], mono=True, anchor="middle")
-    )
-    s.append(ic_approx(vx + 46, vy + 16, 18, obs))
-    s.append(T(vx + 70, vy + 25, "other identities", 12, 600, th["tprim"], mono=True))
-    s.append(
-        T(
-            vx + 70,
-            vy + 40,
-            "evidence only · no native authority",
-            9.5,
-            500,
-            th["tmut"],
-            italic=True,
-        )
-    )
-
-    # ---- edge chips ----
-    def echip(cx, cy, sq_hue, eyebrow, key, w=150):
-        h = 22
-        x, y = cx - w / 2, cy - h / 2
-        return (
-            rect(x - 1.5, y - 1.5, w + 3, h + 3, rx=8, fill=th["bg_bot"])
-            + rect(x, y, w, h, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
-            + rect(x + 7, y + 6, 10, 10, rx=2, fill=sq_hue)
-            + T(
-                x + 22,
-                y + 15,
-                eyebrow,
-                9.5,
-                700,
-                semantic_text_color(th, sq_hue),
-            )
-            + T(
-                x + 22 + len(eyebrow) * 6.3 + 8,
-                y + 15,
-                key,
-                9,
-                500,
-                th["tmut"],
-                mono=True,
-            )
-        )
-
-    s.append(echip(320, 260, ctl, "", "negotiate", w=84))
-    # Fork conditions are shown on the destination cards.
-
-    # ---- legend ----
-    ly = 500
-    items = [
-        (verm, "■", "HARD", "wire/core mismatch → reject"),
-        (grn, "▶", "OPEN", "both checks → session"),
-        (obs, "≈", "EVIDENCE", "no native authority"),
-    ]
-    lx = 40
-    for hue, gly, concept, tail in items:
-        text_color = semantic_text_color(th, hue)
-        s.append(T(lx, ly + 4, gly, 10, 700, text_color))
-        s.append(T(lx + 14, ly + 4, concept, 10, 700, text_color, track=0.4))
-        s.append(T(lx + 14 + len(concept) * 7 + 6, ly + 4, tail, 9, 500, th["tmut"]))
-        lx += 248
-    s.append("</svg>")
-    return "".join(s)
-
-
-# ───────────────────────────── 4. SAFETY FSM ─────────────────────────────
-def fsm(th):
-    W, H = 820, 586
-    s = [svg_open(W, H, "fsm"), defs(th, include_fsm=True), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "PLANT ADMISSION · STATE MODEL",
-            "PROPOSED B01 TARGET  ·  ATTRIBUTED WIRE CANDIDATES  ·  ESTOP LATCHES",
-            W,
-        )
-    )
-    # The long state-model heading uses the full title rail. Put the exact
-    # candidate identity on its own rail below the header divider.
-    s.append(sheet_meta(th, W - 28, 90, CURRENT_META))
-    grn, amb, verm, pink, obs = (
-        th["active"],
-        th["hold"],
-        th["action"],
-        th["configfail"],
-        th["observation"],
-    )
-    active_text = th["fsm_active_text"]
-    hold_text = th["fsm_hold_text"]
-    configfail_text = th["fsm_configfail_text"]
-    action_text = th["fsm_action_text"]
-    ink = th["fsm_hero_ink"]
-
-    # mode-enum ribbon (top-right, under sheet-meta)
-    rx0 = W - 28
-    for label, fill, txt, filled in reversed(
-        [
-            ("init · reject", None, th["surf_chip"], None),
-            ("active", th["fsm_active_badge"], th["fsm_active_badge_text"], True),
-            ("hold", amb, hold_text, False),
-            ("estop", verm, th["fsm_estop_badge_text"], True),
-        ]
-    ):
-        pw = 10 + len(label) * 6.2
-        rx0 -= pw
-        if filled is True:
-            s.append(rect(rx0, 60, pw, 18, rx=6, fill=fill))
-        elif filled is None:
-            s.append(rect(rx0, 60, pw, 18, rx=6, fill=txt, stroke=th["border"], sw=1))
-            txt = th["tsec"]
-        else:
-            s.append(rect(rx0, 60, pw, 18, rx=6, fill="none", stroke=fill, sw=1.2))
-        s.append(T(rx0 + pw / 2, 72.5, label, 9, 700, txt, anchor="middle", mono=True))
-        rx0 -= 7
-
-    def klabel(cx, cy, trigger, eyebrow=None, ehue=None, compact=False):
-        if compact and eyebrow:
-            # Conservative title advance for this finite publication roster.
-            title_width = len(eyebrow) * 7.0
-            w = round(title_width + len(trigger) * 5.3 + 24)
-            x, y = cx - w / 2, cy - 9
-            return (
-                rect(
-                    x,
-                    y,
-                    w,
-                    18,
-                    rx=6,
-                    fill=th["bg_bot"],
-                    op=0.92,
-                    stroke=th["border"],
-                    sw=0.8,
-                )
-                + T(x + 8, y + 13, eyebrow, 9, 700, ehue)
-                + T(
-                    round(x + 8 + title_width + 6),
-                    y + 13,
-                    trigger,
-                    9,
-                    500,
-                    th["tmut"],
-                    mono=True,
-                )
-            )
-        w = round(max(len(trigger) * 5.3, (len(eyebrow) * 6.3 if eyebrow else 0)) + 16)
-        h = 30 if eyebrow else 18
-        x, y = cx - w / 2, cy - h / 2
-        o = [
-            rect(
-                x,
+    offset = max(
+        card(c, spec["name"], 0, y, each, **arguments(spec), measure_only=True)[1]
+        for spec in specs
+    )
+    height = max(
+        card(
+            c,
+            spec["name"],
+            0,
+            y,
+            each,
+            **arguments(spec),
+            rule_offset=offset,
+            measure_only=True,
+        )[0]
+        for spec in specs
+    )
+    layouts = []
+    for index, spec in enumerate(specs):
+        layouts.append(
+            card(
+                c,
+                spec["name"],
+                x + index * (each + gap),
                 y,
-                w,
-                h,
-                rx=6,
-                fill=th["bg_bot"],
-                op=0.92,
-                stroke=th["border"],
-                sw=0.8,
-            )
-        ]
-        ty = y + 13
-        if eyebrow:
-            o.append(T(x + 8, ty, eyebrow, 9.5, 700, ehue, track=0.4))
-            ty += 13
-        o.append(T(x + 8, ty, trigger, 9, 500, th["tmut"], mono=True))
-        return "".join(o)
-
-    # ---- state geometry ----
-    AC = (96, 150, 200, 72)  # ACTIVE  (96-296, 150-222) cy186
-    HD = (430, 150, 248, 72)  # HOLD
-    ES = (430, 330, 248, 86)  # ESTOP hero
-    CF = (96, 330, 224, 72)  # CONFIG-FAIL-CLOSED
-    GC = (400, 444, 280, 52)  # successful reset boundary / retired generation
-    hold_right = HD[0] + HD[2]
-    estop_right = ES[0] + ES[2]
-    reset_right = GC[0] + GC[2]
-
-    # ---- edges (painted first) ----
-    s.append('<circle cx="110" cy="120" r="4" fill="%s"/>' % obs)
-    s.append(
-        '<circle cx="110" cy="120" r="7" fill="none" stroke="%s" stroke-width="1.3"/>'
-        % obs
-    )
-    s.append(T(110, 108, "OPEN", 8.5, 700, th["tmut"], mono=True, anchor="middle"))
-    s.append(
-        path("M110,127 C110,100 500,100 500,150", stroke=amb, sw=2, marker="arrowHold")
-    )  # E0 valid open→HOLD
-    s.append(
-        path(
-            "M100,127 C58,127 58,366 96,366",
-            stroke=pink,
-            sw=2,
-            dash="5 3",
-            marker="arrowConfig",
-        )
-    )  # E0b invalid open→CONFIG
-    s.append(
-        path(
-            "M214,150 C214,120 250,120 250,150",
-            stroke=grn,
-            sw=2.5,
-            marker="arrowActive",
-        )
-    )  # E1 self
-    s.append(
-        path("M296,172 L430,172", stroke=amb, sw=2.5, marker="arrowHold")
-    )  # E2 ACTIVE→HOLD
-    s.append(
-        path("M430,200 L296,200", stroke=grn, sw=2.5, marker="arrowActive")
-    )  # E3 HOLD→ACTIVE
-    # E4 ACTIVE→ESTOP (hero: halo + 4px busAction)
-    s.append(
-        path(
-            "M296,206 L360,206 Q368,206 368,214 L368,360 Q368,368 376,368 L430,368",
-            stroke=verm,
-            sw=9,
-            op=th["halo_op"],
-            filt="halo",
-        )
-    )
-    s.append(
-        path(
-            "M296,206 L360,206 Q368,206 368,214 L368,360 Q368,368 376,368 L430,368",
-            stroke="url(#busAction)",
-            sw=4,
-            marker="arrowEstop",
-        )
-    )
-    for ty in (250, 300, 350):
-        s.append(line(363, ty, 373, ty, verm, 1, op=0.7))
-    s.append(
-        path("M530,222 L530,330", stroke=verm, sw=3.5, marker="arrowEstop")
-    )  # E5 HOLD→ESTOP
-    s.append(
-        path(
-            f"M{estop_right},356 C710,356 710,392 {estop_right},392",
-            stroke=verm,
-            sw=3.5,
-            marker="arrowEstop",
-        )
-    )  # E6 self latched
-    # E7 reset retires the old generation; a fresh generation re-enters non-actuating HOLD.
-    s.append(
-        path("M536,416 L536,444", stroke=verm, sw=2.5, dash="4 3", marker="arrowEstop")
-    )
-    s.append(
-        path(
-            f"M{reset_right},470 L704,470 Q712,470 712,462 "
-            f"L712,194 Q712,186 704,186 L{hold_right},186",
-            stroke=amb,
-            sw=2,
-            dash="5 4",
-            marker="arrowHold",
-        )
-    )
-    s.append(
-        path(
-            "M170,402 C170,440 206,440 206,402",
-            stroke=pink,
-            sw=2,
-            dash="5 3",
-            marker="arrowConfig",
-        )
-    )  # E9 self
-
-    # ---- state cards ----
-    s.append(card(th, *AC, grn, "S1"))
-    s.append(ic_play(AC[0] + AC[2] - 38, AC[1] + 9, 22, grn))
-    s.append(T(AC[0] + 18, AC[1] + 34, "ACTIVE", 14, 700, th["tprim"]))
-    s.append(
-        T(AC[0] + 18, AC[1] + 50, "valid command · live authority", 10, 500, th["tsec"])
-    )
-    s.append(T(AC[0] + 18, AC[1] + 64, "Mode::Active", 9, 500, th["tmut"], mono=True))
-
-    s.append(card(th, *HD, amb, "S2"))
-    s.append(ic_pause(HD[0] + HD[2] - 38, HD[1] + 9, 22, amb))
-    s.append(T(HD[0] + 18, HD[1] + 34, "HOLD", 14, 700, th["tprim"]))
-    s.append(
-        rect(
-            HD[0] + 70, HD[1] + 24, 88, 15, rx=7, fill=th["surf_chip"], stroke=amb, sw=1
-        )
-    )
-    s.append(
-        T(HD[0] + 114, HD[1] + 34.5, "NON-LATCHING", 8, 700, hold_text, anchor="middle")
-    )
-    s.append(
-        T(
-            HD[0] + 18,
-            HD[1] + 50,
-            "non-actuating until all gates pass",
-            10,
-            500,
-            th["tsec"],
-        )
-    )
-    s.append(
-        T(
-            HD[0] + 18,
-            HD[1] + 64,
-            "bounded HOLD candidate · no action claim",
-            9,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    s.append(card(th, *CF, pink, "S4", dashed=True))
-    s.append(ic_warn(CF[0] + CF[2] - 38, CF[1] + 9, 22, pink))
-    s.append(T(CF[0] + 18, CF[1] + 32, "CONFIG-FAIL-CLOSED", 12.5, 700, th["tprim"]))
-    s.append(
-        rect(
-            CF[0] + 18,
-            CF[1] + 40,
-            96,
-            15,
-            rx=7,
-            fill=th["surf_chip"],
-            stroke=pink,
-            sw=1,
-        )
-    )
-    s.append(
-        T(
-            CF[0] + 66,
-            CF[1] + 50.5,
-            "safety_ok=false",
-            8,
-            700,
-            configfail_text,
-            anchor="middle",
-            mono=True,
-        )
-    )
-    s.append(T(CF[0] + 122, CF[1] + 51, "permanent", 9.5, 500, th["tsec"]))
-    s.append(
-        T(
-            CF[0] + 18,
-            CF[1] + 65,
-            "HOLD candidate / no frame · no effect",
-            8.5,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    # ESTOP hero (filled vermillion + glow + 4 corner lock-ticks)
-    ex, ey, ew, eh = ES
-    s.append(
-        rect(
-            ex,
-            ey,
-            ew,
-            eh,
-            rx=10,
-            fill="url(#fsmAction)",
-            stroke="#ffd9c2",
-            sw=2,
-            filt="glow",
-        )
-    )
-    for lx, ly, dx, dy in [
-        (ex, ey, 1, 1),
-        (ex + ew, ey, -1, 1),
-        (ex, ey + eh, 1, -1),
-        (ex + ew, ey + eh, -1, -1),
-    ]:
-        s.append(
-            path(
-                f"M{lx + 9 * dx},{ly} L{lx},{ly} L{lx},{ly + 9 * dy}",
-                stroke="#ffd9c2",
-                sw=1.6,
-                op=0.9,
+                each,
+                h=height,
+                rule_offset=offset,
+                **arguments(spec),
             )
         )
-    s.append(rect(ex + 14, ey + 11, 26, 15, rx=4, fill=th["surf_chip"]))
-    s.append(
-        T(ex + 27, ey + 21.5, "S3", 10, 700, th["tsec"], mono=True, anchor="middle")
-    )
-    s.append(ic_octagon(ex + ew - 40, ey + 10, 24, ink))
-    s.append(T(ex + 18, ey + 44, "ESTOP", 15, 800, ink))
-    s.append(T(ex + 18, ey + 61, "LATCHED · bounded ESTOP candidate", 9.5, 600, ink))
-    s.append(
-        T(ex + 18, ey + 77, "reset never restores authority", 9.5, 500, ink, mono=True)
-    )
-
-    # Successful reset is a generation cut, not a transition inside the old session.
-    s.append(card(th, *GC, verm, "G2", dashed=True))
-    s.append(
-        T(GC[0] + 46, GC[1] + 23, "BODY-LOCAL / OOB RESET = CUT", 11, 700, th["tprim"])
-    )
-    s.append(
-        T(
-            GC[0] + 18,
-            GC[1] + 40,
-            "retire gen · authority + lease · streams · buffer",
-            8,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    # ---- edge labels ----
-    s.append(
-        klabel(
-            300, 108, "valid config · governor open", "→ HOLD", hold_text, compact=True
-        )
-    )
-    s.append(
-        klabel(
-            250,
-            134,
-            "fresh sensor · live authority",
-            "ACTIVE",
-            active_text,
-            compact=True,
-        )
-    )
-    s.append(klabel(363, 172, "invalid or stale", "HOLD", hold_text, compact=True))
-    s.append(
-        klabel(
-            363,
-            238,
-            "sensor + live lease + active cmd",
-            "LOCAL GOVERNOR GATES",
-            active_text,
-            compact=True,
-        )
-    )
-    s.append(
-        klabel(
-            476,
-            282,
-            "geofence breach · reported loss burst · sustained sensor silence",
-            "ESTOP TRIGGERS",
-            action_text,
-        )
-    )
-    s.append(
-        klabel(
-            700,
-            318,
-            "exact replay · no new latch",
-            "LATCHED",
-            action_text,
-            compact=True,
-        )
-    )
-    s.append(
-        klabel(
-            670, 430, "fresh generation → HOLD", "RESET CUT", hold_text, compact=True
-        )
-    )
-    s.append(
-        klabel(
-            140,
-            282,
-            "invalid channel / config",
-            "MISCONFIG",
-            configfail_text,
-            compact=True,
-        )
-    )
-
-    # ---- invariant band ----
-    iy = 526
-    s.append(
-        rect(28, iy, W - 56, 44, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
-    )
-    s.append(rect(28, iy, 4, 44, rx=2, fill=verm))
-    s.append(
-        T(
-            44,
-            iy + 17,
-            "INVARIANT · Output is only a bounded wire candidate. The body selects an installed plant-profile action. NCP defines no universal zero.",
-            8.5,
-            500,
-            th["tsec"],
-            italic=True,
-        )
-    )
-    s.append(
-        T(
-            44,
-            iy + 33,
-            "Unattributable envelope or no representable candidate → local latch + error / no frame. No protocol result proves physical effect.",
-            8.5,
-            500,
-            th["tsec"],
-            italic=True,
-        )
-    )
-    s.append("</svg>")
-    return "".join(s)
+    return layouts
 
 
-# ───────────────────────────── 5. SEQUENCE ─────────────────────────────
-def sequence(th):
-    W, H = 820, 640
-    s = [svg_open(W, H, "sequence"), defs(th), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "SIMULATION SESSION",
-            "PROPOSED B01 TARGET  ·  OPEN → STEP / RUN → CLOSE  ·  SIMULATION ONLY",
-            W,
-        )
-    )
-    # The long sequence heading uses the full title rail. Put the exact
-    # candidate identity on its own rail below the header divider.
-    s.append(sheet_meta(th, W - 28, 88, CURRENT_META))
-    ctl, obs, ctr, verm, grn, pink = (
-        th["control"],
-        th["observation"],
-        th["contract"],
-        th["action"],
-        th["active"],
-        th["configfail"],
-    )
-    CLx, SVx = 246, 574
+def pill(
+    c: Canvas,
+    name: str,
+    x: float,
+    y: float,
+    label: str,
+    color: str,
+    *,
+    anchor: str = "start",
+    parent: str = "canvas",
+) -> Box:
+    width = measure(label, BADGE) + 34
+    left = {"start": x, "middle": x - width / 2, "end": x - width}[anchor]
+    box = c.node(name, Box(left, y, width, 38), parent)
+    c.shape("rect", x=left, y=y, w=width, h=38, rx=19, fill=color)
+    c.text(left + width / 2, y + 25.5, label, BADGE, anchor="middle", container=name)
+    return box
 
-    # phase-group frames (recessive wells)
-    for fy, fh, tag, thue, note in [
-        (
-            176,
-            124,
-            "OPEN",
-            ctl,
-            f"canonical {WIRE_MAJOR} or {WIRE_MAJOR}.<minor> + exact stable core",
-        ),
-        (
-            320,
-            168,
-            "loop  [per operation]",
-            verm,
-            "step / run ⟳ result · provenance every response",
-        ),
-        (508, 92, "CLOSE", ctl, "fenced mutation + receipt"),
-    ]:
-        s.append(
-            rect(
-                210,
-                fy,
-                400,
-                fh,
-                rx=10,
-                fill=th["surf_chip"],
-                op=0.32,
-                stroke=th["border"],
-                sw=0.8,
-                dash="2 3",
+
+def note(
+    c: Canvas,
+    name: str,
+    y: float,
+    label: str,
+    body: str | list[str],
+    *,
+    x: float = MARGIN,
+    w: float | None = None,
+    style: Style = BODY,
+) -> Box:
+    w = c.width - 2 * MARGIN if w is None else w
+    paragraphs = [body] if isinstance(body, str) else list(body)
+    lines = []
+    for paragraph in paragraphs:
+        lines.extend(wrap(paragraph, style, w - 64))
+    h = 58 + len(lines) * LINE + 6
+    box = c.node(name, Box(x, y, w, h))
+    c.shape("rect", x=x, y=y, w=w, h=h, rx=10, fill="note")
+    c.shape("rect", x=x, y=y, w=10, h=h, rx=5, fill="saffron")
+    c.text(x + 32, y + 38, label, SMALL, container=name)
+    for index, line in enumerate(lines):
+        c.text(x + 32, y + 76 + index * LINE, line, style, container=name)
+    return box
+
+
+def lines_at(
+    c: Canvas,
+    x: float,
+    y: float,
+    text: str | list[str],
+    style: Style,
+    width: float,
+    container: str = "canvas",
+    anchor: str = "start",
+) -> float:
+    paragraphs = [text] if isinstance(text, str) else list(text)
+    offset = 0
+    for paragraph in paragraphs:
+        for line in wrap(paragraph, style, width):
+            c.text(
+                x, y + offset * LINE, line, style, anchor=anchor, container=container
             )
-        )
-        tw = 22 + len(tag) * 6.0
-        s.append(rect(210, fy, tw, 18, rx=6, fill=thue))
-        s.append(T(218, fy + 13, tag, 9.5, 700, contrast_ink(thue), mono=True))
-        s.append(T(210 + tw + 10, fy + 13, note, 9, 500, th["tmut"], italic=True))
-
-    # lifelines
-    s.append(line(CLx, 156, CLx, 604, th["border"], 1.5, dash="4 4", op=0.7))
-    s.append(line(SVx, 156, SVx, 604, th["border"], 1.5, dash="4 4", op=0.7))
-    # activation bars per phase
-    for ay, ah in [(208, 92), (360, 124), (532, 64)]:
-        for lx in (CLx, SVx):
-            s.append(
-                rect(
-                    lx - 5,
-                    ay,
-                    10,
-                    ah,
-                    rx=3,
-                    fill=th["surf_chip"],
-                    stroke=th["border"],
-                    sw=1,
-                )
-            )
-
-    # actor cards
-    s.append(card(th, 156, 92, 180, 64, ctl, "C0"))
-    s.append(ic_terminal(300, 104, 22, ctl))
-    s.append(T(200, 120, "CLIENT", 14, 700, th["tprim"]))
-    s.append(T(200, 136, "authorized simulation caller", 10, 500, th["tsec"]))
-    s.append(card(th, 484, 92, 180, 64, obs, "S0"))
-    s.append(ic_wave(628, 104, 22, obs))
-    s.append(T(528, 120, "RESPONDER", 14, 700, th["tprim"]))
-    s.append(T(528, 136, "bounded simulation service", 10, 500, th["tsec"]))
-
-    # message chip helper (2-line: eyebrow + mono key)
-    def mchip(cx, cy, desig, hue, eyebrow, key, w):
-        x, y = cx - w / 2, cy - 15
-        return (
-            rect(x - 1.5, y - 1.5, w + 3, 33, rx=8, fill=th["bg_bot"])
-            + rect(x, y, w, 30, rx=8, fill=th["surf_chip"], stroke=th["border"], sw=1)
-            + rect(x + 7, y + 7, 16, 16, rx=3, fill=hue)
-            + T(
-                x + 15,
-                y + 18.5,
-                desig,
-                8.5,
-                700,
-                contrast_ink(hue),
-                mono=True,
-                anchor="middle",
-            )
-            + T(
-                x + 30,
-                y + 13,
-                eyebrow,
-                9.5,
-                700,
-                semantic_text_color(th, hue),
-                track=0.4,
-            )
-            + T(x + 30, y + 24, key, 8.5, 500, th["tmut"], mono=True)
-        )
-
-    # OPEN gate note on SERVER lifeline
-    s.append(
-        rect(
-            486,
-            230,
-            172,
-            44,
-            rx=10,
-            fill="url(#surface)",
-            stroke=th["border"],
-            sw=1.25,
-            filt="soft",
-        )
-    )
-    s.append(rect(486 + 6, 230 + 8, 4, 28, rx=2, fill=ctr))
-    s.append(
-        T(
-            498,
-            246,
-            f"canonical wire HARD · major={WIRE_MAJOR}",
-            8,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-    s.append(
-        T(
-            498,
-            262,
-            "stable_core HARD · compact hash diagnostic",
-            8,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    # E1 OpenSession →
-    s.append(line(251, 214, 569, 214, ctl, 2.5, marker="arrowControl"))
-    s.append(
-        mchip(
-            410,
-            214,
-            "C1",
-            ctl,
-            "OpenSession  →",
-            "version · stable core · security profile/digest",
-            300,
-        )
-    )
-    # E2 SessionOpened ← (+ outcome pills)
-    s.append(line(569, 288, 251, 288, ctl, 2.5, dash="4 4", marker="replyControl"))
-    s.append(
-        mchip(
-            410,
-            288,
-            "C2",
-            ctl,
-            "SessionOpened  ←",
-            "session{generation} · state_version · provenance",
-            300,
-        )
-    )
-    s.append(rect(282, 302, 132, 16, rx=6, fill=grn))
-    s.append(
-        T(
-            348,
-            313,
-            "ok=true → opens",
-            8.5,
-            700,
-            contrast_ink(grn),
-            anchor="middle",
-            mono=True,
-        )
-    )
-    s.append(rect(420, 302, 150, 16, rx=6, fill="none", stroke=pink, sw=1.2))
-    s.append(
-        T(
-            495,
-            313,
-            "ok=false → NO session",
-            8.5,
-            700,
-            semantic_text_color(th, pink),
-            anchor="middle",
-            mono=True,
-        )
-    )
-    # E3 StepRequest / RunRequest →
-    s.append(line(251, 372, 569, 372, ctl, 2.5, marker="arrowControl"))
-    s.append(
-        mchip(
-            410,
-            372,
-            "C3",
-            ctl,
-            "StepRequest / RunRequest  →",
-            "session · operation · authority · stimulus",
-            300,
-        )
-    )
-
-    # E4 ObservationFrame ← (CONTROL reply, not plant authority)
-    s.append(line(569, 432, 251, 432, ctl, 2.5, dash="4 4", marker="replyControl"))
-    cw, ch, cy0 = 236, 38, 414
-    cx0 = 410 - cw / 2
-    s.append(rect(cx0 - 1.5, cy0 - 1.5, cw + 3, ch + 3, rx=10, fill=th["bg_bot"]))
-    s.append(rect(cx0, cy0, cw, ch, rx=10, fill="url(#surface)", stroke=ctl, sw=1.5))
-    s.append(rect(cx0, cy0, cw, ch, rx=10, fill=ctl, op=th["wash_op"]))
-    s.append(rect(cx0 + 8, cy0 + 8, 16, 16, rx=3, fill=ctl))
-    s.append(
-        T(
-            cx0 + 16,
-            cy0 + 19.5,
-            "O1",
-            8.5,
-            700,
-            contrast_ink(ctl),
-            mono=True,
-            anchor="middle",
-        )
-    )
-    s.append(
-        T(
-            cx0 + 30,
-            cy0 + 15,
-            "ObservationFrame  ←",
-            10,
-            700,
-            semantic_text_color(th, ctl),
-            track=0.3,
-        )
-    )
-    s.append(
-        T(
-            cx0 + 30,
-            cy0 + 27,
-            "session · request position · terminal result",
-            8.5,
-            500,
-            th["tsec"],
-            mono=True,
-        )
-    )
-    # provenance invariant pills
-    py = cy0 + ch + 5
-    s.append(rect(254, py, 160, 17, rx=6, fill=grn))
-    s.append(
-        T(
-            334,
-            py + 12,
-            "is_simulation_output = true",
-            8.5,
-            700,
-            contrast_ink(grn),
-            anchor="middle",
-            mono=True,
-        )
-    )
-    s.append(rect(420, py, 150, 17, rx=6, fill=pink))
-    s.append(
-        T(
-            493,
-            py + 12,
-            "calibrated_posterior = false",
-            8.5,
-            700,
-            contrast_ink(pink),
-            anchor="middle",
-            mono=True,
-        )
-    )
-    s.append(
-        T(
-            410,
-            py + 30,
-            "fixed provenance invariants on every frame — the honesty boundary",
-            9,
-            500,
-            th["tmut"],
-            italic=True,
-            anchor="middle",
-        )
-    )
-
-    # E5 CloseSession → / E6 SessionClosed ←
-    s.append(line(251, 540, 569, 540, ctl, 2.5, marker="arrowControl"))
-    s.append(
-        mchip(
-            410,
-            540,
-            "C4",
-            ctl,
-            "CloseSession  →",
-            "session · operation · authority",
-            230,
-        )
-    )
-    s.append(line(569, 580, 251, 580, ctl, 2.5, dash="4 4", marker="replyControl"))
-    s.append(
-        mchip(
-            410,
-            580,
-            "C5",
-            ctl,
-            "SessionClosed  ←",
-            "session · receipt · terminal",
-            250,
-        )
-    )
-
-    # legend
-    ly = 618
-    s.append(line(40, ly, 64, ly, ctl, 2.5, marker="arrowControl"))
-    s.append(T(72, ly + 4, "CONTROL · request/reply", 9, 600, th["tsec"]))
-    s.append(line(300, ly, 324, ly, ctl, 2.5, dash="4 4", marker="replyControl"))
-    s.append(
-        T(
-            332,
-            ly + 4,
-            "CONTROL reply · provenance-bearing simulation result",
-            9,
-            600,
-            th["tsec"],
-        )
-    )
-    s.append("</svg>")
-    return "".join(s)
+            offset += 1
+    return y + offset * LINE
 
 
-# ───────────────────────────── 6. BODY ADMISSION ─────────────────────────────
-def admission(th):
-    W, H = 980, 600
-    s = [svg_open(W, H, "admission"), defs(th), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "BODY COMMAND ADMISSION",
-            "PROPOSED B01 TARGET · BOUND ONCE · PREALLOCATED LATCH",
-            W,
-        )
+def legend_line(
+    c: Canvas,
+    name: str,
+    x: float,
+    y: float,
+    label: str,
+    color: str,
+    *,
+    dashed: bool = False,
+) -> float:
+    """Draw one legend sample and its label. Return the next free x."""
+    c.node(name, Box(x, y - 22, 64, 30), solid=False)
+    c.shape(
+        "line",
+        x1=x,
+        y1=y - 8,
+        x2=x + 56,
+        y2=y - 8,
+        stroke=color,
+        width=4,
+        dash="12 9" if dashed else None,
     )
-    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
+    label_style = Style("sans", 25, 600, color="ink")
+    c.text(x + 70, y, label, label_style)
+    return x + 70 + measure(label, label_style) + 44
 
-    control = th["control"]
-    active = th["active"]
-    hold = th["hold"]
-    action = th["action"]
-    muted = th["observation"]
 
-    def stage(x, rail, designator, heading, detail, note):
-        out = [card(th, x, 130, 166, 86, rail, designator)]
-        out.append(T(x + 18, 165, heading, 12, 700, th["tprim"]))
-        out.append(T(x + 18, 184, detail, 9, 600, th["tsec"], mono=True))
-        out.append(T(x + 18, 200, note, 9, 500, th["tmut"], mono=True))
-        return "".join(out)
+# ──────────────────────────────── diagrams ─────────────────────────────────
 
-    stages = (
-        (28, control, "B0", "RAW BOUNDS", "checked size · class", "no semantic state"),
-        (
-            218,
-            control,
-            "A1",
-            "AUTHENTICATE",
-            "principal · manifest",
-            "snapshot capability",
+NOT_CERTIFICATION = "It is not release or certification evidence."
+
+
+def system_map() -> Canvas:
+    c = Canvas(
+        "system-map",
+        WIDTH,
+        900,
+        "NCP modular system map",
+        "A host selects independent applications and connects each one through "
+        "the NCP contract. NCP owns message identity, retained outcomes, "
+        "acknowledgements, and bounded byte buffers. Each application owns its "
+        f"own state. The SDK is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "SYSTEM MAP", "A host composes independent applications through NCP")
+    host = card(
+        c,
+        "host",
+        MARGIN,
+        y + 6,
+        WIDTH - 2 * MARGIN,
+        "Host application",
+        "Selects the peers, installs their exact contracts, sets deadlines and "
+        "composition budgets, and owns process lifetime.",
+        accent="lapis",
+    ).box
+    band_y = host.bottom + 74
+    band = card(
+        c,
+        "ncp",
+        MARGIN,
+        band_y,
+        WIDTH - 2 * MARGIN,
+        "NCP contract and SDK",
+        "Each exchange carries one exact request and one retained outcome. "
+        "Rust and Python implement the contract independently. NCP runs no central process.",
+        accent="turquoise",
+        tint=True,
+        extra=58,
+    ).box
+    chips = (
+        "Exact requests",
+        "Retained outcomes",
+        "Digest acknowledgements",
+        "Bounded byte buffers",
+    )
+    chip_x = MARGIN + 26
+    for index, label in enumerate(chips):
+        box = pill(
+            c,
+            f"chip-{index}",
+            chip_x,
+            band.bottom - 60,
+            label,
+            "turquoise",
+            parent="ncp",
+        )
+        chip_x = box.right + 18
+    c.connector(
+        "host-ncp", [(host.cx, host.bottom), (host.cx, band.y)], "host", "ncp", "lapis"
+    )
+    c.text(host.cx + 18, host.bottom + 45, "selects and installs", SMALL)
+    apps = [
+        dict(
+            name="engram",
+            title="Engram",
+            subtitle="Neural application",
+            body="Persistent NEST network, typed currents, and delayed spike-count readouts.",
         ),
-        (
-            408,
-            active,
-            "D1",
-            "DECODE ONCE",
-            "prepared layout",
-            "Init / unknown → reject",
+        dict(
+            name="crebain",
+            title="CREBAIN",
+            subtitle="Bodies and sensors",
+            body="Body dynamics, sensor production, and native checkpoint state.",
         ),
-        (
-            598,
-            hold,
-            "C1",
-            "CONTEXT / LOOKUP",
-            "route · session · position",
-            "publisher · digest",
+        dict(
+            name="prisoma",
+            title="Prisoma",
+            subtitle="Capture and experiments",
+            body="Original-byte capture, experiment order, forecasts, and labels.",
         ),
-        (
-            788,
-            active,
-            "S1",
-            "GRANT / CHECK",
-            "range · replay · no-reuse",
-            "action · lease · expiry",
+        dict(
+            name="galadriel",
+            title="Galadriel",
+            subtitle="Consistency monitor",
+            body="Advisory evidence or abstention without command authority. "
+            "Its modular adapter is open work.",
+            accent="muted",
+            dashed=True,
         ),
-    )
-    for values in stages:
-        s.append(stage(*values))
-
-    s.append(line(194, 173, 218, 173, control, 2.5, marker="arrowControl"))
-    s.append(line(384, 173, 408, 173, control, 2.5, marker="arrowControl"))
-    s.append(line(574, 173, 598, 173, active, 2.5, marker="arrowActive"))
-    s.append(line(764, 173, 788, 173, active, 2.5, marker="arrowActive"))
-
-    s.append(card(th, 218, 326, 220, 92, muted, "I1", dashed=True))
-    s.append(T(268, 354, "INVALIDATING STATE", 12, 700, th["tprim"]))
-    s.append(
-        T(
-            236,
-            375,
-            "lease · security · HOLD · ESTOP",
-            9,
-            600,
-            th["tsec"],
-            mono=True,
+    ]
+    app_y = band.bottom + 96
+    layouts = card_row(c, app_y, apps)
+    for layout, spec in zip(layouts, apps):
+        box = layout.box
+        optional = spec["name"] == "galadriel"
+        c.connector(
+            f"ncp-{spec['name']}",
+            [(box.cx, band.bottom), (box.cx, box.y)],
+            "ncp",
+            spec["name"],
+            "muted" if optional else "turquoise",
+            dashed=optional,
+            arrow_start=True,
         )
-    )
-    s.append(T(236, 393, "handover · retirement", 9, 500, th["tmut"], mono=True))
-
-    s.append(card(th, 468, 326, 210, 92, action, "L1"))
-    s.append(ic_octagon(482, 345, 26, action))
-    s.append(T(520, 354, "LOCAL ESTOP LATCH", 12.5, 800, th["tprim"]))
-    s.append(
-        T(
-            486,
-            375,
-            "authorized · fresh · profile-bound",
-            9,
-            600,
-            th["tsec"],
-            mono=True,
-        )
-    )
-    s.append(
-        T(
-            486,
-            393,
-            "new · stale · conflict",
-            9,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-    s.append(
-        path(
-            "M812,216 L812,258 Q812,266 804,266 L581,266 Q573,266 573,326",
-            stroke=action,
-            sw=3,
-            marker="arrowEstop",
-        )
-    )
-
-    s.append(card(th, 708, 306, 246, 132, action, "G1"))
-    s.append(ic_lock(724, 326, 28, action))
-    s.append(T(764, 340, "BODY EFFECT GATE", 14, 800, th["tprim"]))
-    s.append(
-        T(726, 366, "installed action → driver fence", 9, 600, th["tsec"], mono=True)
-    )
-    s.append(
-        T(
-            726,
-            384,
-            "token → one in-flight lane",
-            9,
-            600,
-            th["tsec"],
-            mono=True,
-        )
-    )
-    s.append(
-        T(
-            726,
-            402,
-            "ESTOP latch orders with invalidation",
-            9,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-    s.append(
-        T(
-            726,
-            420,
-            "completion terminalizes · then release",
-            9,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    s.append(
-        path(
-            "M871,216 L871,274 Q871,282 863,282 L839,282 Q831,282 831,306",
-            stroke=active,
-            sw=3,
-            marker="arrowActive",
-        )
-    )
-    s.append(
-        path(
-            "M328,418 L328,448 Q328,456 336,456 L823,456 Q831,456 831,448 L831,438",
-            stroke=muted,
-            sw=2.5,
-            marker="arrowMut",
-        )
-    )
-    s.append(line(678, 388, 708, 388, action, 2.5, marker="arrowEstop"))
-
-    s.append(
-        rect(
-            28,
-            478,
-            924,
-            78,
-            rx=10,
-            fill=th["surf_chip"],
-            stroke=th["border"],
-            sw=1,
-        )
-    )
-    s.append(rect(28, 478, 5, 78, rx=2, fill=action))
-    s.append(
-        T(
-            48,
-            500,
-            "ORDERING",
-            10,
-            800,
-            semantic_text_color(th, action),
-            track=1.0,
-        )
-    )
-    s.append(
-        T(
-            128,
-            500,
-            "Grant reserves completion. One conflict attribution is fixed.",
-            10,
-            600,
-            th["tsec"],
-        )
-    )
-    s.append(
-        T(
-            128,
-            522,
-            "Per-stream high-water and grant tombstones bind no-reuse.",
-            10,
-            600,
-            th["tsec"],
-        )
-    )
-    s.append(
-        T(
-            48,
-            544,
-            "BOUNDARY · Invalidation orders with token use or latching. Handoff proves software admission only.",
-            9.5,
-            500,
-            th["tmut"],
-            italic=True,
-        )
-    )
-    s.append("</svg>")
-    return "".join(s)
-
-
-# ───────────────────────────── 7. PROTOCOL OVERVIEW ─────────────────────────────
-def overview(th):
-    W, H = 1060, 684
-    s = [svg_open(W, H, "overview"), defs(th), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "NCP FUNCTION",
-            "FIVE SHARED GATES  ·  ACTION ADDS THE BODY EFFECT GATE  ·  FOUR PLANES",
-            W,
-        )
-    )
-    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
-
-    control = th["control"]
-    perception = th["perception"]
-    action = th["action"]
-    observation = th["observation"]
-    active = th["active"]
-    contract = th["contract"]
-
-    stage_x = (28, 232, 436, 640, 844)
-    stages = (
-        (
-            "G0",
-            control,
-            "BOUND RAW BYTES",
-            "frame · depth · members",
-            "before semantic allocation",
-        ),
-        (
-            "G1",
-            control,
-            "AUTHENTICATE",
-            "transport principal · manifest",
-            "audience · route · profile",
-        ),
-        (
-            "G2",
-            contract,
-            "WIRE + CORE",
-            f"canonical {WIRE_MAJOR}.x · exact stable core",
-            "unknown / default → reject",
-        ),
-        (
-            "G3",
-            active,
-            "SESSION + STREAM",
-            "generation · epoch · position",
-            "lease · deadline · no-reuse",
-        ),
-        (
-            "G4",
-            active,
-            "TYPED DELIVERY",
-            "prepared layout · finite queue",
-            "callback after admission",
-        ),
-    )
-
-    for index, (designator, hue, heading, detail, note) in enumerate(stages):
-        x = stage_x[index]
-        s.append(card(th, x, 108, 188, 104, hue, designator))
-        s.append(T(x + 18, 147, heading, 11.5, 750, th["tprim"]))
-        s.append(T(x + 18, 170, detail, 8.5, 600, th["tsec"], mono=True))
-        s.append(T(x + 18, 191, note, 8.5, 500, th["tmut"], mono=True))
-        if index < len(stages) - 1:
-            marker = "arrowContract" if index == 1 else "arrowActive"
-            hue_out = contract if index == 1 else active
-            s.append(
-                line(x + 188, 160, stage_x[index + 1], 160, hue_out, 2.5, marker=marker)
-            )
-
-    lane_text_hues = {
-        hue: semantic_text_color(th, hue)
-        for hue in (control, perception, action, observation, contract, active)
-    }
-
-    def lane(y, designator, hue, name, actors, policy, outcome, *, hero=False):
-        x, w, h = 28, 1004, 54
-        fill = "url(#surface)" if hero else th["surf_chip"]
-        s.append(
-            rect(
-                x,
-                y,
-                w,
-                h,
-                rx=9,
-                fill=fill,
-                stroke=hue if hero else th["border"],
-                sw=1.6 if hero else 1,
-                filt="glow" if hero else None,
-            )
-        )
-        if hero:
-            s.append(rect(x, y, w, h, rx=9, fill=hue, op=th["wash_op"]))
-        s.append(rect(x + 7, y + 9, 4, h - 18, rx=2, fill=hue))
-        s.append(rect(x + 18, y + 17, 26, 20, rx=4, fill=hue))
-        badge_ink = contrast_ink(hue)
-        s.append(
-            T(
-                x + 31,
-                y + 31,
-                designator,
-                9.5,
-                800,
-                badge_ink,
-                mono=True,
-                anchor="middle",
-            )
-        )
-        s.append(T(x + 58, y + 31, name, 11, 800, lane_text_hues[hue], track=0.8))
-        s.append(T(x + 214, y + 31, actors, 9.5, 600, th["tsec"]))
-        s.append(T(x + 505, y + 31, policy, 9, 500, th["tmut"], mono=True))
-        outcome_w = 166
-        outcome_x = x + w - outcome_w - 14
-        s.append(
-            rect(
-                outcome_x,
-                y + 13,
-                outcome_w,
-                28,
-                rx=8,
-                fill=th["surf_chip"],
-                stroke=hue,
-                sw=1.2,
-            )
-        )
-        s.append(
-            T(
-                outcome_x + outcome_w / 2,
-                y + 31,
-                outcome,
-                8.5,
-                700,
-                lane_text_hues[hue],
-                mono=True,
-                anchor="middle",
-            )
-        )
-
-    lane(
-        252,
-        "C1",
-        control,
-        "CONTROL",
-        "commander ⇄ body",
-        "bounded · reject overflow",
-        "request / reply",
-    )
-    lane(
-        316,
-        "P1",
-        perception,
-        "PERCEPTION",
-        "body → commander",
-        "replace latest · expose loss",
-        "lossy stream",
-    )
-    lane(
-        380,
-        "A1",
-        action,
-        "ACTION",
-        "commander / operator → body",
-        "severity: ESTOP > HOLD > Active",
-        "BODY EFFECT GATE",
-        hero=True,
-    )
-    lane(
-        444,
-        "O1",
-        observation,
-        "OBSERVATION",
-        "body → read-only observer",
-        "drop oldest · count gaps",
-        "no authority",
-    )
-
-    band_y = 530
-    s.append(
-        rect(
-            28,
-            band_y,
-            W - 56,
-            122,
-            rx=10,
-            fill=th["surf_chip"],
-            stroke=th["border"],
-            sw=1,
-        )
-    )
-    s.append(rect(28, band_y, 5, 122, rx=2, fill=action))
-    rows = (
-        (
-            "STATUS",
-            action,
-            "Direct stable-1.0 Zenoh cannot bind the verified remote principal. The production-secure profile is unavailable.",
-        ),
-        (
+    tallest = layouts[0].box.h
+    bottom = app_y + tallest
+    c.height = (
+        note(
+            c,
+            "boundary",
+            bottom + 34,
             "BOUNDARY",
-            contract,
-            "NCP defines a contract and admission rules. It is not a broker, actuator, or physical-safety certification.",
+            "Each application stays optional. A selected composition must satisfy the "
+            "contract and resource limits of every participant. A missing observation "
+            "never becomes a zero value.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def lifeline(c: Canvas, name: str, cx: float, top: float, bottom: float) -> Box:
+    """Register a lifeline as a thin box so messages attach to its sides."""
+    box = c.node(name, Box(cx - 6, top, 12, bottom - top))
+    c.shape(
+        "line", x1=cx, y1=top, x2=cx, y2=bottom, stroke="muted", width=3, dash="4 8"
+    )
+    return box
+
+
+def message(
+    c: Canvas,
+    name: str,
+    source: Box,
+    target: Box,
+    y: float,
+    label: str,
+    source_name: str,
+    target_name: str,
+    color: str = "turquoise",
+    dashed: bool = False,
+) -> None:
+    if source.cx < target.cx:
+        points = [(source.right, y), (target.x, y)]
+    else:
+        points = [(source.x, y), (target.right, y)]
+    c.connector(name, points, source_name, target_name, color, dashed=dashed)
+    middle = (points[0][0] + points[1][0]) / 2
+    c.text(middle, y - 16, label, Style("sans", 25, 600, color="ink"), anchor="middle")
+
+
+def exchange() -> Canvas:
+    c = Canvas(
+        "exchange",
+        WIDTH,
+        1200,
+        "NCP modular request and outcome exchange",
+        "A client sends one exact request. The owner returns retained bytes for an "
+        "exact duplicate, admits new work without side effects, reserves storage, "
+        "executes once, and retains the outcome until an exact acknowledgement. "
+        f"The SDK is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c, "MODULAR EXCHANGE", "One request, one retained outcome, one acknowledgement"
+    )
+    step_x = 900
+    step_w = WIDTH - MARGIN - step_x
+    client_head = card(
+        c,
+        "client",
+        MARGIN,
+        y + 6,
+        330,
+        "Client",
+        subtitle="Caller with one pending slot",
+    ).box
+    owner_head = card(
+        c,
+        "owner",
+        step_x,
+        y + 6,
+        step_w,
+        "Owner",
+        subtitle="Closed application owner",
+        accent="turquoise",
+    ).box
+    steps = [
+        ("1", "Exact duplicate", "Return the retained bytes. Do not execute again."),
+        (
+            "2",
+            "Pure admission",
+            "A rejection leaves the sequence number unused and state unchanged.",
         ),
         (
-            "EVIDENCE",
-            observation,
-            "Local tests do not complete independent peers, live security, performance, provenance, or role qualification.",
+            "3",
+            "Reserve",
+            "Resolve inputs and allocate outputs before the sequence number is consumed.",
         ),
-    )
-    for index, (label, hue, text) in enumerate(rows):
-        y = band_y + 27 + index * 34
-        text_hue = lane_text_hues.get(hue, hue)
-        s.append(T(48, y, label, 9.5, 800, text_hue, track=0.8))
-        s.append(T(136, y, text, 9.5, 600, th["tsec"]))
-    s.append("</svg>")
-    return "".join(s)
-
-
-# ───────────────────────────── 8. LOW-OVERHEAD RUNTIME ─────────────────────────────
-def runtime(th):
-    W, H = 1060, 650
-    s = [svg_open(W, H, "runtime"), defs(th), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "LOW-OVERHEAD RUNTIME",
-            "PREPARE ONCE  ·  BOUND AND DECODE ONCE  ·  SHORT OWNER TRANSITION",
-            W,
+        (
+            "4",
+            "Execute once",
+            "Consume the sequence number. A later failure retires the generation.",
+        ),
+        (
+            "5",
+            "Retain outcome",
+            "Keep the result frame until its exact acknowledgement.",
+        ),
+        (
+            "6",
+            "Release frame",
+            "The acknowledgement frees the result frame, not the buffers.",
+        ),
+    ]
+    boxes = []
+    cursor = owner_head.bottom + 30
+    for number, title, body in steps:
+        layout = card(
+            c,
+            f"step-{number}",
+            step_x,
+            cursor,
+            step_w,
+            title,
+            body,
+            number=number,
+            accent="lapis" if number == "4" else "turquoise",
         )
+        boxes.append(layout.box)
+        cursor = layout.box.bottom + 14
+    bottom = cursor + 52
+    client_line = lifeline(c, "client-line", client_head.cx, client_head.bottom, bottom)
+    owner_line = lifeline(c, "owner-line", step_x - 36, owner_head.bottom - 60, bottom)
+    c.shape(
+        "line",
+        x1=step_x - 36,
+        y1=owner_head.bottom - 60,
+        x2=step_x,
+        y2=owner_head.bottom - 60,
+        stroke="muted",
+        width=3,
+        dash="4 8",
     )
-    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
+    message(
+        c,
+        "request",
+        client_line,
+        owner_line,
+        boxes[0].y + 50,
+        "request: binding, sequence, operation, digest",
+        "client-line",
+        "owner-line",
+        "lapis",
+    )
+    message(
+        c,
+        "outcome",
+        owner_line,
+        client_line,
+        boxes[4].y + 50,
+        "retained outcome",
+        "owner-line",
+        "client-line",
+    )
+    message(
+        c,
+        "ack",
+        client_line,
+        owner_line,
+        boxes[5].y + 50,
+        "acknowledge with the outcome digest",
+        "client-line",
+        "owner-line",
+        "lapis",
+    )
+    message(
+        c,
+        "next",
+        client_line,
+        owner_line,
+        bottom - 22,
+        "next request names that outcome as predecessor",
+        "client-line",
+        "owner-line",
+        "lapis",
+    )
+    c.height = (
+        note(
+            c,
+            "boundary",
+            bottom + 26,
+            "UNCERTAIN DISPATCH",
+            "A lost response or acknowledgement keeps the pending evidence. The client "
+            "stops that channel. It never retries or reconnects on its own. A query can "
+            "read the original retained bytes by sequence and request digest.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
 
-    control = th["control"]
-    active = th["active"]
-    hold = th["hold"]
-    action = th["action"]
-    observation = th["observation"]
-    contract = th["contract"]
 
-    s.append(card(th, 28, 102, 1004, 78, contract, "P0"))
-    s.append(ic_gauge(50, 130, 24, contract))
-    s.append(T(86, 134, "PREPARE ONCE", 13, 800, th["tprim"], track=0.5))
-    s.append(
-        T(
-            222,
-            134,
-            "manifest · security snapshot · routes · layouts · queue and deadline profiles",
-            9.5,
-            600,
-            th["tsec"],
-            mono=True,
+def payload_transfer() -> Canvas:
+    c = Canvas(
+        "payload-transfer",
+        WIDTH,
+        1100,
+        "NCP bounded payload transfer",
+        "A receiver reserves the complete declared length, admits only the next "
+        "verified chunk, and seals the payload after the complete SHA-256 digest "
+        "matches. Chunks are at most 32,768 bytes and payloads at most 8,388,608 bytes. "
+        f"The SDK is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "PAYLOAD TRANSFER",
+        "Reserve first, then admit verified chunks in order",
+        "IMPLEMENTED SDK",
+        "turquoise",
+    )
+    left = card(
+        c,
+        "producer",
+        MARGIN,
+        y + 6,
+        400,
+        "Producer buffer",
+        subtitle="Sealed, owned bytes",
+        body="The byte manifest binds the length, the payload SHA-256, and the semantic digest.",
+    ).box
+    right = card(
+        c,
+        "receiver",
+        WIDTH - MARGIN - 400,
+        y + 6,
+        400,
+        "Receiver import",
+        subtitle="Reserve, admit, seal",
+        body="Reserve the full length first. Seal only when the complete SHA-256 matches.",
+        accent="turquoise",
+        h=left.h,
+    ).box
+    strip_x = left.right + 60
+    strip_w = right.x - 60 - strip_x
+    strip = c.node("chunks", Box(strip_x, left.y + 40, strip_w, 150))
+    c.shape(
+        "rect",
+        x=strip.x,
+        y=strip.y,
+        w=strip.w,
+        h=strip.h,
+        rx=14,
+        fill="card",
+        stroke="rule",
+        stroke_width=2,
+    )
+    c.text(
+        strip.x + 24, strip.y + 40, "chunks in index order", LABEL, container="chunks"
+    )
+    labels = ("0", "1", "2", "…", "last")
+    cell_w = (strip.w - 48 - 4 * 14) / 5
+    for index, label in enumerate(labels):
+        x = strip.x + 24 + index * (cell_w + 14)
+        cell = c.node(
+            f"cell-{index}", Box(x, strip.y + 66, cell_w, 56), parent="chunks"
         )
-    )
-    s.append(
-        T(
-            86,
-            158,
-            "compile immutable handles and bounded shared tables before publishers, subscriptions, callbacks, or actuator resources",
-            9,
-            500,
-            th["tmut"],
-            mono=True,
+        c.shape(
+            "rect",
+            x=cell.x,
+            y=cell.y,
+            w=cell.w,
+            h=cell.h,
+            rx=8,
+            fill="tint" if label != "…" else "card",
+            stroke="turquoise",
+            stroke_width=2,
         )
-    )
-
-    stage_x = (28, 202, 376, 550, 724, 898)
-    stages = (
-        ("B0", control, "RAW BOUND", "checked bytes", "scratch only"),
-        ("A1", control, "CAPABILITY", "snapshot lookup", "no caller evidence"),
-        ("D2", active, "DECODE ONCE", "prepared layout", "one owned frame"),
-        ("L3", hold, "EXACT LOOKUP", "route · session · position", "indexed state"),
-        ("O4", action, "OWNER STEP", "fixed transition", "short lock"),
-        ("H5", active, "HANDOFF", "bounded plane queue", "external work unlocked"),
-    )
-    for index, (designator, hue, heading, detail, note) in enumerate(stages):
-        x = stage_x[index]
-        s.append(card(th, x, 230, 150, 96, hue, designator, glow=index == 4))
-        s.append(T(x + 18, 268, heading, 10.5, 800, th["tprim"]))
-        s.append(T(x + 18, 289, detail, 8, 600, th["tsec"], mono=True))
-        s.append(T(x + 18, 307, note, 8, 500, th["tmut"], mono=True))
-        if index < len(stages) - 1:
-            marker = "arrowEstop" if index == 3 else "arrowActive"
-            hue_out = action if index == 3 else active
-            s.append(
-                line(x + 150, 278, stage_x[index + 1], 278, hue_out, 2.5, marker=marker)
-            )
-
-    for target_x in (277, 451, 625):
-        s.append(
-            path(
-                f"M{target_x},180 L{target_x},214 Q{target_x},222 {target_x + 8},222 L{target_x + 8},230",
-                stroke=contract,
-                sw=1.5,
-                dash="4 3",
-                marker="arrowContract",
-            )
-        )
-
-    s.append(line(742, 340, 856, 340, action, 2.5))
-    s.append(line(742, 334, 742, 346, action, 2.5))
-    s.append(line(856, 334, 856, 346, action, 2.5))
-    s.append(
-        T(
-            799,
-            360,
-            "owner lock only",
-            8.5,
-            700,
-            semantic_text_color(th, action),
-            mono=True,
+        c.text(
+            cell.cx,
+            cell.y + 37,
+            label,
+            Style("sans", 25, 700, color="ink"),
             anchor="middle",
+            container=f"cell-{index}",
         )
+    c.connector(
+        "to-strip", [(left.right, strip.cy), (strip.x, strip.cy)], "producer", "chunks"
     )
+    c.connector(
+        "to-receiver",
+        [(strip.right, strip.cy), (right.x, strip.cy)],
+        "chunks",
+        "receiver",
+    )
+    checks_y = max(left.bottom, right.bottom) + 40
+    checks = card_row(
+        c,
+        checks_y,
+        [
+            dict(
+                name="check-chunk",
+                title="Each chunk",
+                number="1",
+                body="Index, offset, decoded length, canonical base64, and chunk SHA-256 must match.",
+            ),
+            dict(
+                name="check-seal",
+                title="Seal",
+                number="2",
+                body="The complete payload SHA-256 must match. Valid chunk digests cannot replace it.",
+            ),
+            dict(
+                name="check-count",
+                title="Chunk count",
+                number="3",
+                body="The count is the length divided by 32,768 bytes, rounded up. A payload of at most 8,388,608 bytes needs at most 256 chunks.",
+            ),
+        ],
+    )
+    c.height = (
+        note(
+            c,
+            "boundary",
+            checks[0].box.bottom + 34,
+            "LIFETIMES",
+            "An acknowledgement releases the result frame only. Buffer release and import "
+            "abort are separate operations on one exact named entry. A failed admission "
+            "keeps counters, reservations, and stored bytes unchanged.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
 
-    panels = (
+
+def evidence_ladder() -> Canvas:
+    c = Canvas(
+        "evidence-ladder",
+        WIDTH,
+        1200,
+        "NCP evidence classes and permitted claims",
+        "Five evidence classes run from source controls to release. Each class "
+        "permits only its own claim. The NCP 1.0 candidate has local and selected "
+        "native evidence. Its independent and external gates are NOT RUN, and it is "
+        f"UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "EVIDENCE CLASSES", "Each claim needs evidence of its own class")
+    rungs = [
         (
-            28,
-            control,
-            "HOT PATH EXCLUDES",
-            "manifest or profile parsing",
-            "storage · backend · device calls",
+            "5",
+            "Release",
+            "Immutable tag, signed artifacts, and provenance.",
+            "No 1.0 release exists. The latest release is v0.8.0 on wire 0.8.",
+            "NONE",
+            "pomegranate",
         ),
         (
-            376,
-            contract,
-            "STATE SHAPE",
-            "shared fixed-capacity tables",
-            "no service object per session",
+            "4",
+            "Independent and external qualification",
+            "Live security, independent peers, faults, soak, performance, and supply chain.",
+            "All ten external release gates of the 1.0 candidate are NOT RUN.",
+            "NOT RUN",
+            "pomegranate",
         ),
         (
-            724,
-            observation,
-            "PLANE ISOLATION",
-            "finite queue for each plane",
-            "no borrowing action capacity",
-        ),
-    )
-    for index, (x, hue, heading, detail, note) in enumerate(panels):
-        s.append(card(th, x, 390, 308, 96, hue, f"R{index + 1}"))
-        s.append(T(x + 50, 423, heading, 11, 800, th["tprim"]))
-        s.append(T(x + 20, 449, detail, 9, 600, th["tsec"], mono=True))
-        s.append(T(x + 20, 468, note, 9, 500, th["tmut"], mono=True))
-
-    band_y = 518
-    s.append(
-        rect(
-            28,
-            band_y,
-            W - 56,
-            104,
-            rx=10,
-            fill=th["surf_chip"],
-            stroke=th["border"],
-            sw=1,
-        )
-    )
-    s.append(rect(28, band_y, 5, 104, rx=2, fill=active))
-    s.append(
-        T(
-            48,
-            band_y + 24,
-            "LATENCY",
-            9.5,
-            800,
-            semantic_text_color(th, active),
-            track=0.8,
-        )
-    )
-    s.append(
-        T(
-            134,
-            band_y + 24,
-            "T_hot = T_bound + T_auth + T_decode + T_lookup + T_owner + T_handoff",
-            10,
-            700,
-            th["tprim"],
-            mono=True,
-        )
-    )
-    s.append(
-        T(
-            48,
-            band_y + 52,
-            "MEMORY",
-            9.5,
-            800,
-            semantic_text_color(th, contract),
-            track=0.8,
-        )
-    )
-    s.append(
-        T(
-            134,
-            band_y + 52,
-            "M_NCP,bounded ≤ M_prepared + M_step,total + M_ext,total + M_aux",
-            10,
-            700,
-            th["tprim"],
-            mono=True,
-        )
-    )
-    s.append(
-        T(
-            48,
-            band_y + 82,
-            "BOUNDARY · Every term uses a finite B03 profile and checked arithmetic. These are symbolic targets, not measurements.",
-            9.0,
-            500,
-            th["tmut"],
-            italic=True,
-        )
-    )
-    s.append("</svg>")
-    return "".join(s)
-
-
-# ───────────────────────────── 9. LIFECYCLE OWNER ─────────────────────────────
-def lifecycle(th):
-    W, H = 1060, 764
-    s = [svg_open(W, H, "lifecycle"), defs(th), background(th, W, H)]
-    s.append(
-        title_block(
-            th,
-            "SESSION LIFECYCLE OWNER",
-            "ONE SLOT PER NAMESPACE  ·  EXACT RETRY  ·  NO NEW OPERATION AFTER AMBIGUITY",
-            W,
-        )
-    )
-    s.append(sheet_meta(th, W - 28, 48, CURRENT_META))
-
-    control = th["control"]
-    active = th["active"]
-    hold = th["hold"]
-    action = th["action"]
-    observation = th["observation"]
-    contract = th["contract"]
-
-    state_x = (38, 286, 534, 782)
-    state_data = (
-        ("F0", observation, "FREE", "no lifecycle slot", "no external effect"),
-        ("P1", control, "PENDING", "durable reservation", "lineage + capacity held"),
-        ("A2", hold, "AMBIGUOUS", "effect is unknown", "same operation fenced"),
-        (
-            "T3",
-            active,
-            "TERMINAL COMMIT",
-            "result + high-water durable",
-            "slot release is atomic",
-        ),
-    )
-
-    s.append(line(218, 178, 286, 178, control, 3, marker="arrowControl"))
-    s.append(line(466, 178, 534, 178, hold, 3, marker="arrowHold"))
-    s.append(line(714, 178, 782, 178, active, 3, marker="arrowActive"))
-    s.append(
-        path(
-            "M466,138 L490,138 Q500,138 500,128 L500,110 Q500,100 510,100 L850,100 Q860,100 860,110 L860,128",
-            stroke=active,
-            sw=2.2,
-            marker="arrowActive",
-        )
-    )
-    s.append(
-        T(
-            650,
-            94,
-            "definitive authenticated result",
-            8.5,
-            700,
-            semantic_text_color(th, active),
-            mono=True,
-            anchor="middle",
-        )
-    )
-    s.append(
-        T(
-            252,
-            166,
-            "reserve",
-            8,
-            700,
-            semantic_text_color(th, control),
-            mono=True,
-            anchor="middle",
-        )
-    )
-    s.append(
-        T(
-            500,
-            166,
-            "unknown",
-            8,
-            700,
-            semantic_text_color(th, hold),
-            mono=True,
-            anchor="middle",
-        )
-    )
-    s.append(
-        T(
-            748,
-            166,
-            "reconcile",
-            8,
-            700,
-            semantic_text_color(th, active),
-            mono=True,
-            anchor="middle",
-        )
-    )
-    s.append(
-        path(
-            "M872,228 L872,262 Q872,274 860,274 L140,274 Q128,274 128,262 L128,228",
-            stroke=control,
-            sw=2.2,
-            marker="arrowControl",
-        )
-    )
-    s.append(
-        T(
-            530,
-            267,
-            "publish retained result + high-water · release active slot",
-            8.5,
-            700,
-            semantic_text_color(th, control),
-            mono=True,
-            anchor="middle",
-        )
-    )
-
-    for index, (designator, hue, heading, detail, note) in enumerate(state_data):
-        x = state_x[index]
-        s.append(card(th, x, 128, 180, 100, hue, designator, glow=index == 2))
-        s.append(T(x + 18, 166, heading, 13, 800, th["tprim"]))
-        s.append(T(x + 18, 190, detail, 9, 600, th["tsec"], mono=True))
-        s.append(T(x + 18, 210, note, 8.5, 500, th["tmut"], mono=True))
-
-    s.append(
-        T(
-            128,
-            301,
-            "capacity failure → reject · no state · no effect",
-            8.5,
-            600,
-            semantic_text_color(th, observation),
-            mono=True,
-            anchor="middle",
-        )
-    )
-    s.append(
-        T(
-            530,
-            301,
-            "different coordinate or bytes → reject · no mutation",
-            8.5,
-            700,
-            semantic_text_color(th, action),
-            mono=True,
-            anchor="middle",
-        )
-    )
-    s.append(
-        T(
-            872,
-            301,
-            "exact retry → retained-pool result",
-            8.5,
-            700,
-            semantic_text_color(th, active),
-            mono=True,
-            anchor="middle",
-        )
-    )
-
-    s.append(rect(38, 322, 480, 62, rx=9, fill=th["surf_chip"], stroke=active, sw=1.2))
-    s.append(rect(45, 333, 4, 40, rx=2, fill=active))
-    s.append(
-        T(
-            62,
-            346,
-            "CURRENT POLICY",
-            9.5,
-            800,
-            semantic_text_color(th, active),
-            track=0.8,
-        )
-    )
-    s.append(
-        T(
-            184,
-            346,
-            "gates result disclosure and every widening transition",
-            9,
-            600,
-            th["tsec"],
-        )
-    )
-    s.append(
-        T(
-            62,
-            368,
-            "rotation cannot rekey, reexecute, or alter retained evidence",
-            8.5,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    s.append(rect(542, 322, 480, 62, rx=9, fill=th["surf_chip"], stroke=action, sw=1.2))
-    s.append(rect(549, 333, 4, 40, rx=2, fill=action))
-    s.append(
-        T(
-            566,
-            346,
-            "RESTRICTIVE CLEANUP",
-            9.5,
-            800,
-            semantic_text_color(th, action),
-            track=0.8,
-        )
-    )
-    s.append(
-        T(
-            726,
-            346,
-            "continues after initiating authority is revoked",
-            9,
-            600,
-            th["tsec"],
-        )
-    )
-    s.append(
-        T(
-            566,
-            368,
-            "current policy cannot erase required reconciliation or retirement",
-            8.5,
-            500,
-            th["tmut"],
-            mono=True,
-        )
-    )
-
-    store_x = (28, 282, 536, 790)
-    stores = (
-        (
-            "C0",
-            contract,
-            "PREPARED CONTEXT",
-            "exact identity + route bytes",
-            "content address + durable ref",
+            "3",
+            "Installed native observation",
+            "A dated campaign with exact artifacts, configuration, and retained failures.",
+            "Permits the observed configuration and workload only.",
+            "SELECTED CASES",
+            "bronze",
         ),
         (
-            "N1",
-            control,
-            "NAMESPACE SLOT",
-            "≤ 1 active lifecycle mutation",
-            "prior generation retained",
+            "2",
+            "Complete local gate",
+            "One run of scripts/check.sh on one fixed source cut.",
+            "Permits local regression evidence for that cut only.",
+            "LOCAL",
+            "turquoise",
         ),
         (
-            "R2",
-            active,
-            "TERMINAL RESULT POOL",
-            "finite count + byte profile",
-            "retired never reexecutes",
+            "1",
+            "Source controls",
+            "Unit, property, and cross-language tests on named sources.",
+            "Permits the tested behavior of that source only.",
+            "IN CI",
+            "turquoise",
         ),
-        (
-            "O3",
-            hold,
-            "ORDINAL HIGH-WATER",
-            "issuer epoch + checked ordinal",
-            "overflow seals the epoch",
-        ),
-    )
-    s.append(line(258, 458, 282, 458, contract, 2.2, marker="arrowContract"))
-    s.append(line(512, 458, 536, 458, active, 2.2, marker="arrowActive"))
-    s.append(line(766, 458, 790, 458, hold, 2.2, marker="arrowHold"))
-    for index, (designator, hue, heading, detail, note) in enumerate(stores):
-        x = store_x[index]
-        s.append(card(th, x, 410, 230, 100, hue, designator))
-        s.append(T(x + 18, 448, heading, 10.5, 800, th["tprim"]))
-        s.append(T(x + 18, 472, detail, 8.5, 600, th["tsec"], mono=True))
-        s.append(T(x + 18, 492, note, 8.5, 500, th["tmut"], mono=True))
-
-    band_y = 546
-    s.append(
-        rect(
-            28,
-            band_y,
-            W - 56,
-            176,
-            rx=10,
-            fill=th["surf_chip"],
-            stroke=th["border"],
-            sw=1,
+    ]
+    cursor = y + 10
+    for number, title, what, claim, status, color in rungs:
+        tag_width = measure(status, BADGE) + 34
+        layout = card(
+            c,
+            f"rung-{number}",
+            MARGIN,
+            cursor,
+            WIDTH - 2 * MARGIN,
+            title,
+            [what, claim],
+            number=number,
+            accent=color if color != "bronze" else "lapis",
+            extra=0,
         )
+        pill(
+            c,
+            f"tag-{number}",
+            WIDTH - MARGIN - 26,
+            cursor + 32,
+            status,
+            color,
+            anchor="end",
+            parent=f"rung-{number}",
+        )
+        del tag_width
+        cursor = layout.box.bottom + 16
+    c.height = (
+        note(
+            c,
+            "boundary",
+            cursor + 18,
+            "RULE",
+            "A lower class never promotes a claim to a higher class. Protocol success does "
+            "not establish physical safety, controller stability, or scientific validity.",
+        ).bottom
+        + 40
     )
-    s.append(rect(28, band_y, 5, 176, rx=2, fill=contract))
-    rules = (
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def closed_loop() -> Canvas:
+    c = Canvas(
+        "closed-loop",
+        WIDTH,
+        1200,
+        "NCP closed-loop evidence boundary",
+        "A feedback cycle runs from plant state through sensing, a retained source "
+        "record, a controller proposal, body admission, and disposition to actuator "
+        "input. NCP records three software events. It cannot measure the physical "
+        f"response or establish stability. UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "CLOSED LOOP", "Protocol success does not establish loop stability")
+    c.text(
+        MARGIN,
+        y + 12,
+        "Tinted boxes mark the three software events that NCP records.",
+        SMALL,
+    )
+    y += 34
+    gap = 60
+    top = [
+        dict(name="plant", title="Plant", body="State x at sample k."),
+        dict(
+            name="sensor",
+            title="Sensor",
+            body="Observation from state and disturbance.",
+        ),
+        dict(
+            name="source",
+            title="Source record",
+            body="Retained at the sample time.",
+            tint=True,
+            accent="turquoise",
+        ),
+        dict(
+            name="controller",
+            title="Controller",
+            body="Proposes an action from the record.",
+        ),
+    ]
+    row1 = card_row(c, y + 6, top, gap=gap)
+    bottom = [
+        dict(
+            name="response",
+            title="Physical response",
+            body="Outside the software record.",
+            dashed=True,
+            accent="muted",
+        ),
+        dict(
+            name="input", title="Actuator input", body="The plant input u at sample k."
+        ),
+        dict(
+            name="disposition",
+            title="Disposition",
+            body="Terminal software outcome.",
+            tint=True,
+            accent="turquoise",
+        ),
+        dict(
+            name="admission",
+            title="Body admission",
+            body="Accepts before the exclusive deadline.",
+            tint=True,
+            accent="turquoise",
+        ),
+    ]
+    row2_y = row1[0].box.bottom + 120
+    row2 = card_row(c, row2_y, bottom, gap=gap)
+    names1 = [spec["name"] for spec in top]
+    for a, b, first, second in zip(row1, row1[1:], names1, names1[1:]):
+        c.connector(
+            f"{first}-{second}",
+            [(a.box.right, a.box.cy), (b.box.x, b.box.cy)],
+            first,
+            second,
+        )
+    names2 = [spec["name"] for spec in bottom]
+    for a, b, first, second in zip(row2[1:], row2, names2[1:], names2):
+        c.connector(
+            f"{first}-{second}",
+            [(a.box.x, a.box.cy), (b.box.right, b.box.cy)],
+            first,
+            second,
+        )
+    c.connector(
+        "controller-admission",
+        [(row1[3].box.cx, row1[3].box.bottom), (row2[3].box.cx, row2[3].box.y)],
+        "controller",
+        "admission",
+    )
+    c.connector(
+        "response-plant",
+        [(row2[0].box.cx, row2[0].box.y), (row1[0].box.cx, row1[0].box.bottom)],
+        "response",
+        "plant",
+        "muted",
+        dashed=True,
+    )
+    c.text(row1[3].box.cx + 20, row1[3].box.bottom + 68, "proposal", SMALL)
+    c.text(row1[0].box.cx + 20, row1[0].box.bottom + 68, "next state", SMALL)
+    timing = card_row(
+        c,
+        row2[0].box.bottom + 44,
+        [
+            dict(
+                name="latency",
+                title="Latency on one body clock",
+                number="1",
+                body=[
+                    "Admission latency = admission time − sample time.",
+                    "Disposition latency = disposition time − sample time.",
+                ],
+            ),
+            dict(
+                name="deadline",
+                title="Exclusive deadline",
+                number="2",
+                body=[
+                    "Admission at time t is live only when t\u00a0<\u00a0deadline.",
+                    "A missing event is undefined, never zero.",
+                ],
+            ),
+        ],
+    )
+    c.height = (
+        note(
+            c,
+            "boundary",
+            timing[0].box.bottom + 34,
+            "STABILITY",
+            "Stability depends on the plant, controller, sampling, and delay. For the update "
+            "x(k+1) = (1 − 2Δ) x(k), a period Δ of 0.1 s keeps 80 percent of the error per "
+            "step. A period of 1 s flips its sign without decay. Message delivery is the "
+            "same in both cases.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def queue_admission() -> Canvas:
+    c = Canvas(
+        "queue-admission",
+        WIDTH,
+        1200,
+        "NCP finite plane queue admission",
+        "Each plane queue limits both item count and retained bytes. A plane policy "
+        "selects allowed victims or rejects. One atomic owner step records the loss, "
+        "removes victims, and installs the item. This is proposed design for the "
+        f"UNRELEASED 1.0 candidate. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c, "PLANE QUEUE", "Each queue limits both items and bytes", "PROPOSED DESIGN"
+    )
+    item = card(
+        c,
+        "item",
+        MARGIN,
+        y + 40,
+        330,
+        "New item",
+        subtitle="Size in bytes",
+        body="The policy examines the item before it retains any byte.",
+    ).box
+    queue_x = item.right + 80
+    queue = c.node("queue", Box(queue_x, y + 40, 560, item.h))
+    c.shape(
+        "rect",
+        x=queue.x,
+        y=queue.y,
+        w=queue.w,
+        h=queue.h,
+        rx=14,
+        fill="card",
+        stroke="lapis",
+        stroke_width=3,
+    )
+    c.shape("cap", x=queue.x, y=queue.y, w=queue.w, h=14, rx=14, fill="lapis")
+    c.text(queue.x + 26, queue.y + 60, "Plane queue", TITLE, container="queue")
+    c.text(
+        queue.x + 26,
+        queue.y + 92,
+        "Item limit and byte limit",
+        SUBTITLE,
+        container="queue",
+    )
+    slot_w = (queue.w - 52 - 5 * 12) / 6
+    for index in range(6):
+        x = queue.x + 26 + index * (slot_w + 12)
+        filled = index < 4
+        slot = c.node(
+            f"slot-{index}", Box(x, queue.y + 122, slot_w, 52), parent="queue"
+        )
+        c.shape(
+            "rect",
+            x=slot.x,
+            y=slot.y,
+            w=slot.w,
+            h=slot.h,
+            rx=8,
+            fill="tint" if filled else "card",
+            stroke="lapis" if filled else "rule",
+            stroke_width=2,
+        )
+    decision = card(
+        c,
+        "decision",
+        queue.right + 80,
+        y + 40,
+        WIDTH - MARGIN - queue.right - 80,
+        "Admission",
+        body=[
+            "Admit in one atomic step.",
+            "Otherwise reject.",
+            "The queue stays unchanged.",
+        ],
+        accent="turquoise",
+        h=item.h,
+    ).box
+    c.connector(
+        "item-queue", [(item.right, item.cy), (queue.x, item.cy)], "item", "queue"
+    )
+    c.connector(
+        "queue-decision",
+        [(queue.right, item.cy), (decision.x, item.cy)],
+        "queue",
+        "decision",
+    )
+    checks = card_row(
+        c,
+        item.bottom + 44,
+        [
+            dict(
+                name="check-count",
+                title="Count",
+                number="1",
+                body="After the victims leave, one more item must fit the item limit.",
+            ),
+            dict(
+                name="check-bytes",
+                title="Bytes",
+                number="2",
+                body="After the victim bytes leave, the new bytes must fit the byte limit.",
+            ),
+            dict(
+                name="check-loss",
+                title="Visible loss",
+                number="3",
+                body="The loss count plus the victims must fit the loss limit.",
+            ),
+        ],
+    )
+    policy = card(
+        c,
+        "policy",
+        MARGIN,
+        checks[0].box.bottom + 34,
+        WIDTH - 2 * MARGIN,
+        "Victim policy by plane",
+        body=[
+            "Control and extension: select no victim and reject when full.",
+            "Perception: replace the latest replaceable item.",
+            "Observation: drop the oldest items and count each gap.",
+            "Action: displace only work that the severity order permits.",
+        ],
+        accent="lapis",
+    ).box
+    c.height = (
+        note(
+            c,
+            "boundary",
+            policy.bottom + 34,
+            "ISOLATION",
+            "No plane borrows the count, byte, or local charge of another plane. "
+            "Observation pressure cannot consume reserved action capacity.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def overview() -> Canvas:
+    c = Canvas(
+        "overview",
+        WIDTH,
+        1200,
+        "NCP admission and plane overview",
+        "Five shared gates bound raw bytes, authenticate the transport principal, "
+        "check wire and stable core, check session and stream state, and deliver a "
+        "typed frame to a finite plane queue. Action adds a body effect gate. "
+        f"Proposed design for the UNRELEASED 1.0 candidate. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "ADMISSION OVERVIEW",
+        "Five shared gates run in order, and actions add a body gate",
+        "PROPOSED DESIGN",
+    )
+    gates = card_row(
+        c,
+        y + 10,
+        [
+            dict(
+                name="gate-1",
+                title_style=TITLE_NARROW,
+                title="Bound raw bytes",
+                number="1",
+                body="Frame size, depth, and members before semantic allocation.",
+            ),
+            dict(
+                name="gate-2",
+                title_style=TITLE_NARROW,
+                title="Authenticate",
+                number="2",
+                body="Verified transport principal and default-deny manifest.",
+            ),
+            dict(
+                name="gate-3",
+                title_style=TITLE_NARROW,
+                title="Wire and core",
+                number="3",
+                body="Canonical same-major version and exact stable core.",
+            ),
+            dict(
+                name="gate-4",
+                title_style=TITLE_NARROW,
+                title="Session and stream",
+                number="4",
+                body="Live generation, declared epoch, and unused position.",
+            ),
+            dict(
+                name="gate-5",
+                title_style=TITLE_NARROW,
+                title="Typed delivery",
+                number="5",
+                body="Prepared layout into one finite plane queue.",
+            ),
+        ],
+        gap=48,
+    )
+    for index in range(4):
+        a, b = gates[index].box, gates[index + 1].box
+        c.connector(
+            f"gate-{index + 1}-{index + 2}",
+            [(a.right, a.cy), (b.x, a.cy)],
+            f"gate-{index + 1}",
+            f"gate-{index + 2}",
+        )
+    last = gates[4].box
+    effect = card(
+        c,
+        "gate-6",
+        last.x,
+        last.bottom + 110,
+        last.w,
+        "Body effect gate",
+        "The body admits the exact command before executor work.",
+        number="6",
+        accent="lapis",
+        tint=True,
+    ).box
+    c.connector(
+        "action-only", [(last.cx, last.bottom), (last.cx, effect.y)], "gate-5", "gate-6"
+    )
+    c.text(last.cx - 18, last.bottom + 64, "action only", SMALL, anchor="end")
+    planes = card(
+        c,
+        "planes",
+        MARGIN,
+        last.bottom + 110,
+        last.x - 48 - MARGIN,
+        "Four core planes",
+        body=[
+            "Control: commander and body exchange bounded requests. Overflow rejects.",
+            "Perception: the body publishes samples. The latest sample replaces older ones.",
+            "Action: the lease holder or an enrolled emergency source commands the body.",
+            "Observation: the body feeds read-only observers. The oldest item drops first.",
+        ],
+        h=None,
+    ).box
+    c.height = (
+        note(
+            c,
+            "status-note",
+            max(planes.bottom, effect.bottom) + 34,
+            "CURRENT STATUS",
+            "Direct production-secure Zenoh ingress fails closed. The pinned Zenoh 1.9.0 "
+            "callback does not expose the verified peer principal.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def topology() -> Canvas:
+    c = Canvas(
+        "topology",
+        WIDTH,
+        1200,
+        "NCP commander, body, and observer topology",
+        "A commander and a body exchange control, perception, and action traffic on "
+        "four core planes. Observers receive a read-only projection. The body is the "
+        "final software authority before the actuator. Candidate wire of the "
+        f"UNRELEASED 1.0 candidate. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "TOPOLOGY",
+        "Four core planes connect a commander, a body, and observers",
+        "CANDIDATE WIRE 1.0",
+    )
+    lane_top = y + 40
+    pitch = 118
+    height = 3 * pitch + 40
+    commander = card(
+        c,
+        "commander",
+        MARGIN,
+        lane_top,
+        330,
+        "Commander",
+        subtitle="Neural or other controller",
+        body="Sends Active only with the body-issued lease.",
+        h=height,
+    ).box
+    body = card(
+        c,
+        "body",
+        WIDTH - MARGIN - 330,
+        lane_top,
+        330,
+        "Body",
+        subtitle="Robot or UAV plant",
+        body=[
+            "Final software authority before the actuator.",
+            "Role qualification: NOT RUN.",
+        ],
+        accent="turquoise",
+        h=height,
+    ).box
+    label = Style("sans", 25, 600, color="ink")
+    route = Style("sans", 25, 400, color="muted")
+    lanes = [
+        ("control", "Control: request and reply", RPC_ROUTE, "lapis", True, True),
         (
-            "SINGLE FLIGHT",
-            "N_active(realm, kind, logical_id) ≤ 1",
-            control,
+            "perception",
+            "Perception: body to commander",
+            SENSOR_ROUTE,
+            "turquoise",
+            False,
+            True,
         ),
         (
-            "EXACT RETRY",
-            "retry ⇔ c = cᵣ ∧ b = bᵣ ∧ k = kᵣ ∧ o = oᵣ",
-            active,
+            "action",
+            "Action: ACTIVE, HOLD, ESTOP. Init rejects.",
+            COMMAND_ROUTE,
+            "lapis",
+            True,
+            False,
         ),
-        (
-            "NO REUSE",
-            "o_high = 0 initially  ·  o_next = checked_add(o_high, 1)  ·  overflow ⇒ seal epoch",
-            hold,
-        ),
-        (
+    ]
+    for index, (name, title, key, color, forward, backward) in enumerate(lanes):
+        yy = lane_top + 96 + index * pitch
+        points = [(commander.right, yy), (body.x, yy)]
+        if forward and not backward:
+            c.connector(name, points, "commander", "body", color)
+        elif backward and not forward:
+            c.connector(name, list(reversed(points)), "body", "commander", color)
+        else:
+            c.connector(name, points, "commander", "body", color, arrow_start=True)
+        middle = (commander.right + body.x) / 2
+        c.text(middle, yy - 52, title, label, anchor="middle")
+        c.text(middle, yy - 18, key, route, anchor="middle")
+    observer = card(
+        c,
+        "observer",
+        WIDTH - MARGIN - 330,
+        commander.bottom + 130,
+        330,
+        "Observer",
+        subtitle="Read-only, grant-bound",
+        body="Receives a projection. Holds no command authority.",
+    ).box
+    c.connector(
+        "observation",
+        [(body.cx, body.bottom), (body.cx, observer.y)],
+        "body",
+        "observer",
+        "turquoise",
+    )
+    c.text(
+        body.cx - 24,
+        body.bottom + 54,
+        "Observation: body to observers",
+        label,
+        anchor="end",
+    )
+    c.text(body.cx - 24, body.bottom + 88, OBSERVATION_ROUTE, route, anchor="end")
+    c.height = (
+        note(
+            c,
+            "trust",
+            observer.bottom + 34,
+            "TRUST BOUNDARY",
+            "A direct peer binds the verified transport principal. A forwarder ends one "
+            "trust context and opens a new authenticated one. Copied identity bytes are "
+            "not transport evidence.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def runtime() -> Canvas:
+    c = Canvas(
+        "runtime",
+        WIDTH,
+        1200,
+        "NCP prepared runtime and hot path",
+        "Preparation compiles immutable handles once. Each frame then passes six "
+        "stages: bound, verify, decode once, locate, admit in one short owner step, "
+        "and hand off to a finite queue. Proposed design for the UNRELEASED 1.0 "
+        f"candidate. Stage ceilings are targets, not measurements. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "PREPARED RUNTIME",
+        "Prepare once, then bound, decode, and admit each frame",
+        "PROPOSED DESIGN",
+    )
+    prepare = card(
+        c,
+        "prepare",
+        MARGIN,
+        y + 10,
+        WIDTH - 2 * MARGIN,
+        "Prepare once",
+        "Validate the manifest, security snapshot, routes, layouts, and queue and deadline "
+        "profiles. Compile immutable handles and reserve shared state before any publisher "
+        "or callback exists.",
+        accent="turquoise",
+        tint=True,
+    ).box
+    c.text(MARGIN, prepare.bottom + 48, "Each later frame follows this path:", SMALL)
+    stages = card_row(
+        c,
+        prepare.bottom + 72,
+        [
+            dict(
+                name="stage-1",
+                title_style=TITLE_NARROW,
+                title="Bound",
+                number="1",
+                body="Check the size before any allocation.",
+            ),
+            dict(
+                name="stage-2",
+                title_style=TITLE_NARROW,
+                title="Verify",
+                number="2",
+                body="Resolve the ingress capability.",
+            ),
+            dict(
+                name="stage-3",
+                title_style=TITLE_NARROW,
+                title="Decode",
+                number="3",
+                body="Decode once with the prepared layout.",
+            ),
+            dict(
+                name="stage-4",
+                title_style=TITLE_NARROW,
+                title="Locate",
+                number="4",
+                body="Find route, session, and position.",
+            ),
+            dict(
+                name="stage-5",
+                title_style=TITLE_NARROW,
+                title="Admit",
+                number="5",
+                body="Apply one short owner step.",
+                accent="lapis",
+            ),
+            dict(
+                name="stage-6",
+                title_style=TITLE_NARROW,
+                title="Hand off",
+                number="6",
+                body="Enqueue after the unlock.",
+            ),
+        ],
+        gap=44,
+    )
+    for index in range(5):
+        a, b = stages[index].box, stages[index + 1].box
+        c.connector(
+            f"stage-{index + 1}-{index + 2}",
+            [(a.right, a.cy), (b.x, a.cy)],
+            f"stage-{index + 1}",
+            f"stage-{index + 2}",
+        )
+    notes = card_row(
+        c,
+        stages[0].box.bottom + 40,
+        [
+            dict(
+                name="outside",
+                title="Outside the hot path",
+                body="Storage, backend queries, network calls, application callbacks, and device I/O.",
+                accent="muted",
+            ),
+            dict(
+                name="cost",
+                title="Cost model",
+                body="Hot-path time is the sum of the six stage times. Each stage has a selected "
+                "ceiling. The sum of the ceilings bounds the path.",
+                accent="lapis",
+            ),
+        ],
+    )
+    c.height = notes[0].box.bottom + 40
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def lifecycle() -> Canvas:
+    c = Canvas(
+        "lifecycle",
+        WIDTH,
+        1200,
+        "NCP session lifecycle mutation owner",
+        "One slot per namespace moves from free to pending, then to terminal directly "
+        "or through ambiguous reconciliation. Terminal commit publishes the result and "
+        "high-water before it frees the slot. Exact retries return the retained result. "
+        f"Proposed design for the UNRELEASED 1.0 candidate. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "SESSION LIFECYCLE",
+        "One slot serializes open, replace, and close per namespace",
+        "PROPOSED DESIGN",
+    )
+    states = card_row(
+        c,
+        y + 110,
+        [
+            dict(name="free", title="FREE", body="No active record."),
+            dict(
+                name="pending",
+                title="PENDING",
+                body="Durable reservation. Work can run.",
+                accent="turquoise",
+            ),
+            dict(
+                name="ambiguous",
+                title="AMBIGUOUS",
+                body="Effect unknown. Same operation fenced.",
+                accent="pomegranate",
+            ),
+            dict(
+                name="terminal",
+                title="TERMINAL",
+                body="Result and high-water are durable.",
+                accent="turquoise",
+                tint=True,
+            ),
+        ],
+        gap=110,
+    )
+    free, pending, ambiguous, terminal = (layout.box for layout in states)
+
+    def lettered(name: str, letter: str, x: float, yy: float, color: str) -> str:
+        badge(c, name, x, yy, letter, color, overlay=True)
+        return name
+
+    ya = free.cy
+    a = lettered("badge-a", "A", (free.right + pending.x) / 2, ya, "lapis")
+    c.connector(
+        "reserve", [(free.right, ya), (pending.x, ya)], "free", "pending", through=(a,)
+    )
+    b = lettered("badge-c", "C", (pending.right + ambiguous.x) / 2, ya, "pomegranate")
+    c.connector(
+        "unknown",
+        [(pending.right, ya), (ambiguous.x, ya)],
+        "pending",
+        "ambiguous",
+        "pomegranate",
+        through=(b,),
+    )
+    d = lettered("badge-d", "D", (ambiguous.right + terminal.x) / 2, ya, "turquoise")
+    c.connector(
+        "reconcile",
+        [(ambiguous.right, ya), (terminal.x, ya)],
+        "ambiguous",
+        "terminal",
+        through=(d,),
+    )
+    top = pending.y - 62
+    e = lettered("badge-b", "B", (pending.cx + terminal.cx) / 2, top, "turquoise")
+    c.connector(
+        "definitive",
+        [
+            (pending.cx, pending.y),
+            (pending.cx, top),
+            (terminal.cx, top),
+            (terminal.cx, terminal.y),
+        ],
+        "pending",
+        "terminal",
+        through=(e,),
+    )
+    low = free.bottom + 62
+    f = lettered("badge-e", "E", (free.cx + terminal.cx) / 2, low, "lapis")
+    c.connector(
+        "release",
+        [
+            (terminal.cx, terminal.bottom),
+            (terminal.cx, low),
+            (free.cx, low),
+            (free.cx, free.bottom),
+        ],
+        "terminal",
+        "free",
+        "lapis",
+        through=(f,),
+    )
+    legend = card(
+        c,
+        "legend",
+        MARGIN,
+        low + 50,
+        WIDTH - 2 * MARGIN,
+        "Transitions",
+        body=[
+            "A reserve: make the slot, result cell, and context durable before external work.",
+            "B definitive result: commit the terminal record.",
+            "C effect unknown: keep the same operation and coordinate fenced.",
+            "D reconcile: query the same backend coordinate, then commit.",
+            "E release: publish the result and high-water, then free the slot.",
+        ],
+    ).box
+    rules = card_row(
+        c,
+        legend.bottom + 34,
+        [
+            dict(
+                name="retry",
+                title="Exact retry",
+                accent="turquoise",
+                body="Equal coordinate, request bytes, context bytes, and ordinal return the retained result.",
+            ),
+            dict(
+                name="conflict",
+                title="Conflict",
+                accent="pomegranate",
+                body="Any other combination rejects without mutation.",
+            ),
+            dict(
+                name="capacity",
+                title="Capacity failure",
+                accent="muted",
+                body="A full store rejects with no state and no external effect.",
+            ),
+        ],
+    )
+    c.height = (
+        note(
+            c,
+            "shape",
+            rules[0].box.bottom + 34,
             "SERVICE SHAPE",
-            "threads/session = sockets/session = dedicated stores/session = 0",
-            observation,
+            "Shared finite stores serve all namespaces. No thread, socket, or "
+            "store exists per session.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def sequence() -> Canvas:
+    c = Canvas(
+        "sequence",
+        WIDTH,
+        1200,
+        "NCP simulation session sequence",
+        "A client opens one simulation session after the wire and stable-core check. "
+        "The simulator reserves a step window, executes positions strictly in order, "
+        "and matches each result by generation, position, and request digest. "
+        f"Proposed design for the UNRELEASED 1.0 candidate. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "SIMULATION SESSION",
+        "Steps run in position order and replies match exactly",
+        "PROPOSED DESIGN",
+    )
+    step_x = 900
+    step_w = WIDTH - MARGIN - step_x
+    client = card(
+        c,
+        "client",
+        MARGIN,
+        y + 6,
+        330,
+        "Client",
+        subtitle="Authorized simulation caller",
+    ).box
+    sim = card(
+        c,
+        "simulator",
+        step_x,
+        y + 6,
+        step_w,
+        "Simulator",
+        subtitle="Bounded simulation service",
+        accent="turquoise",
+    ).box
+    steps = [
+        (
+            "1",
+            "Check identity",
+            "Accept a canonical same-major wire and the exact stable core.",
         ),
-    )
-    for index, (label, formula, hue) in enumerate(rules):
-        y = band_y + 29 + index * 34
-        s.append(T(48, y, label, 9.5, 800, semantic_text_color(th, hue), track=0.7))
-        s.append(T(190, y, formula, 10, 700, th["tprim"], mono=True))
-    s.append(
-        T(
-            48,
-            band_y + 158,
-            "BOUNDARY · B03 selects every numeric ceiling, durable store, atomicity profile, rollover proof, and retention interval.",
-            9.2,
-            500,
-            th["tmut"],
-            italic=True,
+        (
+            "2",
+            "Prepare the window",
+            "Reserve request slots, response slots, and digest entries first.",
+        ),
+        (
+            "3",
+            "Execute in order",
+            "Start only the next position. An unresolved call retires the generation.",
+        ),
+        (
+            "4",
+            "Match exactly",
+            "Compare generation, position, digest, and the retained request bytes.",
+        ),
+        ("5", "Close", "Stop new steps, settle reserved work, and return a receipt."),
+    ]
+    boxes = []
+    cursor = sim.bottom + 30
+    for number, title, body in steps:
+        layout = card(
+            c,
+            f"step-{number}",
+            step_x,
+            cursor,
+            step_w,
+            title,
+            body,
+            number=number,
+            accent="turquoise",
         )
+        boxes.append(layout.box)
+        cursor = layout.box.bottom + 14
+    bottom = cursor + 10
+    client_line = lifeline(c, "client-line", client.cx, client.bottom, bottom)
+    sim_line = lifeline(c, "sim-line", step_x - 36, sim.bottom - 60, bottom)
+    c.shape(
+        "line",
+        x1=step_x - 36,
+        y1=sim.bottom - 60,
+        x2=step_x,
+        y2=sim.bottom - 60,
+        stroke="muted",
+        width=3,
+        dash="4 8",
     )
-    s.append("</svg>")
-    return "".join(s)
+    message(
+        c,
+        "open",
+        client_line,
+        sim_line,
+        boxes[0].y + 50,
+        "open: version and stable core",
+        "client-line",
+        "sim-line",
+        "lapis",
+    )
+    message(
+        c,
+        "opened",
+        sim_line,
+        client_line,
+        boxes[1].y + 50,
+        "opened: generation and step window",
+        "sim-line",
+        "client-line",
+    )
+    message(
+        c,
+        "steps",
+        client_line,
+        sim_line,
+        boxes[2].y + 50,
+        "steps at positions p, p + 1, p + 2",
+        "client-line",
+        "sim-line",
+        "lapis",
+    )
+    message(
+        c,
+        "results",
+        sim_line,
+        client_line,
+        boxes[3].y + 50,
+        "result for each position",
+        "sim-line",
+        "client-line",
+    )
+    message(
+        c,
+        "close",
+        client_line,
+        sim_line,
+        boxes[4].y + 50,
+        "close, then receipt",
+        "client-line",
+        "sim-line",
+        "lapis",
+    )
+    c.height = (
+        note(
+            c,
+            "provenance",
+            bottom + 26,
+            "PROVENANCE",
+            "Every result carries is_simulation_output = true and "
+            "calibrated_posterior = false. Simulation output never becomes plant "
+            "authority.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def admission() -> Canvas:
+    c = Canvas(
+        "admission",
+        WIDTH,
+        1300,
+        "NCP body command admission",
+        "The body bounds, authenticates, and decodes each command once, finds its exact "
+        "position, and checks the live grant. ESTOP selects a preallocated latch, HOLD "
+        "cuts Active authority, and Active needs a single-use token. Proposed design "
+        f"for the UNRELEASED 1.0 candidate. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "BODY COMMAND ADMISSION",
+        "The body decides each command before any effect",
+        "PROPOSED DESIGN",
+    )
+    row = card_row(
+        c,
+        y + 10,
+        [
+            dict(
+                name="raw",
+                title_style=TITLE_NARROW,
+                title="Raw bounds",
+                number="1",
+                body="Size and frame class first.",
+            ),
+            dict(
+                name="auth",
+                title_style=TITLE_NARROW,
+                title="Authenticate",
+                number="2",
+                body="Principal and exact permission.",
+            ),
+            dict(
+                name="state",
+                title_style=TITLE_NARROW,
+                title="Session state",
+                number="3",
+                body="Generation, stream, and security.",
+            ),
+            dict(
+                name="decode",
+                title_style=TITLE_NARROW,
+                title="Decode once",
+                number="4",
+                body="One bounded decode.",
+            ),
+            dict(
+                name="position",
+                title_style=TITLE_NARROW,
+                title="Exact position",
+                number="5",
+                body="Same bytes return the result.",
+            ),
+        ],
+        gap=48,
+    )
+    names = ["raw", "auth", "state", "decode", "position"]
+    for a, b, first, second in zip(row, row[1:], names, names[1:]):
+        c.connector(
+            f"{first}-{second}",
+            [(a.box.right, a.box.cy), (b.box.x, a.box.cy)],
+            first,
+            second,
+        )
+    last = row[4].box
+    column_top = last.bottom + 90
+    grant_w = 330
+    grant_x = WIDTH - MARGIN - grant_w
+    modes_x = MARGIN + 360 + 90
+    modes_w = grant_x - 90 - modes_x
+    modes = []
+    cursor = column_top
+    for name, title, body, color in (
+        (
+            "estop",
+            "ESTOP",
+            "Install or keep the one preallocated latch.",
+            "pomegranate",
+        ),
+        ("hold", "HOLD", "Reserve HOLD and cut Active in one owner step.", "lapis"),
+        (
+            "active",
+            "Active",
+            "Check profile, freshness, and source. Issue one token.",
+            "turquoise",
+        ),
+    ):
+        layout = card(c, name, modes_x, cursor, modes_w, title, body, accent=color)
+        modes.append(layout.box)
+        cursor = layout.box.bottom + 24
+    column_bottom = modes[-1].bottom
+    grant = card(
+        c,
+        "grant",
+        grant_x,
+        column_top,
+        grant_w,
+        "Grant check",
+        "The position selects one live grant with an exclusive deadline.",
+        number="6",
+        h=column_bottom - column_top,
+    ).box
+    effect = card(
+        c,
+        "effect",
+        MARGIN,
+        column_top,
+        360,
+        "Effect boundary",
+        "Installed restrictive actions and the Active executor slot. Device work "
+        "starts after this handoff.",
+        number="7",
+        accent="turquoise",
+        tint=True,
+        h=column_bottom - column_top,
+    ).box
+    c.connector(
+        "position-grant",
+        [(last.cx, last.bottom), (last.cx, grant.y)],
+        "position",
+        "grant",
+    )
+    for box, name in zip(modes, ("estop", "hold", "active")):
+        c.connector(
+            f"grant-{name}", [(grant.x, box.cy), (box.right, box.cy)], "grant", name
+        )
+        c.connector(
+            f"{name}-effect",
+            [(box.x, box.cy), (effect.right, box.cy)],
+            name,
+            "effect",
+            "pomegranate" if name == "estop" else "turquoise",
+        )
+    c.height = (
+        note(
+            c,
+            "rejections",
+            column_bottom + 34,
+            "REJECTIONS",
+            [
+                "An absent, Init, or unknown mode is a non-authorizing rejection. "
+                "Different bytes at an occupied position are a conflict.",
+                "A security cut or expiry creates no remote restrictive effect.",
+            ],
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+ROLE_SUBJECTS = (
+    "Engram simulation responder",
+    "Engram plant commander",
+    "Engram Haldir-intent extension publisher",
+    "Haldir NCP commander",
+    "Haldir Engram-intent extension receiver",
+    "Haldir Galadriel-assessment receiver",
+    "Galadriel NCP observer",
+    "Galadriel raw-advisory publisher",
+    "Crebain body",
+    "Crebain Galadriel-producer surface",
+    "Prisoma NCP observer",
+)
+
+
+def ecosystem() -> Canvas:
+    c = Canvas(
+        "ecosystem",
+        WIDTH,
+        1400,
+        "NCP ecosystem dependency direction",
+        "Consumers depend on NCP through thin role adapters. NCP imports no consumer "
+        "code. Eleven role subjects need separate installed qualification, and all are "
+        "NOT RUN. Integrated Haldir uses four processes. MUSIC owns shared-clock "
+        f"coupling. Proposed design for the UNRELEASED 1.0 candidate. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "ECOSYSTEM",
+        "Consumers depend on NCP, and NCP depends on no consumer",
+        "PROPOSED DESIGN",
+    )
+    side_w = 520
+    center_x = MARGIN + side_w + 90
+    center_w = WIDTH - 2 * MARGIN - 2 * side_w - 180
+    right_x = WIDTH - MARGIN - side_w
+
+    def roles(first: int, count: int) -> list[str]:
+        return [f"{first + i}  {ROLE_SUBJECTS[first - 1 + i]}" for i in range(count)]
+
+    engram = card(c, "engram", MARGIN, y + 10, side_w, "Engram", body=roles(1, 3)).box
+    haldir = card(
+        c,
+        "haldir",
+        MARGIN,
+        engram.bottom + 30,
+        side_w,
+        "Haldir",
+        body=roles(4, 3)
+        + [
+            "Four processes: intent receiver, assessment receiver, policy-state "
+            "authority (not an NCP peer), and commander."
+        ],
+    ).box
+    galadriel = card(
+        c, "galadriel", right_x, y + 10, side_w, "Galadriel", body=roles(7, 2)
+    ).box
+    crebain = card(
+        c,
+        "crebain",
+        right_x,
+        galadriel.bottom + 30,
+        side_w,
+        "Crebain",
+        body=roles(9, 2),
+        accent="turquoise",
+    ).box
+    prisoma = card(
+        c, "prisoma", right_x, crebain.bottom + 30, side_w, "Prisoma", body=roles(11, 1)
+    ).box
+    column_bottom = max(haldir.bottom, prisoma.bottom)
+    ncp = card(
+        c,
+        "ncp",
+        center_x,
+        y + 10,
+        center_w,
+        "NCP",
+        subtitle="Neutral provider",
+        body=[
+            "Contract, bindings, profiles, and packages.",
+            "Imports no consumer code.",
+        ],
+        accent="turquoise",
+        tint=True,
+        h=column_bottom - y - 10,
+    ).box
+    for box, name in ((engram, "engram"), (haldir, "haldir")):
+        c.connector(f"{name}-ncp", [(box.right, box.cy), (ncp.x, box.cy)], name, "ncp")
+    for box, name in (
+        (galadriel, "galadriel"),
+        (crebain, "crebain"),
+        (prisoma, "prisoma"),
+    ):
+        c.connector(f"{name}-ncp", [(box.x, box.cy), (ncp.right, box.cy)], name, "ncp")
+    bottom = card_row(
+        c,
+        column_bottom + 40,
+        [
+            dict(
+                name="fleet",
+                title="Fleet campaign",
+                accent="bronze" if False else "lapis",
+                body="One composite session for 1, 2, or 3 drones. A sensor frame holds 6N "
+                "scalars and a command frame 3N. Open.",
+            ),
+            dict(
+                name="music",
+                title="MUSIC",
+                accent="muted",
+                body="MUSIC alone owns shared-clock coupling. NCP never tunnels it.",
+            ),
+            dict(
+                name="presentation",
+                title="Presentation",
+                accent="muted",
+                body="SVG is presentation only. It carries no protocol meaning or evidence.",
+            ),
+        ],
+    )
+    c.height = (
+        note(
+            c,
+            "qualification",
+            bottom[0].box.bottom + 34,
+            "QUALIFICATION",
+            "Each numbered role needs its own installed-artifact and live-transport "
+            "receipt. All eleven are NOT RUN. pid-rs is a local library, not an NCP "
+            "peer.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def versioning() -> Canvas:
+    c = Canvas(
+        "versioning",
+        WIDTH,
+        1200,
+        "NCP identity domains and native session gate",
+        "Package, wire, stable-core, complete-contract, compact-proto, and release "
+        "identities are separate. A native session needs a canonical same-major wire "
+        "and the exact stable core. Other identities are evidence only. Candidate of "
+        f"the UNRELEASED 1.0 line. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "IDENTITY",
+        "Separate identities, and two checks open a native session",
+        "CANDIDATE WIRE 1.0",
+    )
+    left_w = 700
+    identities = card(
+        c,
+        "identities",
+        MARGIN,
+        y + 10,
+        left_w,
+        "Identity domains",
+        body=[
+            f"Package version: {CANDIDATE_VERSION}.",
+            f"Wire version: {WIRE_VERSION}. Canonical 1 means 1.0.",
+            "Stable-core digest: proposed and not yet allocated.",
+            "Complete contract digest: SHA-256 over the normative sources.",
+            f"Compact proto hash: {CONTRACT_HASH}, advisory only.",
+            "Release tag: none for 1.0. The latest is v0.8.0 on wire 0.8.",
+            "The gate reads only the wire version and the stable core.",
+        ],
+    ).box
+    gate_x = MARGIN + left_w + 90
+    gate_w = WIDTH - MARGIN - gate_x
+    checks = []
+    cursor = y + 10
+    for number, title, body in (
+        (
+            "1",
+            "Canonical same-major wire",
+            "Accept 1 or 1.<minor> in canonical spelling.",
+        ),
+        (
+            "2",
+            "Exact stable core",
+            "Compare the prepared stable-core identity exactly.",
+        ),
+    ):
+        layout = card(
+            c,
+            f"check-{number}",
+            gate_x,
+            cursor,
+            gate_w,
+            title,
+            body,
+            number=number,
+            accent="turquoise",
+        )
+        checks.append(layout.box)
+        cursor = layout.box.bottom + 20
+    outcome_y = max(identities.bottom, checks[-1].bottom) + 90
+    outcomes = card_row(
+        c,
+        outcome_y,
+        [
+            dict(
+                name="open",
+                title="Native session may open",
+                accent="turquoise",
+                tint=True,
+                body="Both checks pass.",
+            ),
+            dict(
+                name="reject",
+                title="Reject",
+                accent="pomegranate",
+                body="Either check fails. No native session exists.",
+            ),
+        ],
+        x=gate_x,
+        width=gate_w,
+        gap=40,
+    )
+    c.connector(
+        "to-open",
+        [
+            (outcomes[0].box.cx, checks[-1].bottom),
+            (outcomes[0].box.cx, outcomes[0].box.y),
+        ],
+        "check-2",
+        "open",
+    )
+    c.connector(
+        "to-reject",
+        [
+            (outcomes[1].box.cx, checks[-1].bottom),
+            (outcomes[1].box.cx, outcomes[1].box.y),
+        ],
+        "check-2",
+        "reject",
+        "pomegranate",
+    )
+    c.text(
+        outcomes[0].box.cx - 18,
+        checks[-1].bottom + 52,
+        "both pass",
+        SMALL,
+        anchor="end",
+    )
+    c.text(
+        outcomes[1].box.cx - 18,
+        checks[-1].bottom + 52,
+        "either fails",
+        SMALL,
+        anchor="end",
+    )
+    bottom = max(identities.bottom, outcomes[0].box.bottom)
+    c.height = (
+        note(
+            c,
+            "migration",
+            bottom + 34,
+            "WIRE 0.8",
+            "Wire 0.8 and wire 1.0 are different protocols. Only a terminating "
+            "gateway joins them, and it reports no native match.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def fsm() -> Canvas:
+    c = Canvas(
+        "fsm",
+        WIDTH,
+        1300,
+        "NCP current plant-admission state model",
+        "The current compatibility governor starts in HOLD after valid configuration. "
+        "It enters Active only with fresh input and live authority. An admitted ESTOP, a "
+        "geofence breach, a link burst, or sustained sensor silence latches ESTOP. Only a "
+        "deployment reset leaves ESTOP. Invalid configuration fails closed. Current "
+        f"UNRELEASED runtime. {NOT_CERTIFICATION}",
+    )
+    y = header(
+        c,
+        "PLANT ADMISSION STATES",
+        "The current governor outputs only bounded candidates",
+        "CURRENT RUNTIME",
+        "turquoise",
+    )
+    row = card_row(
+        c,
+        y + 110,
+        [
+            dict(
+                name="config",
+                title="CONFIG FAIL-CLOSED",
+                accent="pomegranate",
+                body="Invalid configuration. A non-ESTOP input returns HOLD.",
+            ),
+            dict(
+                name="hold",
+                title="HOLD",
+                accent="lapis",
+                body="Non-latching. The body applies its installed HOLD action.",
+            ),
+            dict(
+                name="active",
+                title="ACTIVE",
+                accent="turquoise",
+                body="Valid command, fresh sensor, and live authority.",
+            ),
+        ],
+        gap=120,
+    )
+    config, hold, active = (layout.box for layout in row)
+    estop_text = (
+        "Only a deployment reset leaves ESTOP. The body applies its installed ESTOP "
+        "action."
+    )
+    reset_text = (
+        "Retire the generation, authority, lease, and streams. A new session "
+        "starts in HOLD."
+    )
+    lower_h = max(
+        card(
+            c,
+            "estop",
+            hold.x,
+            0,
+            active.right - hold.x,
+            "ESTOP (latched)",
+            estop_text,
+            measure_only=True,
+        )[0],
+        card(
+            c,
+            "reset",
+            MARGIN,
+            0,
+            config.w,
+            "Deployment reset",
+            reset_text,
+            measure_only=True,
+        )[0],
+    )
+    estop = card(
+        c,
+        "estop",
+        hold.x,
+        hold.bottom + 150,
+        active.right - hold.x,
+        "ESTOP (latched)",
+        estop_text,
+        accent="pomegranate",
+        tint=True,
+        h=lower_h,
+    ).box
+    start = c.node("start", Box(hold.cx - 16, y + 30, 32, 32))
+    c.shape("circle", cx=start.cx, cy=start.cy, r=16, fill="ink")
+    c.text(start.right + 14, start.cy + 9, "start", SMALL)
+
+    def lettered(name: str, letter: str, x: float, yy: float, color: str) -> str:
+        badge(c, name, x, yy, letter, color, overlay=True)
+        return name
+
+    a = lettered("badge-a", "A", hold.cx + 1, (start.bottom + hold.y) / 2, "lapis")
+    c.connector(
+        "start-hold",
+        [(hold.cx, start.bottom), (hold.cx, hold.y)],
+        "start",
+        "hold",
+        "lapis",
+        through=(a,),
+    )
+    g = lettered(
+        "badge-g", "G", (config.cx + hold.cx) / 2 - 60, start.cy, "pomegranate"
+    )
+    c.connector(
+        "start-config",
+        [(start.x, start.cy), (config.cx, start.cy), (config.cx, config.y)],
+        "start",
+        "config",
+        "pomegranate",
+        through=(g,),
+    )
+    upper = hold.cy - 30
+    lower = hold.cy + 30
+    b = lettered("badge-b", "B", (hold.right + active.x) / 2, upper, "turquoise")
+    c.connector(
+        "hold-active",
+        [(hold.right, upper), (active.x, upper)],
+        "hold",
+        "active",
+        through=(b,),
+    )
+    cc = lettered("badge-c", "C", (hold.right + active.x) / 2, lower, "lapis")
+    c.connector(
+        "active-hold",
+        [(active.x, lower), (hold.right, lower)],
+        "active",
+        "hold",
+        "lapis",
+        through=(cc,),
+    )
+    d1 = lettered("badge-d1", "D", hold.cx, (hold.bottom + estop.y) / 2, "pomegranate")
+    c.connector(
+        "hold-estop",
+        [(hold.cx, hold.bottom), (hold.cx, estop.y)],
+        "hold",
+        "estop",
+        "pomegranate",
+        through=(d1,),
+    )
+    d2 = lettered(
+        "badge-d2", "D", active.cx, (active.bottom + estop.y) / 2, "pomegranate"
+    )
+    c.connector(
+        "active-estop",
+        [(active.cx, active.bottom), (active.cx, estop.y)],
+        "active",
+        "estop",
+        "pomegranate",
+        through=(d2,),
+    )
+    reset = card(
+        c,
+        "reset",
+        MARGIN,
+        estop.y,
+        config.w,
+        "Deployment reset",
+        reset_text,
+        accent="muted",
+        dashed=True,
+        h=estop.h,
+    ).box
+    e = lettered("badge-e", "E", (reset.right + estop.x) / 2, estop.cy, "muted")
+    c.connector(
+        "estop-reset",
+        [(estop.x, estop.cy), (reset.right, estop.cy)],
+        "estop",
+        "reset",
+        "muted",
+        dashed=True,
+        through=(e,),
+    )
+    legend = card(
+        c,
+        "legend",
+        MARGIN,
+        estop.bottom + 40,
+        WIDTH - 2 * MARGIN,
+        "Transitions",
+        body=[
+            "A valid configuration opens in HOLD. G invalid configuration fails closed.",
+            "B fresh sensor, live authority, and a valid Active command enter ACTIVE.",
+            "C stale or invalid input returns to HOLD without a latch.",
+            "D an admitted ESTOP, geofence breach, link burst, or sensor silence latches ESTOP.",
+            "E only a deployment reset leaves ESTOP. It starts a new generation.",
+        ],
+    ).box
+    c.height = (
+        note(
+            c,
+            "invariant",
+            legend.bottom + 34,
+            "INVARIANT",
+            [
+                "An unattributable envelope or a missing safe frame latches local ESTOP and "
+                "returns an error, not a wire frame.",
+                "NCP defines no universal zero-safe action. The plant profile names each action.",
+            ],
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
 
 
 DIAGRAMS = {
+    "system-map": system_map,
+    "exchange": exchange,
+    "payload-transfer": payload_transfer,
+    "evidence-ladder": evidence_ladder,
+    "closed-loop": closed_loop,
+    "queue-admission": queue_admission,
     "overview": overview,
     "topology": topology,
+    "runtime": runtime,
+    "lifecycle": lifecycle,
+    "sequence": sequence,
+    "admission": admission,
     "ecosystem": ecosystem,
     "versioning": versioning,
     "fsm": fsm,
-    "sequence": sequence,
-    "admission": admission,
-    "runtime": runtime,
-    "lifecycle": lifecycle,
 }
 
-DIAGRAM_OWNERS = {
+
+# ─────────────────────────────── validation ────────────────────────────────
+
+DIAGRAM_OWNERS: dict[str, Path] = {
+    "system-map": ROOT / "README.md",
+    "exchange": ROOT / "local" / "modular" / "owner.md",
+    "payload-transfer": ROOT / "local" / "modular" / "STATUS.md",
+    "evidence-ladder": ROOT / "README.md",
+    "closed-loop": ROOT / "docs" / "implementation" / "CLOSED_LOOP_MATH.md",
+    "queue-admission": ROOT / "RESILIENCE.md",
     "overview": ROOT / "README.md",
     "topology": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "runtime": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "lifecycle": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "sequence": ROOT
+    / "docs"
+    / "implementation"
+    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
+    "admission": ROOT
     / "docs"
     / "implementation"
     / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
@@ -3434,32 +3359,54 @@ DIAGRAM_OWNERS = {
     / "implementation"
     / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
     "fsm": ROOT / "RESILIENCE.md",
-    "sequence": ROOT
-    / "docs"
-    / "implementation"
-    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-    "admission": ROOT
-    / "docs"
-    / "implementation"
-    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-    "runtime": ROOT
-    / "docs"
-    / "implementation"
-    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
-    "lifecycle": ROOT
-    / "docs"
-    / "implementation"
-    / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
 }
 
-PUBLIC_SVG_PATHS = (
+# Exact labels that must survive editorial changes, and retired labels that
+# must not return. Contract-derived text keeps each figure on its source.
+REQUIRED_TEXT: dict[str, tuple[str, ...]] = {
+    "topology": (
+        RPC_ROUTE,
+        SENSOR_ROUTE,
+        COMMAND_ROUTE,
+        OBSERVATION_ROUTE,
+        "Init rejects",
+        "NOT RUN",
+    ),
+    "overview": ("production-secure", "fails closed"),
+    "ecosystem": (
+        "Four processes",
+        "not an NCP peer",
+        "6N",
+        "3N",
+        "MUSIC alone owns shared-clock coupling",
+        "SVG is presentation only",
+        "All eleven are NOT RUN",
+    ),
+    "versioning": (CANDIDATE_VERSION, CONTRACT_HASH, "advisory only", "v0.8.0"),
+    "fsm": ("NCP defines no universal zero-safe action",),
+    "sequence": ("is_simulation_output = true", "calibrated_posterior = false"),
+    "lifecycle": ("No thread, socket, or store exists per session",),
+    "evidence-ladder": ("NOT RUN",),
+    "exchange": ("retained",),
+    "payload-transfer": ("32,768", "8,388,608"),
+}
+FORBIDDEN_TEXT: dict[str, tuple[str, ...]] = {
+    "ecosystem": ("nine role receipts", "Host API 2"),
+    "topology": ("{realm}/session/{id}", "[/{name}]"),
+}
+# Opaque task codes need a definition that a figure cannot give.
+GLOBAL_FORBIDDEN = ("B01", "B02", "B03", "X02", "E1", "M1")
+EXACTLY_ONCE: dict[str, tuple[str, ...]] = {"ecosystem": ROLE_SUBJECTS}
+
+
+def _local_name(tag) -> str:
+    return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
+
+
+# Every public SVG outside docs/diagrams keeps the same direct-view contract.
+OTHER_PUBLIC_SVGS = (
     ROOT / "assets" / "logo-light.svg",
     ROOT / "assets" / "logo-dark.svg",
-    *(
-        ROOT / "docs" / "diagrams" / f"{name}-{theme}.svg"
-        for name in DIAGRAMS
-        for theme in ("light", "dark")
-    ),
     ROOT / "docs" / "plots" / "overlap_light.svg",
     ROOT / "docs" / "plots" / "overlap_dark.svg",
     ROOT / "docs" / "plots" / "realtime_light.svg",
@@ -3467,513 +3414,291 @@ PUBLIC_SVG_PATHS = (
 )
 
 
-def _local_name(tag) -> str:
-    return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
-
-
-def public_svg_accessibility_problems() -> list[str]:
-    """Audit the exact direct-view accessibility contract for all public SVGs."""
-    expected_count = 2 + len(DIAGRAMS) * 2 + 4
-    if (
-        len(PUBLIC_SVG_PATHS) != expected_count
-        or len(set(PUBLIC_SVG_PATHS)) != expected_count
-    ):
-        return [
-            f"public SVG inventory must contain exactly {expected_count} unique assets"
-        ]
-
+def accessibility_problems(
+    label: str, source: str, allow_doctype: bool = False
+) -> list[str]:
+    """Apply the direct-view accessibility and resource contract to one SVG."""
     problems = []
-    actual_paths = {
-        *ROOT.joinpath("assets").glob("*.svg"),
-        *ROOT.joinpath("docs", "diagrams").glob("*.svg"),
-        *ROOT.joinpath("docs", "plots").glob("*.svg"),
-    }
-    expected_paths = set(PUBLIC_SVG_PATHS)
-    for path in sorted(actual_paths - expected_paths):
-        problems.append(f"unregistered public SVG {path.relative_to(ROOT).as_posix()}")
-    for path in PUBLIC_SVG_PATHS:
-        label = path.relative_to(ROOT).as_posix()
-        if not path.is_file():
-            problems.append(f"missing public SVG {label}")
-            continue
-        if path.is_symlink():
-            problems.append(f"{label}: public SVG must be a regular in-tree file")
-            continue
-        source = path.read_text(encoding="utf-8")
-        lowered_source = source.casefold()
-        is_protocol_diagram = path.parent == ROOT / "docs" / "diagrams"
-        if "<!entity" in lowered_source:
-            problems.append(f"{label}: entity declarations are not allowed")
-        if is_protocol_diagram and "<!doctype" in lowered_source:
-            problems.append(f"{label}: document type declarations are not allowed")
-        if "<?xml-stylesheet" in lowered_source:
-            problems.append(f"{label}: external XML stylesheets are not allowed")
-        try:
-            root = ET.fromstring(source)
-        except ET.ParseError as error:
-            problems.append(f"invalid XML in {label}: {error}")
-            continue
-        if _local_name(root.tag) != "svg":
-            problems.append(f"{label}: document root is not svg")
-            continue
-        for attribute in ("width", "height", "viewBox"):
-            if not root.get(attribute):
-                problems.append(f"{label}: root is missing {attribute}")
-        if root.get("role") != "img":
-            problems.append(f'{label}: root must have role="img"')
-        if root.get("aria-label") is not None:
-            problems.append(
-                f"{label}: remove aria-label; aria-labelledby is authoritative"
-            )
-
-        titles = [node for node in root if _local_name(node.tag) == "title"]
-        descriptions = [node for node in root if _local_name(node.tag) == "desc"]
-        if len(titles) != 1 or len(descriptions) != 1:
-            problems.append(f"{label}: root needs exactly one direct title and desc")
-            continue
-
-        title_id = titles[0].get("id")
-        description_id = descriptions[0].get("id")
-        labelledby = root.get("aria-labelledby", "").split()
-        id_counts = {}
-        fragment_references = set()
-        for node in root.iter():
-            if _local_name(node.tag) in {"script", "foreignObject"}:
-                problems.append(
-                    f"{label}: {_local_name(node.tag)} is not allowed in a public SVG"
-                )
-            for attribute, value in node.attrib.items():
-                local_attribute = _local_name(attribute)
-                if local_attribute.casefold().startswith("on"):
-                    problems.append(
-                        f"{label}: event-handler attributes are not allowed"
-                    )
-                if local_attribute == "base":
-                    problems.append(f"{label}: XML base attributes are not allowed")
-                if local_attribute == "href":
-                    if not value.startswith("#") or len(value) == 1:
-                        problems.append(
-                            f"{label}: external or empty resource reference is not allowed"
-                        )
-                    else:
-                        fragment_references.add(value[1:])
-            node_id = node.get("id")
-            if node_id:
-                id_counts[node_id] = id_counts.get(node_id, 0) + 1
-        if (
-            not title_id
-            or not description_id
-            or title_id == description_id
-            or id_counts.get(title_id) != 1
-            or id_counts.get(description_id) != 1
-            or labelledby != [title_id, description_id]
-        ):
-            problems.append(
-                f"{label}: aria-labelledby must name direct title then desc"
-            )
-
-        title = " ".join("".join(titles[0].itertext()).split())
-        description = " ".join("".join(descriptions[0].itertext()).split())
-        if not title or len(title.split()) > 10:
-            problems.append(f"{label}: title must be nonempty and at most 10 words")
-        if not description or len(description.split()) > 55:
-            problems.append(f"{label}: desc must be nonempty and at most 55 words")
-        if (
-            "UNRELEASED" not in description
-            or "certification" not in description.casefold()
-        ):
-            problems.append(
-                f"{label}: desc must state UNRELEASED and non-certification status"
-            )
-
-        if "@import" in lowered_source:
-            problems.append(f"{label}: external CSS resource is not allowed")
-        css_url_starts = re.findall(r"url\s*\(", source, flags=re.IGNORECASE)
-        css_urls = list(
-            re.finditer(r"url\s*\(\s*([^)]*?)\s*\)", source, flags=re.IGNORECASE)
+    lowered = source.casefold()
+    forbidden_items = [
+        ("<!entity", "entity declarations are not allowed"),
+        ("<?xml-stylesheet", "external XML stylesheets are not allowed"),
+        ("@import", "external CSS resource is not allowed"),
+    ]
+    if not allow_doctype:
+        forbidden_items.append(
+            ("<!doctype", "document type declarations are not allowed")
         )
-        if len(css_urls) != len(css_url_starts):
-            problems.append(f"{label}: malformed CSS resource reference")
-        for match in css_urls:
-            target = match.group(1).strip()
-            if len(target) >= 2 and target[0] == target[-1] and target[0] in "\"'":
-                target = target[1:-1].strip()
-            if not target.startswith("#") or len(target) == 1:
-                problems.append(
-                    f"{label}: external or empty CSS resource is not allowed"
-                )
-        for fragment in sorted(fragment_references):
-            if id_counts.get(fragment) != 1:
-                problems.append(
-                    f"{label}: resource fragment #{fragment} must resolve exactly once"
-                )
-
-        has_motion = "<animate" in source or "animation:" in source
-        if has_motion and "prefers-reduced-motion: reduce" not in source:
-            problems.append(f"{label}: motion has no reduced-motion rule")
+    for forbidden, reason in forbidden_items:
+        if forbidden in lowered:
+            problems.append(f"{label}: {reason}")
+    try:
+        root = ET.fromstring(source)
+    except ET.ParseError as error:
+        return problems + [f"invalid XML in {label}: {error}"]
+    if _local_name(root.tag) != "svg":
+        return problems + [f"{label}: document root is not svg"]
+    for attribute in ("width", "height", "viewBox"):
+        if not root.get(attribute):
+            problems.append(f"{label}: root is missing {attribute}")
+    if root.get("role") != "img":
+        problems.append(f'{label}: root must have role="img"')
+    if root.get("aria-label") is not None:
+        problems.append(f"{label}: remove aria-label; aria-labelledby is authoritative")
+    titles = [node for node in root if _local_name(node.tag) == "title"]
+    descriptions = [node for node in root if _local_name(node.tag) == "desc"]
+    if len(titles) != 1 or len(descriptions) != 1:
+        return problems + [f"{label}: root needs exactly one direct title and desc"]
+    identifiers: dict[str, int] = {}
+    fragments = set()
+    for node in root.iter():
+        if _local_name(node.tag) in {"script", "foreignObject", "image", "a"}:
+            problems.append(f"{label}: {_local_name(node.tag)} is not allowed")
+        for attribute, value in node.attrib.items():
+            local = _local_name(attribute)
+            if local.casefold().startswith("on"):
+                problems.append(f"{label}: event-handler attributes are not allowed")
+            if local == "base":
+                problems.append(f"{label}: XML base attributes are not allowed")
+            if local == "href":
+                if not value.startswith("#") or len(value) == 1:
+                    problems.append(f"{label}: external or empty resource reference")
+                else:
+                    fragments.add(value[1:])
+        identifier = node.get("id")
+        if identifier:
+            identifiers[identifier] = identifiers.get(identifier, 0) + 1
+    title_id, desc_id = titles[0].get("id"), descriptions[0].get("id")
+    if (
+        not title_id
+        or not desc_id
+        or identifiers.get(title_id) != 1
+        or identifiers.get(desc_id) != 1
+        or root.get("aria-labelledby", "").split() != [title_id, desc_id]
+    ):
+        problems.append(f"{label}: aria-labelledby must name direct title then desc")
+    title = " ".join("".join(titles[0].itertext()).split())
+    description = " ".join("".join(descriptions[0].itertext()).split())
+    if not title or len(title.split()) > 10:
+        problems.append(f"{label}: title must be nonempty and at most 10 words")
+    if not description or len(description.split()) > 55:
+        problems.append(f"{label}: desc must be nonempty and at most 55 words")
+    if "UNRELEASED" not in description or "certification" not in description.casefold():
+        problems.append(
+            f"{label}: desc must state UNRELEASED and non-certification status"
+        )
+    starts = re.findall(r"url\s*\(", source, flags=re.IGNORECASE)
+    urls = list(re.finditer(r"url\s*\(\s*([^)]*?)\s*\)", source, flags=re.IGNORECASE))
+    if len(urls) != len(starts):
+        problems.append(f"{label}: malformed CSS resource reference")
+    for match in urls:
+        target = match.group(1).strip().strip("\"'")
+        if not target.startswith("#") or len(target) == 1:
+            problems.append(f"{label}: external or empty CSS resource")
+        else:
+            fragments.add(target[1:])
+    for fragment in sorted(fragments):
+        if identifiers.get(fragment) != 1:
+            problems.append(f"{label}: resource fragment #{fragment} must resolve once")
+    moves = "<animate" in source or "animation:" in source
+    if moves and "prefers-reduced-motion: reduce" not in source:
+        problems.append(f"{label}: motion has no reduced-motion rule")
     return problems
 
 
-def topology_contract_problems() -> list[str]:
-    """Keep the current topology aligned with the normative plane grammar."""
+def contrast_problems(canvas: Canvas) -> list[str]:
     problems = []
-    required = (
-        RPC_ROUTE,
-        SENSOR_ROUTE,
-        COMMAND_ROUTE,
-        OBSERVATION_ROUTE,
-        "Init rejects",
-        "qualification: NOT RUN",
-    )
-    forbidden = (
-        "{realm}/session/{id}",
-        "[/{name}]",
-        "example: Crebain",
-    )
-    for theme in (LIGHT, DARK):
-        source = topology(theme)
-        for text in required:
-            if text not in source:
-                problems.append(f"{theme['name']} topology omits {text!r}")
-        for text in forbidden:
-            if text in source:
-                problems.append(f"{theme['name']} topology retains stale text {text!r}")
+    for theme in THEMES:
+        for item in canvas.texts:
+            container = canvas.nodes.get(item.container or "canvas")
+            background = canvas_background(
+                canvas, container.name if container else "canvas", theme
+            )
+            for _, style in item.runs:
+                ratio = contrast_ratio(theme[style.color], background)
+                if ratio < 4.5:
+                    problems.append(
+                        f"{canvas.name} {theme['name']}: text {item.content!r} contrast "
+                        f"{ratio:.2f}:1 is below 4.5:1"
+                    )
     return problems
 
 
-def architecture_diagram_problems() -> list[str]:
-    """Keep the new overview and low-overhead figures claim-complete."""
+def canvas_background(canvas: Canvas, name: str, theme: dict) -> str:
+    """Return the fill behind a container, from the rendered shape list."""
+    if name == "canvas":
+        return theme["sheet"]
+    box = canvas.nodes[name].box
+    fill = None
+    for kind, values in canvas.shapes + canvas.overlays:
+        if kind == "circle" and values.get("fill") not in (None, "hatch"):
+            if (
+                abs(values["cx"] - box.cx) < 0.01
+                and abs(values["cy"] - box.cy) < 0.01
+                and abs(2 * values["r"] - box.w) < 0.01
+            ):
+                fill = values["fill"]
+            continue
+        if kind != "rect" or values.get("fill") in (None, "hatch"):
+            continue
+        if (
+            abs(values["x"] - box.x) < 0.01
+            and abs(values["y"] - box.y) < 0.01
+            and abs(values["w"] - box.w) < 0.01
+            and abs(values["h"] - box.h) < 0.01
+        ):
+            fill = values["fill"]
+    if fill is None:
+        parent = canvas.nodes[name].parent or "canvas"
+        return canvas_background(canvas, parent, theme)
+    return theme[fill]
+
+
+def text_rule_problems(canvas: Canvas) -> list[str]:
     problems = []
-    required_by_diagram = {
-        "overview": (
-            "BOUND RAW BYTES",
-            "AUTHENTICATE",
-            "WIRE + CORE",
-            "SESSION + STREAM",
-            "TYPED DELIVERY",
-            "BODY EFFECT GATE",
-            "production-secure profile is unavailable",
-        ),
-        "runtime": (
-            "PREPARE ONCE",
-            "DECODE ONCE",
-            "OWNER STEP",
-            "external work unlocked",
-            "T_hot = T_bound + T_auth + T_decode + T_lookup + T_owner + T_handoff",
-            "M_NCP,bounded ≤ M_prepared + M_step,total + M_ext,total + M_aux",
-            "These are symbolic targets, not measurements.",
-        ),
-        "lifecycle": (
-            "FREE",
-            "PENDING",
-            "AMBIGUOUS",
-            "TERMINAL",
-            "different coordinate or bytes → reject · no mutation",
-            "publish retained result + high-water · release active slot",
-            "threads/session = sockets/session = dedicated stores/session = 0",
-            "B03 selects every numeric ceiling",
-        ),
-    }
-    for name, required in required_by_diagram.items():
-        function = DIAGRAMS[name]
-        for theme in (LIGHT, DARK):
-            source = function(theme)
-            for text in required:
-                if esc(text) not in source:
-                    problems.append(f"{theme['name']} {name} omits {text!r}")
+    # Join wrapped lines of one container so a wrapped phrase still matches.
+    groups: dict[str, list[str]] = {}
+    for item in canvas.texts:
+        groups.setdefault(item.container or "canvas", []).append(item.content)
+    content = [" ".join(lines) for lines in groups.values()]
+    joined = "\n".join(content + [canvas.title, canvas.desc])
+    for text in REQUIRED_TEXT.get(canvas.name, ()):
+        if text not in joined:
+            problems.append(f"{canvas.name}: required text {text!r} is absent")
+    for text in FORBIDDEN_TEXT.get(canvas.name, ()) + GLOBAL_FORBIDDEN:
+        if re.search(rf"(?<![A-Za-z0-9]){re.escape(text)}(?![A-Za-z0-9])", joined):
+            problems.append(
+                f"{canvas.name}: retired or opaque text {text!r} is present"
+            )
+    drawn = "\n".join(content)
+    for text in EXACTLY_ONCE.get(canvas.name, ()):
+        count = len(re.findall(rf"(?<![A-Za-z-]){re.escape(text)}(?![A-Za-z-])", drawn))
+        if count != 1:
+            problems.append(
+                f"{canvas.name}: {text!r} must appear exactly once; found {count}"
+            )
     return problems
 
 
-def ecosystem_contract_problems() -> list[str]:
-    """Keep the ecosystem figure aligned with the selected B01 boundary."""
-    problems = []
-    role_subjects = (
-        "Engram simulation responder",
-        "Engram plant commander",
-        "Engram Haldir-intent extension publisher",
-        "Haldir NCP commander",
-        "Haldir Engram-intent extension receiver",
-        "Haldir Galadriel-assessment receiver",
-        "Galadriel NCP observer",
-        "Galadriel raw-advisory publisher",
-        "Crebain body",
-        "Crebain Galadriel-producer surface",
-        "Prisoma NCP observer",
-    )
-    required = (
-        "11 EXACT ROLE SUBJECTS",
-        "Haldir · 4 isolated processes",
-        "intent receiver",
-        "assessment receiver",
-        "policy-state authority",
-        "commander",
-        "LOCAL · NOT AN NCP PEER",
-        "Standalone Gate = separate deployment mode · not fifth process",
-        "extensions: bounded canonical JSON · large bytes: enrolled stores",
-        "X02 OPEN · COMPOSITE FLEET SESSION",
-        "1 / 2 / 3 drones",
-        "SensorFrame = 6N · CommandFrame = 3N",
-        "Host API 2 = historical only",
-        "MUSIC owns shared-clock coupling",
-        "SVG is presentation-only and non-contract",
-        "11 exact role receipts · all NOT RUN",
-    )
-    forbidden = (
-        "optional gate and NCP commander",
-        "simulation responder / optional commander",
-        "policy can deny · never body authority",
-        "current CREBAIN–Engram loop",
-        "nine role receipts",
-    )
-    for theme in (LIGHT, DARK):
-        source = ecosystem(theme)
-        for role_subject in role_subjects:
-            count = source.count(esc(role_subject))
-            if count != 1:
-                problems.append(
-                    f"{theme['name']} ecosystem must contain {role_subject!r} exactly once; "
-                    f"found {count}"
-                )
-        for text in required:
-            if esc(text) not in source:
-                problems.append(f"{theme['name']} ecosystem omits {text!r}")
-        for text in forbidden:
-            if esc(text) in source:
-                problems.append(
-                    f"{theme['name']} ecosystem retains stale text {text!r}"
-                )
-    return problems
-
-
-def diagram_reference_problems() -> list[str]:
-    """Require one maintained owner document for every generated diagram pair."""
+def owner_problems() -> list[str]:
     if set(DIAGRAM_OWNERS) != set(DIAGRAMS):
         return ["diagram owner inventory must equal the generated diagram inventory"]
     problems = []
     for name, owner in DIAGRAM_OWNERS.items():
         label = owner.relative_to(ROOT).as_posix()
-        try:
-            source = owner.read_text(encoding="utf-8")
-        except FileNotFoundError:
+        if not owner.is_file():
             problems.append(f"{name} diagram owner is missing: {label}")
             continue
-        for theme in ("light", "dark"):
-            filename = f"{name}-{theme}.svg"
+        source = owner.read_text(encoding="utf-8")
+        for theme in THEMES:
+            filename = f"{name}-{theme['name']}.svg"
             if filename not in source:
                 problems.append(f"{label} does not reference {filename}")
     return problems
 
 
-def fsm_contrast_problems() -> list[str]:
-    """Check normal text against every actual FSM solid or gradient background."""
+def other_public_svg_problems() -> list[str]:
     problems = []
-    for theme in (LIGHT, DARK):
-        checks = []
-        for token in (
-            "fsm_active_text",
-            "fsm_hold_text",
-            "fsm_configfail_text",
-            "fsm_action_text",
-            "tprim",
-            "tsec",
-            "tmut",
-        ):
-            for background_token in (
-                "bg_top",
-                "bg_bot",
-                "surf_top",
-                "surf_bot",
-                "surf_chip",
-            ):
-                checks.append(
-                    (
-                        f"{token} on {background_token}",
-                        theme[token],
-                        theme[background_token],
-                    )
+    registered = set(OTHER_PUBLIC_SVGS)
+    for directory in (ROOT / "assets", ROOT / "docs" / "plots"):
+        for path in sorted(directory.glob("*.svg")):
+            if path not in registered:
+                problems.append(
+                    f"unregistered public SVG {path.relative_to(ROOT).as_posix()}"
                 )
-        checks.extend(
-            (
-                (
-                    "active badge",
-                    theme["fsm_active_badge_text"],
-                    theme["fsm_active_badge"],
-                ),
-                ("ESTOP badge", theme["fsm_estop_badge_text"], theme["action"]),
+    for path in OTHER_PUBLIC_SVGS:
+        label = path.relative_to(ROOT).as_posix()
+        if not path.is_file() or path.is_symlink():
+            problems.append(f"missing or linked public SVG {label}")
+            continue
+        problems.extend(
+            accessibility_problems(
+                label,
+                path.read_text(encoding="utf-8"),
+                allow_doctype=path.parent.name == "plots",
             )
         )
-        for offset, stop, opacity_text in theme["fsm_bus_stops"]:
-            try:
-                opacity = float(opacity_text)
-            except ValueError:
-                problems.append(
-                    f"{theme['name']} FSM hero gradient stop {offset} has invalid opacity {opacity_text!r}"
-                )
-                continue
-            if not 0 < opacity <= 1:
-                problems.append(
-                    f"{theme['name']} FSM hero gradient stop {offset} opacity must be in (0, 1]"
-                )
-                continue
-            underlays = ("bg_top", "bg_bot") if opacity < 1 else (None,)
-            for underlay in underlays:
-                actual_stop = (
-                    _composite_color(stop, theme[underlay], opacity)
-                    if underlay is not None
-                    else stop
-                )
-                suffix = f" over {underlay}" if underlay is not None else ""
-                checks.append(
-                    (
-                        f"ESTOP hero gradient stop {offset}{suffix}",
-                        theme["fsm_hero_ink"],
-                        actual_stop,
-                    )
-                )
-
-        for label, foreground, background_color in checks:
-            ratio = _contrast_ratio(foreground, background_color)
-            if ratio < 4.5:
-                problems.append(
-                    f"{theme['name']} FSM {label} contrast {ratio:.2f}:1 is below 4.5:1 "
-                    f"({foreground} on {background_color})"
-                )
     return problems
 
 
-def architecture_contrast_problems() -> list[str]:
-    """Check semantic text and badge contrast in every generated sheet."""
-    problems = []
-    for theme in (LIGHT, DARK):
-        semantic_tokens = (
-            "control",
-            "perception",
-            "action",
-            "observation",
-            "contract",
-            "active",
-            "hold",
-            "configfail",
-        )
-        for token in semantic_tokens:
-            foreground = semantic_text_color(theme, theme[token])
-            for background_token in (
-                "bg_top",
-                "bg_bot",
-                "surf_top",
-                "surf_bot",
-                "surf_chip",
-            ):
-                background_color = theme[background_token]
-                ratio = _contrast_ratio(foreground, background_color)
-                if ratio < 4.5:
-                    problems.append(
-                        f"{theme['name']} architecture {token} text on "
-                        f"{background_token} contrast {ratio:.2f}:1 is below 4.5:1 "
-                        f"({foreground} on {background_color})"
-                    )
-
-                wash_background = _composite_color(
-                    theme[token], background_color, theme["wash_op"]
-                )
-                wash_ratio = _contrast_ratio(foreground, wash_background)
-                if wash_ratio < 4.5:
-                    problems.append(
-                        f"{theme['name']} architecture {token} text on "
-                        f"{background_token} with semantic wash contrast "
-                        f"{wash_ratio:.2f}:1 is below 4.5:1 "
-                        f"({foreground} on {wash_background})"
-                    )
-
-            badge_ink = contrast_ink(theme[token])
-            badge_ratio = _contrast_ratio(badge_ink, theme[token])
-            if badge_ratio < 4.5:
-                problems.append(
-                    f"{theme['name']} architecture {token} badge contrast "
-                    f"{badge_ratio:.2f}:1 is below 4.5:1 "
-                    f"({badge_ink} on {theme[token]})"
-                )
-
-        gradient_ink = contrast_ink(theme["contract"], theme["contract_lo"])
-        for stop_token in ("contract", "contract_lo"):
-            ratio = _contrast_ratio(gradient_ink, theme[stop_token])
-            if ratio < 4.5:
-                problems.append(
-                    f"{theme['name']} contract gradient text on {stop_token} "
-                    f"contrast {ratio:.2f}:1 is below 4.5:1 "
-                    f"({gradient_ink} on {theme[stop_token]})"
-                )
-
-        # Inspect generated text, not only the palette helpers. A raw semantic
-        # token that needs the light-theme text override is always a defect.
-        raw_to_token = {theme[token]: token for token in semantic_tokens}
-        for name, function in DIAGRAMS.items():
-            root = ET.fromstring(function(theme))
-            for node in root.iter():
-                if _local_name(node.tag) != "text":
-                    continue
-                fill = node.get("fill")
-                token = raw_to_token.get(fill)
-                if token is None or semantic_text_color(theme, fill) == fill:
-                    continue
-                content = " ".join("".join(node.itertext()).split())
-                problems.append(
-                    f"{theme['name']} {name} text {content!r} uses raw "
-                    f"low-contrast semantic token {token}"
-                )
-    return problems
+def build_all() -> tuple[dict[str, str], list[str]]:
+    outputs: dict[str, str] = {}
+    problems: list[str] = []
+    for name, function in DIAGRAMS.items():
+        canvas = function()
+        if canvas.name != name:
+            problems.append(f"diagram {name} returned canvas {canvas.name}")
+        problems.extend(canvas.problems())
+        problems.extend(contrast_problems(canvas))
+        problems.extend(text_rule_problems(canvas))
+        for theme in THEMES:
+            filename = f"{name}-{theme['name']}.svg"
+            svg = canvas.render(theme)
+            problems.extend(accessibility_problems(f"docs/diagrams/{filename}", svg))
+            outputs[filename] = svg
+    return outputs, problems
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--check",
-        action="store_true",
-        help="fail if committed SVGs differ from deterministic generator output",
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--check", action="store_true", help="compare and validate the committed SVGs"
+    )
+    mode.add_argument(
+        "--write-font-metrics", action="store_true", help="refresh the committed widths"
+    )
+    mode.add_argument(
+        "--check-font-metrics", action="store_true", help="compare the committed widths"
     )
     args = parser.parse_args()
 
-    outdir = os.path.join("docs", "diagrams")
-    if not args.check:
-        os.makedirs(outdir, exist_ok=True)
-    stale = []
-    for name, fn in DIAGRAMS.items():
-        for th in (LIGHT, DARK):
-            svg = fn(th)
-            p = os.path.join(outdir, f"{name}-{th['name']}.svg")
-            if args.check:
-                try:
-                    with open(p, encoding="utf-8") as f:
-                        committed = f.read()
-                except FileNotFoundError:
-                    stale.append(f"missing {p}")
-                    continue
-                if committed != svg:
-                    stale.append(f"stale {p}")
-            else:
-                with open(p, "w", encoding="utf-8", newline="\n") as f:
-                    f.write(svg)
-                print(f"wrote {p}  ({len(svg)} bytes)")
+    if args.write_font_metrics or args.check_font_metrics:
+        expected = _metrics_bytes(measured_font_metrics())
+        if args.write_font_metrics:
+            METRICS_PATH.write_bytes(expected)
+            print(f"wrote {METRICS_PATH.relative_to(ROOT).as_posix()}")
+            return
+        if not METRICS_PATH.is_file() or METRICS_PATH.read_bytes() != expected:
+            raise SystemExit(
+                "committed font metrics differ from the installed font files"
+            )
+        print("OK: committed diagram font metrics match the installed font files")
+        return
 
-    stale.extend(fsm_contrast_problems())
-    stale.extend(architecture_contrast_problems())
-    stale.extend(topology_contract_problems())
-    stale.extend(architecture_diagram_problems())
-    stale.extend(ecosystem_contract_problems())
-    stale.extend(diagram_reference_problems())
-    stale.extend(public_svg_accessibility_problems())
-
-    if stale:
-        for problem in stale:
+    outputs, problems = build_all()
+    problems.extend(owner_problems())
+    problems.extend(other_public_svg_problems())
+    expected_files = set(outputs)
+    actual_files = {path.name for path in OUT_DIR.glob("*.svg")}
+    if args.check:
+        for filename, svg in outputs.items():
+            path = OUT_DIR / filename
+            if not path.is_file():
+                problems.append(f"missing docs/diagrams/{filename}")
+            elif path.read_text(encoding="utf-8") != svg:
+                problems.append(f"stale docs/diagrams/{filename}")
+        for filename in sorted(actual_files - expected_files):
+            problems.append(f"unregistered docs/diagrams/{filename}")
+    if problems:
+        for problem in problems:
             print(problem)
-        print("run: python3 scripts/gen_diagrams.py")
+        if args.check:
+            print("run: python3 scripts/gen_diagrams.py")
         raise SystemExit(1)
     if args.check:
         print(
-            f"OK: {len(DIAGRAMS) * 2} generated diagrams are current; "
-            f"{len(PUBLIC_SVG_PATHS)} public SVGs meet the direct-view accessibility contract; "
-            "architecture and FSM text contrast is at least 4.5:1"
+            f"OK: {len(outputs)} diagram files are current; text fits, connectors "
+            "attach, contrast is at least 4.5:1, and the accessibility contract holds"
         )
+        return
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    for filename in sorted(actual_files - expected_files):
+        (OUT_DIR / filename).unlink()
+        print(f"removed docs/diagrams/{filename}")
+    for filename, svg in sorted(outputs.items()):
+        (OUT_DIR / filename).write_text(svg, encoding="utf-8", newline="\n")
+        print(f"wrote docs/diagrams/{filename} ({len(svg)} bytes)")
 
 
 if __name__ == "__main__":

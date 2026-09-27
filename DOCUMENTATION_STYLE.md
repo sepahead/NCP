@@ -59,7 +59,7 @@ Keep the exact capitalization and spelling of these terms:
 - `Engram`
 - `Haldir`
 - `Galadriel`
-- `Crebain`
+- `CREBAIN`
 - `Prisoma`
 - `Zenoh`
 - `ASD-STE100`
@@ -70,6 +70,9 @@ Keep the exact capitalization and spelling of these terms:
 - `JWS`
 - `ESTOP`
 - `fail-safe`
+
+The project name is `CREBAIN`. Role identifiers keep the older spelling `Crebain`,
+for example `Crebain body`. Frozen and digest-bound records also keep that spelling.
 
 Keep exact package, crate, import, route, field, enum, error, and capability names.
 Do not replace a normative keyword such as **MUST** with a weaker word.

@@ -15,6 +15,18 @@ The [modular local SDK](local/modular/README.md) lets a host select installed ap
 NCP owns message identity, retained outcomes, acknowledgements, and byte-buffer lifetime.
 Each application owns its operations, observations, units, clocks, and accepted values.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/system-map-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/system-map-light.svg">
+  <img alt="A host selects independent applications and connects each one through the NCP contract. NCP owns message identity, retained outcomes, acknowledgements, and bounded byte buffers. Each application owns its own state. The SDK is UNRELEASED. It is not release or certification evidence." src="docs/diagrams/system-map-light.svg" width="860">
+</picture>
+
+Full-size vector figure: [light](docs/diagrams/system-map-light.svg?raw=true) · [dark](docs/diagrams/system-map-dark.svg?raw=true).
+
+The [NCP System Design report](output/pdf/ncp-system-design.pdf) is the standalone technical reference.
+It explains the design, the equations, and the evidence boundary of each scope.
+A Lean 4 file checks its discrete arithmetic.
+
 **Release status: unreleased.**
 The SDK and applications have source controls and selected native evidence.
 Complete qualification of their declared installed combinations and final product v1 remain open.
@@ -149,10 +161,18 @@ An inconsistency between these sources and an implementation blocks release.
 
 The older `contract/*.v1.json`, protobuf, schema, and conformance hierarchy continues to govern the broader candidate only.
 The [historical overview](https://github.com/sepahead/NCP/blob/11a1931871fbd27235bf53dbb5e55227b78d857e/README.md) preserves that earlier release scope.
-Its retained [light diagram](docs/diagrams/overview-light.svg) and [dark diagram](docs/diagrams/overview-dark.svg) describe the broader candidate's proposed admission architecture.
-Those historical diagrams do not describe an implemented local-v1 runtime or close their original gates.
+The generated [light diagram](docs/diagrams/overview-light.svg?raw=true) and [dark diagram](docs/diagrams/overview-dark.svg?raw=true) show the broader candidate's proposed admission gates.
+They do not describe an implemented local-v1 runtime or close any gate.
 
 ## Implementations and verification
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/evidence-ladder-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/evidence-ladder-light.svg">
+  <img alt="Five evidence classes run from source controls to release. Each class permits only its own claim. The NCP 1.0 candidate has local and selected native evidence. Its independent and external gates are NOT RUN, and it is UNRELEASED. It is not release or certification evidence." src="docs/diagrams/evidence-ladder-light.svg" width="860">
+</picture>
+
+Full-size vector figure: [light](docs/diagrams/evidence-ladder-light.svg?raw=true) · [dark](docs/diagrams/evidence-ladder-dark.svg?raw=true).
 
 | Package | Selected purpose | Independence |
 | --- | --- | --- |
@@ -215,6 +235,7 @@ Measured timing and resource results must state their exact host, workload, and 
 - [Broad candidate security contract](SECURITY.md)
 - [Broad candidate release ledger](RELEASE_READINESS.md)
 - [Frozen wire-0.8 baseline](docs/0.8-current-baseline.md)
+- [NCP System Design report](output/pdf/ncp-system-design.pdf)
 - [System-design PDF build and comparison](docs/publication/README.md)
 - [Closed-loop identity, timing, and stability](docs/implementation/CLOSED_LOOP_MATH.md)
 - [Documentation style](DOCUMENTATION_STYLE.md)

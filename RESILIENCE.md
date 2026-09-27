@@ -35,6 +35,16 @@ implements only the bounded mechanisms identified below.
 - **Control plane:** lifecycle RPC uses reliable/blocking transport behavior. It is
   separate from the deadline-sensitive action path.
 
+The proposed 1.0 design bounds each plane queue by item count and by retained bytes.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/queue-admission-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/queue-admission-light.svg">
+  <img alt="Each plane queue limits both item count and retained bytes. A plane policy selects allowed victims or rejects. One atomic owner step records the loss, removes victims, and installs the item. This is proposed design for the UNRELEASED 1.0 candidate. It is not release or certification evidence." src="docs/diagrams/queue-admission-light.svg" width="860">
+</picture>
+
+Full-size vector figure: [light](docs/diagrams/queue-admission-light.svg?raw=true) · [dark](docs/diagrams/queue-admission-dark.svg?raw=true).
+
 Transport delivery does not prove plant receipt or physical action. A successful
 put and a local library decision are not actuator acknowledgements. Wire-1.0
 `ResponderReceipt` applies to lifecycle step, run, and close operations. A
@@ -146,8 +156,10 @@ authority, lease, and stream state before it constructs fresh admission state.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/fsm-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/fsm-light.svg">
-  <img alt="Informative NCP plant-admission model for the UNRELEASED, release-blocked 1.0.0-rc.1 candidate; not a release or physical-safety certification. A canonical attributable stream/session envelope can produce a normalized, bounded wire-shape candidate. The standalone governor owns no publisher allocator or high-water mark; normalized sequence 1 is not freshness evidence. The owning publisher separately assigns and admits the next fresh position, exact route, and live generation. An unattributable envelope or the absence of any representable bounded safe-frame tier latches local ESTOP and returns an error without a wire frame. The body maps successful HOLD or ESTOP output through the exact plant profile. Reset retires the generation; fresh session, streams, authority, command, and plant gates are required before ACTIVE. NCP defines no universal zero-safe action." src="docs/diagrams/fsm-light.svg" width="820">
+  <img alt="The current compatibility governor starts in HOLD after valid configuration. It enters Active only with fresh input and live authority. An admitted ESTOP, a geofence breach, a link burst, or sustained sensor silence latches ESTOP. Only a deployment reset leaves ESTOP. Invalid configuration fails closed. Current UNRELEASED runtime. It is not release or certification evidence." src="docs/diagrams/fsm-light.svg" width="860">
 </picture>
+
+Full-size vector figure: [light](docs/diagrams/fsm-light.svg?raw=true) · [dark](docs/diagrams/fsm-dark.svg?raw=true).
 
 ## Link telemetry: detection is not causation
 

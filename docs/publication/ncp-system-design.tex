@@ -1,1325 +1,1519 @@
-\documentclass[11pt]{article}
+\documentclass[11pt,a4paper]{article}
 
-\usepackage[T1]{fontenc}
-\usepackage{lmodern}
-\usepackage{microtype}
-\usepackage[a4paper,margin=24mm,headheight=14pt]{geometry}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage[margin=22mm,headheight=14pt,footskip=12mm]{geometry}
+\usepackage{amsmath,amsthm,mathtools}
+\usepackage{ncp-report}
+\usepackage[warnings-off={mathtools-colon,mathtools-overbracket}]{unicode-math}
+\setmathfont{latinmodern-math.otf}
 \usepackage{booktabs,longtable,array,tabularx}
 \usepackage{enumitem}
-\usepackage{xcolor}
-\usepackage{ncp-report}
+\usepackage{microtype}
+\usepackage{flafter}
+\usepackage[section,below]{placeins}
 \usepackage{hyperref}
-\usepackage{xurl}
-\usepackage{fancyhdr}
-\usepackage{listings}
-\usepackage{caption}
-\usepackage{float}
-\usepackage{placeins}
+% Paths break after a slash or a hyphen. An underscore break is a last resort.
+% A path never breaks after a dot.
+\renewcommand{\UrlBigBreaks}{\do\/\do\-}
+\renewcommand{\UrlBreaks}{\do\_}
+\mathchardef\UrlBigBreakPenalty=100
+\mathchardef\UrlBreakPenalty=3000
 
 \setlength{\emergencystretch}{3em}
-\setlength{\parindent}{1.2em}
-\setlength{\parskip}{0.15em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.48em plus 0.10em minus 0.06em}
+\setlength{\LTpre}{0.4em}
+\setlength{\LTpost}{0.6em}
+\setlist{itemsep=0.15em,topsep=0.3em}
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\raggedbottom
+\clubpenalty=10000
+\widowpenalty=10000
 
-\ifdefined\pdfinfoomitdate
-  \pdfinfoomitdate=1
-\fi
-\ifdefined\pdftrailerid
-  \pdftrailerid{}
-\fi
-\ifdefined\pdfsuppressptexinfo
-  \pdfsuppressptexinfo=15
-\fi
-
+% Deterministic output: no dates, no build path, and a source-bound trailer ID.
+\pdfvariable suppressoptionalinfo \numexpr 1+2+4+8+32+64\relax
 \providecommand{\NcpPublicationSourceDigest}{UNBOUND}
+\providecommand{\NcpPublicationTrailerId}{00000000000000000000000000000000}
 \InputIfFileExists{ncp-publication-identity.tex}{}{}
+\expanded{\noexpand\pdfvariable trailerid
+  {[<\NcpPublicationTrailerId> <\NcpPublicationTrailerId>]}}
 
 \hypersetup{%
   colorlinks=true,
-  linkcolor=NcpBlue,
-  citecolor=NcpBlue,
-  urlcolor=NcpBlue,
-  pdftitle={NCP 1.0 System Design},
-  pdfsubject={Low-overhead control, exact lifecycle ownership, bounded resources, and ecosystem boundaries},
-  pdfkeywords={NCP, control protocol, bounded systems, lifecycle ownership, exact retry, resource accounting, ecosystem architecture, source-set-sha256:\NcpPublicationSourceDigest},
-  pdfauthor={NCP project design note}
-}
-
-\lstset{%
-  basicstyle=\ttfamily\small,
-  breaklines=true,
-  columns=fullflexible,
-  frame=single,
-  framerule=0.3pt,
-  xleftmargin=0.5em,
-  xrightmargin=0.5em,
-  aboveskip=0.7em,
-  belowskip=0.7em,
-  showstringspaces=false
-}
+  bookmarksnumbered=true,
+  bookmarksopen=true,
+  bookmarksopenlevel=1,
+  bookmarksdepth=2,
+  pdfdisplaydoctitle=true,
+  pdflang=en-US,
+  pdftitle={NCP System Design},
+  pdfauthor={Sepehr Mahmoudian},
+  pdfsubject={Exact exchanges, bounded state, and evidence boundaries for independently owned simulation and control software},
+  pdfkeywords={NCP, modular SDK, retained outcomes, bounded buffers, admission gates, resource accounting, evidence classes, source-set-sha256:\NcpPublicationSourceDigest}}
 
 \NcpConfigureSections
-\NcpSetRunningHeads{NCP 1.0 system design}{proposed B01 design}
+\NcpSetRunningHeads{NCP System Design}{Unreleased, 27 September 2026}
 \NcpConfigureAbstract
 \NcpConfigureLinks
 
-\newtheorem{designlaw}{Design law}[section]
-\newtheorem{invariant}[designlaw]{Invariant}
 \theoremstyle{definition}
-\newtheorem{definition}[designlaw]{Definition}
-\newtheorem{derivation}[designlaw]{Derivation}
-\newtheorem{limitation}[designlaw]{Limitation}
+\newtheorem{derivation}{Derivation}[section]
+\setcounter{tocdepth}{1}
 
-\newcommand{\bytes}{\operatorname{bytes}}
-\newcommand{\checkedadd}{\operatorname{checked\_add}}
-\newcommand{\indicator}[1]{\mathbf{1}\!\left[#1\right]}
-\newcommand{\state}{\operatorname{state}}
-\newcommand{\current}{\operatorname{current}}
-\newcommand{\digest}{\operatorname{digest}}
+% Inline code never breaks at its hyphens. Paths use \path, which breaks at slashes.
+\let\NcpTextttBase\texttt
+\renewcommand{\texttt}[1]{\mbox{\NcpTextttBase{#1}}}
+\newcommand{\cadd}{\operatorname{cadd}}
+\newcommand{\st}{\operatorname{state}}
+\newcommand{\ind}[1]{\mathbf{1}\!\left[#1\right]}
+\newcommand{\Hash}{H}
 
 \title{\NcpReportTitle
-  {NCP 1.0 System Design}
-  {Low-overhead control, exact lifecycle ownership, bounded resources,\
-   and ecosystem boundaries}}
-\author{NCP project design note}
-\date{17 August 2026}
+  {NCP System Design}
+  {Exact exchanges, bounded state, and evidence boundaries for independently
+   owned simulation and control software}}
+\author{Sepehr Mahmoudian}
+\date{27 September 2026}
 
 \begin{document}
-\NcpMakeTitle
+\NcpMakeTitle{UNRELEASED \(\bullet\) MODULAR SDK IMPLEMENTED \(\bullet\) CANDIDATE
+1.0.0-rc.1 RELEASE-BLOCKED \(\bullet\) NO RELEASE AUTHORITY}
+
+\textbf{Cite this report as:} Sepehr Mahmoudian (2026). \emph{NCP System Design.} NCP
+repository report. Include the exact repository commit or release that you used. The
+software citation metadata is in \path{CITATION.cff}.
 
 \begin{abstract}
-This report presents the proposed high-level architecture for the unreleased NCP
-\texttt{1.0.0-rc.1} candidate.  It separates control, perception, action, and observation
-traffic.  It also defines exact identity, lifecycle, retry, freshness, and resource boundaries.
-The selected runtime prepares immutable context once.  A hot frame is bounded, authenticated,
-decoded once, located exactly, admitted by one short owner transition, and handed to a finite
-plane queue.
+\noindent NCP (Neuro-Cybernetic Protocol) connects independently owned simulations,
+bodies, sensors, and analysis tools through exact, bounded data contracts. This report
+describes NCP in three scopes. The modular local SDK is implemented twice, in Rust and
+in Python. It retains each outcome until an exact acknowledgement. It moves payloads in bounded
+chunks, and it checks the digest of each chunk and of each complete payload. Selected installed campaigns observed it. A fixed-role local
+profile serves as a regression control. The broader \texttt{1.0.0-rc.1} candidate runs
+wire \texttt{1.0} today, and a proposed architecture closes its known gaps. That
+architecture separates four traffic planes, admits each frame through ordered gates,
+and bounds every retained byte.
 
-The mathematical sections derive each symbolic bound from named variables and assumptions.
-They cover latency decomposition, finite memory, single-flight lifecycle ownership, exact retry,
-checked ordinals, queue isolation, fixed-layout work, step windows, and command freshness.
-These equations are design accounting.  They are not measured performance or operational
-qualification.
-
-The report is informative B01 material.  It does not accept an ADR, allocate B03 values, change
-the normative wire, certify security or physical safety, qualify an ecosystem peer, or authorize
-publication.  NCP remains release-blocked until every declared gate has exact evidence.
+The report derives each interface and resource equation from named assumptions. A
+Lean~4 file checks the discrete arithmetic. The equations are design accounting, not
+measurements. No part of NCP is released. Local tests, equations, and figures cannot
+establish live security, physical safety, controller stability, or scientific validity.
 \end{abstract}
 
-\tableofcontents
+\NcpBoundary{Source review, equations, figures, PDF reproduction, tests, and semantic
+models are local evidence. They cannot establish live security, independent
+interoperability, physical safety, or controller stability. They also cannot establish
+performance qualification, signed provenance, or release readiness. A local result
+stays inside its named evidence class.}
 
-\section{Reading contract and release boundary}
+\clearpage
+\NcpTableOfContents
 
-Repository HEAD is the unreleased and release-blocked \texttt{1.0.0-rc.1} candidate.  Its wire is
-\texttt{1.0}.  Its compact protobuf contract hash is \texttt{163acc57d8a62b66}.  The latest
-immutable release is \texttt{v0.8.0}, which uses a different wire.
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Scope and reading rules}
 
-This report describes the selected target for B01 review.  The complete target is not the current
-runtime.  B02 must authorize a deliberate rebaseline.  B03 must allocate exact identities and
-numeric limits.  Dependency-ready implementation tasks must then change each normative and
-generated surface together.
+\subsection{What NCP does}
 
-\NcpBoundary{Local source review, equations, diagrams, PDF reproduction, tests, and semantic
-models cannot establish live security, independent interoperability, or physical safety.  They
-cannot establish performance qualification, signed provenance, consumer qualification, or
-release readiness.}
+NCP is a contract layer between separate programs. It defines message identity, the
+correlation of one request with one outcome, acknowledgement, and the lifetime of byte
+buffers. Each program keeps its own state, physics, models, and decisions. NCP runs no
+central process.
 
-The design uses three evidence states:
-\begin{enumerate}[leftmargin=*]
-  \item \textbf{Selected target} means proposed architecture for B01 review.
-  \item \textbf{Current prototype} means source that explores only part of that target.
-  \item \textbf{Implemented contract} requires authorized rebaseline, allocation, generation,
-        implementation, and exact conformance evidence.
-\end{enumerate}
+Figure~\ref{fig:system-map} shows the implemented modular composition. A host program
+selects the applications, installs their exact contracts, and connects each application
+through NCP. The applications in the figure are the current ecosystem projects. Engram
+hosts a network in NEST, a simulator for spiking neural networks. CREBAIN simulates
+bodies and sensors. Prisoma captures exchanges and orders experiments. Galadriel checks
+sensor consistency.
 
-This report presents the selected target at the high-level design boundary.  It does not complete
-the runtime or protocol.  A diagram or equation cannot promote the target to an implemented
-contract.
+\NcpFigure{system-map}{The modular system. The host selects
+independent applications. Each exchange carries one exact request and one retained
+outcome.\label{fig:system-map}}
 
-\section{System at a glance}
+\subsection{Three scopes}
 
-\NcpFigure{H}{0.98\linewidth}{overview-light.pdf}{NCP admission and typed-delivery overview.}
+NCP has three scopes with different identities and evidence.
+Table~\ref{tab:scopes} lists them. Do not transfer a result from one scope to another.
 
-Figure~\thefigure{} has one left-to-right reading order.  A receiver first bounds raw input.  It
-then authenticates ingress and checks the exact candidate wire identity.  Session and stream
-state are checked before typed delivery.  These are five shared gates.  Action traffic evaluates
-a sixth, conditional body-owned effect predicate before software admission can succeed.
-
-The four planes have different workload and overload properties:
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
-\caption{Plane ownership and overload policy.}
-\begin{tabularx}{\linewidth}{L{0.14\linewidth}L{0.22\linewidth}Y Y}
+\caption{The three NCP scopes.}\label{tab:scopes}
+\small
+\begin{tabularx}{\linewidth}{L{0.21\linewidth}L{0.24\linewidth}Y}
 \toprule
 \NcpTableHeaderRow
-Plane & Primary publisher & Ownership target & Overload result \\
+Scope & Identity & State and evidence \\
 \midrule
-Control & Commander or body & Request owner with exact idempotency context & Reject before effect \\
-Perception & Body & Source stream owner & Replace latest and expose loss \\
-Action & Commander or enrolled emergency source & Body owner and executor gate & Preserve restrictive priority \\
-Observation & Body & Grant-bound projection owner & Drop oldest and count gaps \\
+Modular local SDK & Descriptor \path{ncp-core/src/modular_profile.v1.json} & Implemented in
+Rust and Python. Source controls, installed-wheel checks, and selected native campaigns
+exist. \\
+Fixed-role reference profile & \texttt{ncp.local-lockstep.v1}, intended tag
+\texttt{local-v1.0.0} & Implemented regression control with four fixed owners. Its
+publication gates are open. \\
+Broader protocol candidate & Package \texttt{1.0.0-rc.1}, wire \texttt{1.0} & The wire
+runs today. A proposed architecture closes its known gaps. Ten external release gates
+are \NcpNotRun. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-NCP defines contracts, admissions, libraries, and transport bindings.  NCP is not a broker,
-actuator, or physical-safety certification.
+\subsection{Status labels}
 
-\section{Notation, units, and proof discipline}
+Each section starts with one status label. The labels have these meanings:
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Implemented:} source exists and its local controls pass. The label says
+        nothing about installed or live behavior.
+  \item \textbf{Observed:} a dated installed campaign retained the result for its exact
+        artifacts, configuration, and workload.
+  \item \textbf{Proposed:} design only. It needs independent review, identifier
+        allocation, implementation, and conformance evidence.
+  \item \textbf{NOT RUN:} a required gate has no exact evidence.
+\end{itemize}
+Figure~\ref{fig:evidence-ladder} orders the evidence classes behind these labels.
+Implemented work has evidence of class 1 or 2. Observed work adds class 3. The class 4
+gates are \NcpNotRun, and no class 5 release exists. A lower class never promotes a claim
+to a higher class.
 
-All counts are nonnegative integers.  All byte quantities use bytes, not characters.  All local
-time values use one receiver-owned monotonic clock incarnation.  A digest is a content locator or
-binding.  A digest does not replace an exact byte comparison when the design requires exact bytes.
+\NcpFigure{evidence-ladder}{Evidence classes and the claims that each class
+permits.\label{fig:evidence-ladder}}
 
-\begin{table}[H]
+\subsection{Identities}
+
+The candidate package version is \texttt{1.0.0-rc.1}. Its wire version is \texttt{1.0}.
+The compact protobuf hash \texttt{163acc57d8a62b66} is a 64-bit FNV-1a digest of the
+canonical protobuf structure. It is advisory only. The complete contract digest is this
+SHA-256 value over 30 normative sources:
+\[
+\texttt{9cae331742d01e9b164e029aa06c644e6b1886176d0816a6ef883af138355c90}
+\]
+The file \path{contract/manifest.v1.json} lists the sources. The latest immutable release
+is \texttt{v0.8.0}. It uses wire \texttt{0.8}, which is a different protocol.
+
+This edition describes the repository at commit \texttt{e83df54} of 27 September 2026.
+Paths in this report are relative to the repository root. Appendix~\ref{app:verification}
+lists the checks that rebuild and verify this report.
+
+\subsection{Changes since the previous edition}
+
+The previous edition described only the proposed architecture. Since then, these
+changes landed:
+\begin{itemize}[leftmargin=*]
+  \item Independent Rust and Python SDKs for the fixed-role profile (5 September 2026).
+  \item The modular local SDK and its installed-package gates (7 September 2026).
+  \item The TypeScript WebSocket binding now bounds queued payload bytes at 8,388,608 in
+        addition to 128 pending requests (21 September 2026). Bytes are released when
+        \texttt{WebSocket.send} returns, so browser and kernel buffers are outside this
+        bound.
+  \item The TypeScript client keeps one mutation in flight for each generation and
+        retires a generation after an uncertain outcome (21 September 2026).
+  \item Selected installed campaigns of the modular applications, from 23 to
+        27 September 2026 (Table~\ref{tab:campaigns}).
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Notation}
+
+A hat marks a declared upper bound: $\hat x$ is the largest value that a profile
+admits for $x$. Table~\ref{tab:notation} lists the symbols that more than one section
+uses. Each section defines its other symbols where they first occur.
+
+\begin{table}[htbp]
 \centering
-\caption{Core mathematical notation.}
-\begin{tabularx}{\linewidth}{L{0.18\linewidth}L{0.22\linewidth}Y}
+\caption{Shared notation.}\label{tab:notation}
+\small
+\begin{tabularx}{\linewidth}{L{0.20\linewidth}Y}
 \toprule
 \NcpTableHeaderRow
-Symbol & Domain or unit & Meaning \\
+Symbol & Meaning \\
 \midrule
-$C_x$ & nonnegative integer elements & Declared capacity of bounded store or queue $x$ \\
-$B_x$ & nonnegative integer bytes per unit & Maximum portable charge for one capacity unit \\
-$B_0$ & nonnegative integer bytes & Fixed owner and store overhead \\
-$J_x$ & finite nonnegative local units & Profile-bound local allocator charge \\
-$T_i$ & nonnegative receiver duration & Duration of hot-path stage $i$ \\
-$U_i$ & finite nonnegative receiver duration & Declared upper bound for stage $i$ \\
-$o$ & finite nonnegative integer & Issuer operation ordinal \\
-$p$ & finite nonnegative integer & Stream or step position \\
-$d$ & nonnegative receiver monotonic tick & Exclusive deadline \\
-$\lVert b\rVert$ & nonnegative integer bytes & Exact length of byte string $b$ \\
+$\mathbb{N}$, $\mathbb{N}_{>0}$ & Nonnegative and positive integers \\
+$|m|$ & Length in bytes of the byte string $m$ \\
+$\#X$ & Number of elements of the finite set $X$ \\
+$\lceil q\rceil$, $\lfloor q\rfloor$ & Smallest integer $\geq q$, largest integer
+$\leq q$ \\
+$\Hash(m)$ & SHA-256 digest of $m$. A digest locates a record. Exact byte comparison
+still decides equality. \\
+$\cadd(x,y)$ & Checked addition, defined in equation~\eqref{eq:cadd} \\
+$t$ with a subscript & A tick of one receiver-owned monotonic clock incarnation \\
+$\hat{x}$ & Declared upper bound of $x$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Each displayed inequality states its assumptions.  Checked arithmetic rejects overflow before
-state mutation.  A finite expression is not operational until B03 selects every input bound.
-
-\Needspace{0.82\textheight}
-\section{Trust topology and ordered admission}
-
-\NcpFigure{H}{0.98\linewidth}{topology-light.pdf}{NCP commander-body topology and trust boundary.}
-
-The topology figure separates direct authenticated ingress from explicit forwarding.  A direct
-peer must bind the verified transport principal.  A forwarder terminates one trust context and
-creates another authenticated context.  Copied identity bytes are not transport evidence.
-
-Let $f$ be one received frame.  Let $q_j(f)$ be the Boolean result of admission gate $j$.  The
-ordered gate set is
-\begin{equation}\label{eq:gate-set}
-\mathcal{G}=(q_0,q_1,q_2,q_3,q_4,q_5)
-= (q_{\mathrm{raw}},q_{\mathrm{principal}},q_{\mathrm{wire}},
-q_{\mathrm{session}},q_{\mathrm{typed}},q_{\mathrm{effect}}).
+Let $W$ be the largest value of the declared integer type. Checked addition is the
+partial function
+\begin{equation}\label{eq:cadd}
+\cadd(x,y)=\begin{cases}x+y, & x+y\leq W,\\ \text{undefined}, & x+y>W.\end{cases}
 \end{equation}
-For a non-action frame, $q_{\mathrm{effect}}(f)=\mathrm{true}$ by definition.  For an action
-frame, that predicate means body-owned software admission at the effect boundary.
-The complete admission predicate is the conjunction
-\begin{equation}\label{eq:admission-conjunction}
-A(f)=\bigwedge_{j=0}^{5} q_j(f).
-\end{equation}
-The implementation does not evaluate equation~\eqref{eq:admission-conjunction} as an unordered
-set.  It evaluates the prefix predicates
-\begin{align}
-A_{-1}(f)&=\mathrm{true},\label{eq:admission-prefix-zero}\\
-A_j(f)&=A_{j-1}(f)\land q_j(f),\qquad 0\leq j\leq5.\label{eq:admission-prefix}
-\end{align}
-Gate $j+1$ can run only when $A_j(f)$ is true.  Therefore raw bounds precede identity-sensitive
-diagnostics.  The first false gate supplies the closed rejection class.
+An undefined result never wraps or saturates. The owner rejects the operation or seals
+the affected counter before it changes state. Clock ticks from different incarnations
+never meet in one expression.
 
-\begin{derivation}[First-failure order]
-If at least one gate is false, let $k=\min\{j\mid q_j(f)=\mathrm{false}\}$.
-Equation~\eqref{eq:admission-prefix} gives
-$A_{k-1}(f)=\mathrm{true}$ and $A_k(f)=\mathrm{false}$.  No $q_j$ for $j>k$ is evaluated.
-The receiver therefore emits no diagnostic that depends on an unauthenticated or unbounded later
-field.
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Modular exchange}
+
+\NcpStatus{implemented}
+Rust and Python implement this contract independently. The owners are
+\path{ncp-core/src/modular_owner.rs} and \path{local/python/ncp_local/modular_owner.py}.
+Their shared descriptor is \path{ncp-core/src/modular_profile.v1.json}.
+
+\subsection{Installed application boundary}
+
+The host selects an application before it opens a channel. The application supplies
+closed types for preparation, commands, imports, metadata, finish, and results. It
+also supplies validators and its exact descriptor. Each message binds the digests of
+the core descriptor and the application descriptor.
+
+A request cannot install a schema, load a module, select an executable, or open a
+path that a peer selects. The execution interface accepts no method string with an
+arbitrary JSON value. An unknown application identity fails admission.
+
+\subsection{Request identity}
+
+Each request names a binding, a sequence number, a closed operation, and the complete
+typed digest. The binding names the profile, application, run, endpoint, and
+generation. The sequence number $s$ satisfies
+\begin{equation}\label{eq:sequence-domain}
+s\in\{1,2,\ldots,\hat s\},\qquad \hat s=2^{53}-1=9{,}007{,}199{,}254{,}740{,}991.
+\end{equation}
+The bound $\hat s$ is the largest integer $n$ for which binary64 represents both $n$
+and $n+1$ exactly. Every integer from 0 to $2^{53}$ is exact in binary64, and every
+larger integer parses to at least $2^{53}$. A
+reader that parses numbers as binary64 therefore keeps each valid $s$ exact and still
+detects an out-of-range value. The codec rejects \texttt{-0}, fractions, booleans, and
+larger integers.
+
+Let $r_s$ be the retained outcome bytes of request $s$. The first request has no
+predecessor. Every later request must name the digest of the last admitted outcome:
+\begin{equation}\label{eq:predecessor}
+\operatorname{pred}(s+1)=\Hash(r_s).
+\end{equation}
+Queries and acknowledgements do not change the predecessor.
+
+\subsection{Owner steps}
+
+Figure~\ref{fig:exchange} shows the order of owner work. The owner checks for an exact
+duplicate before it reads mutable application state. The first execution can change
+the state that admitted it, so a later state check could reject a valid retry.
+
+\NcpFigure{exchange}{The modular exchange. An exact duplicate
+returns the retained bytes. Admission changes nothing. Reservation precedes the use of
+the sequence number. The acknowledgement frees only the result frame.\label{fig:exchange}}
+
+Admission is pure: it reads state and returns the demanded inputs and outputs. It
+performs no I/O, external reservation, or backend mutation. The core then resolves each
+input and allocates each output. Only after that step does it consume $s$ and assign
+buffer identifiers.
+
+A backend error, panic, invalid result, or incomplete output after entry consumes $s$.
+The owner retains a bounded indeterminate result when possible and retires the
+generation. It never converts that outcome into success or into a clean rejection.
+
+Before commit, the owner decodes the staged response with the installed output codec.
+The decoded value must reproduce the complete typed digest. This check rejects a
+non-finite value that a codec turns into \texttt{null}, and it rejects signed-zero
+normalization.
+
+\subsection{Worked example}
+
+Preparation at $s=1$ produces outcome $r_1$. After the client acknowledges $r_1$, it
+sends $s=2$ with predecessor $\Hash(r_1)$. Suppose admission rejects the input of
+request~2. The rejection leaves $s=2$ unused and keeps the predecessor $\Hash(r_1)$.
+The client can send corrected input as $s=2$ without an acknowledgement of the
+rejection. A conflict, an unavailable result, or a mismatched response cannot use this
+path.
+
+\subsection{Uncertain dispatch}
+
+End of stream, partial framing, a timeout, or a failed read or write retires the
+channel. A lost acknowledgement keeps the pending evidence. The client stops the
+channel and never retries or reconnects on its own. A query can read the original
+retained bytes by sequence number and request digest.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Bounded payloads and logical capacity}
+
+\NcpStatus{implemented}
+The payload primitives are \path{ncp-core/src/modular_buffer.rs} and
+\path{local/python/ncp_local/modular_buffer.py}.
+
+\subsection{Chunked transfer}
+
+A payload is one sealed byte string of length $\ell$ with $1\leq\ell\leq\hat\ell$ and
+$\hat\ell=8{,}388{,}608$ bytes. A chunk carries at most $\hat\ell_c=32{,}768$ decoded
+bytes. The chunk count is
+\begin{equation}\label{eq:chunk-count}
+m=\left\lceil\frac{\ell}{\hat\ell_c}\right\rceil.
+\end{equation}
+Chunk $j$, for $0\leq j<m$, starts at byte $j\hat\ell_c$ and has length
+\begin{equation}\label{eq:chunk-length}
+\ell_j=\min\bigl(\hat\ell_c,\ \ell-j\hat\ell_c\bigr).
+\end{equation}
+
+\begin{derivation}[Chunks tile the payload]
+Equation~\eqref{eq:chunk-count} gives $(m-1)\hat\ell_c<\ell\leq m\hat\ell_c$. For
+$j\leq m-1$, the start satisfies $j\hat\ell_c\leq(m-1)\hat\ell_c<\ell$, so
+$\ell_j\geq1$. Every chunk before the last has length $\hat\ell_c$. The last chunk has
+length $\ell-(m-1)\hat\ell_c$. The lengths therefore sum to $\ell$ with no gap or
+overlap. The payload bound gives
+\begin{equation}\label{eq:chunk-max}
+m\leq\left\lceil\frac{\hat\ell}{\hat\ell_c}\right\rceil=256.
+\end{equation}
 \end{derivation}
 
-The effect gate applies only to action.  Other planes terminate at typed delivery and their finite
-queue.  The body remains the final software authority before an actuator boundary.
+Figure~\ref{fig:payload-transfer} shows the transfer. The receiver reserves all $\ell$
+bytes before it accepts the first chunk. It admits only the next contiguous chunk. Each
+chunk must match its index, offset, decoded length, canonical base64 spelling, and
+SHA-256 digest. The seal then checks the SHA-256 digest of the complete payload. Valid
+chunk digests cannot replace that check. A failed admission keeps counters,
+reservations, and stored bytes unchanged.
 
+\NcpFigure{payload-transfer}{Bounded payload transfer. The
+receiver reserves the full length first. The seal checks the complete
+digest.\label{fig:payload-transfer}}
+
+An acknowledgement releases the retained result frame only. Buffer release and import
+abort are separate operations on one exact named entry.
+
+\subsection{Working-state bounds}
+
+Table~\ref{tab:sdk-bounds} lists the bounds in the core descriptor
+\path{ncp-core/src/modular_profile.v1.json}. They are logical reservations. They do not bound process memory, allocator overhead, or graphics memory.
+
+\begin{table}[htbp]
+\centering
+\caption{Modular SDK bounds from the core descriptor.}
+\label{tab:sdk-bounds}
+\small
+\begin{tabularx}{\linewidth}{Y L{0.36\linewidth}}
+\toprule
+\NcpTableHeaderRow
+Item & Bound \\
+\midrule
+JSON frame $\hat\ell_F$, after a 4-byte length prefix & 65,536 bytes \\
+Decoded chunk $\hat\ell_c$ & 32,768 bytes \\
+One payload $\hat\ell$ & 8,388,608 bytes \\
+Payload reservations for one endpoint & 67,108,864 bytes \\
+Live entries for one endpoint (sealed and incomplete) & 24, of which at most 12
+incomplete \\
+Endpoints and payload reservations in one composition & 16 and 268,435,456 bytes \\
+Serialized byte manifest & 4,096 bytes \\
+Installed semantic-digest roster & 64 SHA-256 digests \\
+Sequence numbers and buffer identifiers & at most $2^{53}-1$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The owner reserves one fixed logical working extent for each endpoint. Its metadata
+categories are core metadata (131,072 bytes), import metadata (32,768 bytes), and
+selected-input metadata (16,384 bytes). Its scratch categories are digest and sort
+scratch (131,072 bytes), one decoded chunk, and 14 frame-sized extents. The 14 extents are 6 complete frames, 3 parsed
+representations, 1 decoded Unicode source, 2 scanner scratch extents, and 2 scalar
+scratch extents. The owner total is
+\begin{equation}\label{eq:owner-extent}
+R_{\mathrm{own}}=131{,}072+32{,}768+16{,}384+131{,}072+\hat\ell_c+14\,\hat\ell_F
+=1{,}261{,}568\ \text{bytes}.
+\end{equation}
+The client has no pool metadata but keeps 4,096 bytes of fixed state:
+\begin{equation}\label{eq:client-extent}
+R_{\mathrm{cli}}=131{,}072+\hat\ell_c+4{,}096+14\,\hat\ell_F=1{,}085{,}440\ \text{bytes}.
+\end{equation}
+Sixteen owners reserve $16R_{\mathrm{own}}=20{,}185{,}088$ bytes, and sixteen clients
+reserve $16R_{\mathrm{cli}}=17{,}367{,}040$ bytes. Payload reservations are separate.
+The canonical base64 text of one full chunk has $4\lceil\hat\ell_c/3\rceil=43{,}692$
+bytes. Its two transient copies need 87,384 bytes, which fit in the two scalar
+extents ($2\hat\ell_F=131{,}072$ bytes).
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Applications and observed evidence}
+
+\NcpStatus{observed for the selected campaigns only}
+
+\subsection{Ownership}
+
+\begin{table}[htbp]
+\centering
+\caption{What each component owns and does not supply.}\label{tab:ownership}
+\small
+\begin{tabularx}{\linewidth}{L{0.17\linewidth}Y Y}
+\toprule
+\NcpTableHeaderRow
+Component & Owns & Does not supply \\
+\midrule
+NCP & Bounded frames, exact requests, retained outcomes, acknowledgements, byte buffers,
+and two independent codecs & Physics, sensor meaning, process launch, experiment
+design, or model quality \\
+CREBAIN & Body dynamics, selected sensors, typed observations, and the installed
+producer lifecycle & Neural execution or a learned world model \\
+Engram & A persistent NEST network, typed currents, and delayed spike-count readouts &
+Body physics, capture, or monitoring \\
+Prisoma & Original-byte capture, experiment order, forecasts, and restored labels &
+Simulator ownership or model-quality qualification \\
+Host & Selected peers, bindings, deadlines, and composition budgets & Authority over an
+unknown application contract \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Each application stays optional. CREBAIN runs without Engram, Prisoma, or a monitor.
+A selected composition must satisfy the contract and resource limits of each
+participant. A missing observation never becomes a zero value.
+
+\subsection{Sensor clock arithmetic}
+
+The CREBAIN body advances at $f_b=120$ ticks per second. Its acoustic model produces
+$f_a=16{,}000$ samples per second. For body tick $k\geq1$, the pressure samples have the
+index interval
+\begin{equation}\label{eq:sample-interval}
+I_k=\left[\left\lfloor\frac{(k-1)f_a}{f_b}\right\rfloor,\
+\left\lfloor\frac{kf_a}{f_b}\right\rfloor\right).
+\end{equation}
+The ratio $f_a/f_b=400/3$ is not an integer. The first three ticks contain 133, 133, and
+134 samples. For every $u\in\mathbb{N}$,
+\begin{equation}\label{eq:sample-group}
+\sum_{k=3u+1}^{3u+3}\#I_k
+=\left\lfloor\frac{(3u+3)\cdot400}{3}\right\rfloor-\left\lfloor\frac{3u\cdot400}{3}\right\rfloor
+=400.
+\end{equation}
+Each group of three ticks therefore holds exactly 400 samples and spans 25 ms of
+simulated time. The endpoints are sample indices, not timestamps. The CREBAIN contract
+\texttt{crebain.sensor-pressure.v1} stores each sample as one 8-byte little-endian
+binary64 value in pascals.
+
+Two retained campaigns in Table~\ref{tab:campaigns} match this partition. The sensor
+transfer counted 3,200 pressure samples in 24 body ticks, which is eight groups of 400.
+The city maximum batch recorded the intervals $[0,133)$, $[133,266)$, and $[266,400)$
+for ticks 1 to 3. Its third tick is 32 bytes larger, because each of four microphones
+carries one more sample.
+
+\subsection{Neural coupling arithmetic}
+
+The example policy advances NEST once per three body ticks, with step
+$\Delta_n=25{,}000\,\mu\mathrm{s}$ and recording delay $\delta=1{,}000\,\mu\mathrm{s}$.
+For an executed end time $t_e$, the complete spike window is $(\tau_0,\tau_1]$ with
+\begin{equation}\label{eq:spike-window}
+\tau_0=\max(0,\ t_e-\Delta_n-\delta),\qquad \tau_1=t_e-\delta.
+\end{equation}
+All times are integer microseconds. For $t_e\geq\Delta_n$ and $\delta<\Delta_n$, the
+window is nonempty: $\tau_1-\tau_0=\min(t_e-\delta,\ \Delta_n)>0$. For $n_{\mathrm{ne}}$
+neurons and $n_{\mathrm{sp}}$ spikes in the window, the mean rate for each neuron is
+\begin{equation}\label{eq:spike-rate}
+\mathrm{rate}=\frac{n_{\mathrm{sp}}\cdot10^{6}}{n_{\mathrm{ne}}(\tau_1-\tau_0)}\
+\mathrm{Hz}.
+\end{equation}
+A complete zero count is observed silence. A pending window supplies no count and no
+rate. This discrete policy tests interface causality. It makes no learned-control claim.
+
+\subsection{Observed campaigns}
+
+Table~\ref{tab:campaigns} lists selected dated campaigns from
+\path{local/modular/STATUS.md}. Each row holds only for its exact artifacts,
+configuration, and workload. Observations from different identities do not combine
+into one release campaign.
+
+\begin{table}[htbp]
+\centering
+\caption{Selected installed campaigns (September 2026).}\label{tab:campaigns}
+\begin{tabularx}{\linewidth}{L{0.20\linewidth}YL{0.30\linewidth}}
+\toprule
+\NcpTableHeaderRow
+Campaign & Retained observation & Limit \\
+\midrule
+Sensor transfer (Prisoma) & Installed body-only and canonical runs matched all 44
+payloads and 4,326,400 bytes. Record: \path{M1_NATIVE_2026-09-23.md}. & Fault cases
+keep incomplete captures and their original cleanup results. \\
+Engram host (Engram) & Two arms completed 24 body ticks and eight NEST steps. A fresh
+direct NEST run matched all 64 count and rate values. Record:
+\path{NATIVE_HOST_EVIDENCE.md}. & The reference shares the NEST numerical engine. Paper
+reproduction is not qualified. \\
+Restored-label study (Prisoma) & Eight qualification cases and 112 study episodes
+completed. Record: \path{E1_NATIVE_2026-09-23.md}. & The forecast result is null or
+inconclusive. The constant comparison missed the frozen useful margin. \\
+City source delivery (CREBAIN) & Native delivery and fault cases retained 153 payloads
+with 30,121,184 bytes. Record: \path{NATIVE_CITY_2026-09-23.md}. & Delivery does not
+show contact absence or complete resource use. \\
+City maximum batch (CREBAIN) & Three ticks retained 83,571,200 bytes. Tick three
+reached the 27,857,088-byte batch ceiling. Record:
+\path{NATIVE_CITY_BOUNDARY_2026-09-26.md}. & One maximum batch does not cover every
+horizon or all memory. \\
+City horizon (CREBAIN) & A second maximum batch completed. The 7,200-tick CPU case
+failed at its 600-second deadline after 4,070 acknowledged ticks. Record:
+\path{native-city-horizon-2026-09-27.md}. & The complete city profile and long horizons
+are not qualified. \\
+City CPU and storage (CREBAIN) & Six one-drone cases verified 216 payloads with 230,400
+bytes. All 144 route deadlines and all 144 export deadlines were missed. Record:
+\path{native-city-cpu-storage-2026-09-27.md}. & One shared host and 24 ticks for each
+case isolate neither overhead nor tail latency. \\
+Timing (Prisoma) & All 192 executions completed. All 4,608 route deadlines and all
+4,608 export deadlines were missed. Record: \path{M1_PERFORMANCE_2026-09-23.md}. & No
+real-time claim follows. \\
+\bottomrule
+\end{tabularx}
+
+\smallskip
+\begin{minipage}{\linewidth}
+\footnotesize\raggedright
+Prisoma records are in \path{integrations/agent-bridge/evidence/}. CREBAIN records are
+in \path{integrations/ncp-force-city-sources/evidence/}. The Engram record is in
+\path{packages/ncp-nest/docs/} of the private Paper2Brain repository.
+\end{minipage}
+\end{table}
+
+\subsection{Remaining modular work}
+
+Each of these items needs its own evidence in its owning application:
+\begin{itemize}[leftmargin=*]
+  \item installed qualification of each advertised combination,
+  \item a measured resource envelope,
+  \item many-entity operating evidence, including the failed 7,200-tick horizon,
+  \item a qualified modular monitor,
+  \item model or policy benefit beyond the null forecast result, and
+  \item a scoped product publication.
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Fixed-role reference profile}
+
+\NcpStatus{implemented as a regression control, with open publication gates}
+
+The profile \texttt{ncp.local-lockstep.v1} fixes four owners. Engram coordinates the
+experiment and owns one NEST network. CREBAIN owns the simulated bodies. Prisoma
+reserves capture capacity and records exact step pairs. Galadriel runs its statistical
+detector in record-only mode. Each owner uses a private process pipe. There is no
+remote listener.
+
+A plan has one to three entities and at most 1,024 coupled steps. A step lasts
+1,000 to 1,000,000~$\mu$s in multiples of 1,000~$\mu$s. A frame is a 4-byte big-endian
+length followed by at most 65,536 JSON bytes. Positions use meters, velocities meters
+per second, and actions meters per second squared, in east, north, and up order. The
+action \texttt{zero\_acceleration} commands zero acceleration, so it can keep the current
+velocity. It is not a stop command.
+
+Capture reservation precedes neural and body mutation. A lost response does not show
+whether execution occurred. The coordinator keeps known results, records unresolved
+dispatches, and retires uncertain generations. Same-generation crash resume is out of
+scope. Haldir command gating, remote endpoints, physical actuation, and real-time
+guarantees are also out of scope. The registry \path{local/release.v1.json} lists
+the open bootstrap and operational gates.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{The 1.0 candidate and its target}
+
+\NcpStatus{current wire implemented, target architecture proposed}
+
+The candidate implements wire \texttt{1.0} in Rust (\texttt{ncp-core}) and in an
+independent TypeScript client (\texttt{ncp-ts}). It also has a Zenoh transport
+(\texttt{ncp-zenoh}), a gateway, and Python and C/C++ bindings over Rust. Its mandatory corpus has 282 vectors. Zenoh
+is a publish-subscribe and query transport.
+
+Sections~\ref{sec:admission} to~\ref{sec:ecosystem} describe the proposed target. It
+closes the gaps in Section~\ref{sec:gaps}. Eleven proposed decision records in
+\path{docs/adr/} define it. Before implementation starts, three steps must pass in
+order:
+\begin{enumerate}[leftmargin=*]
+  \item Independent reviewers accept the eleven decision records.
+  \item The project owner authorizes a deliberate rebaseline of the candidate.
+  \item A registry step allocates exact identifiers, error codes, and numeric limits.
+\end{enumerate}
+The task ledger \path{docs/implementation/NCP_1_0_TASK_LEDGER.md} tracks these
+steps. Table~\ref{tab:codes} in Appendix~\ref{app:glossary} maps its task codes to
+these names. Until the three steps pass, every symbolic bound below has no selected
+value.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Admission and planes}\label{sec:admission}
+
+\NcpStatus{proposed}
+
+\subsection{Four core planes}
+
+NCP has exactly four core planes. Table~\ref{tab:planes} lists them. Extension traffic
+uses a separate namespace and resource class. It is not a fifth plane and inherits no
+plane authority or capacity.
+
+\begin{table}[htbp]
+\centering
+\caption{Core planes and overload policy.}\label{tab:planes}
+\small
+\begin{tabularx}{\linewidth}{L{0.14\linewidth}L{0.27\linewidth}Y L{0.20\linewidth}}
+\toprule
+\NcpTableHeaderRow
+Plane & Publisher & Consumer behavior & Overload \\
+\midrule
+Control & Authenticated role authority & Bounded request, idempotent mutation, retained
+receipt & Reject \\
+Perception & Body & The newest valid sample wins & Replace the latest \\
+Action & Lease holder or enrolled emergency source & Direct body admission & One body
+priority slot \\
+Observation & Body or declared producer & Read-only delivery & Drop the oldest and
+count \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\NcpFigure{topology}{Topology. The routes are the current
+wire~\texttt{1.0} key grammar. The body is the final software authority before the
+actuator.\label{fig:topology}}
+
+\subsection{Ordered gates}
+
+Figure~\ref{fig:overview} shows the gates with the numbers 1 to 6. Let $f$ be one
+received frame and $\gamma_j(f)$ the Boolean result of gate $j$:
+\begin{equation}\label{eq:gate-set}
+(\gamma_1,\ldots,\gamma_6)=(\gamma_{\mathrm{raw}},\gamma_{\mathrm{principal}},
+\gamma_{\mathrm{wire}},\gamma_{\mathrm{session}},\gamma_{\mathrm{typed}},
+\gamma_{\mathrm{effect}}).
+\end{equation}
+Gates 1 to 5 are shared. For a non-action frame, $\gamma_{\mathrm{effect}}(f)$ is true
+by definition. For an action frame, it is body-owned admission at the effect boundary.
+A frame is admitted only when every gate is true:
+\begin{equation}\label{eq:admission}
+\Gamma(f)=\bigwedge_{j=1}^{6}\gamma_j(f).
+\end{equation}
+
+\NcpFigure{overview}{Five shared gates run in order. Action
+frames add the body effect gate.\label{fig:overview}}
+
+The receiver does not evaluate equation~\eqref{eq:admission} as an unordered set. It
+evaluates the prefixes
+\begin{equation}\label{eq:admission-prefix}
+\Gamma_0(f)=\mathrm{true},\qquad
+\Gamma_j(f)=\Gamma_{j-1}(f)\land\gamma_j(f),\quad 1\leq j\leq6,
+\end{equation}
+and runs gate $j$ only when $\Gamma_{j-1}(f)$ is true.
+
+\begin{derivation}[First failure decides]
+Suppose the ordered evaluation meets a false gate. Let $j^\ast$ be the first index with
+$\gamma_{j^\ast}(f)=\mathrm{false}$. Then $\Gamma_{j^\ast-1}(f)=\mathrm{true}$ and
+$\Gamma_{j^\ast}(f)=\mathrm{false}$. No gate after $j^\ast$ runs. The rejection class
+of gate $j^\ast$ is the result. The receiver emits no diagnostic that depends on an
+unbounded or unauthenticated later field.
+\end{derivation}
+
+% ─────────────────────────────────────────────────────────────────────────────
 \section{Prepared runtime and hot-path latency}
 
-\NcpFigure{H}{0.98\linewidth}{runtime-light.pdf}{Prepared NCP runtime and symbolic cost model.}
+\NcpStatus{proposed}
 
-Preparation validates deployment input and compiles immutable handles.  It reserves shared state
-before publishers, subscriptions, callbacks, or actuator resources are exposed.  The repeated
-frame path then contains six local stages.
+Preparation validates deployment input once. It compiles immutable handles and
+reserves shared state before any publisher, subscription, callback, or actuator
+resource exists. Figure~\ref{fig:runtime} shows the six stages of each later frame.
 
-\subsection{Stage intervals}
+\NcpFigure{runtime}{Prepared runtime. One short owner step
+admits each frame. External work runs outside the lock.\label{fig:runtime}}
+
+\subsection{Stage times}
 
 Let the ordered stages be
-\begin{equation}\label{eq:stage-index}
-\mathcal{I}=(\mathrm{bound},\mathrm{auth},\mathrm{decode},\mathrm{lookup},
-\mathrm{owner},\mathrm{handoff}).
+\begin{equation}\label{eq:stages}
+\mathcal{I}=(\mathrm{bound},\mathrm{verify},\mathrm{decode},\mathrm{locate},
+\mathrm{admit},\mathrm{handoff}).
 \end{equation}
-For each stage $i\in\mathcal{I}$, let $t_i^{\mathrm{in}}$ and $t_i^{\mathrm{out}}$ be receiver
-monotonic ticks from one clock incarnation.  A cross-incarnation pair is invalid.  Define the
-local duration
-\begin{equation}\label{eq:stage-duration}
+For stage $i\in\mathcal{I}$, let $t_i^{\mathrm{in}}$ and $t_i^{\mathrm{out}}$ be ticks
+of one receiver clock incarnation. The stage time is
+\begin{equation}\label{eq:stage-time}
 T_i=t_i^{\mathrm{out}}-t_i^{\mathrm{in}}\geq0.
 \end{equation}
-The serial accounting model assumes
-\begin{equation}\label{eq:stage-contiguity}
-t_i^{\mathrm{out}}=t_{i+1}^{\mathrm{in}}
+The accounting boundaries are contiguous: $t_i^{\mathrm{out}}$ equals
+$t_{i'}^{\mathrm{in}}$ for the next stage $i'$. This equality is an accounting rule. It
+does not require a thread or process boundary. Every inner tick then occurs once with
+each sign, and the sum telescopes:
+\begin{equation}\label{eq:hot-time}
+T_{\mathrm{hot}}=t_{\mathrm{handoff}}^{\mathrm{out}}-t_{\mathrm{bound}}^{\mathrm{in}}
+=\sum_{i\in\mathcal{I}}T_i.
 \end{equation}
-for adjacent stages.  The equality is an accounting boundary.  It does not require a thread or
-process boundary.
-
-Starting with the first input tick and ending at handoff gives
-\begin{align}
-T_{\mathrm{hot}}
-&=t_{\mathrm{handoff}}^{\mathrm{out}}-t_{\mathrm{bound}}^{\mathrm{in}}
-\label{eq:hot-start-end}\\
-&=\sum_{i\in\mathcal{I}}
-  \left(t_i^{\mathrm{out}}-t_i^{\mathrm{in}}\right)
-\label{eq:hot-telescope}\\
-&=T_{\mathrm{bound}}+T_{\mathrm{auth}}+T_{\mathrm{decode}}
-  +T_{\mathrm{lookup}}+T_{\mathrm{owner}}+T_{\mathrm{handoff}}.
-\label{eq:hot-decomposition}
-\end{align}
-Equation~\eqref{eq:hot-telescope} follows by inserting the adjacent boundary ticks from
-equation~\eqref{eq:stage-contiguity}.  Every internal tick occurs once with each sign, so the
-internal terms cancel.
-
-\subsection{Worst-case design bound}
-
-Suppose the selected profile supplies a finite stage ceiling $U_i$ such that
-\begin{equation}\label{eq:stage-upper}
-0\leq T_i\leq U_i\qquad\text{for each }i\in\mathcal{I}.
+If a profile selects a finite ceiling $\hat T_i$ with $0\leq T_i\leq\hat T_i$, then
+\begin{equation}\label{eq:hot-bound}
+T_{\mathrm{hot}}\leq\sum_{i\in\mathcal{I}}\hat T_i=\hat T_{\mathrm{hot}}.
 \end{equation}
-Monotonicity of addition gives
-\begin{equation}\label{eq:hot-upper}
-T_{\mathrm{hot}}
-=\sum_{i\in\mathcal{I}}T_i
-\leq\sum_{i\in\mathcal{I}}U_i
-=U_{\mathrm{hot}}.
+Transport delay comes before $t_{\mathrm{bound}}^{\mathrm{in}}$. Queue, application, and
+device time come after $t_{\mathrm{handoff}}^{\mathrm{out}}$. None of them is part of
+$T_{\mathrm{hot}}$. A later measurement must show that the implementation meets each
+$\hat T_i$ on the qualified platform.
+
+\subsection{Allocations and copies}
+
+Let $n_{\mathrm{alloc},i}$ be the number of heap allocations and $n_{\mathrm{copy},i}$
+the number of full-payload copies in stage $i$ after preparation. The totals are
+\begin{equation}\label{eq:alloc-copy}
+n_{\mathrm{alloc}}=\sum_{i\in\mathcal{I}}n_{\mathrm{alloc},i},\qquad
+n_{\mathrm{copy}}=\sum_{i\in\mathcal{I}}n_{\mathrm{copy},i}.
 \end{equation}
-This is a conditional design bound.  B03 must select each $U_i$.  Later measurement must show
-that the implementation satisfies those ceilings on the qualified platform.
+For a fixed-layout frame in a contiguous receive buffer, the target is
+$n_{\mathrm{alloc}}=0$ and $n_{\mathrm{copy}}=0$. A segmented receive can need one
+bounded flattening copy. If preparation reserved that buffer, $n_{\mathrm{alloc}}=0$ and
+$n_{\mathrm{copy}}\leq1$. These are targets, not current measurements.
 
-Transport delay precedes $t_{\mathrm{bound}}^{\mathrm{in}}$.  Queued work, application work, and
-device work follow $t_{\mathrm{handoff}}^{\mathrm{out}}$.  Those durations are outside
-$T_{\mathrm{hot}}$.
-
-\subsection{Allocation and copy accounting}
-
-Let $a_i,c_i\in\mathbb{Z}_{\geq0}$.  The value $a_i$ is the number of heap allocations caused by
-stage $i$ after preparation.  The value $c_i$ is the number of full-payload copies.  The totals are
-\begin{align}
-A_{\mathrm{hot}}&=\sum_{i\in\mathcal{I}}a_i,\label{eq:allocation-sum}\\
-C_{\mathrm{hot}}&=\sum_{i\in\mathcal{I}}c_i.\label{eq:copy-sum}
-\end{align}
-For a fixed-layout compact frame with a caller-owned contiguous receive buffer, the target is
-\begin{equation}\label{eq:steady-state-allocation}
-A_{\mathrm{hot}}=0,\qquad C_{\mathrm{hot}}=0
-\end{equation}
-between ingress and typed handoff.  A transport can still own one bounded receive buffer.  A
-segmented transport can make one bounded flattening copy.  If preparation reserved that buffer,
-then $A_{\mathrm{hot}}=0$ and $C_{\mathrm{hot}}\leq1$.  An on-demand flattening buffer also adds
-one allocation and is outside the zero-allocation target.
-
-Equation~\eqref{eq:steady-state-allocation} is a target, not current evidence.  Compatibility JSON
-can allocate within declared raw and semantic budgets.
-
+% ─────────────────────────────────────────────────────────────────────────────
 \section{Finite memory and queue isolation}
 
-\subsection{Store-by-store derivation}
+\NcpStatus{proposed}
 
-Let $\mathcal{S}=\{s,c,r,w\}$ identify active session slots, prepared contexts, retained terminal
-results, and optional waiters.  Store $x$ has a profile capacity $C_x$.  One capacity unit has a
-maximum charged size $B_x$ bytes.
+\subsection{Lifecycle stores}
 
-For every $x\in\mathcal{S}$, B03 selects $C_x,B_x\in\mathbb{Z}_{\geq0}$.  It also selects
-$B_0\in\mathbb{Z}_{\geq0}$.  These are declared reservation charges, not sampled heap usage.
-
-The portable charge $B_x$ includes each specified variable component that scales with capacity.
-This includes content, backing storage, index entries, and metadata.  It excludes
-runtime-specific allocator overhead, which belongs to the separate $J_x$ domain.  Let $B_0$
-cover fixed portable owner and store overhead that does not scale with a declared capacity.
-
-If store $x$ reserves space for $C_x$ units, then
+Let $\mathcal{S}=\{\mathrm{ses},\mathrm{ctx},\mathrm{res},\mathrm{wait}\}$ name the
+session slots, prepared contexts, retained results, and optional waiters. Store
+$\kappa\in\mathcal{S}$ holds at most $\hat n_\kappa$ units. One unit is charged at most
+$\hat b_\kappa$ bytes, which cover content, backing storage, index entries, and
+metadata. The fixed owner overhead is $\hat b_0$ bytes. The bytes $M_\kappa$ that store
+$\kappa$ retains then satisfy
 \begin{equation}\label{eq:store-bound}
-M_x\leq C_xB_x.
+M_\kappa\leq\hat n_\kappa\hat b_\kappa,
 \end{equation}
-The product has units
-\begin{equation}\label{eq:store-units}
-[C_xB_x]=[\mathrm{elements}]\,[\mathrm{bytes/element}]=[\mathrm{bytes}].
+because units times bytes per unit gives bytes. The stores are disjoint accounting
+domains, so
+\begin{equation}\label{eq:lifecycle-memory}
+M_{\mathrm{life}}\leq\hat b_0+\sum_{\kappa\in\mathcal{S}}\hat n_\kappa\hat b_\kappa.
 \end{equation}
-The stores are disjoint accounting domains.  Adding equation~\eqref{eq:store-bound} across the
-four domains gives
-\begin{align}
-M_{\mathrm{lifecycle}}
-&\leq B_0+\sum_{x\in\mathcal{S}}M_x
-\label{eq:lifecycle-memory-step}\\
-&\leq B_0+\sum_{x\in\mathcal{S}}C_xB_x
-\label{eq:lifecycle-memory-sum}\\
-&=B_0+C_sB_s+C_cB_c+C_rB_r+C_wB_w.
-\label{eq:lifecycle-memory-expanded}
-\end{align}
-If waiters are disabled, $C_w=0$.  The bound still includes the fixed overhead $B_0$.  This avoids
-the false conclusion that an empty preallocated table has zero memory.
+With waiters off, $\hat n_{\mathrm{wait}}=0$, but $\hat b_0$ stays. An empty
+preallocated table does not cost zero bytes.
 
-All products and sums use checked arithmetic.  Choose one fixed ordering
-$(x_1,\ldots,x_{\lvert\mathcal{S}\rvert})$ of $\mathcal{S}$.  For
-$1\leq k\leq\lvert\mathcal{S}\rvert$, define the partial sum
-\begin{equation}\label{eq:memory-partial}
-P_k=B_0+\sum_{j=1}^{k}C_{x_j}B_{x_j}.
+Fix one order $(\kappa_1,\ldots,\kappa_4)$ of $\mathcal{S}$. The receiver computes each
+product and then the partial sums
+\begin{equation}\label{eq:partial-sums}
+\sigma_u=\hat b_0+\sum_{v=1}^{u}\hat n_{\kappa_v}\hat b_{\kappa_v},\qquad 1\leq u\leq4,
 \end{equation}
-The receiver computes each product first.  It then computes $P_k$ in a fixed order.  Any
-multiplication or addition overflow rejects the profile before allocation.
+with checked arithmetic. An undefined product or sum rejects the profile before any
+allocation.
 
-\subsection{Portable and local allocation domains}
-
-Portable bytes do not prove a physical heap bound for every language runtime.  Let $J_x(C_x)$ be
-the local allocator charge selected for store $x$.  All $J_x$ values and $J_0$ use one
-runtime-profile accounting unit.  A local implementation independently enforces
-\begin{equation}\label{eq:local-memory-bound}
-J_{\mathrm{local}}
-\leq J_0+\sum_{x\in\mathcal{S}}J_x(C_x).
+Portable bytes do not bound the heap of every language runtime. Each store therefore
+also has a finite, monotone local charge $J_\kappa(\hat n_\kappa)$ in one runtime unit,
+with fixed charge $J_0$:
+\begin{equation}\label{eq:local-charge}
+J_{\mathrm{life}}\leq J_0+\sum_{\kappa\in\mathcal{S}}J_\kappa(\hat n_\kappa).
 \end{equation}
-The receiver admits a profile only when both the portable byte bound and the local charge bound
-pass.  The function $J_x$ must be finite and monotone over the permitted capacity range.  It can
-include container nodes, capacity slack, handles, and allocator metadata.  A JavaScript
-implementation must describe $J_{\mathrm{local}}$ as an abstract charge unless it controls the
-complete typed-array representation.
+The receiver admits a profile only when both bounds hold.
 
-\subsection{Plane queue envelope}
+\subsection{Plane queues}
 
-Let $\mathcal{D}_{\mathrm{plane}}=
-\{\mathrm{ctl},\mathrm{per},\mathrm{act},\mathrm{obs},\mathrm{ext}\}$ identify
-control, perception, action, observation, and extension queues.  Queue $p$ has count capacity
-$Q_p$ and aggregate byte capacity $D_p$.  Let $n_p$ be its retained-item count.
-
-For every $p\in\mathcal{D}_{\mathrm{plane}}$, B03 selects $Q_p\in\mathbb{Z}_{>0}$ and
-$D_p,B_{p,\mathrm{meta}},G_p\in\mathbb{Z}_{\geq0}$.  The value $G_p$ is the largest
-representable visible-loss count.  The current loss count satisfies $0\leq g_p\leq G_p$.
-The live item count $n_p$ and every byte-string length are nonnegative integers.  The metadata
-charge covers the complete portable per-item metadata.
-Define the retained byte charge
-\begin{equation}\label{eq:queue-retained-bytes}
-S_p=\sum_{k=1}^{n_p}\lVert b_{p,k}\rVert.
+Let $\mathcal{Q}=\{\mathrm{ctl},\mathrm{per},\mathrm{act},\mathrm{obs},\mathrm{ext}\}$
+name the control, perception, action, observation, and extension queues. Queue
+$q\in\mathcal{Q}$ holds $n_q$ items with $0\leq n_q\leq\hat n_q$ and $\hat n_q\geq1$.
+Its items $b_{q,1},\ldots,b_{q,n_q}$ retain
+\begin{equation}\label{eq:queue-bytes}
+S_q=\sum_{k=1}^{n_q}|b_{q,k}|\leq\hat S_q
 \end{equation}
-The current queue invariant is $0\leq n_p\leq Q_p$ and $0\leq S_p\leq D_p$.
-The plane policy examines a new item $b$ without retaining it.  It either rejects or selects one
-deterministic allowable victim set $E_p(b)\subseteq\{1,\ldots,n_p\}$.  Define
-\begin{equation}\label{eq:queue-victims}
-e_p(b)=\lvert E_p(b)\rvert,
-\qquad
-R_p(b)=\sum_{k\in E_p(b)}\lVert b_{p,k}\rVert.
-\end{equation}
-Control and extension select the empty set under reject-on-overflow policy.  Perception can select
-the current replaceable latest item.  Observation selects the oldest items in order.  Action can
-select only work that its restrictive severity policy permits it to displace.  If no allowable
-victim set makes room, the incoming item rejects and the queue does not change.
+bytes. Each item also carries at most $\mu_q$ metadata bytes. The visible-loss count
+satisfies $0\leq g_q\leq\hat g_q$, where $\hat g_q\leq W$ is the largest representable
+count.
 
-Before mutation, the owner computes the survivor state
-\begin{equation}\label{eq:queue-survivors}
-n_p^-=n_p-e_p(b),
-\qquad
-S_p^-=S_p-R_p(b).
+Figure~\ref{fig:queue-admission} shows admission of a new item $b$. The plane policy
+either rejects $b$ or selects one allowed victim set
+$X_q(b)\subseteq\{1,\ldots,n_q\}$. Control and extension select no victim. Perception
+can replace the latest replaceable item. Observation selects the oldest items. Action
+selects only work that its severity order permits it to displace. Define
+\begin{equation}\label{eq:victims}
+e_q=\#X_q(b),\qquad R_q=\sum_{k\in X_q(b)}|b_{q,k}|.
 \end{equation}
-The subset relation gives $0\leq e_p(b)\leq n_p$ and $0\leq R_p(b)\leq S_p$.
-The subtraction and every later sum use checked arithmetic.  Admission requires
-\begin{align}
-0&\leq n_p^-<Q_p,\label{eq:queue-count}\\
-0&\leq S_p^-\quad\land\quad
-S_p^-+\lVert b\rVert\leq D_p.
-\label{eq:queue-bytes}
-\end{align}
-Before mutation, the owner also computes
-\begin{equation}\label{eq:queue-loss-counter}
-g'_p=\checkedadd\!\left(g_p,e_p(b)\right)\leq G_p.
+
+\NcpFigure{queue-admission}{Plane queue admission. Count and
+byte limits both apply before any byte is retained.\label{fig:queue-admission}}
+
+The subset relation gives $0\leq e_q\leq n_q$ and $0\leq R_q\leq S_q$. Admission
+requires
+\begin{equation}\label{eq:queue-admit}
+n_q-e_q+1\leq\hat n_q,\qquad S_q-R_q+|b|\leq\hat S_q,\qquad
+g_q+e_q\leq\hat g_q.
 \end{equation}
-If the checked successor is unavailable, the owner seals or retires the affected stream and
-leaves the queue unchanged.
-
-One atomic owner transition reserves the incoming item, records the visible loss, removes the
-selected victims, and installs the new item.  The resulting state is
-\begin{align}
-n'_p&=n_p^-+1\leq Q_p,\label{eq:queue-count-after}\\
-S'_p&=S_p^-+\lVert b\rVert\leq D_p.
-\label{eq:queue-bytes-after}
-\end{align}
-A count limit alone is insufficient because item size varies.  The queue reserves both one count
-unit and the complete byte charge before it copies or retains the incoming item.
-
-Let $B_{\mathrm{queue},0}\in\mathbb{Z}_{\geq0}$ be the fixed portable charge for queue owners
-and indexes that does not scale with a declared queue capacity.  The total portable queue envelope
-is
+If no allowed victim set satisfies the first two conditions, the owner rejects $b$ and
+leaves the queue unchanged. The owner computes the third sum as $\cadd(g_q,e_q)$. If
+the loss count cannot advance, the owner seals the affected stream and leaves the
+queue unchanged. Otherwise one atomic owner step records the loss, removes the
+victims, and installs $b$. The new state is
+\begin{equation}\label{eq:queue-after}
+n_q'=n_q-e_q+1\leq\hat n_q,\qquad S_q'=S_q-R_q+|b|\leq\hat S_q,\qquad
+g_q'=g_q+e_q\leq\hat g_q.
+\end{equation}
+A count limit alone is not enough, because item sizes vary. With fixed queue overhead
+$\hat b_{Q,0}$, the portable queue envelope is
 \begin{equation}\label{eq:queue-envelope}
-M_{\mathrm{queues}}\leq B_{\mathrm{queue},0}
-+\sum_{p\in\mathcal{D}_{\mathrm{plane}}}
-\left(D_p+Q_pB_{p,\mathrm{meta}}\right).
+M_{\mathrm{queues}}\leq\hat b_{Q,0}+\sum_{q\in\mathcal{Q}}
+\bigl(\hat S_q+\hat n_q\mu_q\bigr).
 \end{equation}
-The lifecycle stores and plane queues are disjoint portable accounting domains.  Combining
-equations~\eqref{eq:lifecycle-memory-sum} and~\eqref{eq:queue-envelope} gives
-\begin{equation}\label{eq:prepared-portable-bound}
-M_{\mathrm{prepared}}
-\leq B_0+\sum_{x\in\mathcal{S}}C_xB_x
-+B_{\mathrm{queue},0}
-+\sum_{p\in\mathcal{D}_{\mathrm{plane}}}
-\left(D_p+Q_pB_{p,\mathrm{meta}}\right).
+Stores and queues are disjoint domains. Their prepared total is
+\begin{equation}\label{eq:prepared-memory}
+M_{\mathrm{prep}}\leq\hat b_0+\sum_{\kappa\in\mathcal{S}}\hat n_\kappa\hat b_\kappa
++\hat b_{Q,0}+\sum_{q\in\mathcal{Q}}\bigl(\hat S_q+\hat n_q\mu_q\bigr).
 \end{equation}
-Let $J_{\mathrm{queue},0}$ be the fixed local-runtime charge for the queue owners.  Let
-$J_p^{\mathrm{queue}}(Q_p,D_p)$ be queue $p$'s finite local-runtime charge.  It is monotone in
-both arguments and uses the same runtime-profile accounting unit as $J_0$.  The independently
-checked local queue bound is
-\begin{equation}\label{eq:queue-local-bound}
-J_{\mathrm{queues}}
-\leq J_{\mathrm{queue},0}
-+\sum_{p\in\mathcal{D}_{\mathrm{plane}}}J_p^{\mathrm{queue}}(Q_p,D_p).
+Each queue also has a finite local charge $J_q(\hat n_q,\hat S_q)$, monotone in both
+arguments, with fixed charge $J_{Q,0}$:
+\begin{equation}\label{eq:prepared-local}
+J_{\mathrm{prep}}\leq J_0+\sum_{\kappa\in\mathcal{S}}J_\kappa(\hat n_\kappa)
++J_{Q,0}+\sum_{q\in\mathcal{Q}}J_q(\hat n_q,\hat S_q).
 \end{equation}
-The lifecycle stores and plane queues are disjoint accounting domains.  Their combined local
-charge therefore satisfies
-\begin{align}
-J_{\mathrm{prepared}}
-&=J_{\mathrm{local}}+J_{\mathrm{queues}}\label{eq:prepared-local-sum}\\
-&\leq J_0+\sum_{x\in\mathcal{S}}J_x(C_x)
-+J_{\mathrm{queue},0}
-+\sum_{p\in\mathcal{D}_{\mathrm{plane}}}J_p^{\mathrm{queue}}(Q_p,D_p).
-\label{eq:prepared-local-bound}
-\end{align}
-No queue can borrow another plane's $D_p$, $Q_p$, or local charge.  Therefore observation pressure
-cannot consume reserved action capacity.
+No queue borrows the count, bytes, or local charge of another queue. Observation
+pressure therefore cannot consume reserved action capacity.
 
-\begin{limitation}[Meaning of the memory bounds]
-Equations~\eqref{eq:lifecycle-memory-expanded}, \eqref{eq:local-memory-bound}, and
-\eqref{eq:prepared-local-bound} exclude transport buffers and unrelated process memory.  They
-also exclude device memory.  They become operational only after B03 selects exact numeric
-profiles.
-\end{limitation}
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Session lifecycle}
 
-\Needspace{0.50\textheight}
-\section{Session lifecycle mutation owner}
+\NcpStatus{proposed}
 
-\NcpFigure{H}{0.98\linewidth}{lifecycle-light.pdf}{Single-flight session lifecycle owner and exact retry model.}
+One bounded slot serializes open, replacement, and close for one namespace $\nu$. A
+namespace is the triple of realm, session kind, and logical ID.
+Figure~\ref{fig:lifecycle} shows the states.
 
-One bounded slot serializes open, replacement, and close for one namespace.  The namespace is the
-tuple
-\begin{equation}\label{eq:namespace}
-\nu=(\mathrm{realm},\mathrm{session\_kind},\mathrm{logical\_id}).
+\NcpFigure{lifecycle}{Session lifecycle owner. Terminal commit
+publishes the result and high-water before it frees the slot.\label{fig:lifecycle}}
+
+\subsection{Single flight}
+
+Let $\mathcal{O}_\nu$ be the lifecycle records of namespace $\nu$. The number of busy
+records is
+\begin{equation}\label{eq:busy-count}
+N_{\mathrm{busy}}(\nu)=\sum_{u\in\mathcal{O}_\nu}
+\ind{\st(u)\in\{\textsc{pending},\textsc{ambiguous}\}}.
 \end{equation}
-The active states are \texttt{PENDING} and \texttt{AMBIGUOUS}.  A terminal record lives in a
-separate retained-result pool.
-
-\subsection{Single-flight invariant}
-
-Let $\mathcal{O}_{\nu}$ be all lifecycle records for namespace $\nu$.  Define
-\begin{equation}\label{eq:active-count-definition}
-N_{\mathrm{active}}(\nu)
-=\sum_{u\in\mathcal{O}_{\nu}}
-\indicator{\state(u)\in\{\mathrm{PENDING},\mathrm{AMBIGUOUS}\}}.
-\end{equation}
-The owner has one active slot for $\nu$.  Each transition into an active state first proves that
-the slot is free.  Therefore
+The owner has one active slot for $\nu$. Each entry into a busy state first proves that
+the slot is free. Therefore
 \begin{equation}\label{eq:single-flight}
-0\leq N_{\mathrm{active}}(\nu)\leq1.
+0\leq N_{\mathrm{busy}}(\nu)\leq1.
 \end{equation}
-The upper bound is structural.  A mutex alone is insufficient across processes.  A shared writer
-must also bind one fenced writer epoch.
+A mutex cannot give this bound across processes. A shared writer must also hold one
+fenced writer epoch.
 
-\subsection{Durable transition order}
+\subsection{Transition order}
 
-Let $L$ be the prior lineage.  Let $E$ be the external effect state.  Let $R$ be the reserved
-terminal-result cell.  Let $K$ be the prepared-context reference.  The transition from free to
-pending is ordered as
-\begin{equation}\label{eq:pending-transition}
-(\mathrm{FREE},L)\xrightarrow{\mathrm{reserve}(R,K,L)}
-(\mathrm{PENDING},L,R,K)\xrightarrow{\mathrm{external\ work}}E.
+Let $c$ be the immutable backend coordinate of one operation. The reservation
+transition makes the slot, the result cell, the prepared context, and the prior lineage
+durable before any external work starts:
+\begin{equation}\label{eq:reserve-order}
+\mathrm{reserve}\ \prec\ \text{external work},
 \end{equation}
-The first edge is crash-consistent.  External work cannot start before that edge is durable.
-Capacity failure therefore leaves no partial slot and starts no external effect.
-
-An unknown result does not create a new operation:
-\begin{equation}\label{eq:ambiguous-transition}
-(\mathrm{PENDING},c)\xrightarrow{\mathrm{unknown\ effect}}
-(\mathrm{AMBIGUOUS},c).
+where $a\prec b$ means that $a$ commits before $b$ starts. A capacity failure therefore
+leaves no partial slot and no external effect. An unknown effect moves the same record
+from \textsc{pending} to \textsc{ambiguous} with the same $c$. Reconciliation queries
+that $c$ and then commits the record. Terminal commit has the order
+\begin{equation}\label{eq:commit-order}
+\mathrm{publish}(\text{result},\ \text{high-water})\ \prec\
+\mathrm{free}(\text{slot}).
 \end{equation}
-The immutable coordinate $c$ remains unchanged.  Reconciliation queries the same backend
-coordinate and then moves the same record to terminal commit.
+A later operation cannot see a free slot without also seeing the retained result and
+the advanced high-water.
 
-Terminal commit has the order
-\begin{equation}\label{eq:terminal-commit-order}
-\mathrm{publish}(r,o_{\mathrm{high}})
-\prec \mathrm{release}(\mathrm{active\ slot}),
+\subsection{Exact retry}
+
+A retained operation is the tuple $(c_r,m_r,z_r,o_r)$ of coordinate, exact request
+bytes, exact admission-context bytes, and issuer ordinal. A retry $(c,m,z,o)$ is exact
+only when
+\begin{equation}\label{eq:exact-retry}
+(c,m,z,o)=(c_r,m_r,z_r,o_r).
 \end{equation}
-where $\prec$ means \emph{commits before}.  A later operation cannot observe a free slot without also
-observing the retained result and advanced high-water.
+The comparison of $m$ and $z$ is byte for byte. A digest can find the candidate record.
+The receiver still compares the retained bytes before it returns or mutates anything.
+Any unequal component is a conflict, which rejects without mutation.
 
-\subsection{Exact retry relation}
+\subsection{Checked ordinals}
 
-Let the retained operation be
-\begin{equation}\label{eq:retained-operation}
-u_r=(c_r,b_r,k_r,o_r).
-\end{equation}
-Here $c_r$ is the immutable coordinate.  The value $b_r$ is the exact request bytes.  The value
-$k_r$ is the exact admission-context bytes.  The value $o_r$ is the issuer ordinal.
-
-For retry input $u=(c,b,k,o)$, define
-\begin{align}
-R_{\mathrm{exact}}(u,u_r)
-&\iff (c=c_r)\land(b=b_r)\land(k=k_r)\land(o=o_r).
-\label{eq:exact-retry}\\
-R_{\mathrm{conflict}}(u,u_r)
-&\iff \neg R_{\mathrm{exact}}(u,u_r).
-\label{eq:retry-conflict}
-\end{align}
-Equality of $b$ and $k$ is byte-for-byte equality.  A digest can select a candidate record.  The
-receiver still exact-compares the retained bytes before it returns or mutates state.
-
-The relation in equation~\eqref{eq:exact-retry} is reflexive, symmetric, and transitive because
-each component uses exact equality.  Therefore it partitions retry inputs into equivalence
-classes.  Only the retained class can observe the retained result.
-
-\subsection{Checked ordinal and no-reuse proof}
-
-Let $O_{\max}\in\mathbb{Z}_{>0}$ be finite for one issuer epoch.  Define the
-assignable ordinal domain and initial high-water sentinel by
+For one issuer epoch, let $\hat o\in\mathbb{N}_{>0}$ with $\hat o\leq W$. The assignable
+ordinals and the high-water sentinel are
 \begin{equation}\label{eq:ordinal-domain}
-\mathcal{D}_o=\{1,2,\ldots,O_{\max}\},
-\qquad
-o_{\mathrm{high}}\in\{0\}\cup\mathcal{D}_o.
+o\in\{1,\ldots,\hat o\},\qquad o_{\mathrm{hw}}\in\{0,1,\ldots,\hat o\}.
 \end{equation}
-The value $o_{\mathrm{high}}=0$ means that the epoch has committed no operation ordinal.
-Otherwise, $o_{\mathrm{high}}$ is the largest committed ordinal.
-For a terminal high-water $o_{\mathrm{high}}$, the successor exists only when
-\begin{equation}\label{eq:ordinal-precondition}
-o_{\mathrm{high}}<O_{\max}.
-\end{equation}
-Under that precondition, the next ordinal is
+The value $o_{\mathrm{hw}}=0$ means that the epoch has committed no ordinal. A successor
+exists only when $o_{\mathrm{hw}}<\hat o$. Then
 \begin{equation}\label{eq:ordinal-successor}
-o_{\mathrm{next}}=\checkedadd(o_{\mathrm{high}},1).
+o_{\mathrm{next}}=\cadd(o_{\mathrm{hw}},1)=o_{\mathrm{hw}}+1,\qquad
+o_{\mathrm{hw}}<o_{\mathrm{next}}\leq\hat o.
 \end{equation}
-Checked addition gives
-\begin{equation}\label{eq:ordinal-monotone}
-o_{\mathrm{next}}=o_{\mathrm{high}}+1>o_{\mathrm{high}},
-\qquad
-o_{\mathrm{next}}\in\mathcal{D}_o.
+Checked addition cannot fail here because $o_{\mathrm{hw}}+1\leq\hat o\leq W$. When
+$o_{\mathrm{hw}}=\hat o$, the epoch seals. An input with $o\leq o_{\mathrm{hw}}$ returns
+the retained result, a retired result, or unavailability. It never executes again.
+
+\subsection{No service per session}
+
+Shared fixed-capacity tables serve all namespaces. The target is
+\begin{equation}\label{eq:no-service}
+N_{\mathrm{threads/session}}=N_{\mathrm{sockets/session}}
+=N_{\mathrm{stores/session}}=0.
 \end{equation}
-If equation~\eqref{eq:ordinal-precondition} is false, the epoch seals.  The ordinal never wraps or
-saturates.  An input $o\leq o_{\mathrm{high}}$ returns retained, retired, or unavailable.  It never
-executes again.
+Session data still exists. It lives in the bounded shared stores of
+equation~\eqref{eq:lifecycle-memory}.
 
-\subsection{No dedicated service per session}
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Streams, positions, and fixed layouts}
 
-Shared fixed-capacity tables serve many namespaces.  The design target is
-\begin{equation}\label{eq:no-dedicated-service}
-N_{\mathrm{thread/session}}
-=N_{\mathrm{socket/session}}
-=N_{\mathrm{dedicated\ store/session}}=0.
-\end{equation}
-Equation~\eqref{eq:no-dedicated-service} does not remove session data.  The data lives in bounded
-shared owners and stores.  The lifecycle memory bound remains
-equation~\eqref{eq:lifecycle-memory-expanded}.
+\NcpStatus{proposed}
 
-\section{Streams, positions, and fixed-layout work}
+An accepted stream declaration compiles one immutable context. The context binds the
+route, publisher incarnation, epoch, frame class, encoding, layout, position range,
+replay profile, and overload policy.
 
-An accepted stream declaration compiles one immutable context.  The context binds route,
-publisher incarnation, epoch, frame class, encoding, layout, position range, replay profile, and
-overload policy.
+\subsection{Positions}
 
-\subsection{Position allocation}
-
-Let $P_{\max}\in\mathbb{Z}_{>0}$ be the selected maximum position for one stream epoch.  Define
-the assignable domain and its initial high-water sentinel by
+For one stream epoch, let $\hat p\in\mathbb{N}_{>0}$ with $\hat p\leq W$:
 \begin{equation}\label{eq:position-domain}
-\mathcal{D}_p=\{1,2,\ldots,P_{\max}\},
-\qquad
-p_{\mathrm{high}}\in\{0\}\cup\mathcal{D}_p.
+p\in\{1,\ldots,\hat p\},\qquad p_{\mathrm{hw}}\in\{0,1,\ldots,\hat p\}.
 \end{equation}
-The value $p_{\mathrm{high}}=0$ means that the epoch has assigned no position.  Otherwise,
-$p_{\mathrm{high}}$ is the largest assigned position.  A successor can exist only when
-\begin{equation}\label{eq:position-precondition}
-p_{\mathrm{high}}<P_{\max}.
-\end{equation}
-Under that precondition, assignment uses
+A successor exists only when $p_{\mathrm{hw}}<\hat p$, and then
 \begin{equation}\label{eq:position-successor}
-p_{\mathrm{candidate}}=\checkedadd(p_{\mathrm{high}},1).
+p_{\mathrm{next}}=\cadd(p_{\mathrm{hw}},1)=p_{\mathrm{hw}}+1,\qquad
+p_{\mathrm{hw}}<p_{\mathrm{next}}\leq\hat p.
 \end{equation}
-Checked addition and equation~\eqref{eq:position-precondition} give
-\begin{equation}\label{eq:position-monotone}
-p_{\mathrm{candidate}}=p_{\mathrm{high}}+1>p_{\mathrm{high}},
-\qquad
-p_{\mathrm{candidate}}\in\mathcal{D}_p.
-\end{equation}
-If equation~\eqref{eq:position-precondition} is false, the owner seals the stream epoch.  It does
-not wrap, saturate, or allocate a position in a new epoch implicitly.
-The allocator commits the candidate before later local encode, queue, or transport work.  A later
-failure creates a visible gap.  The allocator never reuses the candidate.
-
-Let $\mathcal{P}_{\mathrm{assigned}}$ be the set of assigned positions and
-$\mathcal{P}_{\mathrm{published}}$ the set of published positions.  Then
-\begin{equation}\label{eq:published-subset}
-\mathcal{P}_{\mathrm{published}}\subseteq\mathcal{P}_{\mathrm{assigned}}.
-\end{equation}
-The visible gap set is
+Otherwise the owner seals the epoch. It never wraps, saturates, or opens a new epoch
+by itself. The allocator commits each position before encode, queue, or transport work.
+A later failure leaves a visible gap. With $\mathcal{P}_{\mathrm{asg}}$ the assigned
+and $\mathcal{P}_{\mathrm{pub}}$ the published positions,
 \begin{equation}\label{eq:gap-set}
-\mathcal{P}_{\mathrm{gap}}
-=\mathcal{P}_{\mathrm{assigned}}\setminus\mathcal{P}_{\mathrm{published}}.
+\mathcal{P}_{\mathrm{pub}}\subseteq\mathcal{P}_{\mathrm{asg}},\qquad
+\mathcal{P}_{\mathrm{gap}}=\mathcal{P}_{\mathrm{asg}}\setminus\mathcal{P}_{\mathrm{pub}}.
 \end{equation}
-Because assignment is monotone, no element of $\mathcal{P}_{\mathrm{gap}}$ can later identify
-a different payload.
+Assignment is strictly increasing, so no gap position can later name a different
+payload.
 
-\subsection{Fixed-layout frame size}
+\subsection{Fixed-layout frames}
 
-Let $n_v,N_v,n_g,N_g,H_f\in\mathbb{Z}_{\geq0}$ and
-$w_v\in\mathbb{Z}_{>0}$.  A prepared frame contains $n_v$ numeric slots.
-Each encoded value uses $w_v$ bytes.  The fixed header uses $H_f$ bytes.
-The compact-sensor group count is $n_g$, bounded by $N_g$.  Its mandatory
-availability storage is
-\begin{equation}\label{eq:availability-bytes}
-A_f(n_g)=\left\lceil\frac{n_g}{8}\right\rceil .
+A prepared frame has a header of $b_{\mathrm{hdr}}$ bytes, $n_v$ numeric values of
+$w_{\mathrm{val}}$ bytes each, and $n_g$ availability groups. Each group has one
+availability bit, so the bitmap takes
+\begin{equation}\label{eq:bitmap-bytes}
+a(n_g)=\left\lceil\frac{n_g}{8}\right\rceil
 \end{equation}
-A sensor layout requires $n_g\geq1$.  Its nonempty ordered groups partition every sensor slot
-exactly once.  A non-sensor fixed layout uses $n_g=0$ and no availability bytes.
-The complete frame length is
-\begin{equation}\label{eq:fixed-payload}
-L_{\mathrm{frame}}=H_f+A_f(n_g)+n_vw_v.
+bytes. A sensor layout has $n_g\geq1$, and its nonempty groups partition every sensor
+value exactly once. A non-sensor layout has $n_g=0$. The frame length is
+\begin{equation}\label{eq:frame-length}
+\ell_{\mathrm{fix}}=b_{\mathrm{hdr}}+a(n_g)+n_vw_{\mathrm{val}}.
 \end{equation}
-Suppose the profile selects $0\leq n_v\leq N_v$ and
-$0\leq n_g\leq N_g$.  Then
-\begin{align}
-L_{\mathrm{frame}}
-&=H_f+A_f(n_g)+n_vw_v\label{eq:payload-bound-step}\\
-&\leq H_f+\left\lceil\frac{N_g}{8}\right\rceil+N_vw_v
-=L_{\mathrm{frame}}^{\max}.
-\label{eq:payload-bound}
-\end{align}
-The receiver checks $n_v$ and the complete length before it decodes values.  The names, units,
-ranges, and offsets live in the prepared layout.  The product and sum use checked arithmetic.
-An unavailable product or sum rejects before value decoding.  Names and units are not repeated
-or allocated per frame.
-
-Stable 1.0 fixes one bit per ordered group, least-significant-bit-first order,
-$1=\mathrm{AVAILABLE}$, $0=\mathrm{UNAVAILABLE}$, and zero high padding.  A compact sensor
-layout fixes group membership and profile-specific unavailable placeholder bits.  Every group is
-decided once.  Available groups contain every finite in-range value.  Unavailable groups forbid
-caller values.  The decoder returns typed unavailability and never exposes placeholders as
-observations.  The complete frame digest covers the header, bitmap, and every scalar byte.
-
-The header, bitmap, and scalar storage form one queue item.  They share one position, digest,
-supersession decision, replay record, drop result, and receipt.  Received available zero,
-received unavailable, malformed frame, transport gap, and whole-frame loss remain distinct.
-Compatibility JSON carries the same semantic availability and never infers it from zero or
-omission.
-
-For a direct linear decode, the work count satisfies
-\begin{equation}\label{eq:codec-linear}
-W_{\mathrm{codec}}(n_v)=\alpha+\beta n_v,
+For $0\leq n_v\leq\hat n_v$ and $0\leq n_g\leq\hat n_g$, the ceiling function is
+nondecreasing, so
+\begin{equation}\label{eq:frame-bound}
+\ell_{\mathrm{fix}}\leq b_{\mathrm{hdr}}+\left\lceil\frac{\hat n_g}{8}\right\rceil
++\hat n_vw_{\mathrm{val}}.
 \end{equation}
-where $\alpha,\beta\in\mathbb{Z}_{\geq0}$ are fixed operation counts for header work and work per
-value.  This equation is a structural operation count.  It is not a time measurement.
+The receiver checks $n_v$ and the complete length with checked arithmetic before it
+decodes any value. Names, units, ranges, and offsets live in the prepared layout, not
+in each frame.
 
-\Needspace{0.60\textheight}
-\section{Simulation-step execution}
+The bitmap uses bit $g$ for group $g$, least significant bit first. A set bit means
+available. High padding bits are zero. An available group holds finite, in-range
+values. An unavailable group forbids caller values, and the decoder returns typed
+unavailability, never a placeholder value. The frame digest covers the header, the
+bitmap, and every value byte. A received zero, an unavailable group, a malformed frame,
+a transport gap, and a lost frame stay distinct.
 
-\NcpFigure{H}{0.98\linewidth}{sequence-light.pdf}{Simulation-step request, execution, and retained-response sequence.}
-
-Lifecycle control stays on bounded canonical JSON\@.  Repeated simulation steps use one prepared
-fixed-layout request and response pair.  The pair binds a live simulation generation, authority
-grant, exact request position, advance interval, input layout, output layout, and retained result.
-
-\subsection{Window and memory derivation}
-
-Let $C_{\mathrm{step}}\in\mathbb{Z}_{>0}$ be the deployment maximum for prepared
-pipeline capacity.  Let
-$n_{\mathrm{open}}\in\mathbb{Z}_{\geq0}$ be the number of reserved requests that are not terminal.
-Admission requires
-\begin{equation}\label{eq:step-window}
-0\leq n_{\mathrm{open}}<C_{\mathrm{step}}.
+For a direct linear decode, the work is the structural operation count
+\begin{equation}\label{eq:codec-work}
+\omega(n_v)=\omega_0+\omega_1n_v,
 \end{equation}
-The strict upper relation leaves one free reservation for the new request.  After reservation,
-the invariant becomes
-\begin{equation}\label{eq:step-window-after}
-0\leq n_{\mathrm{open}}+1\leq C_{\mathrm{step}}.
-\end{equation}
+with fixed counts $\omega_0$ for the header and $\omega_1$ for each value. It is not a
+time measurement.
 
-Let $B_{\mathrm{req}}$ and $B_{\mathrm{res}}$ be the maximum retained request and response bytes.
-Let $B_{\mathrm{step},\mathrm{meta}}$ be the maximum per-slot metadata bytes.  Let
-$B_{\mathrm{step},0}$ be fixed window overhead.  All four byte charges are nonnegative integers.
-These charges are deployment maxima.  Every accepted step-window profile is at or below them.
-Pre-reserving both directions gives
-\begin{equation}\label{eq:step-window-memory}
-M_{\mathrm{step}}
-\leq B_{\mathrm{step},0}
-+C_{\mathrm{step}}\left(B_{\mathrm{req}}+B_{\mathrm{res}}
-+B_{\mathrm{step},\mathrm{meta}}\right).
-\end{equation}
-\Needspace{0.34\textheight}
-Let $J_{\mathrm{step},0}$ and $J_{\mathrm{step},\mathrm{slot}}$ be finite nonnegative charges in
-one selected local-runtime unit.  The slot charge includes its request, response, index, and
-container representation.  These charges are deployment maxima for that runtime profile.  The
-separate local bound is
-\begin{equation}\label{eq:step-window-local}
-J_{\mathrm{step}}
-\leq J_{\mathrm{step},0}
-+C_{\mathrm{step}}J_{\mathrm{step},\mathrm{slot}}.
-\end{equation}
-Each active simulation session owns at most one prepared step window.  Each simultaneous window
-is charged to one distinct active session slot.  Let $n_{\mathrm{win}}$ be the number of
-simultaneous windows.  The lifecycle capacity therefore gives
-\begin{equation}\label{eq:step-window-count-global}
-0\leq n_{\mathrm{win}}\leq C_s.
-\end{equation}
-Let $M_{\mathrm{step}}^{(a)}$ and $J_{\mathrm{step}}^{(a)}$ be the portable and local charges for
-window $a$.  Summing the per-window bounds and then applying the count bound gives
-\begin{align}
-M_{\mathrm{step,total}}
-&=\sum_{a=1}^{n_{\mathrm{win}}}M_{\mathrm{step}}^{(a)}\nonumber\\
-&\leq n_{\mathrm{win}}\left[
-B_{\mathrm{step},0}
-+C_{\mathrm{step}}\left(B_{\mathrm{req}}+B_{\mathrm{res}}
-+B_{\mathrm{step},\mathrm{meta}}\right)
-\right]\nonumber\\
-&\leq C_s\left[
-B_{\mathrm{step},0}
-+C_{\mathrm{step}}\left(B_{\mathrm{req}}+B_{\mathrm{res}}
-+B_{\mathrm{step},\mathrm{meta}}\right)
-\right],
-\label{eq:step-window-memory-global}\\
-J_{\mathrm{step,total}}
-&=\sum_{a=1}^{n_{\mathrm{win}}}J_{\mathrm{step}}^{(a)}\nonumber\\
-&\leq n_{\mathrm{win}}\left[
-J_{\mathrm{step},0}
-+C_{\mathrm{step}}J_{\mathrm{step},\mathrm{slot}}
-\right]\nonumber\\
-&\leq C_s\left[
-J_{\mathrm{step},0}
-+C_{\mathrm{step}}J_{\mathrm{step},\mathrm{slot}}
-\right].
-\label{eq:step-window-local-global}
-\end{align}
-Every product and sum uses checked arithmetic.  The profile checks the per-window and
-deployment-wide bounds before it exposes the compact step path.
-The owner keeps the session slot charged while its step window is active or retains a response.
-A close can instead move a longer-lived terminal response into the separately charged retained-
-result pool.  That transfer and window release form one atomic owner transition.
-The response cell is reserved before execution.  Backend work therefore cannot complete into an
-unbounded or unavailable result path.
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Simulation steps}
 
-\subsection{Strict execution order}
+\NcpStatus{proposed}
 
-Let $e,p\in\mathbb{Z}_{\geq0}$ be positions in one finite generation domain.  The value $e$ is the
-next executable position.  A request at position $p$ can start only when
+Opening, configuration, and close stay bounded JSON control operations. Repeated steps
+use one prepared fixed-layout request and response pair. Figure~\ref{fig:sequence}
+shows the exchange.
+
+\NcpFigure{sequence}{Simulation session. Steps run strictly in
+position order. Each result matches by generation, position, and request
+digest.\label{fig:sequence}}
+
+\subsection{Step window}
+
+Let $\hat n_{\mathrm{step}}\in\mathbb{N}_{>0}$ be the window capacity and
+$n_{\mathrm{open}}$ the number of reserved requests that are not terminal. Admission
+requires
+\begin{equation}\label{eq:window-admit}
+n_{\mathrm{open}}<\hat n_{\mathrm{step}},
+\end{equation}
+which leaves one free slot, and after reservation
+$n_{\mathrm{open}}+1\leq\hat n_{\mathrm{step}}$. Let $\hat b_{\mathrm{req}}$,
+$\hat b_{\mathrm{res}}$, and $\hat b_{\mathrm{meta}}$ bound one request, one response,
+and one metadata record, and $\hat b_{\mathrm{win}}$ the fixed window overhead. With
+both directions reserved in advance,
+\begin{equation}\label{eq:window-memory}
+M_{\mathrm{win}}\leq\hat b_{\mathrm{win}}+\hat n_{\mathrm{step}}
+\bigl(\hat b_{\mathrm{req}}+\hat b_{\mathrm{res}}+\hat b_{\mathrm{meta}}\bigr).
+\end{equation}
+Each active simulation session owns at most one window, and each window is charged to
+one distinct session slot. The number of windows is therefore
+$n_{\mathrm{win}}\leq\hat n_{\mathrm{ses}}$, and
+\begin{equation}\label{eq:window-total}
+M_{\mathrm{step}}=\sum_{w=1}^{n_{\mathrm{win}}}M_{\mathrm{win}}^{(w)}
+\leq\hat n_{\mathrm{ses}}\Bigl[\hat b_{\mathrm{win}}+\hat n_{\mathrm{step}}
+\bigl(\hat b_{\mathrm{req}}+\hat b_{\mathrm{res}}+\hat b_{\mathrm{meta}}\bigr)\Bigr].
+\end{equation}
+The local charge has the same form with one runtime unit:
+$J_{\mathrm{step}}\leq\hat n_{\mathrm{ses}}\bigl[J_{\mathrm{win}}+\hat
+n_{\mathrm{step}}J_{\mathrm{slot}}\bigr]$. A close can move a terminal response into the
+retained-result store. That move and the window release form one atomic step.
+
+\subsection{Execution order and correlation}
+
+Let $p_{\mathrm{next}}$ be the next executable position of one generation. A request
+at position $p$ starts only when
 \begin{equation}\label{eq:step-order}
-p=e.
+p=p_{\mathrm{next}},
 \end{equation}
-On definitive completion, the owner computes
-\begin{equation}\label{eq:step-successor}
-e'=\checkedadd(e,1).
+and definite completion sets $p_{\mathrm{next}}\leftarrow\cadd(p_{\mathrm{next}},1)$.
+If that value is undefined, the owner seals the generation. An unresolved backend call
+retires the generation. Arrival order never decides execution order.
+
+The retained response is
+\begin{equation}\label{eq:step-response}
+\bigl(\mathrm{generation},\ p,\ \Hash(m_p),\ \mathrm{result}\bigr),
 \end{equation}
-If the successor cannot be represented, the owner seals the generation and admits no later
-position.
-An unresolved backend call retires the generation.  The owner does not infer order from arrival or
-from a FIFO waiter list.
+where $m_p$ is the exact request at position $p$. A response satisfies only a waiter
+with the same generation, position, digest, and exact request bytes. A reply never
+takes the next waiter in arrival order. Every result carries
+\texttt{is\_simulation\_output=true} and \texttt{calibrated\_posterior=false}.
 
-\subsection{Exact response correlation}
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Plant command admission}
 
-Let $h_p=\digest(b_p)$ index the exact request bytes at position $p$.  The request store retains
-$b_p$ until the terminal response is durable.  The retained response is the tuple
-\begin{equation}\label{eq:step-response-coordinate}
-r_p=(\mathrm{generation},p,h_p,\mathrm{result}).
+\NcpStatus{proposed}
+
+The body issues live authority and command freshness. A serialized lease grants no
+authority. Arrival never starts or extends a remote command lifetime.
+Figure~\ref{fig:admission} shows the order.
+
+\NcpFigure{admission}{Body command admission. ESTOP, HOLD, and
+Active follow different paths to the effect boundary.\label{fig:admission}}
+
+\subsection{Freshness grant}
+
+Let $t_{\mathrm{iss}}$ be the receiver tick at which the body creates a freshness
+grant, and $\hat\Delta\in\mathbb{N}_{>0}$ the profile lifetime in ticks of the same
+clock incarnation. The exclusive deadline is
+\begin{equation}\label{eq:deadline}
+d=\cadd(t_{\mathrm{iss}},\hat\Delta).
 \end{equation}
-A response can satisfy only a waiter with the same generation, position, request digest, and
-exact request bytes.  The digest locates the candidate.  The receiver exact-compares $b_p$ before
-it releases the response.  A reply cannot consume the next FIFO waiter by arrival order.
-
-\Needspace{0.55\textheight}
-\section{Plant command admission and freshness}
-
-\NcpFigure{H}{0.98\linewidth}{admission-light.pdf}{Body-owned plant command admission order.}
-
-The body issues live authority and command freshness.  Serialized lease possession does not grant
-authority.  Receiver arrival never starts or refreshes a remote command lifetime.
-
-\subsection{Receiver-owned deadline}
-
-Let $t_{\mathrm{issue}}\in\mathbb{Z}_{\geq0}$ be the receiver monotonic tick sampled when the body
-creates a freshness grant.  Let $\Delta_{\max}\in\mathbb{Z}_{>0}$ be the finite profile lifetime
-in ticks.  Both values use one receiver clock incarnation.  The exclusive deadline is
-\begin{equation}\label{eq:freshness-deadline}
-d=\checkedadd(t_{\mathrm{issue}},\Delta_{\max}).
+If $d$ is undefined, the body rejects the grant before it becomes visible. At tick $t$
+of the same incarnation, the grant is live only when
+\begin{equation}\label{eq:live}
+t_{\mathrm{iss}}\leq t<d.
 \end{equation}
-If checked addition overflows, the body rejects the grant before it becomes visible.
-The grant is live at nonnegative receiver tick $t$ from that same clock incarnation only when
-\begin{equation}\label{eq:freshness-live}
-t_{\mathrm{issue}}\leq t<d.
-\end{equation}
-An arrival tick $t_{\mathrm{arrival}}$ is audit evidence.  Replacing
-$t_{\mathrm{issue}}$ with $t_{\mathrm{arrival}}$ would create a new lifetime after network delay.
-That replacement is forbidden.
-
-Let a grant cover the contiguous integer position range $[p_0,p_1]$, where
-$0\leq p_0\leq p_1$.  Position admission also requires
-\begin{equation}\label{eq:freshness-position}
+An arrival tick is audit evidence only. Replacing $t_{\mathrm{iss}}$ with it would
+create a new lifetime after network delay. A grant covers one contiguous position range
+$[p_0,p_1]$ with $1\leq p_0\leq p_1\leq\hat p$, and admission also requires
+\begin{equation}\label{eq:grant-range}
 p_0\leq p\leq p_1.
 \end{equation}
-The position selects the grant.  The frame does not repeat the grant, lease, or lifetime.
+The position selects the grant. The frame repeats no grant, lease, or lifetime.
 
-\subsection{Active command predicate}
+\subsection{Active predicate}
 
-Let the Boolean predicates be:
-\begin{align*}
-q_c&=\text{security snapshot and session are current},\\
-q_l&=\text{the exact authority lease is live},\\
-q_g&=\text{the freshness grant satisfies equations~\eqref{eq:freshness-live}
-and~\eqref{eq:freshness-position}},\\
-q_s&=\text{stream epoch and position pass no-reuse checks},\\
-q_p&=\text{plant profile accepts channel, arity, units, and range},\\
-q_e&=\text{the bounded executor slot accepts the exact command}.
-\end{align*}
-An Active command is software-admitted only when
-\begin{equation}\label{eq:active-admission}
-A_{\mathrm{active}}=q_c\land q_l\land q_g\land q_s\land q_p\land q_e.
+An Active command passes software admission only when all six predicates hold:
+\begin{equation}\label{eq:active}
+\phi_{\mathrm{active}}=\phi_{\mathrm{current}}\land\phi_{\mathrm{lease}}
+\land\phi_{\mathrm{grant}}\land\phi_{\mathrm{stream}}\land\phi_{\mathrm{plant}}
+\land\phi_{\mathrm{exec}}.
 \end{equation}
-The equation stops at software admission.  It does not state that a physical effect occurred.
+The six predicates have these meanings:
+\begin{itemize}[leftmargin=*]
+  \item $\phi_{\mathrm{current}}$: the security snapshot and the session are current.
+  \item $\phi_{\mathrm{lease}}$: the exact lease is live.
+  \item $\phi_{\mathrm{grant}}$: equations~\eqref{eq:live} and~\eqref{eq:grant-range}
+        hold.
+  \item $\phi_{\mathrm{stream}}$: the epoch and the position pass the no-reuse checks.
+  \item $\phi_{\mathrm{plant}}$: the plant profile accepts the channel, arity, units, and
+        range.
+  \item $\phi_{\mathrm{exec}}$: the bounded executor slot accepts the exact command.
+\end{itemize}
+The predicate stops at software admission.
 
 \subsection{Restrictive modes}
 
-HOLD requires an explicit known mode and a live holder.  HOLD follows ordinary stream
-monotonicity.  ESTOP can use the separately enrolled emergency lane when policy permits it.
-Neither mode carries a remote value vector or source coordinate.  Their actions come from the
-installed plant profile.
+HOLD needs an explicit known mode and a live holder. It follows ordinary stream order.
+ESTOP can use the separately enrolled emergency lane when policy permits it. Neither
+mode carries remote values. Their actions come from the installed plant profile. An
+absent, \texttt{Init}, or unknown mode is a non-authorizing rejection. A rejected remote
+request cannot report that a remote HOLD or ESTOP took effect.
 
-Remote rejection and a body-local restrictive response are different results.  A malformed or
-unauthorized remote request cannot claim that the remote HOLD or ESTOP effect succeeded.
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Effect boundary and closed-loop limits}
 
-\section{Body effect boundary}
+\NcpStatus{boundary proposed, stability arithmetic exact}
 
-The body owner creates one bounded executor-admission token.  The token binds the exact command,
-plant profile, generation, authority state, freshness state, and executor domain incarnation.
-The actuator interface does not accept a raw map, transport message, or serialized lease.
+The body owner creates one bounded admission token that binds the exact command, plant
+profile, generation, authority state, freshness state, and executor incarnation. The
+actuator interface accepts no raw map, transport message, or serialized lease.
 
-Let $a$ be the software-admission event and $x$ a later physical effect.  NCP can retain evidence
-for $a$.  The protocol proof boundary is
-\begin{equation}\label{eq:no-physical-implication}
-\mathrm{NCP}\nvdash\left(a\Longrightarrow x\right).
+Let $e_a$ be the software admission event and $e_x$ a later physical effect. NCP
+evidence can record $e_a$. It cannot establish $e_a\Rightarrow e_x$. Device,
+mechanical, electrical, and plant-local safety systems stay outside the protocol. Each
+deployment needs its own safety case and independent interlock.
+
+\NcpFigure{closed-loop}{One feedback cycle. NCP records three
+software events. It cannot measure the physical response.\label{fig:closed-loop}}
+
+\subsection{Timing on one clock}
+
+Let $t_s$, $t_a$, and $t_d$ be the sample, admission, and disposition ticks of one body
+clock incarnation. When the events exist, the latencies are
+\begin{equation}\label{eq:latencies}
+\lambda_a=t_a-t_s,\qquad \lambda_d=t_d-t_s,
 \end{equation}
-The turnstile states that NCP does not prove the implication.  It is not a claim that the effect
-is impossible.
-Device, mechanical, electrical, and plant-local safety systems remain outside the protocol proof
-boundary.  A deployment needs its own safety case and independent interlock.
+and an admitted action with a later disposition satisfies $0\leq\lambda_a\leq
+\lambda_d$. A rejected action can have no admission event, so $\lambda_a$ can be
+undefined. An absent event never becomes zero. Differences between unrelated
+publisher and receiver clocks are not equivalent measurements.
 
-\section{Extensions and bounded semantic envelopes}
+\subsection{Stability needs a plant model}
 
-One extension message contains one complete bounded canonical-JSON envelope.  Let
-$L,L_{\max}\in\mathbb{Z}_{>0}$ be the delivered envelope bytes and their installed maximum.
-Let $A,A_{\max}\in\mathbb{Z}_{\geq0}$ be the attachment count and its installed maximum.
-Admission requires
-\begin{equation}\label{eq:extension-envelope-bounds}
-0<L\leq L_{\max},\qquad 0\leq A\leq A_{\max}.
+Consider a linear plant $\dot x(t)=A_cx(t)+B_cu(t)$ with state $x\in\mathbb{R}^{n_x}$
+and input $u\in\mathbb{R}^{n_u}$. Assume exact state samples, no delay, no
+saturation, and an input held constant over each sample period $\Delta>0$. Then
+\begin{equation}\label{eq:zoh}
+x_{k+1}=\Phi(\Delta)x_k,\qquad
+\Phi(\Delta)=e^{A_c\Delta}+\left(\int_0^\Delta e^{A_c\theta}\,d\theta\right)B_cK
 \end{equation}
-For declared attachment lengths $b_i$ and aggregate maximum $B_{\mathrm{att}}$, admission also
-requires
-\begin{equation}\label{eq:extension-attachment-bounds}
-\sum_{i=0}^{A-1}b_i\leq B_{\mathrm{att}}.
+for state feedback $u_k=Kx_k$ with gain matrix $K$. For a fixed period, the sampled
+loop is asymptotically stable exactly when the spectral radius satisfies
+$\rho(\Phi(\Delta))<1$.
+
+For a scalar integrator $\dot x=u$ with $u_k=Kx_k$ and $K=-2\,\mathrm{s}^{-1}$, the
+factor is
+\begin{equation}\label{eq:scalar-loop}
+\Phi(\Delta)=1-2\Delta.
 \end{equation}
+At $\Delta=0.1$~s, $\Phi=0.8$: each step keeps 80 percent of the error. At
+$\Delta=1$~s, $\Phi=-1$: the error changes sign with no decay. Message delivery is the
+same in both cases, so protocol success cannot show stability.
 
-The installed manifest selects one closed schema and canonicalization profile.  It rejects
-unknown members, duplicate decoded keys, non-canonical numbers, unsupported encodings, and
-inline attachment bytes before callback work.  Each reference binds an attachment ID, enrolled
-store ID, canonical object key, digest, byte length, media type, schema ID, and purpose.  The
-selected ingress profile also binds the realm, activation, audience, manifest, and replay
-coordinate.  A-direct uses the receiver-owned context.  B-over-A uses the protected JWS
-envelope.
+A variable period needs a stronger argument than one spectral radius for each period.
+One sufficient condition is a common pair of symmetric positive-definite matrices
+$P$ and $Q$ with $\Phi(\delta)^{\mathsf T}P\,\Phi(\delta)-P\preceq-Q$ for every admitted
+period $\delta$. This report supplies no such pair for any ecosystem controller.
 
-The installed manifest enrolls the exact HTTPS origin, resolved address set, TLS identity,
-scoped credential source, timeouts, media types, and byte limits.  The wire cannot supply a URL,
-user information, query, fragment, local path, or redirect target.  Fetches use no ambient
-credential.  Redirects, DNS or address drift, private-address substitution, local-file
-resolution, and symlink traversal reject.
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Extensions and the complete state envelope}
 
-The receiver reserves all resources before it mints a one-use local fetch capability.  That
-capability binds the envelope digest and exact reference.  The receiver verifies the declared
-length and digest before semantic use.  Missing, partial, oversized, mismatched, or unavailable
-bytes make the dependent branch unusable.
+\NcpStatus{proposed}
 
-After every attachment verifies, the activation owner performs one atomic transition.  It
-rechecks activation, security, principal, audience, manifest, realm, session, freshness,
-revocation, expiry, and resource currentness.  The same transition consumes the one callback
-right.  A cut during fetch prevents callback entry.  NCP 1.0 defines no generic
-chunk-reassembly protocol.
-
-Let $C_{\mathrm{ext}}\in\mathbb{Z}_{\geq0}$ be the deployment maximum for all active and retained
-semantic-envelope slots in one activation.  Let $B_{\mathrm{ext},0}\in\mathbb{Z}_{\geq0}$ be the
-deployment maximum for its fixed portable charge.  Let
-$H_{\mathrm{ext}}^{\max}\in\mathbb{Z}_{\geq0}$ be the deployment maximum of the greater active or
-terminal portable metadata charge for one slot.  Every accepted activation profile is at or
-below these maxima.  The outer portable reservation satisfies
-\begin{equation}\label{eq:extension-portable-memory}
-M_{\mathrm{ext,outer}}
-\leq B_{\mathrm{ext},0}
-+C_{\mathrm{ext}}\left(L_{\max}+H_{\mathrm{ext}}^{\max}\right).
+One extension message holds one complete bounded canonical-JSON envelope. Let
+$\ell_{\mathrm{env}}$ be its length and $n_{\mathrm{att}}$ its number of attachment
+references. Admission requires
+\begin{equation}\label{eq:envelope}
+0<\ell_{\mathrm{env}}\leq\hat\ell_{\mathrm{env}},\qquad
+0\leq n_{\mathrm{att}}\leq\hat n_{\mathrm{att}},\qquad
+\sum_{i=1}^{n_{\mathrm{att}}}\ell_{\mathrm{att},i}\leq\hat\ell_{\mathrm{att}},
 \end{equation}
-Each installed extension activation consumes one distinct prepared-context unit.  Let
-$n_{\mathrm{ext}}$ be the number of simultaneous extension activations.
-Equation~\eqref{eq:lifecycle-memory-expanded} gives
-\begin{equation}\label{eq:extension-activation-count}
-0\leq n_{\mathrm{ext}}\leq C_c.
+where $\ell_{\mathrm{att},i}$ is the declared length of attachment $i$. The installed
+manifest selects one closed schema. It rejects unknown members, duplicate keys,
+non-canonical numbers, and inline attachment bytes before any callback work.
+
+Attachments come only from enrolled stores. The manifest fixes the exact HTTPS origin,
+address set, TLS identity, credential source, timeouts, media types, and byte limits.
+The wire cannot supply a URL, local path, or redirect target. The receiver reserves all
+resources first. It checks each declared length and digest before semantic use. A cut
+during a fetch prevents the callback. NCP~1.0 defines no generic chunk-reassembly
+protocol.
+
+Let $\hat n_{\mathrm{ext}}$ bound the envelope slots of one activation. Let
+$\hat b_{\mathrm{ext}}$ bound the larger of the active and terminal metadata of one
+slot, and let $\hat b_{\mathrm{act}}$ be the fixed charge of one activation. Each activation consumes one
+prepared-context unit, so the activation count is at most $\hat n_{\mathrm{ctx}}$:
+\begin{equation}\label{eq:extension-memory}
+M_{\mathrm{ext}}\leq\hat n_{\mathrm{ctx}}\Bigl[\hat b_{\mathrm{act}}
++\hat n_{\mathrm{ext}}\bigl(\hat\ell_{\mathrm{env}}+\hat b_{\mathrm{ext}}\bigr)\Bigr].
 \end{equation}
-Let $M_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s portable envelope charge.  Summing the
-per-activation bound gives
-\begin{align}
-M_{\mathrm{ext,total}}
-&=\sum_{a=1}^{n_{\mathrm{ext}}}M_{\mathrm{ext,outer}}^{(a)}\nonumber\\
-&\leq n_{\mathrm{ext}}\left[
-B_{\mathrm{ext},0}
-+C_{\mathrm{ext}}\left(L_{\max}+H_{\mathrm{ext}}^{\max}\right)
-\right]\nonumber\\
-&\leq C_c\left[
-B_{\mathrm{ext},0}
-+C_{\mathrm{ext}}\left(L_{\max}+H_{\mathrm{ext}}^{\max}\right)
-\right].
-\label{eq:extension-portable-global}
-\end{align}
-Let $J_{\mathrm{ext},0}$ be the fixed per-activation local charge.  Let
-$J_{\mathrm{ext,slot}}(L_{\max},A_{\max})$ be a finite nonnegative slot charge in one selected
-local-runtime unit.  The slot function is monotone in both arguments.  The
-independent local bound is
-\begin{equation}\label{eq:extension-local-memory}
-J_{\mathrm{ext,outer}}
-\leq J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max}).
+A context stays charged while any slot or terminal record refers to it, so a retained
+record cannot escape the factor $\hat n_{\mathrm{ctx}}$. The local charge
+$J_{\mathrm{ext}}$ has the same form.
+
+\subsection{Complete bounded state}
+
+Let $\mathcal{Y}=\{\mathrm{rx},\mathrm{json},\mathrm{att},\mathrm{parse},
+\mathrm{callback}\}$ name receive scratch, JSON arenas, attachment storage, extension
+parser arenas, and callback buffers. Each domain $y$ has a portable ceiling
+$\hat b_y$, with fixed charge $\hat b_{Y,0}$:
+\begin{equation}\label{eq:aux}
+M_{\mathrm{aux}}\leq\hat b_{Y,0}+\sum_{y\in\mathcal{Y}}\hat b_y.
 \end{equation}
-Let $J_{\mathrm{ext,outer}}^{(a)}$ be activation $a$'s local envelope charge.  The same count
-bound gives
-\begin{align}
-J_{\mathrm{ext,total}}
-&=\sum_{a=1}^{n_{\mathrm{ext}}}J_{\mathrm{ext,outer}}^{(a)}\nonumber\\
-&\leq n_{\mathrm{ext}}\left[
-J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max})
-\right]\nonumber\\
-&\leq C_c\left[
-J_{\mathrm{ext},0}
-+C_{\mathrm{ext}}J_{\mathrm{ext,slot}}(L_{\max},A_{\max})
-\right].
-\label{eq:extension-local-global}
-\end{align}
-Every product, sum, and offset uses checked arithmetic.  Overflow rejects the profile or activation
-before it allocates a prepared context or envelope slot.
-An activation context remains charged while any active envelope slot or terminal tombstone refers
-to it.  The owner cannot release that context first.  Therefore a retained tombstone cannot escape
-the $C_c$ multiplier.
-
-The receiver reserves envelope, parser, attachment, callback, and terminal-state budgets before
-semantic work.  Exact replay is idempotent.  Conflicting bytes terminalize the same slot.
-Canonical parsing starts only after authentication and complete reservation.  The envelope bounds
-exclude transport scratch, attachment storage, parser state, callback state, and unrelated process
-memory.  The auxiliary envelope accounts for those NCP-owned domains.  B03 selects all finite
-inputs.
-
-\subsection{Complete bounded-state envelope}
-
-Let $\mathcal{D}_{\mathrm{aux}}=
-\{\mathrm{rx},\mathrm{json},\mathrm{attachment},\mathrm{extparse},\mathrm{callback}\}$ identify
-transport receive or flattening scratch, structured-JSON arenas, verified attachment storage,
-extension inner-parser arenas, and typed callback buffers.  B03 selects one deployment-wide portable ceiling
-$B_y\in\mathbb{Z}_{\geq0}$ and one finite monotone local charge $J_y(B_y)$ for every
-$y\in\mathcal{D}_{\mathrm{aux}}$.  It also selects fixed charges $B_{\mathrm{aux},0}$ and
-$J_{\mathrm{aux},0}$.  The auxiliary envelopes are
-\begin{align}
-M_{\mathrm{aux}}
-&\leq B_{\mathrm{aux},0}+\sum_{y\in\mathcal{D}_{\mathrm{aux}}}B_y,
-\label{eq:aux-portable}\\
-J_{\mathrm{aux}}
-&\leq J_{\mathrm{aux},0}+\sum_{y\in\mathcal{D}_{\mathrm{aux}}}J_y(B_y).
-\label{eq:aux-local}
-\end{align}
-These domains are disjoint from lifecycle, queue, step-window, and envelope storage.  Adding
-the previously derived deployment bounds gives the complete NCP-owned bounded-state model
-\begin{align}
-M_{\mathrm{NCP,bounded}}
-&\leq M_{\mathrm{prepared}}+M_{\mathrm{step,total}}
-+M_{\mathrm{ext,total}}+M_{\mathrm{aux}},
-\label{eq:ncp-portable-total}\\
-J_{\mathrm{NCP,bounded}}
-&\leq J_{\mathrm{prepared}}+J_{\mathrm{step,total}}
-+J_{\mathrm{ext,total}}+J_{\mathrm{aux}}.
-\label{eq:ncp-local-total}
-\end{align}
-Every component is independently finite and checked before its owner becomes reachable.  No domain
-can borrow another domain's reservation.  These equations bound declared NCP-owned state, not code,
-thread stacks, device memory, unrelated process state, or a universally portable physical RSS\@.
-The sum applies no alias discount.  A zero-copy view is charged to its backing owner.  A copied
-buffer is a second charge.  During a cross-owner transfer, both domains remain reserved until the
-destination commit preserves every required recovery byte and permits source release.  The sum
-therefore covers the transfer high-water.
-
-\Needspace{0.60\textheight}
-\section{Ecosystem dependency direction}
-
-\NcpFigure{H}{0.98\linewidth}{ecosystem-light.pdf}{NCP provider and ecosystem dependency direction.}
-
-NCP owns the protocol, generated bindings, profiles, and package surfaces.  Consumer projects pin
-NCP packages and implement thin role adapters.  NCP does not import consumer application code.
-
-Let $G=(V,E)$ be the repository dependency graph.  An edge $(u,v)\in E$ means repository $u$
-depends on repository $v$.  If $n\in V$ is NCP and $C\subset V$ is the set of consumers, the
-selected direction is
-\begin{equation}\label{eq:dependency-direction}
-\forall c\in C:\ (c,n)\in E\quad\land\quad(n,c)\notin E.
+All domains are disjoint, so the complete NCP-owned state satisfies
+\begin{equation}\label{eq:total}
+M_{\mathrm{NCP}}\leq M_{\mathrm{prep}}+M_{\mathrm{step}}+M_{\mathrm{ext}}
++M_{\mathrm{aux}},
 \end{equation}
-The condition prevents a consumer-specific fork from becoming an NCP requirement.
+with the same form for the local charge. The sum applies no alias discount. A borrowed
+view is charged to its owner, and a copy is a second charge. During a transfer between
+owners, both stay reserved until the destination commits. The bound excludes code,
+thread stacks, device memory, and unrelated process state.
 
-\subsection{Exact ecosystem role subjects}
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Identity and ecosystem}\label{sec:ecosystem}
 
-The ecosystem release matrix contains exactly eleven role subjects.  Each subject needs a
-distinct installed-artifact and live-transport qualification receipt.  All eleven qualifications
-remain \textbf{NOT RUN}.
+\NcpStatus{proposed, role qualifications NOT RUN}
 
-\begin{longtable}{L{0.43\linewidth}L{0.49\linewidth}}
-\caption{Exact ecosystem role subjects.}\label{tab:ecosystem-roles}\\
+\subsection{Identity domains}
+
+Figure~\ref{fig:versioning} separates the identities. A native session needs a
+canonical same-major wire version and the exact stable-core identity. A wire version
+has one or two canonical decimal components. The value \texttt{1} means \texttt{1.0}.
+The compact protobuf hash, the complete contract digest, the package version, and a
+release tag cannot open a native session by themselves.
+
+\NcpFigure{versioning}{Identity domains and the native session
+gate.\label{fig:versioning}}
+
+\subsection{Dependency direction}
+
+Let $\mathcal{G}=(\mathcal{V},\mathcal{E})$ be the repository dependency graph. An edge
+$(v,w)\in\mathcal{E}$ means that $v$ depends on $w$. Let $v_{\mathrm{NCP}}$ be NCP and
+$\mathcal{C}$ the consumer repositories that integrate NCP. Write
+$v\rightsquigarrow w$ for a directed path from $v$ to $w$. The required direction is
+\begin{equation}\label{eq:dependency}
+\forall c\in\mathcal{C}:\ (c,v_{\mathrm{NCP}})\in\mathcal{E}\ \land\
+\neg\bigl(v_{\mathrm{NCP}}\rightsquigarrow c\bigr).
+\end{equation}
+The first condition makes each consumer use the NCP package instead of a copy of the
+protocol files. The path condition also forbids an indirect dependency of NCP on a
+consumer. A consumer-specific fork therefore cannot become an NCP requirement.
+
+\NcpFigure{ecosystem}{Ecosystem dependency direction and the
+eleven role subjects.\label{fig:ecosystem}}
+
+\subsection{Roles and processes}
+
+Figure~\ref{fig:ecosystem} numbers the eleven role subjects. Each needs its own
+installed-artifact and live-transport receipt. All eleven are \NcpNotRun. The
+library \texttt{pid-rs} is not an NCP peer and receives no role receipt.
+
+Integrated Haldir uses four separate processes. The intent receiver owns intent
+transport, replay, and attachment fetch. The assessment receiver owns assessment
+ingress and raw evidence. The policy-state authority owns profiles, base policy, and
+freshness grants, and it is not an NCP peer. The commander owns conversion into NCP
+commands, streams, and publication. No process holds a credential of another role.
+Standalone Gate is a separate deployment mode, not a fifth process.
+
+\subsection{Fleet profile}
+
+The selected fleet profile uses one composite session for each run with $N\in\{1,2,3\}$
+drones. One sensor frame holds $6N$ values: position and velocity in east, north, and
+up order for each drone. One command frame holds $3N$ acceleration values. Each drone
+has one availability group, so the bitmap has $N$ bits. A qualification run must
+exercise every bitmap value from 0 to $2^N-1$, which is every subset of unavailable
+drones. Group $g$ maps to command values $3g$, $3g+1$, and $3g+2$. An
+unavailable drone needs its installed restrictive values. A mismatch rejects the whole
+command.
+
+One NEST 3.9 kernel advances the complete fleet at a resolution of 0.1~ms. Each
+controller epoch lasts 20~ms. The qualification seed is \texttt{20260826}. Historical
+fleet evidence from the older Engram host interface cannot satisfy a native role,
+transport, or release qualification. The fleet campaign is open.
+
+MUSIC, a library for coupling simulators on a shared clock, alone owns shared-clock
+coupling. NCP does not implement, tunnel, or replace MUSIC time grants, barriers, or
+ticks. The fleet profile uses independent clocks. SVG files are presentation only. They
+carry no protocol meaning or runtime evidence.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Current candidate runtime and gaps}\label{sec:gaps}
+
+\NcpStatus{implemented runtime with known gaps}
+
+Figure~\ref{fig:fsm} shows the current compatibility governor. It returns bounded
+wire-shape candidates. It does not authenticate a sender, issue a lease, load a plant
+profile, or prove a physical effect.
+
+For a configured positive timeout $T$, sensor data becomes stale when its age reaches
+$\min(T,60\ \mathrm{s})$. The governor latches ESTOP when the time since the last finite
+sensor timestamp reaches $\min\bigl(20\min(T,60\ \mathrm{s}),\ 60\ \mathrm{s}\bigr)$. For example, $T=0.5$~s gives 10~s, and $T\geq3$~s gives 60~s.
+
+Table~\ref{tab:gaps} lists the main gaps between this runtime and the proposed target.
+Each row names the source that shows the gap. The task ledger lists the complete set.
+
+\begin{longtable}{L{0.17\linewidth}L{0.45\linewidth}L{0.30\linewidth}}
+\caption{Verified gaps at commit \texttt{e83df54}.}\label{tab:gaps}\\
 \toprule
 \NcpTableHeaderRow
-Role subject & Boundary \\
+Area & Current behavior & Source \\
 \midrule
 \endfirsthead
 \toprule
 \NcpTableHeaderRow
-Role subject & Boundary \\
+Area & Current behavior & Source \\
 \midrule
 \endhead
 \bottomrule
 \endfoot
-Engram simulation responder & Simulation session only \\
-Engram plant commander & Direct plant commander \\
-Engram Haldir-intent extension publisher & Registered extension publisher \\
-Haldir NCP commander & Gated plant commander \\
-Haldir Engram-intent extension receiver & Registered extension receiver \\
-Haldir Galadriel-assessment receiver & Isolated assessment-extension receiver \\
-Galadriel NCP observer & Read-only observer \\
-Galadriel raw-advisory publisher & Isolated advisory-extension publisher \\
-Crebain body & Plant responder and final software body authority \\
-Crebain Galadriel-producer surface & Isolated sidecar-evidence publisher \\
-Prisoma NCP observer & Read-only observer \\
+Secure ingress & Pinned Zenoh 1.9.0 does not expose the verified peer principal to
+the callback. \texttt{production-secure} fails closed. &
+\path{ncp-zenoh/src/lib.rs} \\
+Actor capability & \texttt{AuthenticatedActor} has public fields, so any caller can
+construct it. & \path{ncp-core/src/security.rs} \\
+Grant scope & A principal grant covers a complete plane, with no exact route,
+audience, frame class, or operation list. & \path{ncp-core/src/security.rs} \\
+Body owner & No single owner orders security cuts, leases, streams, restrictive
+effects, dispositions, and executor admission. & \path{ncp-core/src/transport.rs} \\
+Lease time & \texttt{NeuroControlLoop} stores a host-supplied lease with no receiver
+deadline. & \path{ncp-core/src/transport.rs} \\
+Tick result & \texttt{tick} returns the same \texttt{CommandFrame} type for a local
+pre-sensor output and a transport-admitted command. & \path{ncp-core/src/transport.rs}
+\\
+Send outcome & \texttt{CommandSendOutcome} binds a stream position, not the payload
+digest or owner incarnation. & \path{ncp-core/src/transport.rs} \\
+Mode default & An omitted mode decodes as HOLD. The target rejects it. &
+\path{ncp-core/src/messages.rs} \\
+Session lineage & The TypeScript client retires the local generation before an open
+result is definite. & \path{ncp-ts/src/client.ts} \\
+Reply order & The WebSocket binding matches replies in request order. &
+\path{ncp-ts/src/ws.ts} \\
+RPC isolation & A synchronous Zenoh handler cannot be preempted, so its permit can stay
+occupied. & \path{ncp-zenoh/src/lib.rs} \\
+Compact data & No compact data-plane encoding, availability bitmap, durable generation
+issuer, or disposition journal exists. & \path{KNOWN_LIMITATIONS.md} \\
 \end{longtable}
 
-\subsection{Haldir process separation}
+\NcpFigure{fsm}{Current plant-admission states of the
+compatibility governor.\label{fig:fsm}}
 
-Integrated Haldir uses four separate deployable processes.  No integrated process activates two
-role surfaces.  The policy-state authority is not an NCP peer.
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Ten-lens review}
 
-\begin{table}[H]
+\NcpStatus{maintainer review, not independent review}
+
+The project reviews each change through ten lenses from
+\path{docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md}.
+Table~\ref{tab:lenses} applies them to the design in this report. This review does not
+satisfy the independent review floor.
+
+\begin{table}[htbp]
 \centering
-\caption{Integrated Haldir process ownership.}
-\begin{tabularx}{\linewidth}{L{0.20\linewidth}L{0.40\linewidth}Y}
+\caption{Ten-lens review of the design.}\label{tab:lenses}
+\begin{tabularx}{\linewidth}{L{0.18\linewidth}YY}
 \toprule
 \NcpTableHeaderRow
-Process & Exclusive ownership & Excluded authority \\
+Lens & Design answer & Open evidence \\
 \midrule
-Intent receiver & Intent transport, replay, attachment fetch, and admission records & No policy store or NCP commander credential \\
-Assessment receiver & Assessment ingress, raw evidence, replay, and dispositions & No intent or NCP commander credential \\
-Policy-state authority & Profiles, base policy, intent replay, freshness grants, and policy receipts & No extension transport or NCP commander credential \\
-Commander & Intent conversion, body-issued authority, streams, publication, and reconciliation & No policy evaluation, raw evidence, replay, or profile store \\
+1 Contract and semantics & One normative source list with a complete SHA-256 digest.
+Closed types in the modular SDK. & The rebaseline and identifier allocation for the
+target. \\
+2 Security and authority & Verified principal, default-deny manifest, body-issued
+lease. Unknown values grant nothing. & Receiver-minted capability. Live mTLS, rotation,
+and revocation are \NcpNotRun. \\
+3 Safety and plant boundary & The body is the final software authority. The plant
+profile names each restrictive action. & A plant safety case and interlock for each
+deployment. \\
+4 Distributed systems & Exact retry, single flight, and retirement after ambiguity.
+Positions never repeat. & Cross-process fencing and durable atomicity. Fault and soak
+campaigns are \NcpNotRun. \\
+5 Resource and real-time bounds & Every count has a byte bound. Checked arithmetic
+fails closed. & Selected values and measured profiles. The timing campaign missed every
+deadline. \\
+6 Interoperability and migration & Two independent modular implementations. Wire 0.8
+joins wire 1.0 only through a terminating gateway. & Two installed non-Rust live peers
+are \NcpNotRun. \\
+7 Science and statistics & Simulation output stays uncalibrated. The forecast study
+reports its null result. & Model or policy benefit needs new frozen studies. \\
+8 Implementation and operations & One entry point for each production path. Gaps,
+drops, and ambiguity stay visible. & The gaps in Table~\ref{tab:gaps}. \\
+9 Verification and evidence & Mandatory corpus, cross-language controls, and Lean-checked
+arithmetic. & External and independent gates are \NcpNotRun. \\
+10 Lifecycle and governance & Consumers depend on NCP. No release authority comes from
+local evidence. & Registry ownership, signatures, provenance, and release
+authorization. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The receivers send only immutable admission records and currentness receipts through narrow
-authenticated APIs.  The commander receives only bounded publication results.  Standalone Gate
-remains a separate deployment mode.  It is not a fifth integrated process.
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Evidence classes and release gates}
 
-\subsection{Fleet, time, and presentation boundaries}
+\NcpStatus{release-blocked}
 
-The selected X02 profile requires one composite fleet session for each required 1, 2, or 3-drone
-run.  A reusable layout profile fixes generic encoding, bounds, digest, and packing rules.  A
-content-addressed layout instance binds the stable-drone-ID roster, scalar slots, and resources.
-One aggregate \texttt{SensorFrame} contains \texttt{6N} ENU position and velocity scalars.  One
-aggregate \texttt{CommandFrame} contains \texttt{3N} ENU acceleration-command scalars.
+No release gate has evidence above class 3 of Figure~\ref{fig:evidence-ladder}.
 
-The layout assigns one availability group to each drone.  N=1 exhausts \texttt{00} through
-\texttt{01}.  N=2 exhausts \texttt{00} through \texttt{03}.  N=3 exhausts \texttt{00} through
-\texttt{07}.  Unused high bits are zero.  Placeholder storage uses binary64 positive zero,
-but the decoder exposes only typed unavailability.  Zero-based group $g$ maps to command slots
-$[3g,3g+1,3g+2]$ with exact layout-bound restrictive bytes.
+The machine policy \path{contract/release-gates.v1.json} names twelve pre-release
+gates. Every gate must refer to one immutable source, one normative digest, and exact
+package and environment identities. Table~\ref{tab:release-gates} gives their state. No
+gate has release-bound evidence.
 
-The exact source pin retains the bitmap.  Each unavailable drone requires its installed
-three-value restrictive lane in the atomic \texttt{3N} Active command.  A mismatch rejects the
-whole command.  A correct restrictive Active command receives \texttt{APPLIED}, not
-\texttt{HOLD\_EFFECTIVE}.
-
-The instance binds each scalar index to its entity, semantic, axis, coordinate frame, unit,
-encoding, numeric domain, and applicable physical resource.  One opaque publisher owns the layout
-and its transport slot for each frame class.  It assigns the final position, serializes once, and
-moves the immutable bytes into that slot.  The API exposes no detached buffer-to-context handoff.
-The compact frame adds no slot tag, layout digest, preparation digest, or application authenticator.
-
-TLS record protection detects mutation after seal and before receiver open.  It does not attest
-application provenance.  It cannot detect sender changes before seal or receiver changes after
-open.  It cannot infer a plausible same-unit misassociation.  Equal values are byte-identical.  Bad
-wiring and a compromised authorized packer also remain outside this claim.  Stronger origin claims
-require independent per-entity attestors.
-
-One NEST 3.9 kernel advances the complete fleet at \texttt{0.1 ms} resolution.  Each
-controller epoch is \texttt{20 ms}, and the qualification seed is \texttt{20260826}.  A
-receipt-bound manifest fixes the NEST build, graph, models, parameters, devices, input transform,
-decoder, clamps, targets, lane states, threads, seeds, and counter-based streams.  Per-drone nodes,
-connections, devices, and RNG streams are disjoint.
-
-Each lane uses \texttt{NORMAL}, \texttt{UNAVAILABLE\_RESTRICTIVE}, or
-\texttt{RECOVERY\_WASHOUT}.  Unavailable and washout epochs neutralize only that lane and emit
-its restrictive output.  The first available frame after
-\texttt{UNAVAILABLE\_RESTRICTIVE} enters \texttt{RECOVERY\_WASHOUT}.  A second consecutive
-available frame enters \texttt{NORMAL}.  Any washout fault returns to
-\texttt{UNAVAILABLE\_RESTRICTIVE} and restarts this two-frame recovery.  Fault recovery never
-resets the kernel.  Restart restores exact lane state or retires the session.
-Other lanes remain bitwise equal to their receipt-qualified no-fault baseline.
-
-X02 remains \textbf{OPEN}.  Historical Host API 2 fleet evidence cannot satisfy native NCP role,
-transport, closed-loop, or release qualification.
-
-MUSIC alone owns shared-clock simulator coupling.  NCP does not implement, tunnel, reinterpret,
-or replace MUSIC grants, lookahead, barriers, tick ownership, or deadlock handling.  The selected
-X02 profile uses independent clocks and exact NCP source correlation.  A shared-clock claim needs
-a separate MUSIC-qualified deployment and evidence set.
-
-Engram can host verified presentation assets through one bounded local UI ingress.  Only its role
-adapter crosses projects, and it uses NCP.  A projection binds an opaque source-receipt digest and
-grants no protocol authority.  SVG is presentation-only and non-contract.  SVG cannot carry
-protocol semantics or runtime evidence.
-
-\NcpFigure{H}{0.98\linewidth}{versioning-light.pdf}{Candidate, stable-core, extension, and release identity domains.}
-
-The versioning figure separates wire identity from package, release, extension, and publication
-identity.  The compact protobuf hash is not the complete normative digest.  A copied protocol
-file does not prove migration or installed qualification.
-
-\section{Current implementation boundary}
-
-The current candidate does not implement the complete target.  The most important gaps are:
-\begin{itemize}[leftmargin=*]
-  \item Direct \texttt{production-secure} Zenoh ingress cannot bind the verified remote
-        principal from the callback surface.
-  \item Callers can construct the current actor helper from supplied evidence.  The helper is not
-        an opaque receiver-minted currentness capability.
-  \item The runtime has no one body owner that orders security cuts, leases, command streams,
-        restrictive effects, dispositions, and executor admission.
-  \item The TypeScript client and gateway can remove local generation state before a backend open
-        or close has a definitive result.
-  \item \texttt{NeuroControlLoop} stores a host-supplied serialized lease without a
-        receiver-monotonic deadline capability.
-  \item The tick API returns the same command type for local unadmitted fallback and an admitted
-        transport command.
-  \item A send outcome binds a transport position but not the exact payload digest and owner
-        incarnation.
-  \item Stable command wire still defaults a missing mode to HOLD and carries fields that the
-        compact restrictive profiles forbid.
-  \item No accepted compact data-plane encoding, complete no-reuse owner, durable generation
-        issuer, or complete disposition journal exists.
-  \item Compact sensor frames lack mandatory source-bound availability.  Zero values cannot
-        represent unavailable sensor groups.
-  \item The TypeScript WebSocket client bounds pending request count but not aggregate bytes.
-\end{itemize}
-
-These are implementation gaps if B01 accepts the target.  They are not alternate accepted
-protocol choices.  B02 and B03 remain dependencies for wire-visible implementation.
-
-\NcpFigure{H}{0.98\linewidth}{fsm-light.pdf}{Current compatibility plant-admission state model.}
-
-The state model shows the candidate's normalized input, configured actions, restrictive states,
-and generation-cut reset.  It is included to make the current compatibility boundary visible.
-It is not the complete proposed lifecycle, authority, stream, disposition, and executor owner.
-The proposed admission ordering remains the target shown earlier in this report.
-
-\clearpage
-\section{Thirty-lens design review}
-
-This review is a maintainer-side critique.  It does not satisfy the independent B01 review floor.
-
-\begin{longtable}{L{0.19\linewidth}L{0.37\linewidth}L{0.36\linewidth}}
-\caption{Thirty-lens review of the proposed target.}\label{tab:thirty-lens}\\
+\begin{table}[htbp]
+\centering
+\caption{Pre-release gates of the 1.0 candidate.}\label{tab:release-gates}
+\begin{tabularx}{\linewidth}{L{0.43\linewidth}L{0.13\linewidth}Y}
 \toprule
 \NcpTableHeaderRow
-Lens & Selected target & Gap or required evidence \\
+Gate & Class & State \\
 \midrule
-\endfirsthead
-\toprule
-\NcpTableHeaderRow
-Lens & Selected target & Gap or required evidence \\
-\midrule
-\endhead
+\texttt{normative-contract} & Local & Open: a proto comment conflict blocks it. \\
+\texttt{zero-skip-conformance} & Local & Local pass at a historical source only. \\
+\texttt{live-mtls-acl-rotation-revocation} & External & \NcpNotRun \\
+\texttt{two-independent-non-rust-live-peers} & External & \NcpNotRun \\
+\texttt{fault-backpressure-restart-soak} & External & \NcpNotRun \\
+\texttt{fuzz-sanitizer-duration} & External & \NcpNotRun \\
+\texttt{performance-resource-profile} & External & \NcpNotRun \\
+\texttt{installed-package-matrix} & External & \NcpNotRun \\
+\texttt{registry-namespace-ownership} & External & \NcpNotRun \\
+\texttt{consumer-certification} & External & \NcpNotRun \\
+\texttt{independent-clean-room-reproduction} & External & \NcpNotRun \\
+\texttt{signed-sbom-provenance} & External & \NcpNotRun \\
 \bottomrule
-\endfoot
-Role and type separation & Simulation, plant, observer, extension, and local-library roles are disjoint. & B03 must allocate exact identities.  Current wire still uses older shapes. \\
-Identity and correlation & Realm, generation, stream, request, command, and package identities have explicit scopes. & Durable issuers and exact digest domains remain implementation work. \\
-Authentication and authorization & Direct ingress and forwarded signing are default-deny and non-downgrading. & Direct verified-principal binding is unavailable.  Live security campaigns are \textbf{NOT RUN}. \\
-Error precedence & Raw bounds and profile selection precede identity-sensitive diagnostics. & B03 must freeze exact result codes and precedence. \\
-Freshness and replay & Body-issued absolute grants and per-stream positions fail closed. & Exact grant encoding and digest-bound replay remain open. \\
-Lifecycle and concurrency & One owner orders lifecycle state.  Ambiguity retains the same operation. & Cross-process fencing and durable atomicity remain unimplemented. \\
-Resources and denial of service & Every variable count composes with bytes and local allocation charges. & Numeric profiles and load evidence remain open. \\
-Hot-path overhead & Prepared contexts remove repeated parsing.  Compact frames decode once. & Compact framing and performance qualification remain \textbf{NOT RUN}. \\
-Mathematical consistency & Every equation defines symbols, units, assumptions, and failure behavior. & B03 must select every finite ceiling.  Implementations must match boundary tests. \\
-Failure and recovery & Restart grants no Active authority.  Unknown effects remain fenced. & Generation, no-reuse, and disposition recovery are not implemented. \\
-Plant safety & The body owns final software admission.  Physical effect is outside NCP proof. & Each deployment still needs a plant-owned safety case and interlock. \\
-QoS and overload & Plane capacities are disjoint and finite.  Restrictive work has reserved service. & Scheduler values, transport mapping, and installed load tests remain open. \\
-SDK buffering & Pending count and aggregate bytes are both bounded. & Current TypeScript WebSocket buffering has only a count bound. \\
-Extension isolation & Enrolled-store fetch reserves every resource before callback. & B03 must allocate activation, attachment, and parser profiles. \\
-Evolution and compatibility & Stable-core, release, extension, and publication identities remain separate. & B02 must authorize any rebaseline. \\
-Wire and schema parity & Each accepted object must have one source and generated forms. & Current prototype material is not normative parity. \\
-Ecosystem direction & Consumers pin NCP and expose thin adapters. & No installed consumer role is qualified. \\
-Operability & Gaps, drops, expiry, ambiguity, and insecure mode are visible. & Exact metrics and deployment procedures remain open. \\
-Visual traceability & Figures use ordered flow, text labels, redundant cues, and prose descriptions. & Visual review cannot accept an ADR or qualify performance. \\
-Claims and release & Every local result stays inside a named evidence boundary. & Independent review and all external release gates remain unsatisfied. \\
-Sensor missingness & One mandatory bitmap distinguishes unavailable groups from valid zeros.  Stable 1.0 fixes polarity, bit order, and padding. & B03 allocates field identity, limits, errors, profiles, and profile-specific placeholders. \\
-Source-conditioned safety & The source pin retains availability and selects profile-specific restrictive lanes. & Body admission and disposition bindings remain unimplemented. \\
-Fleet topology & X02 uses one composite session and atomic command for one to three drones. & Exact rosters and layouts remain unallocated. \\
-NEST execution & One NEST 3.9 kernel advances normal, fault, washout, and recovery epochs. & Real one-, two-, and three-drone evidence is \textbf{NOT RUN}. \\
-Authentication profiles & Trusted configuration selects A-direct or B-over-A before bytes. & Direct capability and forwarded JWS implementations remain open. \\
-Language boundary & Opaque capabilities cross Python FFI.  Raw credentials and detached buffers do not. & Prepared PyO3 transport remains open. \\
-Standalone and UI boundary & Default Crebain artifacts omit NCP adapters.  Presentation hosting carries no runtime semantics. & Consumer packaging and UI tests remain open. \\
-MUSIC separation & NCP owns boundary semantics.  MUSIC alone owns shared-clock coupling. & X02 qualifies independent clocks only. \\
-Supply chain and peers & Exact pins, clean archives, SBOMs, and native non-Rust peers bind the final contract. & Publication and clean-room gates remain open. \\
-Operational qualification & Security, faults, rotation, restart, overload, soak, and performance bind exact artifacts. & No ecosystem role campaign has passed. \\
-\end{longtable}
+\end{tabularx}
+\end{table}
 
-The review exposes three high-level conclusions.  First, low overhead depends on prepared context
-and strict ownership, not weaker checks.  Second, every retry and recovery path needs exact
-identity.  Third, finite counts need byte and allocator bounds.
+Two checks run only after publication: an install smoke test and an emergency
+revocation exercise. They do not block the first tag.
 
-\section{Evidence and verification plan}
+The proto comment conflict concerns the predictive-horizon bound. Let $\mathrm{ttl}$ be
+the command lifetime and $\mathrm{dt}$ the horizon step, both in positive milliseconds.
+The comment in \path{proto/ncp.proto} reads $N\leq\mathrm{ttl}/\mathrm{dt}$. The receiver
+expires a command when the elapsed time reaches $\min(\mathrm{ttl},60{,}000)$, so a step
+at that boundary never executes. When the ratio is finite, the intended bound is
+\[
+N\leq\min\bigl(\lceil\min(\mathrm{ttl},60{,}000)/\mathrm{dt}\rceil-1,\ 65{,}536\bigr).
+\]
+A correction changes the complete contract digest, so it must follow the rebaseline
+workflow.
 
-The publication source and PDF have a narrow verification contract:
+% ─────────────────────────────────────────────────────────────────────────────
+\appendix
+% ─────────────────────────────────────────────────────────────────────────────
+\section{How this report is checked}\label{app:verification}
+
+\NcpStatus{local publication checks}
+
+The script \path{scripts/check_ncp_system_design_pdf.sh} rebuilds this report. It does
+these steps:
 \begin{enumerate}[leftmargin=*]
-  \item Convert each generated light SVG to a vector PDF in a disposable build directory.
-  \item Treat each SVG and converted figure as presentation-only, non-contract material.
-  \item Build the LaTeX source with fixed time and timezone inputs.
+  \item Convert each light SVG figure to PDF with a private font configuration.
+  \item Build the report with LuaLaTeX and fixed time inputs.
   \item Reject LaTeX warnings, overfull boxes, underfull boxes, and undefined references.
-  \item Require embedded fonts and stable A4 page geometry.
-  \item Embed and verify a domain-separated SHA-256 commitment over the report,
-        style, and nine SVG sources.
-  \item Compare the rebuilt PDF with the committed PDF on the same toolchain.
-  \item Render every page to PNG and inspect layout, labels, equations, tables, and figures.
+  \item Require embedded fonts, A4 pages, and no JavaScript.
+  \item Check that the equation audit covers every numbered equation in order.
+  \item Embed a domain-separated SHA-256 commitment over the report sources.
+  \item Compare the rebuilt PDF with the committed PDF.
 \end{enumerate}
 
-This contract checks artifact integrity and presentation.  It does not validate the protocol or
-the scientific and safety claims that NCP excludes.
-
-The complete repository gate remains broader.  It covers Rust, Python, C, C++, TypeScript,
-protobuf, schema, profiles, package archives, dependency policy, and candidate baselines.  A local
-pass still cannot satisfy external gates.
-
-The following gates remain separate and \textbf{NOT RUN} until exact evidence exists:
+The generator \path{scripts/gen_diagrams.py} owns every figure. It writes a light and
+a dark SVG of each figure to \path{docs/diagrams/}. This report uses the light SVGs. The
+Markdown documents show the SVG that matches the reader's color scheme. It measures each label with the
+advance widths of the exact font files. It rejects each of these defects:
 \begin{itemize}[leftmargin=*]
-  \item live mTLS, ACL, certificate rotation, and revocation
-  \item two installed and independent non-Rust peers
-  \item fault, soak, duration fuzz, and sanitizer campaigns
-  \item performance qualification
-  \item signatures, SBOM, and provenance
-  \item clean-room reproduction
-  \item all eleven exact consumer and extension role qualifications
+  \item a label that does not fit its box, or two labels that overlap,
+  \item a connector that does not end on its boxes, or that crosses another box,
+  \item text contrast below 4.5:1, and
+  \item an SVG that breaks the accessibility contract.
 \end{itemize}
+The figures stay vector graphics in this report, so they keep sharp edges at every zoom
+level.
 
-\section{Equation audit and symbol glossary}
+The Lean~4 file \path{docs/publication/lean/NcpDesign.lean} checks the discrete
+arithmetic of this report. It covers equations \eqref{eq:cadd}, \eqref{eq:sequence-domain},
+\eqref{eq:chunk-count}--\eqref{eq:spike-window},
+\eqref{eq:gate-set}--\eqref{eq:admission-prefix}, \eqref{eq:hot-time},
+\eqref{eq:hot-bound}, \eqref{eq:lifecycle-memory}, \eqref{eq:queue-admit},
+\eqref{eq:queue-after}, \eqref{eq:prepared-memory}, \eqref{eq:ordinal-successor},
+\eqref{eq:position-successor}, \eqref{eq:bitmap-bytes}--\eqref{eq:frame-bound},
+\eqref{eq:live}, and \eqref{eq:scalar-loop}. It also checks the fleet command groups,
+the silence deadline, the horizon count, and the sample and byte totals in
+Table~\ref{tab:campaigns}. The script \path{scripts/check_ncp_design_lean.sh} runs the
+file with Lean 4.23.0. The file uses Lean core only and rejects unchecked constructs.
 
-Table~\ref{tab:equation-audit} accounts for every numbered equation in this report.  The
-right-hand column states the interpretation and assumptions.  It also states the required
-failure behavior for unavailable or out-of-domain inputs.
+These checks show artifact integrity and arithmetic. They do not validate the protocol
+or the scientific and safety claims that NCP excludes.
 
-\begin{longtable}{L{0.18\linewidth}L{0.18\linewidth}L{0.56\linewidth}}
+\section{Equation audit}\label{app:audit}
+
+Table~\ref{tab:equation-audit} accounts for every numbered equation. The right column
+states the meaning, the assumptions, and the behavior when an input is out of range.
+
+\begin{longtable}{L{0.12\linewidth}L{0.17\linewidth}L{0.63\linewidth}}
 \caption{Equation audit.}\label{tab:equation-audit}\\
 \toprule
 \NcpTableHeaderRow
@@ -1333,66 +1527,99 @@ Equations & Unit & Meaning, assumptions, and failure behavior \\
 \endhead
 \bottomrule
 \endfoot
-\eqref{eq:gate-set}--\eqref{eq:admission-prefix} & Boolean & The receiver evaluates one fixed gate order.  It stops at the first false gate and does not inspect later identity-sensitive fields. \\
-\eqref{eq:stage-index}--\eqref{eq:stage-contiguity} & monotonic ticks & Each local stage has ordered receiver ticks.  Negative or cross-incarnation durations are invalid.  Contiguity is an accounting boundary. \\
-\eqref{eq:hot-start-end}--\eqref{eq:hot-decomposition} & monotonic ticks & Adjacent boundary terms cancel in the telescoping sum.  Transport, queue, application, and device time are outside this interval. \\
-\eqref{eq:stage-upper}--\eqref{eq:hot-upper} & monotonic ticks & Every selected stage ceiling is finite.  B03 must select the ceilings, and platform qualification must test them. \\
-\eqref{eq:allocation-sum}--\eqref{eq:steady-state-allocation} & operations & Per-stage allocation and full-copy counts add.  Zero-copy and zero-allocation are fixed-layout targets, not current measurements. \\
-\eqref{eq:store-bound}--\eqref{eq:lifecycle-memory-expanded} & bytes & Finite capacities multiply complete per-unit charges.  Fixed overhead remains when every occupied count is zero. \\
-\eqref{eq:memory-partial} & bytes & Products and partial sums use checked arithmetic in a fixed order.  Overflow rejects the profile before allocation. \\
-\eqref{eq:local-memory-bound} & local charge & The implementation applies a second finite monotone accounting domain.  JavaScript reports an abstract charge unless it controls the complete representation. \\
-\eqref{eq:queue-retained-bytes}--\eqref{eq:prepared-portable-bound} & elements and bytes & Current bounds and deterministic allowable victim selection define the survivor state.  Checked reservation establishes the post-admission invariants.  Disjoint lifecycle and queue charges then form one portable prepared-memory bound. \\
-\eqref{eq:queue-local-bound}--\eqref{eq:prepared-local-bound} & local charge & Each queue has a finite monotone local charge.  Disjoint lifecycle and queue charges add without cross-plane borrowing. \\
-\eqref{eq:namespace}--\eqref{eq:single-flight} & operations & One exact namespace has at most one active lifecycle record.  A cross-process owner also needs a fenced writer epoch. \\
-\eqref{eq:pending-transition}--\eqref{eq:terminal-commit-order} & ordered state transitions & Reservation precedes external work.  Result publication and high-water commit precede active-slot release. \\
-\eqref{eq:retained-operation}--\eqref{eq:retry-conflict} & bytes and Boolean & Retry requires exact coordinate, request, context, and ordinal equality.  Any unequal component is a conflict. \\
-\eqref{eq:ordinal-domain}--\eqref{eq:ordinal-monotone} & ordinal & Zero is the initial high-water sentinel and is never assigned.  Checked succession is strictly monotone.  Exhaustion seals the epoch instead of wrapping or saturating. \\
-\eqref{eq:no-dedicated-service} & service count & Session state uses bounded shared owners.  The design allocates no thread, socket, or store service per session. \\
-\eqref{eq:position-domain}--\eqref{eq:gap-set} & position & Position zero is the initial high-water sentinel and is never assigned.  Checked succession is strictly monotone.  Exhaustion seals the epoch.  Assignment commits before later work, so failure creates a visible gap and never permits reuse. \\
-\eqref{eq:availability-bytes}--\eqref{eq:codec-linear} & bytes and work units & A prepared fixed layout bounds group count, bitmap bytes, value count, and exact frame length.  Linear work is a structural count, not elapsed time. \\
-\eqref{eq:step-window}--\eqref{eq:step-window-local-global} & requests, bytes, and local charge & Admission leaves one free request slot.  Every coefficient is a deployment maximum.  Each window reserves portable and local storage before backend work.  The active-session capacity lifts both bounds across the deployment. \\
-\eqref{eq:step-order}--\eqref{eq:step-response-coordinate} & position, digest, and bytes & Only the next exact position executes.  Completion advances by checked succession.  Response release also requires exact retained request bytes. \\
-\eqref{eq:freshness-deadline}--\eqref{eq:active-admission} & ticks and Boolean & One receiver clock and body-issued grant define an exclusive deadline.  Every currentness, lease, grant, stream, profile, and executor predicate must be true. \\
-\eqref{eq:no-physical-implication} & proof relation & NCP does not prove that software admission implies physical effect.  The equation does not assert that an effect is impossible. \\
-\eqref{eq:extension-envelope-bounds}--\eqref{eq:extension-attachment-bounds} & bytes and items & One complete envelope and its external attachment references remain within installed count and byte ceilings. \\
-\eqref{eq:extension-portable-memory}--\eqref{eq:extension-local-global} & bytes and local charge & One activation reserves the complete envelope plus the larger active or terminal metadata charge.  Summation over the bounded activation count lifts both accounting domains across the deployment. \\
-\eqref{eq:aux-portable}--\eqref{eq:ncp-local-total} & bytes and local charge & Auxiliary arenas have independent deployment ceilings.  Adding every disjoint owner produces one complete NCP-owned bounded-state envelope. \\
-\eqref{eq:dependency-direction} & graph edge & Consumers depend on NCP through thin adapters.  NCP does not import consumer application code. \\
+\eqref{eq:cadd} & integer & Checked addition is partial. An undefined sum rejects or seals and never wraps. \\
+\eqref{eq:sequence-domain}--\eqref{eq:predecessor} & sequence & Sequence numbers stay exact in binary64. Each request names the last admitted outcome. A mismatch rejects. \\
+\eqref{eq:chunk-count}--\eqref{eq:chunk-max} & bytes & Chunks tile the payload with no gap or overlap. At most 256 chunks carry one payload. A bad chunk changes nothing. \\
+\eqref{eq:owner-extent}--\eqref{eq:client-extent} & bytes & Logical working extents of one owner and one client. They are reservations, not process memory. \\
+\eqref{eq:sample-interval}--\eqref{eq:sample-group} & samples & Each group of three body ticks holds exactly 400 pressure samples. \\
+\eqref{eq:spike-window}--\eqref{eq:spike-rate} & $\mu$s and Hz & The spike window is nonempty when $t_e\geq\Delta_n$ and $\delta<\Delta_n$. A pending window gives no rate. \\
+\eqref{eq:gate-set}--\eqref{eq:admission-prefix} & Boolean & One fixed gate order. The first false gate decides, and no later field is read. \\
+\eqref{eq:stages}--\eqref{eq:hot-bound} & ticks & Contiguous stage boundaries telescope. Selected ceilings bound the hot path. Cross-incarnation ticks are invalid. \\
+\eqref{eq:alloc-copy} & operations & Allocation and copy counts add over stages. Zero is a target, not a measurement. \\
+\eqref{eq:store-bound}--\eqref{eq:local-charge} & bytes and local units & Capacity times unit charge plus fixed overhead. Checked partial sums reject a profile before allocation. \\
+\eqref{eq:queue-bytes}--\eqref{eq:prepared-local} & items and bytes & Victim selection and three checks keep count, bytes, and loss within bounds. A failed check leaves the queue unchanged. \\
+\eqref{eq:busy-count}--\eqref{eq:single-flight} & records & At most one busy record for each namespace. \\
+\eqref{eq:reserve-order}--\eqref{eq:commit-order} & order & Reservation precedes external work. Publication precedes the release of the slot. \\
+\eqref{eq:exact-retry} & bytes & Exact retry is tuple equality with byte comparison. Anything else conflicts. \\
+\eqref{eq:ordinal-domain}--\eqref{eq:ordinal-successor} & ordinal & Zero is the sentinel. Successors increase strictly. Exhaustion seals the epoch. \\
+\eqref{eq:no-service} & count & No thread, socket, or store exists for one session. \\
+\eqref{eq:position-domain}--\eqref{eq:gap-set} & position & Positions increase strictly and never repeat. A failed publication leaves a visible gap. \\
+\eqref{eq:bitmap-bytes}--\eqref{eq:frame-bound} & bytes & The layout bounds the bitmap and the frame length. The length check precedes decoding. \\
+\eqref{eq:codec-work} & operations & A structural work count, linear in the value count. \\
+\eqref{eq:window-admit}--\eqref{eq:window-total} & requests and bytes & One free slot is required. The session capacity bounds the number of windows. \\
+\eqref{eq:step-order}--\eqref{eq:step-response} & position and bytes & Only the next position executes. A response needs exact request bytes. \\
+\eqref{eq:deadline}--\eqref{eq:grant-range} & ticks and position & One body clock, an exclusive deadline, and a contiguous range from one. Overflow rejects the grant. \\
+\eqref{eq:active} & Boolean & Six predicates. The result is software admission, not physical effect. \\
+\eqref{eq:latencies} & ticks & Latencies on one clock. An absent event is undefined. \\
+\eqref{eq:zoh}--\eqref{eq:scalar-loop} & dimensionless & Sampled linear feedback. Stability needs $\rho(\Phi)<1$, which message delivery does not show. \\
+\eqref{eq:envelope}--\eqref{eq:extension-memory} & bytes and items & Envelope, attachment, and activation bounds. Every activation keeps its context charged. \\
+\eqref{eq:aux}--\eqref{eq:total} & bytes & Disjoint domains add with no alias discount. \\
+\eqref{eq:dependency} & graph path & Consumers depend on NCP. NCP reaches no consumer, directly or indirectly. \\
 \end{longtable}
 
-\begin{table}[H]
-\centering
-\caption{State and result terms.}
-\begin{tabularx}{\linewidth}{L{0.24\linewidth}Y}
+\Needspace{30\baselineskip}
+\section{Glossary}\label{app:glossary}
+
+\begin{longtable}{L{0.22\linewidth}L{0.70\linewidth}}
+\caption{Terms and project names.}\label{tab:glossary}\\
 \toprule
 \NcpTableHeaderRow
-Term & Exact meaning \\
+Term & Meaning \\
 \midrule
-Current & The installed receiver-owned state still admits the checked operation \\
-Pending & Capacity and lineage are durable, and external work can be active \\
-Ambiguous & The same operation remains fenced because effect outcome is unknown \\
-Terminal & A definitive result and high-water are durable \\
-Retired & Reexecution is forbidden, while the full retained result can be unavailable \\
-Exact retry & Coordinate, request bytes, context bytes, and ordinal all equal retained values \\
-Software admission & The body executor slot accepted the exact command and evidence transition \\
-Physical effect & A deployment result outside the NCP software proof boundary \\
+\endfirsthead
+\toprule
+\NcpTableHeaderRow
+Term & Meaning \\
+\midrule
+\endhead
 \bottomrule
-\end{tabularx}
-\end{table}
+\endfoot
+Body & The plant or its simulation. It is the final software authority before an
+actuator. \\
+Commander & A controller that sends Active commands under a body-issued lease. \\
+Observer & A read-only consumer of an observation projection. \\
+Generation & A server-issued identity of one live session. It is never reused. \\
+Retained outcome & The exact result bytes that an owner keeps until an exact
+acknowledgement. \\
+ESTOP, HOLD, Active & Plant command modes. ESTOP latches. HOLD does not latch. Active
+applies values. \\
+Engram & The neural application in the private Paper2Brain repository. It hosts NEST
+networks. \\
+CREBAIN & A 3D environment for drone simulation and sensor-fusion research. Role
+identifiers keep the older spelling, such as \texttt{Crebain body}. \\
+Prisoma & Experiments that bind forecasts to one pre-action state and compare later
+outcomes with baselines. It also captures NCP exchanges. \\
+Galadriel & An advisory sensor-consistency monitor for tampering research. An
+anomaly does not prove an attack. \\
+Haldir & An experimental reference monitor for mission-level plant commands. \\
+NEST & A simulator for spiking neural networks. \\
+Zenoh & A publish-subscribe and query transport. \\
+MUSIC & A library that couples simulators on a shared clock. \\
+\end{longtable}
 
-\section{Conclusion}
-
-The proposed architecture obtains low overhead from preparation, exact ownership, one-pass
-decoding, finite shared stores, and plane isolation.  It does not remove authentication,
-authorization, freshness, safety, or currentness checks.
-
-The equations expose the design accounting used here.  Latency is a telescoping sum of named local
-stages.  Memory is the sum of fixed overhead and capacity-scaled charges.  Lifecycle mutation is
-single-flight.  Retry is exact equality.  Ordinals and positions use checked monotone successors.
-Queue and extension work reserve complete byte and metadata budgets before retention.
-
-The target remains proposed.  Independent B01 review, B02 authorization, B03 allocation, complete
-implementation, conformance, installed peers, and every external gate still remain.
+\Needspace{12\baselineskip}
+\begin{longtable}{L{0.22\linewidth}L{0.70\linewidth}}
+\caption{Task and campaign codes in repository records.}\label{tab:codes}\\
+\toprule
+\NcpTableHeaderRow
+Code & Meaning and source \\
+\midrule
+\endfirsthead
+\toprule
+\NcpTableHeaderRow
+Code & Meaning and source \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+B01 & Independent review of the eleven proposed decision records. Task ledger. \\
+B02 & Owner authorization of the deliberate rebaseline. Task ledger. \\
+B03 & Allocation of registries, identifiers, error codes, and limits. Task ledger. \\
+X02 & The composed ecosystem and fleet campaign. Task ledger. \\
+L1--L10 & The ten review lenses of Table~\ref{tab:lenses}. Finalization blueprint. \\
+M1 & The sensor transfer and timing campaigns. Prisoma records. \\
+E1 & The restored-label forecast study. Prisoma records. \\
+\end{longtable}
 
 \typeout{NCP-EQUATION-COUNT=\arabic{equation}}
 \end{document}

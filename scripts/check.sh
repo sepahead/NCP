@@ -38,6 +38,7 @@ require_tool bun
 require_tool npm
 require_tool node
 require_tool buf
+require_tool lean
 
 step "format + whitespace integrity"
 cargo fmt --all -- --check
@@ -54,6 +55,9 @@ python3 -m venv "$publication_venv"
     -r scripts/requirements-publication.txt
 NCP_PUBLICATION_PYTHON="$publication_venv/bin/python" \
     ./scripts/check_ncp_system_design_pdf.sh --cross-toolchain
+
+step "publication arithmetic (Lean)"
+./scripts/check_ncp_design_lean.sh
 
 step "pinned evidence-schema and B01 Python toolchain"
 evidence_schema_venv="$tmp_dir/evidence-schema-venv"

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation and publication (no wire change)
+
+- Rebuilt the system-design PDF as a standalone report for the modular SDK, the
+  fixed-role profile, and the `1.0.0-rc.1` candidate. It defines its notation,
+  derives each equation from named assumptions, audits all 63 equations, and cites
+  the source or record of each claim. It uses the pid-rs publication design
+  language and LuaLaTeX with embedded OpenType fonts.
+- Regenerated all fifteen diagrams from one generator with measured font metrics.
+  The generator rejects overflowing text, detached or crossing connectors, and text
+  contrast below 4.5:1. Six figures are new. Markdown shows the light or dark SVG
+  that matches the reader's color scheme and links both files for zoom.
+- Added a Lean 4 core file that checks the discrete arithmetic of the report, with
+  a local and CI check that pins Lean 4.23.0.
+- Extended the cross-toolchain PDF text check to the decorative page ground. It
+  still rejects faded, pattern-filled, or clipped body text.
+- These changes add no wire, identifier, or release authority. External and
+  independent gates remain **NOT RUN**.
+
 ### 1.0.0-rc.1 candidate (breaking; not released)
 
 - Changed the wire to `1.0` and compact protobuf-structure hash to

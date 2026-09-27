@@ -7,6 +7,14 @@ The [modular application guide](../../local/modular/STATUS.md) owns current appl
 
 ## A complete feedback cycle
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../diagrams/closed-loop-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../diagrams/closed-loop-light.svg">
+  <img alt="A feedback cycle runs from plant state through sensing, a retained source record, a controller proposal, body admission, and disposition to actuator input. NCP records three software events. It cannot measure the physical response or establish stability. UNRELEASED. It is not release or certification evidence." src="../diagrams/closed-loop-light.svg" width="860">
+</picture>
+
+Full-size vector figure: [light](../diagrams/closed-loop-light.svg?raw=true) · [dark](../diagrams/closed-loop-dark.svg?raw=true).
+
 Let $k$ be a nonnegative integer sample index.
 Let $x_k$ be plant state, $w_k$ a sensor disturbance, and $h$ the installed sampling function.
 The observation is $y_k=h(x_k,w_k)$.

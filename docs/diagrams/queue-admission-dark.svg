@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1118" viewBox="0 0 1600 1118" role="img" aria-labelledby="queue-admission-title queue-admission-desc">
+<title id="queue-admission-title">NCP finite plane queue admission</title>
+<desc id="queue-admission-desc">Each plane queue limits both item count and retained bytes. A plane policy selects allowed victims or rejects. One atomic owner step records the loss, removes victims, and installs the item. This is proposed design for the UNRELEASED 1.0 candidate. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="queue-admission-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#6FC1BD"/></marker>
+<pattern id="queue-admission-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1118" fill="#131D26"/>
+<rect x="1264.3" y="18" width="283.7" height="38" rx="19" fill="#8DB2D8"/>
+<path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="186" width="330" height="238" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M52 200 L52 200 Q52 186 66 186 L368 186 Q382 186 382 200 L382 200 Z" fill="#8DB2D8"/>
+<path d="M78 298 L356 298" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="462" y="186" width="560" height="238" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M462 200 L462 200 Q462 186 476 186 L1008 186 Q1022 186 1022 200 L1022 200 Z" fill="#8DB2D8"/>
+<rect x="488" y="308" width="74.7" height="52" rx="8" fill="#1F3340" stroke="#8DB2D8" stroke-width="2"/>
+<rect x="574.7" y="308" width="74.7" height="52" rx="8" fill="#1F3340" stroke="#8DB2D8" stroke-width="2"/>
+<rect x="661.3" y="308" width="74.7" height="52" rx="8" fill="#1F3340" stroke="#8DB2D8" stroke-width="2"/>
+<rect x="748" y="308" width="74.7" height="52" rx="8" fill="#1F3340" stroke="#8DB2D8" stroke-width="2"/>
+<rect x="834.7" y="308" width="74.7" height="52" rx="8" fill="#1A2631" stroke="#3D5263" stroke-width="2"/>
+<rect x="921.3" y="308" width="74.7" height="52" rx="8" fill="#1A2631" stroke="#3D5263" stroke-width="2"/>
+<rect x="1102" y="186" width="446" height="238" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M1102 200 L1102 200 Q1102 186 1116 186 L1534 186 Q1548 186 1548 200 L1548 200 Z" fill="#6FC1BD"/>
+<path d="M1128 266 L1522 266" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="468" width="477.3" height="173" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M52 482 L52 482 Q52 468 66 468 L515.3 468 Q529.3 468 529.3 482 L529.3 482 Z" fill="#8DB2D8"/>
+<circle cx="90" cy="519" r="21.2" fill="#8DB2D8"/>
+<path d="M78 548 L503.3 548" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="561.3" y="468" width="477.3" height="173" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M561.3 482 L561.3 482 Q561.3 468 575.3 468 L1024.7 468 Q1038.7 468 1038.7 482 L1038.7 482 Z" fill="#8DB2D8"/>
+<circle cx="599.3" cy="519" r="21.2" fill="#8DB2D8"/>
+<path d="M587.3 548 L1012.7 548" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1070.7" y="468" width="477.3" height="173" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M1070.7 482 L1070.7 482 Q1070.7 468 1084.7 468 L1534 468 Q1548 468 1548 482 L1548 482 Z" fill="#8DB2D8"/>
+<circle cx="1108.7" cy="519" r="21.2" fill="#8DB2D8"/>
+<path d="M1096.7 548 L1522 548" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="675" width="1496" height="239" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M52 689 L52 689 Q52 675 66 675 L1534 675 Q1548 675 1548 689 L1548 689 Z" fill="#8DB2D8"/>
+<path d="M78 755 L1522 755" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="948" width="1496" height="130" rx="10" fill="#1E3240"/>
+<rect x="52" y="948" width="10" height="130" rx="5" fill="#D8AA45"/>
+<path d="M382 305 L462 305" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#queue-admission-arrow-turquoise)"/>
+<path d="M1022 305 L1102 305" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#queue-admission-arrow-turquoise)"/>
+<text x="1406.1" y="43.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">PROPOSED DESIGN</text>
+<text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">PLANE QUEUE</text>
+<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Each queue limits both items and bytes</text>
+<text x="78" y="246" class="s" font-size="28" fill="#ECE5D5" font-weight="700">New item</text>
+<text x="78" y="278" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Size in bytes</text>
+<text x="78" y="336" class="r" font-size="25" fill="#ECE5D5">The policy examines the</text>
+<text x="78" y="369" class="r" font-size="25" fill="#ECE5D5">item before it retains</text>
+<text x="78" y="402" class="r" font-size="25" fill="#ECE5D5">any byte.</text>
+<text x="488" y="246" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Plane queue</text>
+<text x="488" y="278" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Item limit and byte limit</text>
+<text x="1128" y="246" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Admission</text>
+<text x="1128" y="304" class="r" font-size="25" fill="#ECE5D5">Admit in one atomic step.</text>
+<text x="1128" y="337" class="r" font-size="25" fill="#ECE5D5">Otherwise reject.</text>
+<text x="1128" y="370" class="r" font-size="25" fill="#ECE5D5">The queue stays unchanged.</text>
+<text x="90" y="527.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="122" y="528" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Count</text>
+<text x="78" y="586" class="r" font-size="25" fill="#ECE5D5">After the victims leave, one more item</text>
+<text x="78" y="619" class="r" font-size="25" fill="#ECE5D5">must fit the item limit.</text>
+<text x="599.3" y="527.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="631.3" y="528" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Bytes</text>
+<text x="587.3" y="586" class="r" font-size="25" fill="#ECE5D5">After the victim bytes leave, the new</text>
+<text x="587.3" y="619" class="r" font-size="25" fill="#ECE5D5">bytes must fit the byte limit.</text>
+<text x="1108.7" y="527.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="1140.7" y="528" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Visible loss</text>
+<text x="1096.7" y="586" class="r" font-size="25" fill="#ECE5D5">The loss count plus the victims must</text>
+<text x="1096.7" y="619" class="r" font-size="25" fill="#ECE5D5">fit the loss limit.</text>
+<text x="78" y="735" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Victim policy by plane</text>
+<text x="78" y="793" class="r" font-size="25" fill="#ECE5D5">Control and extension: select no victim and reject when full.</text>
+<text x="78" y="826" class="r" font-size="25" fill="#ECE5D5">Perception: replace the latest replaceable item.</text>
+<text x="78" y="859" class="r" font-size="25" fill="#ECE5D5">Observation: drop the oldest items and count each gap.</text>
+<text x="78" y="892" class="r" font-size="25" fill="#ECE5D5">Action: displace only work that the severity order permits.</text>
+<text x="84" y="986" class="s" font-size="24" fill="#AAB7BE" font-weight="600">ISOLATION</text>
+<text x="84" y="1024" class="r" font-size="25" fill="#ECE5D5">No plane borrows the count, byte, or local charge of another plane. Observation pressure cannot consume reserved action</text>
+<text x="84" y="1057" class="r" font-size="25" fill="#ECE5D5">capacity.</text>
+</svg>

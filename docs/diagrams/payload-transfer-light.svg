@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="873" viewBox="0 0 1600 873" role="img" aria-labelledby="payload-transfer-title payload-transfer-desc">
+<title id="payload-transfer-title">NCP bounded payload transfer</title>
+<desc id="payload-transfer-desc">A receiver reserves the complete declared length, admits only the next verified chunk, and seals the payload after the complete SHA-256 digest matches. Chunks are at most 32,768 bytes and payloads at most 8,388,608 bytes. The SDK is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="payload-transfer-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F6968"/></marker>
+<pattern id="payload-transfer-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="873" fill="#F7F3E9"/>
+<rect x="1267" y="18" width="281" height="38" rx="19" fill="#1F6968"/>
+<path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="152" width="400" height="238" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 166 L52 166 Q52 152 66 152 L438 152 Q452 152 452 166 L452 166 Z" fill="#1F3F60"/>
+<path d="M78 264 L426 264" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1148" y="152" width="400" height="238" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M1148 166 L1148 166 Q1148 152 1162 152 L1534 152 Q1548 152 1548 166 L1548 166 Z" fill="#1F6968"/>
+<path d="M1174 264 L1522 264" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="512" y="192" width="576" height="150" rx="14" fill="#FBF9F3" stroke="#C3D3D6" stroke-width="2"/>
+<rect x="536" y="258" width="94.4" height="56" rx="8" fill="#E4EDEE" stroke="#1F6968" stroke-width="2"/>
+<rect x="644.4" y="258" width="94.4" height="56" rx="8" fill="#E4EDEE" stroke="#1F6968" stroke-width="2"/>
+<rect x="752.8" y="258" width="94.4" height="56" rx="8" fill="#E4EDEE" stroke="#1F6968" stroke-width="2"/>
+<rect x="861.2" y="258" width="94.4" height="56" rx="8" fill="#FBF9F3" stroke="#1F6968" stroke-width="2"/>
+<rect x="969.6" y="258" width="94.4" height="56" rx="8" fill="#E4EDEE" stroke="#1F6968" stroke-width="2"/>
+<rect x="52" y="430" width="477.3" height="239" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 444 L52 444 Q52 430 66 430 L515.3 430 Q529.3 430 529.3 444 L529.3 444 Z" fill="#1F3F60"/>
+<circle cx="90" cy="481" r="21.2" fill="#1F3F60"/>
+<path d="M78 510 L503.3 510" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="561.3" y="430" width="477.3" height="239" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M561.3 444 L561.3 444 Q561.3 430 575.3 430 L1024.7 430 Q1038.7 430 1038.7 444 L1038.7 444 Z" fill="#1F3F60"/>
+<circle cx="599.3" cy="481" r="21.2" fill="#1F3F60"/>
+<path d="M587.3 510 L1012.7 510" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1070.7" y="430" width="477.3" height="239" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M1070.7 444 L1070.7 444 Q1070.7 430 1084.7 430 L1534 430 Q1548 430 1548 444 L1548 444 Z" fill="#1F3F60"/>
+<circle cx="1108.7" cy="481" r="21.2" fill="#1F3F60"/>
+<path d="M1096.7 510 L1522 510" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="703" width="1496" height="130" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="703" width="10" height="130" rx="5" fill="#B28218"/>
+<path d="M452 267 L512 267" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#payload-transfer-arrow-turquoise)"/>
+<path d="M1088 267 L1148 267" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#payload-transfer-arrow-turquoise)"/>
+<text x="1407.5" y="43.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">IMPLEMENTED SDK</text>
+<text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">PAYLOAD TRANSFER</text>
+<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">Reserve first, then admit verified chunks in order</text>
+<text x="78" y="212" class="s" font-size="28" fill="#2C3E50" font-weight="700">Producer buffer</text>
+<text x="78" y="244" class="s" font-size="25" fill="#1F6968" font-weight="600">Sealed, owned bytes</text>
+<text x="78" y="302" class="r" font-size="25" fill="#2C3E50">The byte manifest binds the</text>
+<text x="78" y="335" class="r" font-size="25" fill="#2C3E50">length, the payload SHA-256,</text>
+<text x="78" y="368" class="r" font-size="25" fill="#2C3E50">and the semantic digest.</text>
+<text x="1174" y="212" class="s" font-size="28" fill="#2C3E50" font-weight="700">Receiver import</text>
+<text x="1174" y="244" class="s" font-size="25" fill="#1F6968" font-weight="600">Reserve, admit, seal</text>
+<text x="1174" y="302" class="r" font-size="25" fill="#2C3E50">Reserve the full length first.</text>
+<text x="1174" y="335" class="r" font-size="25" fill="#2C3E50">Seal only when the complete</text>
+<text x="1174" y="368" class="r" font-size="25" fill="#2C3E50">SHA-256 matches.</text>
+<text x="536" y="232" class="s" font-size="25" fill="#4D5C64" font-weight="600">chunks in index order</text>
+<text x="583.2" y="295" class="s" font-size="25" fill="#2C3E50" font-weight="700" text-anchor="middle">0</text>
+<text x="691.6" y="295" class="s" font-size="25" fill="#2C3E50" font-weight="700" text-anchor="middle">1</text>
+<text x="800" y="295" class="s" font-size="25" fill="#2C3E50" font-weight="700" text-anchor="middle">2</text>
+<text x="908.4" y="295" class="s" font-size="25" fill="#2C3E50" font-weight="700" text-anchor="middle">…</text>
+<text x="1016.8" y="295" class="s" font-size="25" fill="#2C3E50" font-weight="700" text-anchor="middle">last</text>
+<text x="90" y="489.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="122" y="490" class="s" font-size="28" fill="#2C3E50" font-weight="700">Each chunk</text>
+<text x="78" y="548" class="r" font-size="25" fill="#2C3E50">Index, offset, decoded length,</text>
+<text x="78" y="581" class="r" font-size="25" fill="#2C3E50">canonical base64, and chunk SHA-256</text>
+<text x="78" y="614" class="r" font-size="25" fill="#2C3E50">must match.</text>
+<text x="599.3" y="489.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="631.3" y="490" class="s" font-size="28" fill="#2C3E50" font-weight="700">Seal</text>
+<text x="587.3" y="548" class="r" font-size="25" fill="#2C3E50">The complete payload SHA-256 must</text>
+<text x="587.3" y="581" class="r" font-size="25" fill="#2C3E50">match. Valid chunk digests cannot</text>
+<text x="587.3" y="614" class="r" font-size="25" fill="#2C3E50">replace it.</text>
+<text x="1108.7" y="489.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="1140.7" y="490" class="s" font-size="28" fill="#2C3E50" font-weight="700">Chunk count</text>
+<text x="1096.7" y="548" class="r" font-size="25" fill="#2C3E50">The count is the length divided by</text>
+<text x="1096.7" y="581" class="r" font-size="25" fill="#2C3E50">32,768 bytes, rounded up. A payload</text>
+<text x="1096.7" y="614" class="r" font-size="25" fill="#2C3E50">of at most 8,388,608 bytes needs at</text>
+<text x="1096.7" y="647" class="r" font-size="25" fill="#2C3E50">most 256 chunks.</text>
+<text x="84" y="741" class="s" font-size="24" fill="#4D5C64" font-weight="600">LIFETIMES</text>
+<text x="84" y="779" class="r" font-size="25" fill="#2C3E50">An acknowledgement releases the result frame only. Buffer release and import abort are separate operations on one exact named</text>
+<text x="84" y="812" class="r" font-size="25" fill="#2C3E50">entry. A failed admission keeps counters, reservations, and stored bytes unchanged.</text>
+</svg>

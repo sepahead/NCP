@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1289" viewBox="0 0 1600 1289" role="img" aria-labelledby="evidence-ladder-title evidence-ladder-desc">
+<title id="evidence-ladder-title">NCP evidence classes and permitted claims</title>
+<desc id="evidence-ladder-desc">Five evidence classes run from source controls to release. Each class permits only its own claim. The NCP 1.0 candidate has local and selected native evidence. Its independent and external gates are NOT RUN, and it is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<pattern id="evidence-ladder-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1289" fill="#F7F3E9"/>
+<path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="156" width="1496" height="173" rx="14" fill="#FBF9F3" stroke="#743E37" stroke-width="3"/>
+<path d="M52 170 L52 170 Q52 156 66 156 L1534 156 Q1548 156 1548 170 L1548 170 Z" fill="#743E37"/>
+<circle cx="90" cy="207" r="21.2" fill="#743E37"/>
+<path d="M78 236 L1522 236" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1414.7" y="188" width="107.3" height="38" rx="19" fill="#743E37"/>
+<rect x="52" y="345" width="1496" height="173" rx="14" fill="#FBF9F3" stroke="#743E37" stroke-width="3"/>
+<path d="M52 359 L52 359 Q52 345 66 345 L1534 345 Q1548 345 1548 359 L1548 359 Z" fill="#743E37"/>
+<circle cx="90" cy="396" r="21.2" fill="#743E37"/>
+<path d="M78 425 L1522 425" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1371.7" y="377" width="150.3" height="38" rx="19" fill="#743E37"/>
+<rect x="52" y="534" width="1496" height="173" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 548 L52 548 Q52 534 66 534 L1534 534 Q1548 534 1548 548 L1548 548 Z" fill="#1F3F60"/>
+<circle cx="90" cy="585" r="21.2" fill="#1F3F60"/>
+<path d="M78 614 L1522 614" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1256.6" y="566" width="265.4" height="38" rx="19" fill="#7A5500"/>
+<rect x="52" y="723" width="1496" height="173" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M52 737 L52 737 Q52 723 66 723 L1534 723 Q1548 723 1548 737 L1548 737 Z" fill="#1F6968"/>
+<circle cx="90" cy="774" r="21.2" fill="#1F6968"/>
+<path d="M78 803 L1522 803" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1400.3" y="755" width="121.7" height="38" rx="19" fill="#1F6968"/>
+<rect x="52" y="912" width="1496" height="173" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M52 926 L52 926 Q52 912 66 912 L1534 912 Q1548 912 1548 926 L1548 926 Z" fill="#1F6968"/>
+<circle cx="90" cy="963" r="21.2" fill="#1F6968"/>
+<path d="M78 992 L1522 992" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1428.3" y="944" width="93.7" height="38" rx="19" fill="#1F6968"/>
+<rect x="52" y="1119" width="1496" height="130" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="1119" width="10" height="130" rx="5" fill="#B28218"/>
+<text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">EVIDENCE CLASSES</text>
+<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">Each claim needs evidence of its own class</text>
+<text x="90" y="215.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">5</text>
+<text x="122" y="216" class="s" font-size="28" fill="#2C3E50" font-weight="700">Release</text>
+<text x="78" y="274" class="r" font-size="25" fill="#2C3E50">Immutable tag, signed artifacts, and provenance.</text>
+<text x="78" y="307" class="r" font-size="25" fill="#2C3E50">No 1.0 release exists. The latest release is v0.8.0 on wire 0.8.</text>
+<text x="1468.3" y="213.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">NONE</text>
+<text x="90" y="404.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">4</text>
+<text x="122" y="405" class="s" font-size="28" fill="#2C3E50" font-weight="700">Independent and external qualification</text>
+<text x="78" y="463" class="r" font-size="25" fill="#2C3E50">Live security, independent peers, faults, soak, performance, and supply chain.</text>
+<text x="78" y="496" class="r" font-size="25" fill="#2C3E50">All ten external release gates of the 1.0 candidate are NOT RUN.</text>
+<text x="1446.8" y="402.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">NOT RUN</text>
+<text x="90" y="593.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="122" y="594" class="s" font-size="28" fill="#2C3E50" font-weight="700">Installed native observation</text>
+<text x="78" y="652" class="r" font-size="25" fill="#2C3E50">A dated campaign with exact artifacts, configuration, and retained failures.</text>
+<text x="78" y="685" class="r" font-size="25" fill="#2C3E50">Permits the observed configuration and workload only.</text>
+<text x="1389.3" y="591.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">SELECTED CASES</text>
+<text x="90" y="782.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="122" y="783" class="s" font-size="28" fill="#2C3E50" font-weight="700">Complete local gate</text>
+<text x="78" y="841" class="r" font-size="25" fill="#2C3E50">One run of scripts/check.sh on one fixed source cut.</text>
+<text x="78" y="874" class="r" font-size="25" fill="#2C3E50">Permits local regression evidence for that cut only.</text>
+<text x="1461.2" y="780.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">LOCAL</text>
+<text x="90" y="971.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="122" y="972" class="s" font-size="28" fill="#2C3E50" font-weight="700">Source controls</text>
+<text x="78" y="1030" class="r" font-size="25" fill="#2C3E50">Unit, property, and cross-language tests on named sources.</text>
+<text x="78" y="1063" class="r" font-size="25" fill="#2C3E50">Permits the tested behavior of that source only.</text>
+<text x="1475.2" y="969.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">IN CI</text>
+<text x="84" y="1157" class="s" font-size="24" fill="#4D5C64" font-weight="600">RULE</text>
+<text x="84" y="1195" class="r" font-size="25" fill="#2C3E50">A lower class never promotes a claim to a higher class. Protocol success does not establish physical safety, controller stability, or</text>
+<text x="84" y="1228" class="r" font-size="25" fill="#2C3E50">scientific validity.</text>
+</svg>

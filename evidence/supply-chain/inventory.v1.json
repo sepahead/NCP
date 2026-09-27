@@ -2589,10 +2589,11 @@
     },
     {
       "outputs": [
-        "docs/diagrams/*.svg"
+        "docs/diagrams/*.svg",
+        "scripts/diagram_font_metrics.v1.json"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "7d58b30e3efc5d9ff5a82878b4a55480263fb614bf1f3cf5be27b69ed572926b"
+      "sha256": "95146af9cfef8efa5a189d5e856e86204a358037c7dc3d3cf8638d1f967d3808"
     },
     {
       "outputs": [
@@ -2699,7 +2700,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "a7a079998e06d3372e8ff6874afcd4dcc73b880c3f2d72d90307b7cd74db6321"
+      "sha256": "322b25c358694b3f02c1914523bdbe81a5292f7c1403706b6dd14e6a43604bcf"
     },
     {
       "outputs": [
@@ -2867,6 +2868,11 @@
       {
         "action": "Swatinem/rust-cache",
         "revision": "e18b497796c12c097a38f9edb9d0641fb99eee32",
+        "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/checkout",
+        "revision": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
         "workflow": ".github/workflows/ci.yml"
       },
       {

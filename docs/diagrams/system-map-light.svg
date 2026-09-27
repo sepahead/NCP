@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1231" viewBox="0 0 1600 1231" role="img" aria-labelledby="system-map-title system-map-desc">
+<title id="system-map-title">NCP modular system map</title>
+<desc id="system-map-desc">A host selects independent applications and connects each one through the NCP contract. NCP owns message identity, retained outcomes, acknowledgements, and bounded byte buffers. Each application owns its own state. The SDK is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="system-map-arrow-lapis" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F3F60"/></marker>
+<marker id="system-map-arrow-muted" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#4D5C64"/></marker>
+<marker id="system-map-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F6968"/></marker>
+<pattern id="system-map-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1231" fill="#F7F3E9"/>
+<path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="152" width="1496" height="140" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 166 L52 166 Q52 152 66 152 L1534 152 Q1548 152 1548 166 L1548 166 Z" fill="#1F3F60"/>
+<path d="M78 232 L1522 232" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="366" width="1496" height="231" rx="14" fill="#E4EDEE" stroke="#1F6968" stroke-width="3"/>
+<path d="M52 380 L52 380 Q52 366 66 366 L1534 366 Q1548 366 1548 380 L1548 380 Z" fill="#1F6968"/>
+<path d="M78 446 L1522 446" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="78" y="537" width="218.7" height="38" rx="19" fill="#1F6968"/>
+<rect x="314.7" y="537" width="272.4" height="38" rx="19" fill="#1F6968"/>
+<rect x="605.1" y="537" width="358.4" height="38" rx="19" fill="#1F6968"/>
+<rect x="981.5" y="537" width="302" height="38" rx="19" fill="#1F6968"/>
+<rect x="52" y="693" width="350" height="334" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 707 L52 707 Q52 693 66 693 L388 693 Q402 693 402 707 L402 707 Z" fill="#1F3F60"/>
+<path d="M78 835 L376 835" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="434" y="693" width="350" height="334" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M434 707 L434 707 Q434 693 448 693 L770 693 Q784 693 784 707 L784 707 Z" fill="#1F3F60"/>
+<path d="M460 835 L758 835" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="816" y="693" width="350" height="334" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M816 707 L816 707 Q816 693 830 693 L1152 693 Q1166 693 1166 707 L1166 707 Z" fill="#1F3F60"/>
+<path d="M842 835 L1140 835" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1198" y="693" width="350" height="334" rx="14" fill="#FBF9F3" stroke="#4D5C64" stroke-width="3" stroke-dasharray="12 8"/>
+<path d="M1224 835 L1522 835" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="1061" width="1496" height="130" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="1061" width="10" height="130" rx="5" fill="#B28218"/>
+<path d="M800 292 L800 366" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#system-map-arrow-lapis)"/>
+<path d="M227 597 L227 693" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#system-map-arrow-turquoise)" marker-start="url(#system-map-arrow-turquoise)"/>
+<path d="M609 597 L609 693" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#system-map-arrow-turquoise)" marker-start="url(#system-map-arrow-turquoise)"/>
+<path d="M991 597 L991 693" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#system-map-arrow-turquoise)" marker-start="url(#system-map-arrow-turquoise)"/>
+<path d="M1373 597 L1373 693" fill="none" stroke="#4D5C64" stroke-width="4" stroke-linejoin="round" stroke-dasharray="12 9" marker-end="url(#system-map-arrow-muted)" marker-start="url(#system-map-arrow-muted)"/>
+<text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">SYSTEM MAP</text>
+<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">A host composes independent applications through NCP</text>
+<text x="78" y="212" class="s" font-size="28" fill="#2C3E50" font-weight="700">Host application</text>
+<text x="78" y="270" class="r" font-size="25" fill="#2C3E50">Selects the peers, installs their exact contracts, sets deadlines and composition budgets, and owns process lifetime.</text>
+<text x="78" y="426" class="s" font-size="28" fill="#2C3E50" font-weight="700">NCP contract and SDK</text>
+<text x="78" y="484" class="r" font-size="25" fill="#2C3E50">Each exchange carries one exact request and one retained outcome. Rust and Python implement the contract independently. NCP</text>
+<text x="78" y="517" class="r" font-size="25" fill="#2C3E50">runs no central process.</text>
+<text x="187.4" y="562.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">Exact requests</text>
+<text x="450.9" y="562.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">Retained outcomes</text>
+<text x="784.3" y="562.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">Digest acknowledgements</text>
+<text x="1132.5" y="562.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">Bounded byte buffers</text>
+<text x="818" y="337" class="s" font-size="24" fill="#4D5C64" font-weight="600">selects and installs</text>
+<text x="78" y="753" class="s" font-size="28" fill="#2C3E50" font-weight="700">Engram</text>
+<text x="78" y="785" class="s" font-size="25" fill="#1F6968" font-weight="600">Neural application</text>
+<text x="78" y="873" class="r" font-size="25" fill="#2C3E50">Persistent NEST network,</text>
+<text x="78" y="906" class="r" font-size="25" fill="#2C3E50">typed currents, and</text>
+<text x="78" y="939" class="r" font-size="25" fill="#2C3E50">delayed spike-count</text>
+<text x="78" y="972" class="r" font-size="25" fill="#2C3E50">readouts.</text>
+<text x="460" y="753" class="s" font-size="28" fill="#2C3E50" font-weight="700">CREBAIN</text>
+<text x="460" y="785" class="s" font-size="25" fill="#1F6968" font-weight="600">Bodies and sensors</text>
+<text x="460" y="873" class="r" font-size="25" fill="#2C3E50">Body dynamics, sensor</text>
+<text x="460" y="906" class="r" font-size="25" fill="#2C3E50">production, and native</text>
+<text x="460" y="939" class="r" font-size="25" fill="#2C3E50">checkpoint state.</text>
+<text x="842" y="753" class="s" font-size="28" fill="#2C3E50" font-weight="700">Prisoma</text>
+<text x="842" y="785" class="s" font-size="25" fill="#1F6968" font-weight="600">Capture and</text>
+<text x="842" y="815" class="s" font-size="25" fill="#1F6968" font-weight="600">experiments</text>
+<text x="842" y="873" class="r" font-size="25" fill="#2C3E50">Original-byte capture,</text>
+<text x="842" y="906" class="r" font-size="25" fill="#2C3E50">experiment order,</text>
+<text x="842" y="939" class="r" font-size="25" fill="#2C3E50">forecasts, and labels.</text>
+<text x="1224" y="753" class="s" font-size="28" fill="#2C3E50" font-weight="700">Galadriel</text>
+<text x="1224" y="785" class="s" font-size="25" fill="#1F6968" font-weight="600">Consistency monitor</text>
+<text x="1224" y="873" class="r" font-size="25" fill="#2C3E50">Advisory evidence or</text>
+<text x="1224" y="906" class="r" font-size="25" fill="#2C3E50">abstention without</text>
+<text x="1224" y="939" class="r" font-size="25" fill="#2C3E50">command authority. Its</text>
+<text x="1224" y="972" class="r" font-size="25" fill="#2C3E50">modular adapter is open</text>
+<text x="1224" y="1005" class="r" font-size="25" fill="#2C3E50">work.</text>
+<text x="84" y="1099" class="s" font-size="24" fill="#4D5C64" font-weight="600">BOUNDARY</text>
+<text x="84" y="1137" class="r" font-size="25" fill="#2C3E50">Each application stays optional. A selected composition must satisfy the contract and resource limits of every participant. A</text>
+<text x="84" y="1170" class="r" font-size="25" fill="#2C3E50">missing observation never becomes a zero value.</text>
+</svg>

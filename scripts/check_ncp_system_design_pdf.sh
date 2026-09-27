@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 SOURCE="docs/publication/ncp-system-design.tex"
 STYLE="docs/publication/ncp-report.sty"
 COMMITTED="output/pdf/ncp-system-design.pdf"
-SOURCE_DATE_EPOCH_VALUE="1786924800"
+SOURCE_DATE_EPOCH_VALUE="1790467200"
 MODE="${1:---check}"
 
 case "$MODE" in
@@ -16,7 +16,7 @@ case "$MODE" in
         ;;
 esac
 
-commands=(cmp latexmk pdfinfo pdffonts pdftotext python3 rsvg-convert)
+commands=(cmp kpsewhich latexmk lualatex pdfinfo pdffonts pdftotext python3 rsvg-convert)
 for command in "${commands[@]}"; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "NCP system-design PDF check: missing command: $command" >&2
@@ -38,29 +38,84 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# The report includes the light SVG of each figure once, in this set. The
+# cross-toolchain check compares this roster with the \NcpFigure calls in source
+# order.
 figures=(
-    admission-light
-    ecosystem-light
-    fsm-light
-    lifecycle-light
-    overview-light
-    runtime-light
-    sequence-light
-    topology-light
-    versioning-light
+    admission
+    closed-loop
+    ecosystem
+    evidence-ladder
+    exchange
+    fsm
+    lifecycle
+    overview
+    payload-transfer
+    queue-admission
+    runtime
+    sequence
+    system-map
+    topology
+    versioning
 )
 
-for figure in "${figures[@]}"; do
+# Figures render with exactly these font files. A private font configuration
+# keeps host fonts out, so a missing file cannot become a silent substitute.
+figure_fonts=(
+    SourceSansPro-Regular.otf
+    SourceSansPro-Semibold.otf
+    SourceSansPro-Bold.otf
+    SourceSansPro-RegularIt.otf
+    SourceSansPro-SemiboldIt.otf
+    lmroman10-regular.otf
+    lmroman10-italic.otf
+)
+FONT_DIR="$BUILD_DIR/figure-fonts"
+mkdir -p "$FONT_DIR/files" "$FONT_DIR/cache"
+for font in "${figure_fonts[@]}"; do
+    located="$(kpsewhich "$font" || true)"
+    if [[ -z "$located" || ! -f "$located" ]]; then
+        echo "NCP system-design PDF check: figure font is missing: $font" >&2
+        exit 2
+    fi
+    cp "$located" "$FONT_DIR/files/$font"
+done
+cat >"$FONT_DIR/fonts.conf" <<EOF
+<?xml version="1.0"?>
+<fontconfig>
+  <reset-dirs/>
+  <dir>$FONT_DIR/files</dir>
+  <cachedir>$FONT_DIR/cache</cachedir>
+</fontconfig>
+EOF
+
+figure_files=("${figures[@]/%/-light}")
+for figure in "${figure_files[@]}"; do
     input="$ROOT/docs/diagrams/$figure.svg"
     output="$BUILD_DIR/$figure.pdf"
     if [[ ! -f "$input" ]]; then
         echo "NCP system-design PDF check: figure is missing: docs/diagrams/$figure.svg" >&2
         exit 1
     fi
-    rsvg-convert --format=pdf --output "$output" "$input"
+    FONTCONFIG_FILE="$FONT_DIR/fonts.conf" FONTCONFIG_PATH="$FONT_DIR" \
+        PANGOCAIRO_BACKEND=fc HOME="$FONT_DIR" \
+        rsvg-convert --format=pdf --output "$output" "$input"
+    if ! pdffonts "$output" | awk '
+        NR > 2 {
+            name = $1
+            sub(/^[A-Z]{6}\+/, "", name)
+            if (name !~ /^(SourceSansPro-(Regular|Semibold|Bold|It|SemiboldIt)|LMRoman10-(Regular|Italic))$/) bad = 1
+            if ($(NF - 4) != "yes") bad = 1
+        }
+        END { exit bad }
+    '; then
+        pdffonts "$output" >&2
+        echo "NCP system-design PDF check: $figure uses an unexpected or unembedded font" >&2
+        exit 1
+    fi
 done
 
-PUBLICATION_SOURCE_DIGEST="$({ python3 - "$ROOT" "$SOURCE" "$STYLE" "${figures[@]}" <<'PY'
+PUBLICATION_SOURCE_DIGEST="$({ python3 - "$ROOT" "$SOURCE" "$STYLE" "${figure_files[@]}" <<'PY'
 import sys
 from hashlib import sha256
 from pathlib import Path
@@ -70,7 +125,7 @@ relative_paths = [Path(sys.argv[2]), Path(sys.argv[3])]
 relative_paths.extend(Path("docs/diagrams") / f"{name}.svg" for name in sys.argv[4:])
 
 hasher = sha256()
-hasher.update(b"ncp.publication-source-set.v1\0")
+hasher.update(b"ncp.publication-source-set.v2\0")
 for relative_path in sorted(relative_paths, key=lambda path: path.as_posix()):
     encoded_path = relative_path.as_posix().encode("utf-8")
     content = (root / relative_path).read_bytes()
@@ -84,57 +139,6 @@ PY
     printf '%s\n' "$PUBLICATION_SOURCE_DIGEST" >&2
     exit 1
 }
-
-printf '\\renewcommand{\\NcpPublicationSourceDigest}{%s}\n' \
-    "$PUBLICATION_SOURCE_DIGEST" >"$BUILD_DIR/ncp-publication-identity.tex"
-
-cp "$ROOT/$SOURCE" "$BUILD_DIR/ncp-system-design.tex"
-cp "$ROOT/$STYLE" "$BUILD_DIR/ncp-report.sty"
-
-(
-    cd "$BUILD_DIR"
-    SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH_VALUE" TZ=UTC \
-        latexmk \
-        -pdf \
-        -interaction=nonstopmode \
-        -halt-on-error \
-        -outdir="$BUILD_DIR" \
-        "$BUILD_DIR/ncp-system-design.tex" \
-        >"$BUILD_DIR/latexmk.stdout" 2>&1
-) || {
-    cat "$BUILD_DIR/latexmk.stdout" >&2
-    echo "NCP system-design PDF check: LaTeX build failed" >&2
-    exit 1
-}
-
-LOG="$BUILD_DIR/ncp-system-design.log"
-BUILT="$BUILD_DIR/ncp-system-design.pdf"
-
-if grep -E \
-    '(^| )(LaTeX|Package [^ ]+) Warning:|Overfull \\hbox|Underfull \\hbox|Overfull \\vbox|Underfull \\vbox|undefined references|Fatal error' \
-    "$LOG" >/dev/null; then
-    grep -E \
-        '(^| )(LaTeX|Package [^ ]+) Warning:|Overfull \\hbox|Underfull \\hbox|Overfull \\vbox|Underfull \\vbox|undefined references|Fatal error' \
-        "$LOG" >&2
-    echo "NCP system-design PDF check: LaTeX log contains a rejected diagnostic" >&2
-    exit 1
-fi
-
-pdftotext -layout "$BUILT" "$BUILD_DIR/built.txt"
-sentinels=(
-    "NCP 1.0 System Design"
-    "PROPOSED B01 DESIGN"
-    "Finite memory and queue isolation"
-    "Thirty-lens design review"
-    "NOT RUN"
-    "The equations expose the design accounting used here."
-)
-for sentinel in "${sentinels[@]}"; do
-    if ! grep -F -- "$sentinel" "$BUILD_DIR/built.txt" >/dev/null; then
-        echo "NCP system-design PDF check: rendered-text sentinel is absent: $sentinel" >&2
-        exit 1
-    fi
-done
 
 EQUATION_COUNT="$({ python3 - "$ROOT/$SOURCE" <<'PY'
 import re
@@ -192,6 +196,57 @@ PY
     exit 1
 }
 
+TRAILER_ID="$(printf '%s' "${PUBLICATION_SOURCE_DIGEST:0:32}" | tr 'a-f' 'A-F')"
+{
+    printf '\\renewcommand{\\NcpPublicationSourceDigest}{%s}\n' "$PUBLICATION_SOURCE_DIGEST"
+    printf '\\renewcommand{\\NcpPublicationTrailerId}{%s}\n' "$TRAILER_ID"
+} >"$BUILD_DIR/ncp-publication-identity.tex"
+
+cp "$ROOT/$SOURCE" "$BUILD_DIR/ncp-system-design.tex"
+cp "$ROOT/$STYLE" "$BUILD_DIR/ncp-report.sty"
+
+(
+    cd "$BUILD_DIR"
+    SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH_VALUE" FORCE_SOURCE_DATE=1 TZ=UTC LC_ALL=C \
+        latexmk \
+        -lualatex \
+        -interaction=nonstopmode \
+        -halt-on-error \
+        -outdir="$BUILD_DIR" \
+        "$BUILD_DIR/ncp-system-design.tex" \
+        >"$BUILD_DIR/latexmk.stdout" 2>&1
+) || {
+    cat "$BUILD_DIR/latexmk.stdout" >&2
+    echo "NCP system-design PDF check: LaTeX build failed" >&2
+    exit 1
+}
+
+LOG="$BUILD_DIR/ncp-system-design.log"
+BUILT="$BUILD_DIR/ncp-system-design.pdf"
+
+rejected='(^| )(LaTeX|LaTeX Font|Package [^ ]+) Warning:|Overfull \\hbox|Underfull \\hbox|Overfull \\vbox|Underfull \\vbox|undefined references|Fatal error|Missing character'
+if grep -E "$rejected" "$LOG" >/dev/null; then
+    grep -E "$rejected" "$LOG" >&2
+    echo "NCP system-design PDF check: LaTeX log contains a rejected diagnostic" >&2
+    exit 1
+fi
+
+pdftotext -layout "$BUILT" "$BUILD_DIR/built.txt"
+sentinels=(
+    "NCP System Design"
+    "MODULAR SDK IMPLEMENTED"
+    "Finite memory and queue isolation"
+    "Ten-lens review"
+    "NOT RUN"
+    "The equations are design accounting, not"
+)
+for sentinel in "${sentinels[@]}"; do
+    if ! grep -F -- "$sentinel" "$BUILD_DIR/built.txt" >/dev/null; then
+        echo "NCP system-design PDF check: rendered-text sentinel is absent: $sentinel" >&2
+        exit 1
+    fi
+done
+
 RENDERED_EQUATION_COUNT="$({
     sed -n 's/^NCP-EQUATION-COUNT=\([0-9][0-9]*\)$/\1/p' "$LOG"
 } | tail -n 1)"
@@ -244,8 +299,8 @@ case "$MODE" in
             echo "NCP system-design PDF check: committed PDF is missing" >&2
             exit 1
         fi
-        # Body/math retain lexical boundaries. Each complete diagram Form joins
-        # its ordered SVG glyph roster. Same-toolchain --check stays byte-exact.
+        # Body and mathematics keep lexical boundaries. Each complete figure Form
+        # joins its ordered SVG glyph roster. Same-toolchain --check stays byte-exact.
         publication_python="${NCP_PUBLICATION_PYTHON:-python3}"
         "$publication_python" "$ROOT/scripts/test_publication_pdf_text.py"
         "$publication_python" "$ROOT/scripts/check_publication_pdf_text.py" \

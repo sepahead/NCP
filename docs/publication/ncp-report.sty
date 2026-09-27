@@ -1,165 +1,268 @@
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{ncp-report}[2026/08/17 NCP system-design publication style]
+\ProvidesPackage{ncp-report}[2026/09/27 NCP system-design publication style]
 
-% The report style is intentionally small and print-safe. Color reinforces
-% hierarchy, but every state and relationship also has a textual label.
+% Repository-local adaptation of the pid-rs publication design language.
+% Palette identities: lapis, turquoise, ink, mineral blue, ivory, bronze,
+% saffron, and pomegranate. Decoration stays low contrast and carries no
+% meaning. Every state and relationship also has a text label. Every text
+% color meets a 4.5:1 contrast ratio on its ground.
 \RequirePackage{array}
 \RequirePackage{booktabs}
+\RequirePackage{caption}
 \RequirePackage{colortbl}
+\RequirePackage{eso-pic}
 \RequirePackage{etoolbox}
 \RequirePackage{fancyhdr}
+\RequirePackage{fontspec}
 \RequirePackage{graphicx}
 \RequirePackage{needspace}
 \RequirePackage{tabularx}
+\RequirePackage{tikz}
 \RequirePackage{titlesec}
+\RequirePackage{titletoc}
 \RequirePackage{xcolor}
+\usetikzlibrary{patterns}
 
-\definecolor{NcpNavy}{HTML}{153A5B}
-\definecolor{NcpBlue}{HTML}{1C5D87}
-\definecolor{NcpCyan}{HTML}{087E8B}
-\definecolor{NcpTeal}{HTML}{0D6E72}
-\definecolor{NcpAmber}{HTML}{9A5B00}
-\definecolor{NcpRed}{HTML}{9B2C2C}
-\definecolor{NcpText}{HTML}{1F2933}
-\definecolor{NcpMuted}{HTML}{5B6872}
-\definecolor{NcpRule}{HTML}{C5D1D9}
-\definecolor{NcpSoft}{HTML}{F2F6F8}
-\definecolor{NcpCode}{HTML}{F5F7F9}
-\definecolor{NcpTableHeader}{HTML}{C9DEE8}
-\definecolor{NcpTableStripe}{HTML}{EAF1F4}
+% ─── Color tokens ────────────────────────────────────────────────────────────
+% The figure generator scripts/gen_diagrams.py uses the same light values.
+\definecolor{NcpPaper}{HTML}{F7F3E9}
+\definecolor{NcpCard}{HTML}{FBF9F3}
+\definecolor{NcpInk}{HTML}{2C3E50}
+\definecolor{NcpMuted}{HTML}{4D5C64}
+\definecolor{NcpLapis}{HTML}{1F3F60}
+\definecolor{NcpTurquoise}{HTML}{1F6968}
+\definecolor{NcpMineral}{HTML}{D2E0E2}
+\definecolor{NcpSaffron}{HTML}{B28218}
+\definecolor{NcpBronze}{HTML}{7A5500}
+\definecolor{NcpPomegranate}{HTML}{743E37}
+\definecolor{NcpOnBand}{HTML}{F7F3E9}
+\colorlet{NcpNoteGround}{NcpMineral!55!NcpPaper}
+\colorlet{NcpTableHeader}{NcpMineral}
+\colorlet{NcpTableStripe}{NcpCard}
 
-\newcommand{\NcpConfigureSections}{%
-  \titleformat{\section}
-    {\Large\bfseries\color{NcpNavy}}
-    {\thesection}{0.72em}{}
-    [\vspace{0.12em}\color{NcpRule}\titlerule]
-  \titleformat{\subsection}
-    {\large\bfseries\color{NcpBlue}}
-    {\thesubsection}{0.62em}{}
-  \titleformat{\subsubsection}
-    {\normalsize\bfseries\color{NcpText}}
-    {\thesubsubsection}{0.55em}{}
-  \titlespacing*{\section}{0pt}{1.55em}{0.62em}
-  \titlespacing*{\subsection}{0pt}{1.15em}{0.38em}
-  \titlespacing*{\subsubsection}{0pt}{0.95em}{0.28em}%
-  \pretocmd{\section}{\Needspace{6\baselineskip}}{}{}%
-  \pretocmd{\subsection}{\Needspace{4\baselineskip}}{}{}%
-}
+% Fonts are OpenType files from TeX Live. The build resolves each by name.
+\setmainfont{lmroman10-regular.otf}[
+  ItalicFont=lmroman10-italic.otf,
+  BoldFont=lmroman10-bold.otf,
+  BoldItalicFont=lmroman10-bolditalic.otf,
+  SmallCapsFont=lmromancaps10-regular.otf]
+\setsansfont{SourceSansPro-Regular.otf}[
+  ItalicFont=SourceSansPro-RegularIt.otf,
+  BoldFont=SourceSansPro-Semibold.otf,
+  BoldItalicFont=SourceSansPro-SemiboldIt.otf]
+\setmonofont{lmmono10-regular.otf}[
+  ItalicFont=lmmono10-italic.otf,
+  BoldFont=lmmonolt10-bold.otf,
+  BoldItalicFont=lmmonolt10-boldoblique.otf]
+\newfontfamily\NcpDisplayFont{SourceSansPro-Bold.otf}
 
+% xcolor makes the preamble color the normal color of the document.
+\pagecolor{NcpPaper}
+\color{NcpInk}
+\arrayrulecolor{NcpInk}
+\captionsetup{
+  font=small,
+  labelfont={sf,bf,color=NcpTurquoise},
+  textfont={color=NcpInk},
+  justification=raggedright,
+  singlelinecheck=false,
+  skip=0.6em}
+\captionsetup[table]{position=top}
+
+% ─── Floats ─────────────────────────────────────────────────────────────────
+% Figures and tables stay where they are when they fit. Otherwise they move to
+% the top or bottom of a page, so no page keeps an empty gap in front of a large
+% figure. The manuscript loads flafter, so no float moves above its source.
+\setcounter{topnumber}{2}
+\setcounter{bottomnumber}{1}
+\setcounter{totalnumber}{3}
+\renewcommand{\topfraction}{0.88}
+\renewcommand{\bottomfraction}{0.55}
+\renewcommand{\textfraction}{0.10}
+\renewcommand{\floatpagefraction}{0.72}
+\setlength{\floatsep}{12pt plus 3pt minus 3pt}
+\setlength{\textfloatsep}{16pt plus 4pt minus 4pt}
+% A page of floats alone keeps them at its top.
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{\floatsep}
+\setlength{\@fpbot}{0pt plus 1fil}
+
+% ─── Page ground ────────────────────────────────────────────────────────────
+% Low-contrast vector paper grain. It is decorative and carries no meaning.
+\pgfdeclarepatternformonly{ncpgrain}
+  {\pgfpoint{0pt}{0pt}}{\pgfpoint{18pt}{18pt}}{\pgfpoint{18pt}{18pt}}{%
+    \pgfsetlinewidth{0.12pt}%
+    \pgfpathmoveto{\pgfpoint{1.5pt}{4.0pt}}\pgfpathlineto{\pgfpoint{6.5pt}{4.3pt}}%
+    \pgfpathmoveto{\pgfpoint{11.0pt}{12.0pt}}\pgfpathlineto{\pgfpoint{16.0pt}{11.7pt}}%
+    \pgfpathmoveto{\pgfpoint{4.0pt}{16.0pt}}\pgfpathlineto{\pgfpoint{8.0pt}{15.8pt}}%
+    \pgfusepath{stroke}}
+
+% Rosette motif for the title band. The title stays real text above it.
+\pgfdeclarepatternformonly{ncprosette}
+  {\pgfpoint{0pt}{0pt}}{\pgfpoint{12pt}{12pt}}{\pgfpoint{12pt}{12pt}}{%
+    \pgfsetlinewidth{0.28pt}\pgfsetroundcap\pgfsetroundjoin
+    \pgfpathmoveto{\pgfpoint{6pt}{0.7pt}}\pgfpathlineto{\pgfpoint{7.5pt}{4.5pt}}%
+    \pgfpathlineto{\pgfpoint{11.3pt}{6pt}}\pgfpathlineto{\pgfpoint{7.5pt}{7.5pt}}%
+    \pgfpathlineto{\pgfpoint{6pt}{11.3pt}}\pgfpathlineto{\pgfpoint{4.5pt}{7.5pt}}%
+    \pgfpathlineto{\pgfpoint{0.7pt}{6pt}}\pgfpathlineto{\pgfpoint{4.5pt}{4.5pt}}%
+    \pgfpathclose\pgfusepath{stroke}}
+
+\newcommand{\NcpRosette}{%
+  \begin{scope}[opacity=0.17]
+    \foreach \angle in {0,45,...,315}{%
+      \draw[NcpSaffron,line width=0.28pt] (0,0) -- (\angle:7.2mm);
+      \draw[NcpTurquoise,line width=0.24pt] (\angle:2.4mm) -- ({\angle+22.5}:5.2mm);}
+    \draw[NcpLapis,line width=0.28pt] (0,0) circle (4.8mm);
+    \draw[NcpSaffron,line width=0.24pt,rotate=22.5] (0,0) rectangle (6.5mm,6.5mm);
+  \end{scope}}
+
+\newcommand{\NcpPageGround}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[NcpPaper] (current page.south west) rectangle (current page.north east);
+    \path[pattern=ncpgrain,pattern color=NcpMineral,opacity=0.24]
+      (current page.south west) rectangle (current page.north east);
+    \fill[NcpLapis,opacity=0.08]
+      (current page.north west) rectangle ([yshift=-2.1mm]current page.north east);
+    \fill[NcpTurquoise,opacity=0.07]
+      ([yshift=2.1mm]current page.south west) rectangle (current page.south east);
+    \begin{scope}[shift={([xshift=-7.5mm,yshift=-7.5mm]current page.north east)}]
+      \NcpRosette
+    \end{scope}
+    \begin{scope}[shift={([xshift=7.5mm,yshift=7.5mm]current page.south west)},rotate=180]
+      \NcpRosette
+    \end{scope}
+  \end{tikzpicture}}
+\AddToShipoutPictureBG{\NcpPageGround}
+
+% ─── Tables ─────────────────────────────────────────────────────────────────
 \newcommand{\NcpTableBands}{%
-  \rowcolors{2}{NcpTableStripe}{white}%
-  \setlength{\extrarowheight}{0.28ex}%
-}
-
+  \small
+  \rowcolors{2}{NcpTableStripe}{NcpPaper}%
+  \setlength{\extrarowheight}{0.28ex}}
 \AtBeginEnvironment{tabular}{\NcpTableBands}
 \AtBeginEnvironment{tabularx}{\NcpTableBands}
 \AtBeginEnvironment{longtable}{\NcpTableBands}
-
 \newcommand{\NcpTableHeaderRow}{\rowcolor{NcpTableHeader}}
 
+% ─── Sections and contents ──────────────────────────────────────────────────
+\newcommand{\NcpSectionRail}{%
+  \par\noindent
+  \textcolor{NcpSaffron}{\rule{3.8em}{1.15pt}}%
+  \textcolor{NcpMineral}{\rule{\dimexpr\linewidth-3.8em\relax}{0.45pt}}}
+
+\newcommand{\NcpConfigureSections}{%
+  \titleformat{\section}
+    {\Large\sffamily\bfseries\color{NcpLapis}}
+    {\thesection}{0.70em}{}
+    [\vspace{0.17em}\NcpSectionRail]
+  \titlespacing*{\section}{0pt}{1.6em}{0.75em}
+  \titleformat{\subsection}
+    {\large\sffamily\bfseries\color{NcpTurquoise}}
+    {\thesubsection}{0.65em}{}
+  \titlespacing*{\subsection}{0pt}{1.25em}{0.45em}
+  \titleformat{\subsubsection}
+    {\normalsize\sffamily\bfseries\color{NcpLapis}}
+    {\thesubsubsection}{0.58em}{}
+  \titlespacing*{\subsubsection}{0pt}{1.0em}{0.35em}
+  \pretocmd{\section}{\par\Needspace{16\baselineskip}}{}{}%
+  \pretocmd{\subsection}{\par\Needspace{5\baselineskip}}{}{}%
+  \titlecontents{section}[2.2em]
+    {\addvspace{0.24em}\sffamily}
+    {\contentslabel{2.2em}}
+    {\hspace*{-2.2em}}
+    {\titlerule*[0.62em]{\textcolor{NcpMuted}{.}}\contentspage}}
+
+% The contents list each section and appendix with its page.
+\newcommand{\NcpTableOfContents}{%
+  \section*{\contentsname}%
+  \@starttoc{toc}%
+  \par\medskip}
+
+% ─── Running heads ──────────────────────────────────────────────────────────
 \newcommand{\NcpSetRunningHeads}[2]{%
   \pagestyle{fancy}%
   \fancyhf{}%
   \fancyhead[L]{\footnotesize\sffamily\color{NcpMuted}#1}%
   \fancyhead[R]{\footnotesize\sffamily\color{NcpMuted}#2}%
   \fancyfoot[C]{\footnotesize\sffamily\color{NcpMuted}\thepage}%
-  \setlength{\headheight}{14pt}%
   \renewcommand{\headrulewidth}{0.38pt}%
-  \renewcommand{\headrule}{%
-    {\color{NcpRule}\hrule width \headwidth
-      height \headrulewidth \vskip-\headrulewidth}}%
+  \renewcommand{\headrule}{{\color{NcpMineral}\hrule width \headwidth
+    height \headrulewidth \vskip-\headrulewidth}}%
   \fancypagestyle{ncpfirst}{%
     \fancyhf{}%
     \fancyfoot[C]{\footnotesize\sffamily\color{NcpMuted}\thepage}%
-    \renewcommand{\headrulewidth}{0pt}}%
-}
+    \renewcommand{\headrulewidth}{0pt}}}
 
+% ─── Title block ────────────────────────────────────────────────────────────
 \newcommand{\NcpReportTitle}[2]{%
-  {\color{NcpNavy}\fontsize{22}{26}\selectfont\bfseries #1\par}%
-  \vspace{0.38em}%
-  {\color{NcpText}\large\normalfont #2\par}%
-}
+  {\NcpDisplayFont\fontsize{25}{29}\selectfont\color{NcpLapis}#1\par}%
+  \vspace{0.45em}%
+  {\sffamily\fontsize{12.5}{15.5}\selectfont\color{NcpTurquoise}#2\par}}
 
 \makeatletter
-\newcommand{\NcpMakeTitle}{%
+\newcommand{\NcpMakeTitle}[1]{%
   \begingroup
   \thispagestyle{ncpfirst}%
-  \setlength{\fboxsep}{0.58em}%
-  \noindent\colorbox{NcpNavy}{%
-    \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
-      \color{white}\sffamily\small\bfseries
-      NCP SYSTEM DESIGN SERIES}}%
+  \noindent\begin{tikzpicture}[baseline=(current bounding box.south)]
+    \path[use as bounding box] (0,0) rectangle (\linewidth,7mm);
+    \fill[NcpLapis] (0,0) rectangle (\linewidth,7mm);
+    \path[pattern=ncprosette,pattern color=NcpOnBand,opacity=0.07]
+      (0,0) rectangle (\linewidth,7mm);
+    \draw[NcpSaffron,opacity=0.72,line width=0.65pt] (0,0) -- (\linewidth,0);
+    \node[anchor=west,inner sep=0,text=NcpOnBand,font=\sffamily\small\bfseries]
+      at (2.4mm,3.5mm) {NCP TECHNICAL REPORT};
+  \end{tikzpicture}%
   \par\vspace{1.15em}%
   {\raggedright\@title\par}%
   \vspace{0.9em}%
   {\raggedright\small\color{NcpMuted}\@author\hfill\@date\par}%
   \vspace{0.58em}%
-  \noindent{\color{NcpCyan}\rule{5.2em}{1.35pt}}%
-  {\color{NcpRule}\rule{\dimexpr\linewidth-5.2em\relax}{0.45pt}}%
-  \par\vspace{0.72em}%
-  \noindent\colorbox{NcpSoft}{%
-    \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
-      \color{NcpRed}\sffamily\footnotesize\bfseries
-      PROPOSED B01 DESIGN \(\bullet\) UNRELEASED 1.0.0-rc.1
-      \(\bullet\) NO RELEASE AUTHORITY}}%
-  \par\vspace{0.8em}%
-  \endgroup
-}
+  \noindent{\color{NcpBronze}\rule{5.2em}{1.35pt}}%
+  {\color{NcpMineral}\rule{\dimexpr\linewidth-5.2em\relax}{0.45pt}}%
+  \par\vspace{0.7em}%
+  \noindent{\sffamily\footnotesize\bfseries\color{NcpPomegranate}#1}\par
+  \vspace{0.6em}%
+  \endgroup}
+\makeatother
 
 \newcommand{\NcpConfigureAbstract}{%
-  \renewcommand{\abstractname}{\color{NcpNavy}Abstract}%
-  \BeforeBeginEnvironment{abstract}{%
-    \par\smallskip
-    \noindent{\color{NcpRule}\rule{\linewidth}{0.6pt}}\par}%
-  \AfterEndEnvironment{abstract}{%
-    \par\noindent{\color{NcpRule}\rule{\linewidth}{0.4pt}}\par\medskip}%
-}
+  \renewcommand{\abstractname}{\sffamily\color{NcpLapis}Abstract}}
 
-\newcommand{\NcpCallout}[2]{%
+% ─── Notes, labels, and figures ─────────────────────────────────────────────
+% A note box: saffron bar, mineral ground, sans label, serif body.
+\newcommand{\NcpNote}[2]{%
   \par\medskip
   \begingroup
-  \setlength{\fboxsep}{0.8em}%
-  \noindent\colorbox{NcpSoft}{%
-    \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
-      {\sffamily\small\bfseries\color{NcpBlue}#1}\par\smallskip
-      {\small\color{NcpText}#2}}}%
-  \par\medskip
+  \setlength{\fboxsep}{0pt}%
+  \noindent\begin{tikzpicture}
+    \node[fill=NcpNoteGround,rounded corners=2.5pt,inner xsep=0.95em,inner ysep=0.75em,
+          outer sep=0pt,text width=\dimexpr\linewidth-1.9em\relax,align=left] (box) {%
+      {\sffamily\small\bfseries\color{NcpMuted}#1}\par\smallskip
+      {\small\color{NcpInk}#2}};
+    \fill[NcpSaffron,rounded corners=1.2pt]
+      (box.north west) rectangle ([xshift=2.6pt]box.south west);
+  \end{tikzpicture}\par
   \endgroup
-}
+  \medskip}
+\newcommand{\NcpBoundary}[1]{\NcpNote{CLAIM BOUNDARY}{#1}}
 
-\newcommand{\NcpBoundary}[1]{%
-  \par\medskip
-  \begingroup
-  \setlength{\fboxsep}{0.8em}%
-  \noindent\colorbox{NcpSoft}{%
-    \parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
-      {\sffamily\small\bfseries\color{NcpRed}CLAIM BOUNDARY}\par\smallskip
-      {\small\color{NcpText}#1}}}%
-  \par\medskip
-  \endgroup
-}
+% A section status label. It is its own paragraph.
+\newcommand{\NcpStatus}[1]{%
+  \par\noindent{\sffamily\bfseries\color{NcpTurquoise}Status: #1.}\par}
 
-\newcommand{\NcpFigure}[4]{%
+% A gate state without exact evidence.
+\newcommand{\NcpNotRun}{\leavevmode{\bfseries\color{NcpPomegranate}NOT RUN}}
+
+% One figure: the converted light SVG, a caption, and a label. The optional
+% argument is the float placement.
+\newcommand{\NcpFigure}[3][htbp]{%
   \begin{figure}[#1]
     \centering
-    \setlength{\fboxsep}{0pt}%
-    \colorbox{NcpSoft}{\includegraphics[width=#2]{#3}}%
-    \caption{#4}
-  \end{figure}%
-}
+    \includegraphics[width=\linewidth]{#2-light.pdf}%
+    \caption{#3}
+  \end{figure}}
 
 \newcommand{\NcpConfigureLinks}{%
   \AtBeginDocument{%
-    \@ifpackageloaded{hyperref}{%
-      \hypersetup{%
-        linkcolor=NcpBlue,
-        citecolor=NcpBlue,
-        urlcolor=NcpBlue}}{}%
-    \@ifpackageloaded{listings}{%
-      \lstset{%
-        backgroundcolor=\color{NcpCode},
-        rulecolor=\color{NcpRule}}%
-    }{}%
-  }%
-}
-\makeatother
+    \hypersetup{linkcolor=NcpLapis,citecolor=NcpTurquoise,urlcolor=NcpTurquoise}}}
+\endinput

@@ -92,7 +92,10 @@ GENERATOR_OUTPUTS = {
         "Rust package qualification and retained-artifact receipt",
     ],
     "scripts/check_wire_baseline.py": ["conformance/baseline/v*/ frozen wire cut"],
-    "scripts/gen_diagrams.py": ["docs/diagrams/*.svg"],
+    "scripts/gen_diagrams.py": [
+        "docs/diagrams/*.svg",
+        "scripts/diagram_font_metrics.v1.json",
+    ],
     "scripts/generate_audit_artifacts.py": ["evidence/audit/*.json"],
     "scripts/generate_b01_review_request.py": [
         "evidence/implementation/requests/B01/review-request.v1.json"

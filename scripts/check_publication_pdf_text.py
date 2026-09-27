@@ -26,19 +26,50 @@ MAX_FILE_BYTES = 16 * 1024 * 1024
 MAX_PAGES = 128
 MAX_OPERATIONS = 100_000
 MAX_FIGURES = 32
+MAX_FIGURES_PER_PAGE = 4
 SVG_NS = "{http://www.w3.org/2000/svg}"
 # Closed operator sets for this TeX/librsvg publication profile. In particular,
-# alternate-text marked content and invisible-text modes are not admitted.
+# alternate-text marked content, invisible-text modes, and page clipping are not
+# admitted. The page set includes the path, pattern, and opacity operators of the
+# decorative page ground.
 PAGE_OPERATORS = {
     item.encode("ascii")
-    for item in "BT Do ET G J Q RG S TJ Td Tf Tj Tm cm d f g l m q re rg w".split()
+    for item in (
+        "BT Do ET G J Q RG S TJ Td Tf Tj Tm c cm cs d f g gs h l m n q re rg scn w"
+    ).split()
 }
+TEXT_SHOWING_OPERATORS = {b"TJ", b"Tj"}
 FORM_OPERATORS = {
     item.encode("ascii")
     for item in (
         "B BT CS Do ET J M Q RG S SCN TJ Td Tf Tj Tm W c cm cs d f "
         "gs h j l m n q re rg scn sh w"
     ).split()
+}
+# A decorative pattern cell draws paths only. It cannot show text or images.
+PATTERN_OPERATORS = {
+    item.encode("ascii") for item in "J Q S c cm d f h j l m n q re w".split()
+}
+PAGE_RESOURCE_KEYS = {
+    "/ColorSpace",
+    "/ExtGState",
+    "/Font",
+    "/Pattern",
+    "/ProcSet",
+    "/XObject",
+}
+PATTERN_KEYS = {
+    "/Type",
+    "/PatternType",
+    "/PaintType",
+    "/TilingType",
+    "/BBox",
+    "/XStep",
+    "/YStep",
+    "/Matrix",
+    "/Resources",
+    "/Filter",
+    "/Length",
 }
 
 
@@ -79,8 +110,8 @@ def source_roster(
     source: Path, diagrams: Path, expected: list[str]
 ) -> list[tuple[str, str]]:
     tex = bounded_bytes(source).decode("utf-8")
-    names = re.findall(r"\\NcpFigure\{[^}]+\}\{[^}]+\}\{([a-z-]+)\.pdf\}", tex)
-    require(tex.count(r"\NcpFigure{") == len(names), "unclassified figure source call")
+    names = re.findall(r"\\NcpFigure(?:\[[a-zA-Z!]*\])?\{([a-z-]+)\}\{", tex)
+    require(tex.count(r"\NcpFigure") == len(names), "unclassified figure source call")
     require(
         0 < len(names) <= MAX_FIGURES and len(names) == len(set(names)),
         "invalid figure source roster",
@@ -91,11 +122,13 @@ def source_roster(
     )
     roster = []
     for name in names:
-        svg = ET.fromstring(bounded_bytes(diagrams / f"{name}.svg"))
+        # The report uses the light SVG of each figure.
+        file_name = f"{name}-light"
+        svg = ET.fromstring(bounded_bytes(diagrams / f"{file_name}.svg"))
         require(svg.tag == SVG_NS + "svg", "unexpected source diagram root")
         labels = ["".join(node.itertext()) for node in svg.iter(SVG_NS + "text")]
-        require(bool(labels), f"source has no text labels: {name}")
-        roster.append((name, ordered_glyphs("".join(labels))))
+        require(bool(labels), f"source has no text labels: {file_name}")
+        roster.append((file_name, ordered_glyphs("".join(labels))))
     return roster
 
 
@@ -123,6 +156,58 @@ def multiply(a: tuple, b: tuple) -> tuple:
     )
 
 
+def page_graphics_states(resources: DictionaryObject) -> dict:
+    """Return the fill opacity of each admitted page graphics state."""
+    states = resources.get("/ExtGState", DictionaryObject()).get_object()
+    opacities = {}
+    for name, reference in states.items():
+        state = reference.get_object()
+        require(
+            set(state) <= {"/Type", "/CA", "/ca"},
+            "unexpected page graphics-state entry",
+        )
+        for key in ("/CA", "/ca"):
+            if key in state:
+                value = float(state[key])
+                require(
+                    math.isfinite(value) and 0.0 <= value <= 1.0,
+                    "invalid page opacity",
+                )
+        opacities[name] = float(state["/ca"]) if "/ca" in state else None
+    return opacities
+
+
+def check_page_patterns(resources: DictionaryObject, reader: PdfReader) -> None:
+    color_spaces = resources.get("/ColorSpace", DictionaryObject()).get_object()
+    for reference in color_spaces.values():
+        space = reference.get_object()
+        require(
+            list(space) in (["/Pattern"], ["/Pattern", "/DeviceRGB"]),
+            "unexpected page color space",
+        )
+    patterns = resources.get("/Pattern", DictionaryObject()).get_object()
+    for reference in patterns.values():
+        pattern = reference.get_object()
+        require(
+            set(pattern) <= PATTERN_KEYS
+            and pattern.get("/PatternType") == 1
+            and pattern.get("/PaintType") == 2,
+            "unexpected page pattern structure",
+        )
+        cell = pattern.get("/Resources", DictionaryObject()).get_object()
+        require(
+            set(cell) <= {"/ProcSet", "/Pattern"}
+            and not cell.get("/Pattern", DictionaryObject()).get_object(),
+            "unexpected page pattern resources",
+        )
+        operations = ContentStream(pattern, reader).operations
+        require(len(operations) <= MAX_OPERATIONS, "pattern stream exceeds limit")
+        require(
+            all(operator in PATTERN_OPERATORS for _, operator in operations),
+            "unclassified pattern operator",
+        )
+
+
 def project(path: Path, roster: list[tuple[str, str]], output: Path) -> tuple:
     bounded_bytes(path)
     reader = PdfReader(path, strict=True)
@@ -136,22 +221,48 @@ def project(path: Path, roster: list[tuple[str, str]], output: Path) -> tuple:
             stream is not None and len(stream.operations) <= MAX_OPERATIONS,
             "absent or oversized page stream",
         )
-        objects = page["/Resources"].get("/XObject", DictionaryObject()).get_object()
-        require(len(objects) <= 1, "multiple or unclassified page XObjects")
+        resources = page["/Resources"].get_object()
+        require(set(resources) <= PAGE_RESOURCE_KEYS, "unexpected page resource")
+        opacities = page_graphics_states(resources)
+        check_page_patterns(resources, reader)
+        objects = resources.get("/XObject", DictionaryObject()).get_object()
+        require(
+            len(objects) <= MAX_FIGURES_PER_PAGE,
+            "too many or unclassified page XObjects",
+        )
         used = set()
         kept = []
         transform = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+        # Text must be painted with full opacity and a device color.
+        fill_opacity = 1.0
+        pattern_fill = False
         stack = []
         for args, operator in stream.operations:
             require(operator in PAGE_OPERATORS, "unclassified page operator")
             if operator == b"q":
-                stack.append(transform)
+                stack.append((transform, fill_opacity, pattern_fill))
                 require(len(stack) <= 128, "graphics stack exceeds limit")
             elif operator == b"Q":
                 require(bool(stack), "unbalanced graphics stack")
-                transform = stack.pop()
+                transform, fill_opacity, pattern_fill = stack.pop()
             elif operator == b"cm":
                 transform = multiply(matrix(args), transform)
+            elif operator == b"gs":
+                require(
+                    len(args) == 1 and args[0] in opacities,
+                    "unknown page graphics state",
+                )
+                if opacities[args[0]] is not None:
+                    fill_opacity = opacities[args[0]]
+            elif operator == b"cs":
+                pattern_fill = True
+            elif operator in (b"rg", b"g"):
+                pattern_fill = False
+            elif operator in TEXT_SHOWING_OPERATORS:
+                require(
+                    fill_opacity == 1.0 and not pattern_fill,
+                    "body text is painted with reduced opacity or a pattern",
+                )
             if operator != b"Do":
                 kept.append((args, operator))
                 continue

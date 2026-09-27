@@ -195,25 +195,31 @@ jobs:
   publication:
     name: publication diagrams + PDF
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           persist-credentials: false
 
+      # LuaLaTeX builds the report with Latin Modern and Source Sans Pro
+      # OpenType files. librsvg renders the figures with the same font files.
       - name: Install publication toolchain
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends \
+            fonts-lmodern \
             latexmk \
             librsvg2-bin \
             lmodern \
             poppler-utils \
             python3-venv \
+            texlive-fonts-extra \
             texlive-latex-base \
             texlive-latex-extra \
-            texlive-latex-recommended
+            texlive-latex-recommended \
+            texlive-luatex \
+            texlive-pictures
 
       - name: Verify generated SVGs
         run: python3 scripts/gen_diagrams.py --check
@@ -231,6 +237,33 @@ jobs:
       # Cross-toolchain extraction does not prove visual equality.
       - name: Rebuild and compare the system-design PDF
         run: ./scripts/check_ncp_system_design_pdf.sh --cross-toolchain
+
+  publication-lean:
+    name: publication arithmetic (Lean)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      # The archive digest pins the exact Lean release that checked this file.
+      - name: Install pinned Lean
+        env:
+          LEAN_VERSION: 4.23.0
+          LEAN_SHA256: ecd028d6f642b61b451c8687aeeb24dd53789fbfdcb7d4adb8f5cf60eb2022ba
+        run: |
+          archive="$RUNNER_TEMP/lean-$LEAN_VERSION-linux.tar.zst"
+          curl --fail --location --proto '=https' --tlsv1.2 --silent --show-error \
+            --output "$archive" \
+            "https://github.com/leanprover/lean4/releases/download/v$LEAN_VERSION/lean-$LEAN_VERSION-linux.tar.zst"
+          echo "$LEAN_SHA256  $archive" | sha256sum --check --strict
+          tar --zstd -xf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/lean-$LEAN_VERSION-linux/bin" >> "$GITHUB_PATH"
+
+      - name: Check the report arithmetic
+        run: ./scripts/check_ncp_design_lean.sh
 
   build-test:
     name: fmt + clippy + test

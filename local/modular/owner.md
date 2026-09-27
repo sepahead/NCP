@@ -33,9 +33,18 @@ The SDK keeps no unbounded history of prior generations.
 
 ## Exact requests and retained outcomes
 
-Each request names a fixed binding, positive safe sequence, closed operation, and complete typed digest.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../docs/diagrams/exchange-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../../docs/diagrams/exchange-light.svg">
+  <img alt="A client sends one exact request. The owner returns retained bytes for an exact duplicate, admits new work without side effects, reserves storage, executes once, and retains the outcome until an exact acknowledgement. The SDK is UNRELEASED. It is not release or certification evidence." src="../../docs/diagrams/exchange-light.svg" width="860">
+</picture>
+
+Full-size vector figure: [light](../../docs/diagrams/exchange-light.svg?raw=true) · [dark](../../docs/diagrams/exchange-dark.svg?raw=true).
+
+Each request names a fixed binding, a positive sequence number, a closed operation, and a complete typed digest.
 The binding names the profile, application, run, endpoint, and generation.
-The maximum sequence is $2^{53}-1=9,007,199,254,740,991$.
+The maximum sequence number is $2^{53}-1=9{,}007{,}199{,}254{,}740{,}991$.
+It is the largest integer $n$ for which binary64 represents both $n$ and $n+1$ exactly.
 Integer `-0`, floating sequences, booleans, and larger integers cannot identify an operation.
 
 Universal JSON limits apply before generic decoding.
@@ -144,7 +153,7 @@ Producer buffers and receiver imports have separate explicit lifetimes.
 Every receiver reserves the complete declared payload before accepting a chunk.
 Payload reservations on different endpoints count independently.
 
-For payload length $L$ and chunk bound $C=32,768$ bytes, the chunk count is $\lceil L/C\rceil$.
+For payload length $L$ and chunk bound $C=32{,}768$ bytes, the chunk count is $\lceil L/C\rceil$.
 Each chunk must match its index, offset, length, canonical base64, and digest.
 The final seal also verifies the complete payload digest.
 Valid chunk hashes cannot substitute for that complete digest.

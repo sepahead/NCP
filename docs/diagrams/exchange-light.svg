@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1641" viewBox="0 0 1600 1641" role="img" aria-labelledby="exchange-title exchange-desc">
+<title id="exchange-title">NCP modular request and outcome exchange</title>
+<desc id="exchange-desc">A client sends one exact request. The owner returns retained bytes for an exact duplicate, admits new work without side effects, reserves storage, executes once, and retains the outcome until an exact acknowledgement. The SDK is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="exchange-arrow-lapis" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F3F60"/></marker>
+<marker id="exchange-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F6968"/></marker>
+<pattern id="exchange-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1641" fill="#F7F3E9"/>
+<path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="152" width="330" height="152" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 166 L52 166 Q52 152 66 152 L368 152 Q382 152 382 166 L382 166 Z" fill="#1F3F60"/>
+<rect x="900" y="152" width="648" height="122" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M900 166 L900 166 Q900 152 914 152 L1534 152 Q1548 152 1548 166 L1548 166 Z" fill="#1F6968"/>
+<rect x="900" y="304" width="648" height="140" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M900 318 L900 318 Q900 304 914 304 L1534 304 Q1548 304 1548 318 L1548 318 Z" fill="#1F6968"/>
+<circle cx="938" cy="355" r="21.2" fill="#1F6968"/>
+<path d="M926 384 L1522 384" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="458" width="648" height="173" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M900 472 L900 472 Q900 458 914 458 L1534 458 Q1548 458 1548 472 L1548 472 Z" fill="#1F6968"/>
+<circle cx="938" cy="509" r="21.2" fill="#1F6968"/>
+<path d="M926 538 L1522 538" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="645" width="648" height="173" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M900 659 L900 659 Q900 645 914 645 L1534 645 Q1548 645 1548 659 L1548 659 Z" fill="#1F6968"/>
+<circle cx="938" cy="696" r="21.2" fill="#1F6968"/>
+<path d="M926 725 L1522 725" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="832" width="648" height="173" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M900 846 L900 846 Q900 832 914 832 L1534 832 Q1548 832 1548 846 L1548 846 Z" fill="#1F3F60"/>
+<circle cx="938" cy="883" r="21.2" fill="#1F3F60"/>
+<path d="M926 912 L1522 912" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="1019" width="648" height="173" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M900 1033 L900 1033 Q900 1019 914 1019 L1534 1019 Q1548 1019 1548 1033 L1548 1033 Z" fill="#1F6968"/>
+<circle cx="938" cy="1070" r="21.2" fill="#1F6968"/>
+<path d="M926 1099 L1522 1099" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="1206" width="648" height="173" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M900 1220 L900 1220 Q900 1206 914 1206 L1534 1206 Q1548 1206 1548 1220 L1548 1220 Z" fill="#1F6968"/>
+<circle cx="938" cy="1257" r="21.2" fill="#1F6968"/>
+<path d="M926 1286 L1522 1286" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M217 304 L217 1445" stroke="#4D5C64" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
+<path d="M864 214 L864 1445" stroke="#4D5C64" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
+<path d="M864 214 L900 214" stroke="#4D5C64" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
+<rect x="52" y="1471" width="1496" height="130" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="1471" width="10" height="130" rx="5" fill="#B28218"/>
+<path d="M223 354 L858 354" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#exchange-arrow-lapis)"/>
+<path d="M858 1069 L223 1069" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#exchange-arrow-turquoise)"/>
+<path d="M223 1256 L858 1256" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#exchange-arrow-lapis)"/>
+<path d="M223 1423 L858 1423" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#exchange-arrow-lapis)"/>
+<text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">MODULAR EXCHANGE</text>
+<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">One request, one retained outcome, one acknowledgement</text>
+<text x="78" y="212" class="s" font-size="28" fill="#2C3E50" font-weight="700">Client</text>
+<text x="78" y="244" class="s" font-size="25" fill="#1F6968" font-weight="600">Caller with one</text>
+<text x="78" y="274" class="s" font-size="25" fill="#1F6968" font-weight="600">pending slot</text>
+<text x="926" y="212" class="s" font-size="28" fill="#2C3E50" font-weight="700">Owner</text>
+<text x="926" y="244" class="s" font-size="25" fill="#1F6968" font-weight="600">Closed application owner</text>
+<text x="938" y="363.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="970" y="364" class="s" font-size="28" fill="#2C3E50" font-weight="700">Exact duplicate</text>
+<text x="926" y="422" class="r" font-size="25" fill="#2C3E50">Return the retained bytes. Do not execute again.</text>
+<text x="938" y="517.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="970" y="518" class="s" font-size="28" fill="#2C3E50" font-weight="700">Pure admission</text>
+<text x="926" y="576" class="r" font-size="25" fill="#2C3E50">A rejection leaves the sequence number unused and</text>
+<text x="926" y="609" class="r" font-size="25" fill="#2C3E50">state unchanged.</text>
+<text x="938" y="704.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="970" y="705" class="s" font-size="28" fill="#2C3E50" font-weight="700">Reserve</text>
+<text x="926" y="763" class="r" font-size="25" fill="#2C3E50">Resolve inputs and allocate outputs before the</text>
+<text x="926" y="796" class="r" font-size="25" fill="#2C3E50">sequence number is consumed.</text>
+<text x="938" y="891.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">4</text>
+<text x="970" y="892" class="s" font-size="28" fill="#2C3E50" font-weight="700">Execute once</text>
+<text x="926" y="950" class="r" font-size="25" fill="#2C3E50">Consume the sequence number. A later failure retires</text>
+<text x="926" y="983" class="r" font-size="25" fill="#2C3E50">the generation.</text>
+<text x="938" y="1078.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">5</text>
+<text x="970" y="1079" class="s" font-size="28" fill="#2C3E50" font-weight="700">Retain outcome</text>
+<text x="926" y="1137" class="r" font-size="25" fill="#2C3E50">Keep the result frame until its exact</text>
+<text x="926" y="1170" class="r" font-size="25" fill="#2C3E50">acknowledgement.</text>
+<text x="938" y="1265.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">6</text>
+<text x="970" y="1266" class="s" font-size="28" fill="#2C3E50" font-weight="700">Release frame</text>
+<text x="926" y="1324" class="r" font-size="25" fill="#2C3E50">The acknowledgement frees the result frame, not the</text>
+<text x="926" y="1357" class="r" font-size="25" fill="#2C3E50">buffers.</text>
+<text x="540.5" y="338" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">request: binding, sequence, operation, digest</text>
+<text x="540.5" y="1053" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">retained outcome</text>
+<text x="540.5" y="1240" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">acknowledge with the outcome digest</text>
+<text x="540.5" y="1407" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">next request names that outcome as predecessor</text>
+<text x="84" y="1509" class="s" font-size="24" fill="#4D5C64" font-weight="600">UNCERTAIN DISPATCH</text>
+<text x="84" y="1547" class="r" font-size="25" fill="#2C3E50">A lost response or acknowledgement keeps the pending evidence. The client stops that channel. It never retries or reconnects on</text>
+<text x="84" y="1580" class="r" font-size="25" fill="#2C3E50">its own. A query can read the original retained bytes by sequence and request digest.</text>
+</svg>

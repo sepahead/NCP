@@ -106,6 +106,14 @@ They do not validate sensor physics, learned forecasts, or controller stability.
 
 ### Complete payloads and bounded chunks
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../../docs/diagrams/payload-transfer-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="../../docs/diagrams/payload-transfer-light.svg">
+  <img alt="A receiver reserves the complete declared length, admits only the next verified chunk, and seals the payload after the complete SHA-256 digest matches. Chunks are at most 32,768 bytes and payloads at most 8,388,608 bytes. The SDK is UNRELEASED. It is not release or certification evidence." src="../../docs/diagrams/payload-transfer-light.svg" width="860">
+</picture>
+
+Full-size vector figure: [light](../../docs/diagrams/payload-transfer-light.svg?raw=true) · [dark](../../docs/diagrams/payload-transfer-dark.svg?raw=true).
+
 Let $B$ be the integer payload length, with $1\leq B\leq8{,}388{,}608$ bytes.
 Let $C=32{,}768$ bytes be the maximum decoded chunk length.
 The required chunk count is
@@ -131,14 +139,16 @@ For body tick $k$, starting at $k=1$, the pressure sample interval is
 
 $$
 \left[
-\left\lfloor\frac{(k-1)16000}{120}\right\rfloor,
-\left\lfloor\frac{k16000}{120}\right\rfloor
+\left\lfloor\frac{(k-1)\cdot16{,}000}{120}\right\rfloor,
+\left\lfloor\frac{k\cdot16{,}000}{120}\right\rfloor
 \right).
 $$
 
 The interval endpoints are sample indices, not timestamps.
 The first three ticks contain 133, 133, and 134 samples.
-Each three-tick group therefore contains exactly 400 samples and spans 25 milliseconds of simulated time.
+Three ticks span $3\cdot16{,}000/120=400$ samples, which is an integer.
+Each group of ticks $3u+1$ to $3u+3$ therefore contains exactly 400 samples.
+Each group spans 25 milliseconds of simulated time.
 Each camera separately declares its identity, dimensions, and capture period.
 A camera that is not due differs from an unconfigured camera or a failed required observation.
 
@@ -186,6 +196,8 @@ The [neural evidence (private source)](https://github.com/sepahead/Paper2Brain/b
 | [City integrator-hull separation](https://github.com/sepahead/crebain/blob/main/integrations/ncp-force-city-sources/evidence/integrator-hull-2026-09-26.json) | A separate source-bound audit of complete collider envelopes over the retained integration law. | All 88 original direct/NCP trajectory pairs passed the declared interval-separation checks. | This derived certificate preserves the original tracking verdict. It proves no physical-flight or general collision-safety claim. |
 | [City resource admission](https://github.com/sepahead/crebain/blob/main/integrations/ncp-force-city-sources/evidence/native-city-resource-2026-09-26.md) | Trusted logical composition budgets for body and optional capture. | Twelve sessions completed 36 ticks and preserved 24 payloads totaling 25,584 bytes. | Logical allowances do not bound all operating-system, browser, allocator, or GPU memory. |
 | [City observed containment](https://github.com/sepahead/crebain/blob/main/integrations/ncp-force-city-sources/evidence/native-city-containment-2026-09-27.md) | Existing owned workers and guardians contain selected nonreturning recorder or consumer boundaries. | Four separately selected cases retired all 13 sampled births. The earlier stronger six-case campaign remains failed. | Original false or unavailable cleanup fields remain unchanged. This is not complete descendant or physical-storage containment. |
+| [City horizon](https://github.com/sepahead/crebain/blob/main/integrations/ncp-force-city-sources/evidence/native-city-horizon-2026-09-27.md) | A 256-drone maximum batch and a required 7,200-tick CPU horizon through the existing city contract. | A second maximum-batch case retained 36 payloads totaling 83,571,200 original bytes. The CPU case failed at its fixed 600-second session deadline after 4,070 acknowledged ticks. | The campaign stopped after the failure, with fourteen sessions unstarted. It does not qualify the complete city profile, long horizons, or real-time operation. |
+| [City CPU and storage characterization](https://github.com/sepahead/crebain/blob/main/integrations/ncp-force-city-sources/evidence/native-city-cpu-storage-2026-09-27.md) | Six installed one-drone cases: normal, bounded CPU load, and delayed journal synchronization, each with minimal and detailed instrumentation. | All six cases completed. The reader verified 216 original payloads totaling 230,400 bytes. All 144 route deadlines and 144 export deadlines were missed. | One shared host and 24 ticks for each case isolate neither instrumentation overhead nor tail latency. No real-time qualification follows. |
 | [M1 timing](https://github.com/sepahead/prisoma/blob/main/integrations/agent-bridge/evidence/M1_PERFORMANCE_2026-09-23.md) | Fixed schedule and complete timing accounting across direct, NCP, and canonical routes. | All 192 executions completed. All 4,608 route deadlines and 4,608 export deadlines were missed. | No real-time qualification or isolated protocol-cost claim follows. |
 
 Earlier rows retain their historical observations. The dated application records identify each later campaign's exact source and runtime.
@@ -212,7 +224,7 @@ External observation of process disappearance does not rewrite the API's unresol
 | Extend installed body qualification | The completed campaign covers selected configurations and faults. Renderer-loss cleanup remains unresolved in the API result. | Additional claims need exact installed bytes, declared cases, retained failures, and the required lifecycle evidence. |
 | Qualify advertised optional combinations | The dated body, canonical, neural-host, family, and city campaigns select different installed artifacts and configurations. | Clean documented installations and native runs for each advertised combination. |
 | Measure the complete resource envelope | Selected large transfers and timing records do not measure all process, graphics, allocation, and storage costs. | Frozen workloads, retained failures, complete resource observations, and declared operating limits. |
-| Qualify many-entity operating claims | The city contract admits 256 entities. A source-bound hull certificate covers the frozen tracking cases, without universal configuration support. | Exact installed action/sensor routing, controller, contact, and resource evidence for each claim. |
+| Qualify many-entity operating claims | The city contract admits 256 entities. A source-bound hull certificate covers the frozen tracking cases, without universal configuration support. The required 7,200-tick CPU horizon failed at its 600-second session deadline. | Exact installed action/sensor routing, controller, contact, and resource evidence for each claim. |
 | Establish model or policy benefit | E1 completed its forecast and restored-label path but missed the frozen useful-margin requirement. | Separate frozen studies for further claims, with retained null results, model selection, original labels, and comparison evidence. |
 | Add a selected modular monitor | Earlier fixed-role Galadriel controls do not supply a qualified monitor for every current sensor application. | Its installed typed contract, actual inputs, explicit abstentions, and separate composition qualification. |
 | Publish a scoped product | SDK package versions and selected runs do not establish release acceptance. | A consistent supported matrix, resolved acceptance evidence, immutable artifacts, and reproducible installation. |

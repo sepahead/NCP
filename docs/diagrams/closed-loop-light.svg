@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1073" viewBox="0 0 1600 1073" role="img" aria-labelledby="closed-loop-title closed-loop-desc">
+<title id="closed-loop-title">NCP closed-loop evidence boundary</title>
+<desc id="closed-loop-desc">A feedback cycle runs from plant state through sensing, a retained source record, a controller proposal, body admission, and disposition to actuator input. NCP records three software events. It cannot measure the physical response or establish stability. UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="closed-loop-arrow-muted" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#4D5C64"/></marker>
+<marker id="closed-loop-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F6968"/></marker>
+<pattern id="closed-loop-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1073" fill="#F7F3E9"/>
+<path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="186" width="329" height="173" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 200 L52 200 Q52 186 66 186 L367 186 Q381 186 381 200 L381 200 Z" fill="#1F3F60"/>
+<path d="M78 266 L355 266" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="441" y="186" width="329" height="173" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M441 200 L441 200 Q441 186 455 186 L756 186 Q770 186 770 200 L770 200 Z" fill="#1F3F60"/>
+<path d="M467 266 L744 266" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="830" y="186" width="329" height="173" rx="14" fill="#E4EDEE" stroke="#1F6968" stroke-width="3"/>
+<path d="M830 200 L830 200 Q830 186 844 186 L1145 186 Q1159 186 1159 200 L1159 200 Z" fill="#1F6968"/>
+<path d="M856 266 L1133 266" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1219" y="186" width="329" height="173" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M1219 200 L1219 200 Q1219 186 1233 186 L1534 186 Q1548 186 1548 200 L1548 200 Z" fill="#1F3F60"/>
+<path d="M1245 266 L1522 266" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="479" width="329" height="173" rx="14" fill="#FBF9F3" stroke="#4D5C64" stroke-width="3" stroke-dasharray="12 8"/>
+<path d="M78 559 L355 559" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="441" y="479" width="329" height="173" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M441 493 L441 493 Q441 479 455 479 L756 479 Q770 479 770 493 L770 493 Z" fill="#1F3F60"/>
+<path d="M467 559 L744 559" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="830" y="479" width="329" height="173" rx="14" fill="#E4EDEE" stroke="#1F6968" stroke-width="3"/>
+<path d="M830 493 L830 493 Q830 479 844 479 L1145 479 Q1159 479 1159 493 L1159 493 Z" fill="#1F6968"/>
+<path d="M856 559 L1133 559" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1219" y="479" width="329" height="173" rx="14" fill="#E4EDEE" stroke="#1F6968" stroke-width="3"/>
+<path d="M1219 493 L1219 493 Q1219 479 1233 479 L1534 479 Q1548 479 1548 493 L1548 493 Z" fill="#1F6968"/>
+<path d="M1245 559 L1522 559" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="696" width="732" height="173" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 710 L52 710 Q52 696 66 696 L770 696 Q784 696 784 710 L784 710 Z" fill="#1F3F60"/>
+<circle cx="90" cy="747" r="21.2" fill="#1F3F60"/>
+<path d="M78 776 L758 776" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="816" y="696" width="732" height="173" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M816 710 L816 710 Q816 696 830 696 L1534 696 Q1548 696 1548 710 L1548 710 Z" fill="#1F3F60"/>
+<circle cx="854" cy="747" r="21.2" fill="#1F3F60"/>
+<path d="M842 776 L1522 776" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="903" width="1496" height="130" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="903" width="10" height="130" rx="5" fill="#B28218"/>
+<path d="M381 272.5 L441 272.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#closed-loop-arrow-turquoise)"/>
+<path d="M770 272.5 L830 272.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#closed-loop-arrow-turquoise)"/>
+<path d="M1159 272.5 L1219 272.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#closed-loop-arrow-turquoise)"/>
+<path d="M441 565.5 L381 565.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#closed-loop-arrow-turquoise)"/>
+<path d="M830 565.5 L770 565.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#closed-loop-arrow-turquoise)"/>
+<path d="M1219 565.5 L1159 565.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#closed-loop-arrow-turquoise)"/>
+<path d="M1383.5 359 L1383.5 479" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#closed-loop-arrow-turquoise)"/>
+<path d="M216.5 479 L216.5 359" fill="none" stroke="#4D5C64" stroke-width="4" stroke-linejoin="round" stroke-dasharray="12 9" marker-end="url(#closed-loop-arrow-muted)"/>
+<text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">CLOSED LOOP</text>
+<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">Protocol success does not establish loop stability</text>
+<text x="52" y="158" class="s" font-size="24" fill="#4D5C64" font-weight="600">Tinted boxes mark the three software events that NCP records.</text>
+<text x="78" y="246" class="s" font-size="28" fill="#2C3E50" font-weight="700">Plant</text>
+<text x="78" y="304" class="r" font-size="25" fill="#2C3E50">State x at sample k.</text>
+<text x="467" y="246" class="s" font-size="28" fill="#2C3E50" font-weight="700">Sensor</text>
+<text x="467" y="304" class="r" font-size="25" fill="#2C3E50">Observation from state</text>
+<text x="467" y="337" class="r" font-size="25" fill="#2C3E50">and disturbance.</text>
+<text x="856" y="246" class="s" font-size="28" fill="#2C3E50" font-weight="700">Source record</text>
+<text x="856" y="304" class="r" font-size="25" fill="#2C3E50">Retained at the sample</text>
+<text x="856" y="337" class="r" font-size="25" fill="#2C3E50">time.</text>
+<text x="1245" y="246" class="s" font-size="28" fill="#2C3E50" font-weight="700">Controller</text>
+<text x="1245" y="304" class="r" font-size="25" fill="#2C3E50">Proposes an action from</text>
+<text x="1245" y="337" class="r" font-size="25" fill="#2C3E50">the record.</text>
+<text x="78" y="539" class="s" font-size="28" fill="#2C3E50" font-weight="700">Physical response</text>
+<text x="78" y="597" class="r" font-size="25" fill="#2C3E50">Outside the software</text>
+<text x="78" y="630" class="r" font-size="25" fill="#2C3E50">record.</text>
+<text x="467" y="539" class="s" font-size="28" fill="#2C3E50" font-weight="700">Actuator input</text>
+<text x="467" y="597" class="r" font-size="25" fill="#2C3E50">The plant input u at</text>
+<text x="467" y="630" class="r" font-size="25" fill="#2C3E50">sample k.</text>
+<text x="856" y="539" class="s" font-size="28" fill="#2C3E50" font-weight="700">Disposition</text>
+<text x="856" y="597" class="r" font-size="25" fill="#2C3E50">Terminal software</text>
+<text x="856" y="630" class="r" font-size="25" fill="#2C3E50">outcome.</text>
+<text x="1245" y="539" class="s" font-size="28" fill="#2C3E50" font-weight="700">Body admission</text>
+<text x="1245" y="597" class="r" font-size="25" fill="#2C3E50">Accepts before the</text>
+<text x="1245" y="630" class="r" font-size="25" fill="#2C3E50">exclusive deadline.</text>
+<text x="1403.5" y="427" class="s" font-size="24" fill="#4D5C64" font-weight="600">proposal</text>
+<text x="236.5" y="427" class="s" font-size="24" fill="#4D5C64" font-weight="600">next state</text>
+<text x="90" y="755.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="122" y="756" class="s" font-size="28" fill="#2C3E50" font-weight="700">Latency on one body clock</text>
+<text x="78" y="814" class="r" font-size="25" fill="#2C3E50">Admission latency = admission time − sample time.</text>
+<text x="78" y="847" class="r" font-size="25" fill="#2C3E50">Disposition latency = disposition time − sample time.</text>
+<text x="854" y="755.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="886" y="756" class="s" font-size="28" fill="#2C3E50" font-weight="700">Exclusive deadline</text>
+<text x="842" y="814" class="r" font-size="25" fill="#2C3E50">Admission at time t is live only when t &lt; deadline.</text>
+<text x="842" y="847" class="r" font-size="25" fill="#2C3E50">A missing event is undefined, never zero.</text>
+<text x="84" y="941" class="s" font-size="24" fill="#4D5C64" font-weight="600">STABILITY</text>
+<text x="84" y="979" class="r" font-size="25" fill="#2C3E50">Stability depends on the plant, controller, sampling, and delay. For the update x(k+1) = (1 − 2Δ) x(k), a period Δ of 0.1 s</text>
+<text x="84" y="1012" class="r" font-size="25" fill="#2C3E50">keeps 80 percent of the error per step. A period of 1 s flips its sign without decay. Message delivery is the same in both cases.</text>
+</svg>
