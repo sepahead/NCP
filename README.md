@@ -18,7 +18,7 @@ Each application owns its operations, observations, units, clocks, and accepted 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/system-map-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/system-map-light.svg">
-  <img alt="A host selects independent applications and connects each one through the NCP contract. NCP owns message identity, retained outcomes, acknowledgements, and bounded byte buffers. Each application owns its own state. The SDK is UNRELEASED. It is not release or certification evidence." src="docs/diagrams/system-map-light.svg" width="860">
+  <img alt="A host selects independent applications and connects each one through the NCP contract. NCP owns message identity, retained outcomes, acknowledgements, and bounded byte buffers. Each application owns its own state. The local SDK 1.0.0 is released; applications and wire 1.0 remain UNRELEASED. It is not release or certification evidence." src="docs/diagrams/system-map-light.svg" width="860">
 </picture>
 
 Full-size vector figure: [light](docs/diagrams/system-map-light.svg?raw=true) · [dark](docs/diagrams/system-map-dark.svg?raw=true).
@@ -27,12 +27,14 @@ The [NCP System Design report](output/pdf/ncp-system-design.pdf) is the standalo
 It explains the design, the equations, and the evidence boundary of each scope.
 A Lean 4 file checks its discrete arithmetic.
 
-**Release status: unreleased.**
-The SDK and applications have source controls and selected native evidence.
+**Release status: local SDK 1.0.0 released; product v1 and wire 1.0 unreleased.**
+The standalone `ncp-local` Rust and Python packages are released as version `1.0.0` under the tag `sdk-v1.0.0`.
+The [SDK release record](local/modular/SDK_RELEASE.md) states the released scope, the council decision, and the verification steps.
+The applications have source controls and selected native evidence.
 Complete qualification of their declared installed combinations and final product v1 remain open.
 Read the [architecture, interface mathematics, evidence, and remaining work](local/modular/STATUS.md) for the current modular scope.
 The [v1 preparation notes and checklist](local/modular/PREPARATION.md) collect the supported evidence and outstanding prerequisites.
-This preparation work creates no release tag or stable package publication.
+No package-registry upload has taken place.
 
 In the intended paper-driven workflow, Engram extracts candidate evidence from a PDF for review.
 After evidence review, Engram constructs a supported network and experiment, configures CREBAIN, and coordinates execution and reporting.

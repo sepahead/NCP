@@ -3,7 +3,8 @@
 Status: development components with selected native observations. No complete modular-product release is declared.
 This guide separates implemented interfaces, measured cases, and remaining requirements.
 The owning application documents retain their exact source identities and qualification limits.
-The [v1 preparation notes and checklist](PREPARATION.md) collect the current candidate scope without authorizing a release tag.
+The [v1 preparation notes and checklist](PREPARATION.md) collect the current candidate scope.
+The [SDK release record](SDK_RELEASE.md) covers the separately released `ncp-local` 1.0.0 packages; it declares no product release.
 
 The [modular owner contract](owner.md) and [core descriptor](../../ncp-core/src/modular_profile.v1.json) define the SDK behavior.
 The earlier [fixed-role reference](../../docs/local-v1/README.md) has a different descriptor and acceptance mapping.
@@ -109,7 +110,7 @@ They do not validate sensor physics, learned forecasts, or controller stability.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/diagrams/payload-transfer-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../../docs/diagrams/payload-transfer-light.svg">
-  <img alt="A receiver reserves the complete declared length, admits only the next verified chunk, and seals the payload after the complete SHA-256 digest matches. Chunks are at most 32,768 bytes and payloads at most 8,388,608 bytes. The SDK is UNRELEASED. It is not release or certification evidence." src="../../docs/diagrams/payload-transfer-light.svg" width="860">
+  <img alt="A receiver reserves the complete declared length, admits only the next verified chunk, and seals the payload after the complete SHA-256 digest matches. Chunks are at most 32,768 bytes and payloads at most 8,388,608 bytes. The local SDK 1.0.0 is released; applications and wire 1.0 remain UNRELEASED. It is not release or certification evidence." src="../../docs/diagrams/payload-transfer-light.svg" width="860">
 </picture>
 
 Full-size vector figure: [light](../../docs/diagrams/payload-transfer-light.svg?raw=true) · [dark](../../docs/diagrams/payload-transfer-dark.svg?raw=true).

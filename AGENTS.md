@@ -40,7 +40,9 @@ The reference profile's intended tag remains `local-v1.0.0`.
 Its standalone Rust and independent Python packages have separate identities from the broader candidate.
 The local descriptor defines contract identity only; publication requires separate immutable evidence.
 Local scope decisions cannot promote a failed scientific, provenance, or operating requirement.
-The bootstrap and operational gates both remain required before local publication.
+The bootstrap and operational gates both remain required before the reference release `local-v1.0.0`.
+The `ncp-local` packages are released separately as a library under the tag `sdk-v1.0.0`; that release claims no application qualification.
+Read the [SDK release record](local/modular/SDK_RELEASE.md) before changing either rule.
 
 The remaining candidate-specific rules apply to the broader protocol and its retained migration surfaces.
 They do not silently add remote capabilities or authority to this reference profile.

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1641" viewBox="0 0 1600 1641" role="img" aria-labelledby="exchange-title exchange-desc">
 <title id="exchange-title">NCP modular request and outcome exchange</title>
-<desc id="exchange-desc">A client sends one exact request. The owner returns retained bytes for an exact duplicate, admits new work without side effects, reserves storage, executes once, and retains the outcome until an exact acknowledgement. The SDK is UNRELEASED. It is not release or certification evidence.</desc>
+<desc id="exchange-desc">A client sends one exact request. The owner returns retained bytes for an exact duplicate, admits new work without side effects, reserves storage, executes once, and retains the outcome until an exact acknowledgement. The local SDK 1.0.0 is released; applications and wire 1.0 remain UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
 <style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
 <marker id="exchange-arrow-lapis" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#8DB2D8"/></marker>

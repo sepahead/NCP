@@ -1189,6 +1189,7 @@ def legend_line(
 # ──────────────────────────────── diagrams ─────────────────────────────────
 
 NOT_CERTIFICATION = "It is not release or certification evidence."
+SDK_STATUS = "The local SDK 1.0.0 is released; applications and wire 1.0 remain UNRELEASED."
 
 
 def system_map() -> Canvas:
@@ -1200,7 +1201,7 @@ def system_map() -> Canvas:
         "A host selects independent applications and connects each one through "
         "the NCP contract. NCP owns message identity, retained outcomes, "
         "acknowledgements, and bounded byte buffers. Each application owns its "
-        f"own state. The SDK is UNRELEASED. {NOT_CERTIFICATION}",
+        f"own state. {SDK_STATUS} {NOT_CERTIFICATION}",
     )
     y = header(c, "SYSTEM MAP", "A host composes independent applications through NCP")
     host = card(
@@ -1350,7 +1351,7 @@ def exchange() -> Canvas:
         "A client sends one exact request. The owner returns retained bytes for an "
         "exact duplicate, admits new work without side effects, reserves storage, "
         "executes once, and retains the outcome until an exact acknowledgement. "
-        f"The SDK is UNRELEASED. {NOT_CERTIFICATION}",
+        f"{SDK_STATUS} {NOT_CERTIFICATION}",
     )
     y = header(
         c, "MODULAR EXCHANGE", "One request, one retained outcome, one acknowledgement"
@@ -1501,7 +1502,7 @@ def payload_transfer() -> Canvas:
         "A receiver reserves the complete declared length, admits only the next "
         "verified chunk, and seals the payload after the complete SHA-256 digest "
         "matches. Chunks are at most 32,768 bytes and payloads at most 8,388,608 bytes. "
-        f"The SDK is UNRELEASED. {NOT_CERTIFICATION}",
+        f"{SDK_STATUS} {NOT_CERTIFICATION}",
     )
     y = header(
         c,

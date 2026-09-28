@@ -36,7 +36,7 @@ The SDK keeps no unbounded history of prior generations.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../../docs/diagrams/exchange-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../../docs/diagrams/exchange-light.svg">
-  <img alt="A client sends one exact request. The owner returns retained bytes for an exact duplicate, admits new work without side effects, reserves storage, executes once, and retains the outcome until an exact acknowledgement. The SDK is UNRELEASED. It is not release or certification evidence." src="../../docs/diagrams/exchange-light.svg" width="860">
+  <img alt="A client sends one exact request. The owner returns retained bytes for an exact duplicate, admits new work without side effects, reserves storage, executes once, and retains the outcome until an exact acknowledgement. The local SDK 1.0.0 is released; applications and wire 1.0 remain UNRELEASED. It is not release or certification evidence." src="../../docs/diagrams/exchange-light.svg" width="860">
 </picture>
 
 Full-size vector figure: [light](../../docs/diagrams/exchange-light.svg?raw=true) · [dark](../../docs/diagrams/exchange-dark.svg?raw=true).

@@ -1,8 +1,10 @@
-# NCP v1 preparation without a release tag
+# NCP v1 preparation and the local SDK release
 
 This page collects candidate notes, tested boundaries, and the remaining preparation checklist.
-It does not declare complete product qualification or authorize stable publication.
-This candidate has no release tag.
+It does not declare complete product qualification.
+The standalone `ncp-local` packages are released separately as SDK 1.0.0 under the tag `sdk-v1.0.0`.
+The [SDK release record](SDK_RELEASE.md) states that scope, its council decision, and its verification.
+The other scopes below have no release tag.
 
 Author and maintainer: **[Sepehr Mahmoudian](https://github.com/sepahead)**.
 
@@ -10,13 +12,13 @@ Author and maintainer: **[Sepehr Mahmoudian](https://github.com/sepahead)**.
 
 | Scope | Current identity | Meaning |
 | --- | --- | --- |
-| Modular local applications | [Modular SDK contract](owner.md) and each selected application contract | Independently selected local owners, bounded buffers, original observations, and retained outcomes. Selected native evidence exists. |
+| Modular local applications | [Modular SDK contract](owner.md) and each selected application contract | Independently selected local owners, bounded buffers, original observations, and retained outcomes. The SDK packages are released as `sdk-v1.0.0`; application qualification remains open. |
 | Earlier fixed-role reference | [Local release registry](../release.v1.json) | Separate descriptor, four-owner reference, and open bootstrap and operational receipts. Its intended tag does not authorize publication. |
 | Broader protocol candidate | [`1.0.0-rc.1`, wire `1.0`](../../docs/1.0-scope.md) | Unreleased and release-blocked. Its independent review, security, distribution, and role gates remain required. |
 
-The standalone Rust and Python packages currently declare version `1.0.0` in source.
-A package version does not prove registry publication or product acceptance.
-This preparation changes no version, descriptor, wire value, release flag, or canonical task state.
+The standalone Rust and Python packages are released as version `1.0.0` under the tag `sdk-v1.0.0`.
+That release is neither a registry publication nor product acceptance.
+This preparation changes no descriptor, wire value, release flag, or canonical task state.
 
 NCP owns the local message and buffer contract.
 CREBAIN owns simulated bodies and sensors. Engram owns its selected NEST application.
@@ -65,7 +67,7 @@ File and package identities do not attest loaded interpreter, model, browser, or
 | State the measured operating envelope | Distinguish logical admission, sampled measurements, physical reservations, and unavailable metrics. Unrun horizons and configurations stay unqualified. |
 | Prepare readable documentation | Keep notes, setup, descriptions, authorship, evidence links, mathematical meaning, and rendered Markdown consistent. Generate audit projections through their owner. |
 | Retain unresolved prerequisites | Keep canonical release gates and independent floors unchanged. Name the actual missing input and the prepared subject. |
-| Publish the prepared source | Push only the reviewed, gated commits to `main`. Verify remote objects and preserve the exact gate receipts. Create no release tag. |
+| Publish the prepared source | Push only the reviewed, gated commits to `main`. Verify remote objects and preserve the exact gate receipts. Only the SDK packages carry a release tag, `sdk-v1.0.0`; the other scopes create none. |
 
 The [CREBAIN city guide](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-city-sources) indexes its maintained resource, lifecycle, and operating evidence.
 The [CREBAIN sensor guide](https://github.com/sepahead/crebain/tree/main/integrations/ncp-force-ground-sensors) owns scalar and checkpoint-family selections.
@@ -117,6 +119,6 @@ Local councils, hosted CI, hashes, and source archives do not replace those inpu
 
 The modular local SDK does not silently supply those missing remote capabilities.
 
-No tag, registry upload, stable artifact, or post-publication validation is part of this tagless handoff.
+Apart from the separately recorded SDK release, no tag, registry upload, stable artifact, or post-publication validation is part of this handoff.
 Future publication requires its own exact authorization and gates.
 Historical releases, frozen evidence, private-source access boundaries, and original failure records remain unchanged.

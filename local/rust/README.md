@@ -1,6 +1,6 @@
 # NCP local Rust SDK
 
-Status: release candidate. Installed qualification and publication remain open.
+Status: released as NCP local SDK 1.0.0 under the tag `sdk-v1.0.0`. Installed application qualification and registry publication remain open.
 
 This standalone package implements `ncp.local-lockstep.v1`.
 It contains bounded JSON framing, typed digests, fixed endpoint roles, exact retained outcomes, and the shared simulation data contract.

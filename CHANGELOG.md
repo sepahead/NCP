@@ -362,6 +362,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Publication follows those gates; install and emergency-revocation validation
   follow publication.
 
+## [SDK 1.0.0] - 2026-09-28
+
+A separate release line for the standalone `ncp-local` packages, tagged
+`sdk-v1.0.0`. It changes no wire value, protocol package version, contract
+manifest, or released baseline.
+
+### Released
+
+- `ncp-local` `1.0.0` for Rust and Python: the modular owner and client contract,
+  the local-lockstep descriptor, bounded frames and buffers, exact typed digests,
+  retained outcomes, and acknowledgements.
+- GitHub release assets: the Python wheel, the Rust package archive, a source
+  archive of the tagged tree, SHA-256 and SHA-512 checksum lists, and a provenance
+  record.
+
+### Not released
+
+- The `1.0.0-rc.1` protocol candidate (wire `1.0`). The protocol tag `v1.0.0`
+  stays reserved.
+- The fixed-role reference release `local-v1.0.0`. Its receipts remain open.
+- Modular product v1 and any package-registry upload.
+
+### Evidence
+
+- The complete local gate and the hosted CI run for the tagged commit, reproducible
+  wheel and package-archive builds, and a clean installation that passes the SDK
+  suites. The provenance record attached to the release reports each result.
+
 ## [0.8.0] - 2026-07-12
 
 ### Wire 0.8 (breaking)
@@ -1526,6 +1554,7 @@ version guard, so peers must speak `0.2`.
   the dependabot dependency PRs.
 
 [Unreleased]: https://github.com/sepahead/NCP/compare/v0.8.0...HEAD
+[SDK 1.0.0]: https://github.com/sepahead/NCP/releases/tag/sdk-v1.0.0
 [0.8.0]: https://github.com/sepahead/NCP/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/sepahead/NCP/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/sepahead/NCP/compare/v0.6.0...v0.7.0

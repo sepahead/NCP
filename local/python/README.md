@@ -1,5 +1,7 @@
 # Local NCP Python SDK
 
+Status: released as NCP local SDK 1.0.0 under the tag `sdk-v1.0.0`. Installed application qualification and registry publication remain open.
+
 This independent SDK implements the candidate `ncp.local-lockstep.v1` profile.
 It uses Python's standard library. It does not call Rust or an FFI extension.
 
