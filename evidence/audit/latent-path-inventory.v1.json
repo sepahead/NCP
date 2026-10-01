@@ -2513,6 +2513,13 @@
         "indexed": true
       },
       {
+        "path": "docs/governance/owner-decisions-2026-10-01.md",
+        "bytes": 4331,
+        "sha256": "8937ce0edb77a9bd646b56c1b6268931ead30e067466c4150c749ccde672f0ff",
+        "git_blob_oid": "e29aef2399a37349a31f655324f29b52e6e001de",
+        "indexed": true
+      },
+      {
         "path": "docs/handoff/NCP_V1_0_ECOSYSTEM_FINALIZATION_BLUEPRINT.md",
         "bytes": 751820,
         "sha256": "31285348202990c691f980ff3676448e4132fcf33c424c130ef661cd0d0aa8e7",
@@ -8825,7 +8832,7 @@
     ]
   },
   "counts": {
-    "text_files": 1221,
+    "text_files": 1222,
     "binary_or_non_utf8_files": 29,
     "occurrences": 371,
     "by_token_id": {
@@ -8858,7 +8865,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "888e355683bfabb540c58a24fb72f62217ac9f608765f815791bb0aefff2f9a3",
+  "scanned_path_set_sha256": "e42c390bd792b4991a144cfcf081d54548c895ffefba2af351173ef3a737926c",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
