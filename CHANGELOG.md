@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation and publication (no wire change)
 
-- Rewrite the agent instructions. `AGENTS.md` gains an authority-and-workflow section
+- Rewrote the agent instructions. `AGENTS.md` gained an authority-and-workflow section
   (agents may commit, push, and merge to `main`; tags, releases, packages, and
   settings stay owner actions) and an artifact-classes section that names the
   tracked-file audit inventory. `CLAUDE.md` imports `AGENTS.md`.
