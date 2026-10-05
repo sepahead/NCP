@@ -2,6 +2,20 @@
 
 These instructions apply to each human or automated change in this repository.
 
+## Authority and workflow
+
+The owner authorizes agents to commit, push, and merge to `main`.
+`main` has no branch protection. Run the applicable complete gate before each push.
+NCP commits are unsigned. The repository configuration sets `commit.gpgsign=false`.
+Do not add AI attribution or co-author trailers.
+
+A tag, a release, a package publication, and a repository setting change remain
+owner actions. The [owner decisions](docs/governance/owner-decisions-2026-10-01.md)
+state when the `v1.0.0` tag can follow the technical gates.
+
+Preserve unrelated work and another agent's active scope. The shared checkout can
+hold another agent's work. Use a separate worktree from `origin/main`.
+
 ## Read before work
 
 Read [`README.md`](README.md) and
@@ -114,10 +128,30 @@ Change the source before you run the generator. Do not hand-edit generated schem
 generated TypeScript, copied test data, generated manifests, diagrams, or plots.
 
 The compact `CONTRACT_HASH` is not the complete normative SHA-256 digest.
+It is the FNV-1a hash of the canonical proto form. Comments and formatting do not
+change it. The `contract_hash_matches_proto` test keeps the constant equal to it.
 
 An unknown or default value must not grant identity, authority, capability,
 channel, security, plant, lifecycle, or operation success. Apply JSON limits before
 semantic allocation.
+
+## Artifact classes
+
+Classify each artifact before you change it.
+
+- **Normative sources.** `contract/manifest.v1.json` lists them and their precedence.
+- **Generated outputs.** Change the source, then run its generator. The ledger views
+  use `python3 scripts/generate_implementation_ledger.py --write` in the pinned
+  evidence environment.
+- **Tracked-file audit inventory.** `evidence/audit/latent-path-inventory.v1.json`
+  hashes every tracked text file, including this file. After a tracked change, run
+  `python3 scripts/generate_audit_artifacts.py --write`. Then run
+  `python3 scripts/check_audit_artifacts.py`.
+- **Frozen baselines.** `scripts/check_wire_baseline.py` and
+  `scripts/check_released_baselines.py` verify the frozen candidate and released
+  baselines. Do not edit them.
+- **Historical records.** Historical wire-0.8 text, immutable evidence, and frozen
+  release history keep their bytes.
 
 ## Security, safety, and science
 
@@ -201,7 +235,8 @@ unless the text is current rather than historical.
 Use the candidate and release terms consistently in all current documents.
 
 Before you commit, inspect the full diff. Run the applicable complete gate.
-Use a professional commit message. Push only to the authorized remote and branch.
+Use a professional commit message. Push to `main` on `origin`, directly or through
+a merged branch.
 
 After you push, verify that the remote ref resolves to the pushed commit. State
 what passed locally, what passed externally, and what remains **NOT RUN**.
