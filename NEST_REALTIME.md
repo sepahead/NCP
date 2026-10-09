@@ -288,6 +288,35 @@ test nor release/scientific certification. See its header for exact commands.
 
 ---
 
+## Rerun on NEST 3.9.0 (October 2026)
+
+On 7 October 2026 the three benchmark scripts ran unchanged at NCP commit
+`2819dae` with NEST 3.9.0 on one workstation: an Apple M4 Max with 12 performance
+cores, 4 efficiency cores, and 128 GB of memory. Other processes ran at the same
+time. Each value is the minimum wall time over three timed runs after one untimed
+warm-up.
+
+<img alt="Three panels. Panel a: chunked Run calls cost 1.45 times one Run call for 1 ms chunks, 1.05 times for 10 ms chunks, and 1.007 times for 100 ms chunks. Panel b: biological seconds per wall-clock second for 1, 4, and 8 threads. Panel c: a Python thread keeps 1.2 percent of its rate during nest.Run." src="docs/figures/nest-3.9.0-stepwise-control.svg" width="860">
+
+The figure shows these results:
+
+- **Chunk cost.** For a sparse network of 5,000 neurons, prepared chunks of 1 ms
+  cost 1.45 times one `Run` call over 1 s of biological time. Chunks of 10 ms cost
+  1.05 times, and chunks of 100 ms cost 1.007 times. A `Simulate` call per 10 ms
+  chunk costs 1.086 times. All 24 checked runs of the prepared pattern gave exactly
+  640,914 spikes, the same count as the single run.
+- **Speed.** One thread keeps pace with real time up to about 5,000 neurons
+  (factor 1.05). At 10,000 neurons, 4 threads reach 1.85. At 20,000 neurons,
+  8 threads reach 1.51, and 4 threads reach 0.83.
+- **Threads.** A Python counter thread keeps 1.2 percent of its standalone rate
+  while `nest.Run` executes. Overlap of simulated transport work with the next
+  chunk gives speedups from 0.96 to 1.04.
+
+The raw outputs, command lines, and script digests are in
+[`docs/figures/nest-3.9.0-stepwise-control.json`](docs/figures/nest-3.9.0-stepwise-control.json).
+These values are indicative. They are not a calibrated performance claim, and
+they do not measure an end-to-end loop through NCP.
+
 ## Historical real-time-factor sweep
 
 Neither NCP nor this note guarantees real time. The retained developer sweep uses

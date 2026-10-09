@@ -125,6 +125,25 @@ At $\Delta=0.1$ seconds, $M=0.8$, so each ideal step retains 80 percent of the p
 At $\Delta=1$ second, $M=-1$: the error alternates without decay.
 Successful message exchange would not distinguish these stability outcomes.
 
+## A stale predecessor can break stability
+
+Order can matter more than speed.
+Consider the dimensionless teaching model $x_{k+1}=x_k+u_{k+1}$.
+With the controller $u_{k+1}=-1.5\,x_k$, substitution gives $x_{k+1}=-0.5\,x_k$.
+Each error halves and changes sign, so the loop is stable.
+
+Now let the controller use the observation from one step earlier: $u_{k+1}=-1.5\,x_{k-1}$.
+The loop becomes $x_{k+1}=x_k-1.5\,x_{k-1}$.
+The roots of its characteristic equation $\lambda^2-\lambda+1.5=0$ are $\lambda=(1\pm i\sqrt5)/2$.
+Both roots have magnitude $\sqrt{1.5}\approx1.225$, which is greater than one, so errors grow.
+
+<img alt="Two plots of the error against the step. Left: with the current observation, the error halves and changes sign at every step. Right: with an observation one step old, the error oscillates and grows inside the envelope plus or minus 2 times the square root of 1.5 to the power k." src="../figures/stale-predecessor.svg" width="860">
+
+Faster transport cannot repair the second loop.
+Only the correct causal predecessor can repair it.
+This example concerns the stated recurrence only.
+It is not a stability claim about any NEST controller or body.
+
 ## Variable periods need a stronger argument
 
 Checking each spectral radius separately does not generally prove stability under arbitrary switching between matrix transitions.

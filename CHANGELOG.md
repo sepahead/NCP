@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation and publication (no wire change)
 
+- Added a rerun of the three NEST benchmark scripts on NEST 3.9.0 to
+  `NEST_REALTIME.md`, with a figure and the raw outputs in `docs/figures/`. Added a
+  section with a figure to `docs/implementation/CLOSED_LOOP_MATH.md` that shows how a
+  one-step stale command makes a stable teaching loop unstable. Both figures embed
+  their fonts and have an opaque background, so they render the same in light and
+  dark themes.
 - Rewrote the agent instructions. `AGENTS.md` gained an authority-and-workflow section
   (agents may commit, push, and merge to `main`; tags, releases, packages, and
   settings stay owner actions) and an artifact-classes section that names the

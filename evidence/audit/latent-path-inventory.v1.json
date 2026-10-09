@@ -134,9 +134,9 @@
       },
       {
         "path": "CHANGELOG.md",
-        "bytes": 101461,
-        "sha256": "12ee844678c12053278cf087f84db27ff223abdffee40a756b07038d3b9b8d6a",
-        "git_blob_oid": "e76cba95c7adb99586891fef6b4da4a8a386f6fa",
+        "bytes": 101880,
+        "sha256": "00d2e66b50eeaed3888be72f88650a558041da1d13b26936baf4cde165dfa57b",
+        "git_blob_oid": "7fe0ba939a49535df3f9f40e9c95f02b1615c8d3",
         "indexed": true
       },
       {
@@ -246,9 +246,9 @@
       },
       {
         "path": "NEST_REALTIME.md",
-        "bytes": 23617,
-        "sha256": "a1f92e00f3f95b6c67c87e5aefc917ab96926138b952976c9895e7c86fc1bd11",
-        "git_blob_oid": "cbaba469278c02a684cfa8b81747083014313584",
+        "bytes": 25465,
+        "sha256": "8a2dcf2590ec1c76ada5dac8a55db8251c490ccc81b1f1415196292d2cbf2334",
+        "git_blob_oid": "4e14d299768c9cdfda2b7610e55ff085513aaf0e",
         "indexed": true
       },
       {
@@ -2513,6 +2513,27 @@
         "indexed": true
       },
       {
+        "path": "docs/figures/nest-3.9.0-stepwise-control.json",
+        "bytes": 8142,
+        "sha256": "c17fd8d6a34069c2a46bdf8c177f40efa8d1106ab9b55726e134f3c5c67f6923",
+        "git_blob_oid": "6e6676e912dcbfa97f754eb726ccdb96215cf1a2",
+        "indexed": true
+      },
+      {
+        "path": "docs/figures/nest-3.9.0-stepwise-control.svg",
+        "bytes": 84271,
+        "sha256": "d2768efcff5697e8c855523ea18f7a80e2c88e2c56acf49240deebd9784a04bd",
+        "git_blob_oid": "d78aad4663f96e803c1fa3d5db38cc225995ce6a",
+        "indexed": true
+      },
+      {
+        "path": "docs/figures/stale-predecessor.svg",
+        "bytes": 67568,
+        "sha256": "cb0da5368c145ce8eb4cb4dfdac7459a9f560b0016eae6b61ce14db512546c1d",
+        "git_blob_oid": "dcafdd1c0a7b14021d217b6c4845c645653fe886",
+        "indexed": true
+      },
+      {
         "path": "docs/governance/owner-decisions-2026-10-01.md",
         "bytes": 4331,
         "sha256": "8937ce0edb77a9bd646b56c1b6268931ead30e067466c4150c749ccde672f0ff",
@@ -2584,9 +2605,9 @@
       },
       {
         "path": "docs/implementation/CLOSED_LOOP_MATH.md",
-        "bytes": 7269,
-        "sha256": "ffb1e4c0b5760571d144da00aed36fece662a77b9e1834b300b0aa0c0f80045b",
-        "git_blob_oid": "03ef432d4efb339c83833f8aa8b6372d5ceff302",
+        "bytes": 8440,
+        "sha256": "606a731b303e748828532981a31e1f8b1691f4663db428aaeeb93ccc9223ebe2",
+        "git_blob_oid": "0af0528eae4c342efc2845bafb5ce31de1d9706d",
         "indexed": true
       },
       {
@@ -8832,7 +8853,7 @@
     ]
   },
   "counts": {
-    "text_files": 1222,
+    "text_files": 1225,
     "binary_or_non_utf8_files": 29,
     "occurrences": 371,
     "by_token_id": {
@@ -8865,7 +8886,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "e42c390bd792b4991a144cfcf081d54548c895ffefba2af351173ef3a737926c",
+  "scanned_path_set_sha256": "3dc16ac3be9faf77639d81cd3703aaba8529d1238f3aca64fbd194c1401eb9f2",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -8883,13 +8904,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-2CF47A14B9B87D006584",
+      "id": "NCP-LATENT-368952D14273F31CE244",
       "path": "CHANGELOG.md",
-      "line": 51,
+      "line": 57,
       "column": 61,
       "token_id": "M005",
       "line_sha256": "811d78b7a3e1e1b784f4ffaa974a1774c9b6ecd3da23c8653077277f554a5ea1",
-      "file_sha256": "12ee844678c12053278cf087f84db27ff223abdffee40a756b07038d3b9b8d6a",
+      "file_sha256": "00d2e66b50eeaed3888be72f88650a558041da1d13b26936baf4cde165dfa57b",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -8897,13 +8918,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-A0760989B72F4FDC7F10",
+      "id": "NCP-LATENT-3282354E931B1B38090B",
       "path": "CHANGELOG.md",
-      "line": 107,
+      "line": 113,
       "column": 33,
       "token_id": "M008",
       "line_sha256": "d99fd06bb18ff6c89eeea3eac358a4085b65b21a569704855af2046cf7124183",
-      "file_sha256": "12ee844678c12053278cf087f84db27ff223abdffee40a756b07038d3b9b8d6a",
+      "file_sha256": "00d2e66b50eeaed3888be72f88650a558041da1d13b26936baf4cde165dfa57b",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -8911,13 +8932,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-96AD04B78FC9DCE9CA9E",
+      "id": "NCP-LATENT-81A7B5E4AA8D74B6C538",
       "path": "CHANGELOG.md",
-      "line": 213,
+      "line": 219,
       "column": 58,
       "token_id": "M008",
       "line_sha256": "40079fba910353399172548260fe643cd3a953e6e607e6bc1e629e40690c70df",
-      "file_sha256": "12ee844678c12053278cf087f84db27ff223abdffee40a756b07038d3b9b8d6a",
+      "file_sha256": "00d2e66b50eeaed3888be72f88650a558041da1d13b26936baf4cde165dfa57b",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -8925,13 +8946,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-CC4EF3B86EBB2742AF94",
+      "id": "NCP-LATENT-5398E3AE853968E2FFA4",
       "path": "CHANGELOG.md",
-      "line": 236,
+      "line": 242,
       "column": 52,
       "token_id": "M008",
       "line_sha256": "07267f2a2b963ded5aa888298598162bbbd09b2e36e70a6232535d6a5e3155f3",
-      "file_sha256": "12ee844678c12053278cf087f84db27ff223abdffee40a756b07038d3b9b8d6a",
+      "file_sha256": "00d2e66b50eeaed3888be72f88650a558041da1d13b26936baf4cde165dfa57b",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -8939,13 +8960,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-0E1110EAE4303BFACD50",
+      "id": "NCP-LATENT-131E7437BE38D3C99EED",
       "path": "CHANGELOG.md",
-      "line": 801,
+      "line": 807,
       "column": 75,
       "token_id": "M008",
       "line_sha256": "23edc0f4299db445c52e6d256956600083b59cb34a5b0bcdcf6932902739f4ad",
-      "file_sha256": "12ee844678c12053278cf087f84db27ff223abdffee40a756b07038d3b9b8d6a",
+      "file_sha256": "00d2e66b50eeaed3888be72f88650a558041da1d13b26936baf4cde165dfa57b",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -8953,13 +8974,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-2682CB6A4FFA734C4470",
+      "id": "NCP-LATENT-C2D857811FF645D3542E",
       "path": "CHANGELOG.md",
-      "line": 990,
+      "line": 996,
       "column": 72,
       "token_id": "M007",
       "line_sha256": "42d6d813f7486528eb0d901b58d764987bacc5a624d0999f262560e07d711564",
-      "file_sha256": "12ee844678c12053278cf087f84db27ff223abdffee40a756b07038d3b9b8d6a",
+      "file_sha256": "00d2e66b50eeaed3888be72f88650a558041da1d13b26936baf4cde165dfa57b",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -9157,7 +9178,7 @@
       "column": 1,
       "token_id": "M007",
       "line_sha256": "d20892f624afd64136dc18c28fd55f66369d2d27f85d53090d94d51cb95f94f3",
-      "file_sha256": "a1f92e00f3f95b6c67c87e5aefc917ab96926138b952976c9895e7c86fc1bd11",
+      "file_sha256": "8a2dcf2590ec1c76ada5dac8a55db8251c490ccc81b1f1415196292d2cbf2334",
       "disposition": "EXPLICIT_SCOPE_QUARANTINE",
       "claim_effect": "NOT_STABLE_BY_IMPLICATION",
       "evidence_paths": [

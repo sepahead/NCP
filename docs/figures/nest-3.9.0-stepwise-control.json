@@ -1,0 +1,335 @@
+{
+  "date": "2026-10-07",
+  "ncp_commit": "2819dae3b6338bb1df6d105ebb5b7433936a993d",
+  "scripts_sha256": {
+    "scripts/bench_chunk_overhead.py": "c9a0c782fc33a9597495420630fcfb39cba154df1b8029e0c16a97cb20d63de1",
+    "scripts/bench_realtime.py": "d1a39c5dbcbee75fb421788be8c06278532fe932d77608000a5fc155ce5e407f",
+    "scripts/bench_overlap.py": "fca63ed840f1e896a1b0469805ed8c28d9725e359d339b55733c643447c4adfb"
+  },
+  "nest_version": "3.9.0",
+  "machine": "Apple M4 Max, 16 cores (12 performance, 4 efficiency), 128 GB, macOS 26.5.1",
+  "conditions": "Shared workstation; other processes ran (load average about 4). Each value is the minimum wall time over timed repetitions after one untimed warm-up.",
+  "commands": [
+    "bench_chunk_overhead.py --neurons 5000 --synapses 1000 --chunk-ms 1 2 5 10 20 50 100 --t-bio-ms 1000 --reps 3 --threads 4 --strict",
+    "bench_realtime.py --n 2000 5000 10000 20000 --threads 1 4 8 --t-bio-ms 1000 --reps 3",
+    "bench_overlap.py --n 5000 --threads 4"
+  ],
+  "chunk": {
+    "nest_version": "3.9.0",
+    "network": {
+      "neurons": 5000,
+      "synapses": 1000,
+      "poisson_hz": 8000.0,
+      "t_bio_ms": 1000.0,
+      "threads": 4,
+      "seed": 12345
+    },
+    "method": {
+      "warmup": 1,
+      "reps": 3,
+      "headline": "MIN wall (rebuild fresh untimed before each rep)"
+    },
+    "results": [
+      {
+        "config": "monolithic",
+        "chunk_ms": 1000.0,
+        "n_run": 1,
+        "min_s": 0.372921,
+        "median_s": 0.38591,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.0
+      },
+      {
+        "config": "chunked-efficient",
+        "chunk_ms": 1.0,
+        "n_run": 1000,
+        "min_s": 0.540022,
+        "median_s": 0.543844,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.4481
+      },
+      {
+        "config": "chunked-efficient",
+        "chunk_ms": 2.0,
+        "n_run": 500,
+        "min_s": 0.458475,
+        "median_s": 0.459384,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.2294
+      },
+      {
+        "config": "chunked-efficient",
+        "chunk_ms": 5.0,
+        "n_run": 200,
+        "min_s": 0.411736,
+        "median_s": 0.413528,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.1041
+      },
+      {
+        "config": "chunked-efficient",
+        "chunk_ms": 10.0,
+        "n_run": 100,
+        "min_s": 0.39323,
+        "median_s": 0.394385,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.0545
+      },
+      {
+        "config": "chunked-efficient",
+        "chunk_ms": 20.0,
+        "n_run": 50,
+        "min_s": 0.382495,
+        "median_s": 0.399104,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.0257
+      },
+      {
+        "config": "chunked-efficient",
+        "chunk_ms": 50.0,
+        "n_run": 20,
+        "min_s": 0.378641,
+        "median_s": 0.378757,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.0153
+      },
+      {
+        "config": "chunked-efficient",
+        "chunk_ms": 100.0,
+        "n_run": 10,
+        "min_s": 0.375521,
+        "median_s": 0.375859,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.007
+      },
+      {
+        "config": "chunked-naive",
+        "chunk_ms": 10.0,
+        "n_run": 100,
+        "min_s": 0.405034,
+        "median_s": 0.405798,
+        "total_spikes": 640914,
+        "spikes_all_reps": [
+          640914,
+          640914,
+          640914
+        ],
+        "slowdown_x": 1.0861
+      }
+    ],
+    "equivalence": {
+      "monolithic_spikes": 640914,
+      "all_efficient_identical": true,
+      "checked_reps": 24
+    }
+  },
+  "realtime": {
+    "nest_version": "3.9.0",
+    "grid": [
+      {
+        "n": 2000,
+        "threads": 1,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.3693,
+        "realtime_factor": 2.7078,
+        "build_s": 0.0585,
+        "n_syn": 1001000,
+        "fire_hz": 19.8,
+        "skipped": false
+      },
+      {
+        "n": 2000,
+        "threads": 4,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.1192,
+        "realtime_factor": 8.3876,
+        "build_s": 0.0238,
+        "n_syn": 1001000,
+        "fire_hz": 19.09,
+        "skipped": false
+      },
+      {
+        "n": 2000,
+        "threads": 8,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.1064,
+        "realtime_factor": 9.3948,
+        "build_s": 0.0199,
+        "n_syn": 1001000,
+        "fire_hz": 19.85,
+        "skipped": false
+      },
+      {
+        "n": 5000,
+        "threads": 1,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.9495,
+        "realtime_factor": 1.0532,
+        "build_s": 0.1364,
+        "n_syn": 2501000,
+        "fire_hz": 20.88,
+        "skipped": false
+      },
+      {
+        "n": 5000,
+        "threads": 4,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.2661,
+        "realtime_factor": 3.7586,
+        "build_s": 0.0466,
+        "n_syn": 2501000,
+        "fire_hz": 19.63,
+        "skipped": false
+      },
+      {
+        "n": 5000,
+        "threads": 8,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.2015,
+        "realtime_factor": 4.9633,
+        "build_s": 0.0314,
+        "n_syn": 2501000,
+        "fire_hz": 19.55,
+        "skipped": false
+      },
+      {
+        "n": 10000,
+        "threads": 1,
+        "t_bio_ms": 1000.0,
+        "wall_s": 1.9571,
+        "realtime_factor": 0.511,
+        "build_s": 0.2787,
+        "n_syn": 5001000,
+        "fire_hz": 19.57,
+        "skipped": false
+      },
+      {
+        "n": 10000,
+        "threads": 4,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.541,
+        "realtime_factor": 1.8485,
+        "build_s": 0.0862,
+        "n_syn": 5001000,
+        "fire_hz": 20.16,
+        "skipped": false
+      },
+      {
+        "n": 10000,
+        "threads": 8,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.3465,
+        "realtime_factor": 2.8859,
+        "build_s": 0.067,
+        "n_syn": 5001000,
+        "fire_hz": 18.86,
+        "skipped": false
+      },
+      {
+        "n": 20000,
+        "threads": 1,
+        "t_bio_ms": 1000.0,
+        "wall_s": 4.3673,
+        "realtime_factor": 0.229,
+        "build_s": 0.5681,
+        "n_syn": 10001000,
+        "fire_hz": 19.36,
+        "skipped": false
+      },
+      {
+        "n": 20000,
+        "threads": 4,
+        "t_bio_ms": 1000.0,
+        "wall_s": 1.1996,
+        "realtime_factor": 0.8336,
+        "build_s": 0.1719,
+        "n_syn": 10001000,
+        "fire_hz": 19.82,
+        "skipped": false
+      },
+      {
+        "n": 20000,
+        "threads": 8,
+        "t_bio_ms": 1000.0,
+        "wall_s": 0.6625,
+        "realtime_factor": 1.5094,
+        "build_s": 0.1083,
+        "n_syn": 10001000,
+        "fire_hz": 20.32,
+        "skipped": false
+      }
+    ]
+  },
+  "overlap": {
+    "nest_version": "3.9.0",
+    "gil": {
+      "baseline_per_s": 23594326.7,
+      "during_run_per_s": 272924.9,
+      "retained_fraction": 0.0116,
+      "gil_released": false
+    },
+    "results": [
+      {
+        "io_ms": 0.5,
+        "serial_period_ms": 13.007,
+        "overlapped_period_ms": 12.596,
+        "speedup": 1.033,
+        "realtime_capable": false
+      },
+      {
+        "io_ms": 2.0,
+        "serial_period_ms": 15.282,
+        "overlapped_period_ms": 15.918,
+        "speedup": 0.96,
+        "realtime_capable": false
+      },
+      {
+        "io_ms": 5.0,
+        "serial_period_ms": 20.216,
+        "overlapped_period_ms": 19.405,
+        "speedup": 1.042,
+        "realtime_capable": false
+      }
+    ]
+  }
+}
