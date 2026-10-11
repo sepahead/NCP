@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation and publication (no wire change)
 
+- The four historical performance plots in `docs/plots/` now name a font fallback
+  after DejaVu Sans. Without it, a browser that lacks DejaVu Sans drew the labels in
+  its default serif. Arial and Helvetica are narrower than DejaVu Sans, so no label
+  overflows; Verdana was rejected because the overlap footer overflowed by 4.3 px.
+  `scripts/plot_perf.py` adds the fallback, and `--check` reproduces the plots.
 - Added a rerun of the three NEST benchmark scripts on NEST 3.9.0 to
   `NEST_REALTIME.md`, with a figure and the raw outputs in `docs/figures/`. Added a
   section with a figure to `docs/implementation/CLOSED_LOOP_MATH.md` that shows how a

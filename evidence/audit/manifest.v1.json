@@ -8,9 +8,9 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "039c1c04df95fc45912404670ff826e02c860806d7a104b14a8642cf7a33a087",
-      "bytes": 559978,
-      "records": 371
+      "sha256": "52b4d7f067f0bec006b18b8a41ae9daab419031cb02cb8355b247d4cc843406b",
+      "bytes": 561475,
+      "records": 374
     },
     {
       "path": "evidence/audit/requirement-traceability.v1.json",

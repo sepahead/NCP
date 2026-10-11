@@ -47,8 +47,8 @@ z
 " clip-path="url(#pdd1b318bfe)" style="fill: #e8783c; opacity: 0.08; stroke: #e8783c; stroke-linejoin: miter"/>
    </g>
    <g id="text_1">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; fill: #8b949e" transform="translate(159.152178 219.025572)">rate-loop regime (T_ncp)</text>
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; fill: #8b949e" transform="translate(159.152178 229.828033)">benefit ≈ single-digit %</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #8b949e" transform="translate(159.152178 219.025572)">rate-loop regime (T_ncp)</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #8b949e" transform="translate(159.152178 229.828033)">benefit ≈ single-digit %</text>
    </g>
    <g id="matplotlib.axis_1">
     <g id="xtick_1">
@@ -66,10 +66,10 @@ L 0 3.5
       <!-- $\mathdefault{10^{-1}}$ -->
       <g style="fill: #c9d1d9" transform="translate(166.882447 278.657969)">
        <text>
-        <tspan x="0" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #c9d1d9">1</tspan>
-        <tspan x="6.362305" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #c9d1d9">0</tspan>
-        <tspan x="12.820312" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #c9d1d9">−</tspan>
-        <tspan x="18.685547" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #c9d1d9">1</tspan>
+        <tspan x="0" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">1</tspan>
+        <tspan x="6.362305" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">0</tspan>
+        <tspan x="12.820312" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">−</tspan>
+        <tspan x="18.685547" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">1</tspan>
        </text>
       </g>
      </g>
@@ -84,9 +84,9 @@ L 0 3.5
       <!-- $\mathdefault{10^{0}}$ -->
       <g style="fill: #c9d1d9" transform="translate(263.664281 278.757969)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #c9d1d9">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #c9d1d9">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #c9d1d9">0</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">0</tspan>
        </text>
       </g>
      </g>
@@ -101,9 +101,9 @@ L 0 3.5
       <!-- $\mathdefault{10^{1}}$ -->
       <g style="fill: #c9d1d9" transform="translate(357.496116 278.657969)">
        <text>
-        <tspan x="0" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #c9d1d9">1</tspan>
-        <tspan x="6.362305" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #c9d1d9">0</tspan>
-        <tspan x="12.820312" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #c9d1d9">1</tspan>
+        <tspan x="0" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">1</tspan>
+        <tspan x="6.362305" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">0</tspan>
+        <tspan x="12.820312" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9">1</tspan>
        </text>
       </g>
      </g>
@@ -261,7 +261,7 @@ L 0 2
      </g>
     </g>
     <g id="text_5">
-     <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #c9d1d9" x="262.056044" y="294.278437" transform="rotate(-0 262.056044 294.278437)">transport-work per chunk (ms, log)</text>
+     <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #c9d1d9" x="262.056044" y="294.278437" transform="rotate(-0 262.056044 294.278437)">transport-work per chunk (ms, log)</text>
     </g>
    </g>
    <g id="matplotlib.axis_2">
@@ -282,7 +282,7 @@ L -3.5 0
       </g>
      </g>
      <g id="text_6">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #c9d1d9" x="143.38625" y="266.156797" transform="rotate(-0 143.38625 266.156797)">1.0</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #c9d1d9" x="143.38625" y="266.156797" transform="rotate(-0 143.38625 266.156797)">1.0</text>
      </g>
     </g>
     <g id="ytick_2">
@@ -297,7 +297,7 @@ L 373.725837 213.24639
       </g>
      </g>
      <g id="text_7">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #c9d1d9" x="143.38625" y="217.045218" transform="rotate(-0 143.38625 217.045218)">1.2</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #c9d1d9" x="143.38625" y="217.045218" transform="rotate(-0 143.38625 217.045218)">1.2</text>
      </g>
     </g>
     <g id="ytick_3">
@@ -312,7 +312,7 @@ L 373.725837 164.134811
       </g>
      </g>
      <g id="text_8">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #c9d1d9" x="143.38625" y="167.933639" transform="rotate(-0 143.38625 167.933639)">1.4</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #c9d1d9" x="143.38625" y="167.933639" transform="rotate(-0 143.38625 167.933639)">1.4</text>
      </g>
     </g>
     <g id="ytick_4">
@@ -327,7 +327,7 @@ L 373.725837 115.023232
       </g>
      </g>
      <g id="text_9">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #c9d1d9" x="143.38625" y="118.82206" transform="rotate(-0 143.38625 118.82206)">1.6</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #c9d1d9" x="143.38625" y="118.82206" transform="rotate(-0 143.38625 118.82206)">1.6</text>
      </g>
     </g>
     <g id="ytick_5">
@@ -342,11 +342,11 @@ L 373.725837 65.911653
       </g>
      </g>
      <g id="text_10">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #c9d1d9" x="143.38625" y="69.710481" transform="rotate(-0 143.38625 69.710481)">1.8</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #c9d1d9" x="143.38625" y="69.710481" transform="rotate(-0 143.38625 69.710481)">1.8</text>
      </g>
     </g>
     <g id="text_11">
-     <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #c9d1d9" x="120.600313" y="145.717969" transform="rotate(-90 120.600313 145.717969)">overlap speedup (×)</text>
+     <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #c9d1d9" x="120.600313" y="145.717969" transform="rotate(-90 120.600313 145.717969)">overlap speedup (×)</text>
     </g>
    </g>
    <g id="patch_4">
@@ -1756,13 +1756,13 @@ z
     </g>
    </g>
    <g id="text_13">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #56b4e9" x="309.401992" y="154.389544" transform="rotate(-0 309.401992 154.389544)">analytic ceiling</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #56b4e9" x="309.401992" y="154.389544" transform="rotate(-0 309.401992 154.389544)">analytic ceiling</text>
    </g>
    <g id="text_14">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #56b4e9" x="360.296116" y="55.749544" transform="rotate(-0 360.296116 55.749544)">1.80× @ 10 ms</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #56b4e9" x="360.296116" y="55.749544" transform="rotate(-0 360.296116 55.749544)">1.80× @ 10 ms</text>
    </g>
    <g id="text_15">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #56b4e9" x="188.632447" y="259.126386" transform="rotate(-0 188.632447 259.126386)">1.01× @ 0.1 ms</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #56b4e9" x="188.632447" y="259.126386" transform="rotate(-0 188.632447 259.126386)">1.01× @ 0.1 ms</text>
    </g>
    <g id="line2d_39">
     <defs>
@@ -1778,8 +1778,8 @@ z
     </g>
    </g>
    <g id="text_16">
-    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #e8783c" transform="translate(373.296116 110.688102)">1.68× measured</text>
-    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #e8783c" transform="translate(373.296116 120.890427)">(below ideal)</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #e8783c" transform="translate(373.296116 110.688102)">1.68× measured</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #e8783c" transform="translate(373.296116 120.890427)">(below ideal)</text>
    </g>
    <g id="patch_6">
     <path d="M 231.818743 141.045509
@@ -1804,10 +1804,10 @@ Q 180.927836 138.82788 184.327836 138.82788
 z
 " style="fill: #0d1117; opacity: 0.95; stroke: #8b949e; stroke-width: 0.8; stroke-linejoin: miter"/>
     </g>
-    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #c9d1d9" transform="translate(184.327836 101.928085)">idealized ceiling —</text>
-    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #c9d1d9" transform="translate(184.327836 112.13041)">off-GIL serialize only;</text>
-    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #c9d1d9" transform="translate(184.327836 122.332734)">~1.08× w/ Python serialize,</text>
-    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #c9d1d9" transform="translate(184.327836 132.535058)">→ ~1.01× at 0.1 ms work</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9" transform="translate(184.327836 101.928085)">idealized ceiling —</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9" transform="translate(184.327836 112.13041)">off-GIL serialize only;</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9" transform="translate(184.327836 122.332734)">~1.08× w/ Python serialize,</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #c9d1d9" transform="translate(184.327836 132.535058)">→ ~1.01× at 0.1 ms work</text>
    </g>
   </g>
   <g id="axes_2">
@@ -1828,7 +1828,7 @@ z
       </g>
      </g>
      <g id="text_18">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #c9d1d9" x="450.199008" y="227.277187" transform="rotate(-0 450.199008 227.277187)">serial</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #c9d1d9" x="450.199008" y="227.277187" transform="rotate(-0 450.199008 227.277187)">serial</text>
      </g>
     </g>
     <g id="ytick_7">
@@ -1838,7 +1838,7 @@ z
       </g>
      </g>
      <g id="text_19">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #c9d1d9" x="450.199008" y="162.477187" transform="rotate(-0 450.199008 162.477187)">Python thread</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #c9d1d9" x="450.199008" y="162.477187" transform="rotate(-0 450.199008 162.477187)">Python thread</text>
      </g>
     </g>
     <g id="ytick_8">
@@ -1848,7 +1848,7 @@ z
       </g>
      </g>
      <g id="text_20">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #c9d1d9" x="450.199008" y="97.677187" transform="rotate(-0 450.199008 97.677187)">native thread</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #c9d1d9" x="450.199008" y="97.677187" transform="rotate(-0 450.199008 97.677187)">native thread</text>
      </g>
     </g>
    </g>
@@ -1892,7 +1892,7 @@ z
 " clip-path="url(#p0dc26f55a6)" style="fill: url(#h6e7ceeed6e); stroke: #e8783c; stroke-width: 1.4; stroke-linejoin: miter"/>
    </g>
    <g id="text_21">
-    <text style="font-size: 9.5px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #8b949e" x="457.199008" y="43.294884" transform="rotate(-0 457.199008 43.294884)">10 ms work · best case</text>
+    <text style="font-size: 9.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #8b949e" x="457.199008" y="43.294884" transform="rotate(-0 457.199008 43.294884)">10 ms work · best case</text>
    </g>
    <g id="patch_14">
     <path d="M 457.199008 110.077969
@@ -1904,27 +1904,27 @@ z
 " clip-path="url(#p0dc26f55a6)" style="fill: none; stroke: #c9d1d9; stroke-linejoin: miter"/>
    </g>
    <g id="text_22">
-    <text style="font-weight: 700; font-size: 9.5px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #c9d1d9" x="530.992629" y="225.945742" transform="rotate(-0 530.992629 225.945742)">1.00×</text>
+    <text style="font-weight: 700; font-size: 9.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #c9d1d9" x="530.992629" y="225.945742" transform="rotate(-0 530.992629 225.945742)">1.00×</text>
    </g>
    <g id="text_23">
-    <text style="font-weight: 700; font-size: 9.5px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #c9d1d9" x="536.576119" y="161.145742" transform="rotate(-0 536.576119 161.145742)">1.08×</text>
+    <text style="font-weight: 700; font-size: 9.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #c9d1d9" x="536.576119" y="161.145742" transform="rotate(-0 536.576119 161.145742)">1.08×</text>
    </g>
    <g id="text_24">
-    <text style="font-weight: 700; font-size: 9.5px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #c9d1d9" x="578.452291" y="96.345742" transform="rotate(-0 578.452291 96.345742)">1.68×</text>
+    <text style="font-weight: 700; font-size: 9.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #c9d1d9" x="578.452291" y="96.345742" transform="rotate(-0 578.452291 96.345742)">1.68×</text>
    </g>
    <g id="text_25">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #8b949e" x="526.992629" y="255.252094" transform="rotate(-0 526.992629 255.252094)">baseline 1.00×</text>
+    <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #8b949e" x="526.992629" y="255.252094" transform="rotate(-0 526.992629 255.252094)">baseline 1.00×</text>
    </g>
    <g id="text_26">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #8b949e" x="461.386625" y="194.452406" transform="rotate(-0 461.386625 194.452406)">naive Python serialize lands here</text>
+    <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #8b949e" x="461.386625" y="194.452406" transform="rotate(-0 461.386625 194.452406)">naive Python serialize lands here</text>
    </g>
    <g id="text_27">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #8b949e" transform="translate(461.386625 126.795312)">off-GIL ceiling (ctypes stand-in) —</text>
-    <text style="font-size: 8px; font-family: 'DejaVu Sans'; fill: #8b949e" transform="translate(461.386625 136.3975)">not measured transport</text>
+    <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #8b949e" transform="translate(461.386625 126.795312)">off-GIL ceiling (ctypes stand-in) —</text>
+    <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #8b949e" transform="translate(461.386625 136.3975)">not measured transport</text>
    </g>
   </g>
   <g id="text_28">
-   <text style="font-style: italic; font-size: 8px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #8b949e" x="366.38625" y="308.388094" transform="rotate(-0 366.38625 308.388094)">HISTORICAL SYNTHETIC STAND-IN — NOT TRANSPORT EVIDENCE · 8000-neuron net · ~8 ms compute + 10 ms work / 20 ms chunk · 30 chunks · bench_gil_overlap.py (NEST 3.8.0)</text>
+   <text style="font-style: italic; font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #8b949e" x="366.38625" y="308.388094" transform="rotate(-0 366.38625 308.388094)">HISTORICAL SYNTHETIC STAND-IN — NOT TRANSPORT EVIDENCE · 8000-neuron net · ~8 ms compute + 10 ms work / 20 ms chunk · 30 chunks · bench_gil_overlap.py (NEST 3.8.0)</text>
   </g>
  </g>
  <defs>

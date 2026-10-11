@@ -346,14 +346,18 @@ def _rc() -> None:
     )
 
 
+# Matplotlib names only the face it measured. A browser without DejaVu Sans would
+# otherwise fall back to its default serif. Arial and Helvetica are narrower than
+# DejaVu Sans, so text laid out for DejaVu cannot overflow; Verdana is wider and can.
+SVG_FONT_STACK = "'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif"
+
+
 def _normalize_svg(path: Path) -> None:
-    """Remove generator-only line-end whitespace while preserving one final newline."""
+    """Remove line-end whitespace, keep one final newline, and add a font fallback."""
     lines = path.read_text(encoding="utf-8").splitlines()
-    path.write_text(
-        "\n".join(line.rstrip() for line in lines) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    text = "\n".join(line.rstrip() for line in lines) + "\n"
+    text = text.replace("font-family: 'DejaVu Sans'", f"font-family: {SVG_FONT_STACK}")
+    path.write_text(text, encoding="utf-8", newline="\n")
 
 
 def _local_name(tag) -> str:

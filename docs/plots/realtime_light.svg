@@ -59,7 +59,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_1">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #24292f" x="73.587001" y="278.475312" transform="rotate(-0 73.587001 278.475312)">1</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #24292f" x="73.587001" y="278.475312" transform="rotate(-0 73.587001 278.475312)">1</text>
      </g>
     </g>
     <g id="xtick_2">
@@ -69,7 +69,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_2">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #24292f" x="171.543282" y="278.475312" transform="rotate(-0 171.543282 278.475312)">2</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #24292f" x="171.543282" y="278.475312" transform="rotate(-0 171.543282 278.475312)">2</text>
      </g>
     </g>
     <g id="xtick_3">
@@ -79,7 +79,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_3">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #24292f" x="269.499562" y="278.475312" transform="rotate(-0 269.499562 278.475312)">4</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #24292f" x="269.499562" y="278.475312" transform="rotate(-0 269.499562 278.475312)">4</text>
      </g>
     </g>
     <g id="xtick_4">
@@ -89,7 +89,7 @@ L 0 3.5
       </g>
      </g>
      <g id="text_4">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #24292f" x="367.455842" y="278.475312" transform="rotate(-0 367.455842 278.475312)">8</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #24292f" x="367.455842" y="278.475312" transform="rotate(-0 367.455842 278.475312)">8</text>
      </g>
     </g>
     <g id="xtick_5">
@@ -99,11 +99,11 @@ L 0 3.5
       </g>
      </g>
      <g id="text_5">
-      <text style="font-size: 10px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #24292f" x="465.412123" y="278.475312" transform="rotate(-0 465.412123 278.475312)">16</text>
+      <text style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #24292f" x="465.412123" y="278.475312" transform="rotate(-0 465.412123 278.475312)">16</text>
      </g>
     </g>
     <g id="text_6">
-     <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #24292f" x="270.377344" y="293.995781" transform="rotate(-0 270.377344 293.995781)">OpenMP threads</text>
+     <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #24292f" x="270.377344" y="293.995781" transform="rotate(-0 270.377344 293.995781)">OpenMP threads</text>
     </g>
    </g>
    <g id="matplotlib.axis_2">
@@ -127,10 +127,10 @@ L -3.5 0
       <!-- $\mathdefault{10^{-2}}$ -->
       <g style="fill: #24292f" transform="translate(28.197344 236.289146)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #24292f">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #24292f">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #24292f">−</tspan>
-        <tspan x="18.685547" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #24292f">2</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">−</tspan>
+        <tspan x="18.685547" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">2</tspan>
        </text>
       </g>
      </g>
@@ -150,10 +150,10 @@ L 482.057344 150.450005
       <!-- $\mathdefault{10^{-1}}$ -->
       <g style="fill: #24292f" transform="translate(28.197344 155.100005)">
        <text>
-        <tspan x="0" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #24292f">1</tspan>
-        <tspan x="6.362305" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #24292f">0</tspan>
-        <tspan x="12.820312" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #24292f">−</tspan>
-        <tspan x="18.685547" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #24292f">1</tspan>
+        <tspan x="0" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">1</tspan>
+        <tspan x="6.362305" y="-0.762187" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">0</tspan>
+        <tspan x="12.820312" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">−</tspan>
+        <tspan x="18.685547" y="-4.892187" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">1</tspan>
        </text>
       </g>
      </g>
@@ -173,9 +173,9 @@ L 482.057344 69.310865
       <!-- $\mathdefault{10^{0}}$ -->
       <g style="fill: #24292f" transform="translate(34.097344 74.010865)">
        <text>
-        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #24292f">1</tspan>
-        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans'; fill: #24292f">0</tspan>
-        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans'; fill: #24292f">0</tspan>
+        <tspan x="0" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">1</tspan>
+        <tspan x="6.362305" y="-0.674688" style="font-size: 10px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">0</tspan>
+        <tspan x="12.820312" y="-4.804688" style="font-size: 7px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #24292f">0</tspan>
        </text>
       </g>
      </g>
@@ -354,7 +354,7 @@ L -2 0
      </g>
     </g>
     <g id="text_10">
-     <text style="font-size: 12px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #24292f" x="21.314531" y="147.237656" transform="rotate(-90 21.314531 147.237656)">real-time factor   rt = bio-s / wall-s</text>
+     <text style="font-size: 12px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #24292f" x="21.314531" y="147.237656" transform="rotate(-90 21.314531 147.237656)">real-time factor   rt = bio-s / wall-s</text>
     </g>
    </g>
    <g id="line2d_36">
@@ -2579,19 +2579,19 @@ z
     </g>
    </g>
    <g id="text_12">
-    <text style="font-weight: 700; font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #0072b2" x="471.412123" y="41.004668" transform="rotate(-0 471.412123 41.004668)">N=10k · 2.13× @ 16 threads</text>
+    <text style="font-weight: 700; font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #0072b2" x="471.412123" y="41.004668" transform="rotate(-0 471.412123 41.004668)">N=10k · 2.13× @ 16 threads</text>
    </g>
    <g id="text_13">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #d55e00" x="471.412123" y="108.643034" transform="rotate(-0 471.412123 108.643034)">N=50k</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #d55e00" x="471.412123" y="108.643034" transform="rotate(-0 471.412123 108.643034)">N=50k</text>
    </g>
    <g id="text_14">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #009e73" x="471.412123" y="134.08982" transform="rotate(-0 471.412123 134.08982)">N=100k</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #009e73" x="471.412123" y="134.08982" transform="rotate(-0 471.412123 134.08982)">N=100k</text>
    </g>
    <g id="text_15">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #cc79a7" x="471.412123" y="164.857017" transform="rotate(-0 471.412123 164.857017)">N=200k</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #cc79a7" x="471.412123" y="164.857017" transform="rotate(-0 471.412123 164.857017)">N=200k</text>
    </g>
    <g id="text_16">
-    <text style="font-size: 9px; font-family: 'DejaVu Sans'; text-anchor: end; fill: #57606a" x="465.412123" y="67.148755" transform="rotate(-0 465.412123 67.148755)">  real-time (rt = 1.0)</text>
+    <text style="font-size: 9px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: end; fill: #57606a" x="465.412123" y="67.148755" transform="rotate(-0 465.412123 67.148755)">  real-time (rt = 1.0)</text>
    </g>
    <g id="line2d_44">
     <defs>
@@ -2612,7 +2612,7 @@ z
     </g>
    </g>
    <g id="text_17">
-    <text style="font-size: 8px; font-family: 'DejaVu Sans'; text-anchor: start; fill: #57606a" x="66.33818" y="257.030811" transform="rotate(-0 66.33818 257.030811)">rt normalized per bio-time (N=200k used T_bio=500 ms)</text>
+    <text style="font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: start; fill: #57606a" x="66.33818" y="257.030811" transform="rotate(-0 66.33818 257.030811)">rt normalized per bio-time (N=200k used T_bio=500 ms)</text>
    </g>
    <g id="patch_6">
     <path d="M 294.511013 115.1008
@@ -2637,12 +2637,12 @@ Q 168.993282 141.524245 171.543282 141.524245
 z
 " style="fill: #ffffff; opacity: 0.95; stroke: #8b949e; stroke-width: 0.8; stroke-linejoin: miter"/>
     </g>
-    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #57606a" transform="translate(171.543282 125.879099)">~17–20k crossing:</text>
-    <text style="font-size: 8.5px; font-family: 'DejaVu Sans'; fill: #57606a" transform="translate(171.543282 136.081423)">interpolated (no sample 10k–50k)</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #57606a" transform="translate(171.543282 125.879099)">~17–20k crossing:</text>
+    <text style="font-size: 8.5px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; fill: #57606a" transform="translate(171.543282 136.081423)">interpolated (no sample 10k–50k)</text>
    </g>
   </g>
   <g id="text_19">
-   <text style="font-style: italic; font-size: 8px; font-family: 'DejaVu Sans'; text-anchor: middle; fill: #57606a" x="274.697344" y="309.907781" transform="rotate(-0 274.697344 309.907781)">HISTORICAL LOCAL RUN — NOT RELEASE-BOUND · NEST 3.8.0 · OpenMP · 16 cores · ~500 syn/neuron · ~13 Hz async-irregular</text>
+   <text style="font-style: italic; font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #57606a" x="274.697344" y="309.907781" transform="rotate(-0 274.697344 309.907781)">HISTORICAL LOCAL RUN — NOT RELEASE-BOUND · NEST 3.8.0 · OpenMP · 16 cores · ~500 syn/neuron · ~13 Hz async-irregular</text>
   </g>
  </g>
  <defs>
