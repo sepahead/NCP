@@ -20,8 +20,8 @@ Brunel-style balanced random network (the NEST standard scaling benchmark):
 ``iaf_psc_alpha``, N split NE=0.8N excitatory / NI=0.2N inhibitory. Indegree is
 held FIXED across N (``fixed_indegree``: CE from E, CI=CE/4 from I), so total
 synapse count scales ~linearly with N and so does per-step compute. Inhibition
-dominated (g=5), one ``poisson_generator`` per neuron tuned for an
-async-irregular ~13 Hz regime. A ``spike_recorder`` reads back only a small
+dominated (g=5), one ``poisson_generator`` per neuron (2800 Hz by default) in an
+async-irregular regime. A ``spike_recorder`` reads back only a small
 readout subset (mimicking an NCP ``RecordSpec``; keeps recording overhead
 negligible so the numbers reflect raw integrate + spike-delivery throughput).
 
@@ -31,6 +31,10 @@ METHODOLOGY (matters for honest numbers)
 * Network build is done OUTSIDE the timer; only ``nest.Simulate(T_bio)`` is timed.
 * One untimed warmup, then up to ``--reps`` timed reps; the MIN wall is reported.
 * ``rt_factor = (T_bio_ms / 1000) / min_wall_s``.
+* ``fire_hz`` is the mean rate per recorded neuron over all timed reps: events
+  recorded after the warmup divided by ``readout_n * timed_reps * T_bio_s``.
+  Before October 2026 the divisor omitted ``timed_reps``, so rows that ran three
+  reps reported three times the per-second rate (see NEST_REALTIME.md).
 
 REQUIRES NEST
 -------------
@@ -45,17 +49,45 @@ EXAMPLE
     python bench_realtime.py --n 10000 50000 --threads 1 4 8 16 \
         --t-bio-ms 1000 --reps 3
 
-REFERENCE NUMBERS (NEST 3.8.0, 16 physical cores, ~500 syn/neuron, ~13 Hz)
---------------------------------------------------------------------------
+REFERENCE NUMBERS (NEST 3.8.0, 16 physical cores, ~500 syn/neuron)
+--------------------------------------------------------------------
 Real-time (>=1x) reached ONLY at N=10000 and only at >=4 threads
 (T=4 1.18x, T=8 2.01x, T=16 2.13x). No N>=50000 config reaches real time on
 16 cores (best N=50000 T=16 = 0.35x). Practical live ceiling at 16 threads /
-~13 Hz / ~500 syn/neuron: ~10k-20k neurons (~5-10M synapses). See NEST_REALTIME.md.
+~500 syn/neuron: ~10k-20k neurons (~5-10M synapses). See NEST_REALTIME.md.
 """
 from __future__ import annotations
 
 import argparse
 import time
+
+
+def mean_rate_hz(n_events: int, readout_n: int, timed_reps: int, t_bio_ms: float) -> float:
+    """Mean firing rate per recorded neuron over all timed repetitions.
+
+    The spike recorder accumulates events across every timed repetition, so the
+    count is divided by the total timed biological time, not by one repetition.
+    """
+    if readout_n <= 0 or timed_reps <= 0 or t_bio_ms <= 0:
+        raise ValueError("readout_n, timed_reps and t_bio_ms must be positive")
+    return n_events / (readout_n * timed_reps * (t_bio_ms / 1000.0))
+
+
+def self_test() -> None:
+    """Check the rate normalisation without NEST."""
+    # 1000 neurons firing at 6 Hz for three timed 1 s repetitions record 18000 events.
+    assert mean_rate_hz(18000, 1000, 3, 1000.0) == 6.0
+    # A row stopped by the skip threshold after one repetition is divided by one.
+    assert mean_rate_hz(6000, 1000, 1, 1000.0) == 6.0
+    # Shortened biological time is part of the divisor.
+    assert mean_rate_hz(3000, 1000, 3, 500.0) == 2.0
+    for bad in ((1, 0, 3, 1000.0), (1, 1000, 0, 1000.0), (1, 1000, 3, 0.0)):
+        try:
+            mean_rate_hz(*bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"mean_rate_hz accepted {bad}")
+    print("OK bench_realtime rate normalisation self-test")
 
 
 def build_brunel(n: int, threads: int, indegree_ce: int, poisson_hz: float,
@@ -133,7 +165,7 @@ def sweep(args) -> dict:
                     break  # one timed rep is enough; don't burn budget
 
             n_ev = rec.n_events - n0
-            fire_hz = (n_ev / readout_n) / (t_bio / 1000.0)
+            fire_hz = mean_rate_hz(n_ev, readout_n, len(walls), t_bio)
             min_wall = min(walls)
             rt_factor = (t_bio / 1000.0) / min_wall
 
@@ -143,7 +175,7 @@ def sweep(args) -> dict:
                 "realtime_factor": round(rt_factor, 4),
                 "build_s": round(build_s, 4),
                 "n_syn": n_syn, "fire_hz": round(fire_hz, 2),
-                "skipped": skipped,
+                "timed_reps": len(walls), "skipped": skipped,
             }
             grid.append(row)
             print("RTROW", row, flush=True)
@@ -165,7 +197,7 @@ def main() -> None:
     p.add_argument("--indegree", type=int, default=400,
                    help="excitatory indegree CE (fixed across N); CI=CE/4")
     p.add_argument("--poisson-hz", type=float, default=2800.0,
-                   help="per-neuron external Poisson rate (tuned for ~13 Hz)")
+                   help="per-neuron external Poisson rate")
     p.add_argument("--readout", type=int, default=1000,
                    help="spike_recorder readout subset size (NCP RecordSpec)")
     p.add_argument("--seed", type=int, default=12345)
@@ -177,7 +209,12 @@ def main() -> None:
     p.add_argument("--shorten-to-ms", type=float, default=500.0)
     p.add_argument("--out", type=str, default=None,
                    help="write JSON results to this file (creates parent dirs)")
+    p.add_argument("--self-test", action="store_true",
+                   help="check the rate normalisation without NEST and exit")
     args = p.parse_args()
+    if args.self_test:
+        self_test()
+        return
 
     try:
         import nest  # noqa: F401

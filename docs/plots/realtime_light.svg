@@ -2642,7 +2642,7 @@ z
    </g>
   </g>
   <g id="text_19">
-   <text style="font-style: italic; font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #57606a" x="274.697344" y="309.907781" transform="rotate(-0 274.697344 309.907781)">HISTORICAL LOCAL RUN — NOT RELEASE-BOUND · NEST 3.8.0 · OpenMP · 16 cores · ~500 syn/neuron · ~13 Hz async-irregular</text>
+   <text style="font-style: italic; font-size: 8px; font-family: 'DejaVu Sans', 'Bitstream Vera Sans', Arial, Helvetica, sans-serif; text-anchor: middle; fill: #57606a" x="274.697344" y="309.907781" transform="rotate(-0 274.697344 309.907781)">HISTORICAL LOCAL RUN — NOT RELEASE-BOUND · NEST 3.8.0 · OpenMP · 16 cores · ~500 syn/neuron · async-irregular</text>
   </g>
  </g>
  <defs>

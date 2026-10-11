@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation and publication (no wire change)
 
+- Fixed the firing-rate normalisation of `scripts/bench_realtime.py`. The spike
+  recorder accumulates events over every timed repetition, but `fire_hz` divided by
+  one repetition's biological time, so rows that ran three repetitions reported
+  three times the per-second rate. The script now divides by the number of timed
+  repetitions, records it as `timed_reps`, and has a `--self-test` that runs in CI
+  without NEST. The NEST 3.9.0 rerun rates are about 6.29–6.96 Hz, not
+  18.86–20.88 Hz; the retained JSON is unchanged. The historical 12.3–13.5 Hz
+  values carry the same error for cells that ran three repetitions, and the
+  statement that `fire_hz` came from the first repetition was incorrect.
+  `NEST_REALTIME.md`, `PERFORMANCE.md`, the plot footer and the script docstring no
+  longer state a ~13 Hz regime.
+- Made the NEST 3.9.0 rerun section precise: the recurrent indegree is 500 (400
+  excitatory and 100 inhibitory inputs), the 640,914-spike check covers 21 prepared
+  chunked runs and three single-run references by aggregate count only, the speed
+  values are the fastest observed runs, the counter probe does not certify that the
+  interpreter lock is held at every instant, and the threaded loop makes one extra
+  transport call. The figure is re-exported with these corrections.
+
 - The four historical performance plots in `docs/plots/` now name a font fallback
   after DejaVu Sans. Without it, a browser that lacks DejaVu Sans drew the labels in
   its default serif. Arial and Helvetica are narrower than DejaVu Sans, so no label

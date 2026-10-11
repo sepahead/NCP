@@ -303,6 +303,7 @@ step "deterministic historical plot tooling"
 "$tmp_dir/venv/bin/python" -m pip install --disable-pip-version-check \
     -r scripts/requirements-plot.txt
 "$tmp_dir/venv/bin/python" scripts/plot_perf.py --self-test --check
+python3 -I scripts/bench_realtime.py --self-test
 
 step "retained threat, latent-path, and traceability audit artifacts"
 python3 scripts/generate_audit_artifacts.py --self-test

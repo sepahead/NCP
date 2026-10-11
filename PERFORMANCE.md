@@ -174,7 +174,7 @@ establish a readback budget or bound the O(history) fallback on another NEST bui
 
 ### Scaling: simulator feasibility is necessary, not sufficient
 
-In the retained sweep, a Brunel-style balanced net (~500 syn/neuron, ~13 Hz
+In the retained sweep, a Brunel-style balanced net (~500 syn/neuron,
 async-irregular) reached `rt >= 1` only for N=10000 at T>=4; no sampled N>=50000
 configuration reached it. This condition is necessary only for the measured NEST
 work. A complete loop also requires `T_run + T_boundary <= chunk_ms`. The unsampled
@@ -313,8 +313,8 @@ known caveats so a future release-bound campaign can replace the historical valu
 * **Network:** Brunel-style balanced random net (the NEST standard scaling
   benchmark): `iaf_psc_alpha`, 0.8N E / 0.2N I, **fixed indegree** held constant
   across N (`fixed_indegree`, CE=400 from E, CI=CE/4=100 from I ⇒ ~500 recurrent
-  syn/neuron), inhibition-dominated (g=5), per-neuron `poisson_generator` tuned for
-  an async-irregular **~13 Hz** regime. A `spike_recorder` reads back only a
+  syn/neuron), inhibition-dominated (g=5), per-neuron `poisson_generator` (2,800 Hz
+  by default) in an async-irregular regime. A `spike_recorder` reads back only a
   1000-neuron readout subset (mimics an NCP `RecordSpec`). Recording overhead was
   not isolated, and the sampled scaling must not be extrapolated beyond the grid.
 * **Timing protocol:** `local_num_threads` set **before** node creation (required
@@ -323,9 +323,11 @@ known caveats so a future release-bound campaign can replace the historical valu
   `rt = (T_bio_ms/1000) / min_wall_s`. Reps exceeding a 60 s skip threshold stop
   after one timed rep (large-N budget guard).
 * **Regime diagnostic:** the retained per-cell firing rates were 12.3–13.5 Hz
-  across the sampled grid. That narrow range is a diagnostic, not proof of model
-  correctness, statistical equivalence, or N/T invariance. The full sizing table is
-  in [`NEST_REALTIME.md`](NEST_REALTIME.md).
+  across the sampled grid. They divide the events of all timed repetitions by one
+  repetition's time, so cells that ran three repetitions overstate the per-second
+  rate threefold (about 4.1–4.5 Hz). That narrow range is a diagnostic, not proof
+  of model correctness, statistical equivalence, or N/T invariance. The full sizing
+  table is in [`NEST_REALTIME.md`](NEST_REALTIME.md).
 * **Command:**
   ```bash
   python -u scripts/bench_realtime.py \
@@ -333,9 +335,10 @@ known caveats so a future release-bound campaign can replace the historical valu
       --t-bio-ms 1000 --reps 3
   ```
 * **Caveats:** the ~17k–20k crossing at T=16 is an **interpolation** (no sample
-  between 10k and 50k), not a measured ceiling; `fire_hz` comes from the first-rep
-  event count, not the min-wall rep; N≥200000 uses a shortened `T_bio` with `rt`
-  scaled to its own bio time.
+  between 10k and 50k), not a measured ceiling; `fire_hz` divided all timed
+  repetitions' events by one repetition's time (corrected in the script, which now
+  records `timed_reps`); N≥200000 uses a shortened `T_bio` with `rt` scaled to its
+  own bio time.
 
 ### 3. I/O overlap & GIL test — [`scripts/bench_overlap.py`](scripts/bench_overlap.py)
 

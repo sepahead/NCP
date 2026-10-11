@@ -293,24 +293,39 @@ test nor release/scientific certification. See its header for exact commands.
 On 7 October 2026 the three benchmark scripts ran unchanged at NCP commit
 `2819dae` with NEST 3.9.0 on one workstation: an Apple M4 Max with 12 performance
 cores, 4 efficiency cores, and 128 GB of memory. Other processes ran at the same
-time. Each value is the minimum wall time over three timed runs after one untimed
-warm-up.
+time. The chunk test rebuilds the network before each of three timed runs, after
+one discarded warm-up run. The speed test builds once, warms up for 200 ms of
+biological time, and times three consecutive 1 s intervals. Both report the
+minimum wall time. The thread test uses one counter probe and one pair of serial
+and threaded loops per wait setting; it reports no minimum of repeated runs.
 
-<img alt="Three panels. Panel a: chunked Run calls cost 1.45 times one Run call for 1 ms chunks, 1.05 times for 10 ms chunks, and 1.007 times for 100 ms chunks. Panel b: biological seconds per wall-clock second for 1, 4, and 8 threads. Panel c: a Python thread keeps 1.2 percent of its rate during nest.Run." src="docs/figures/nest-3.9.0-stepwise-control.svg" width="860">
+<img alt="Three panels. Panel a: chunked Run calls cost 1.45 times one Run call for 1 ms chunks, 1.05 times for 10 ms chunks, and 1.007 times for 100 ms chunks. Panel b: biological seconds per wall-clock second for 1, 4, and 8 threads, with 500 recurrent inputs per neuron. Panel c: a Python counter retains 1.2 percent of its rate in one probe around nest.Run." src="docs/figures/nest-3.9.0-stepwise-control.svg" width="860">
 
 The figure shows these results:
 
 - **Chunk cost.** For a sparse network of 5,000 neurons, prepared chunks of 1 ms
   cost 1.45 times one `Run` call over 1 s of biological time. Chunks of 10 ms cost
   1.05 times, and chunks of 100 ms cost 1.007 times. A `Simulate` call per 10 ms
-  chunk costs 1.086 times. All 24 checked runs of the prepared pattern gave exactly
-  640,914 spikes, the same count as the single run.
-- **Speed.** One thread keeps pace with real time up to about 5,000 neurons
-  (factor 1.05). At 10,000 neurons, 4 threads reach 1.85. At 20,000 neurons,
-  8 threads reach 1.51, and 4 threads reach 0.83.
-- **Threads.** A Python counter thread keeps 1.2 percent of its standalone rate
-  while `nest.Run` executes. Overlap of simulated transport work with the next
-  chunk gives speedups from 0.96 to 1.04.
+  chunk costs 1.086 times. All 21 prepared chunked runs and the three single-run
+  references recorded the same aggregate count of 640,914 spikes. This check does
+  not compare spike times, neuron identities, or final states.
+- **Speed.** Each neuron receives 400 excitatory and 100 inhibitory recurrent
+  inputs. At 5,000 neurons, the fastest observed one-thread run integrated one
+  biological second in 0.9495 s (factor 1.05). At 10,000 neurons, 4 threads
+  reach 1.85. At 20,000 neurons, 8 threads reach 1.51, and 4 threads reach 0.83.
+  These kernel timings exclude network construction, controller work, and
+  transport.
+- **Firing rate.** The retained JSON reports 18.86–20.88 Hz. The script divided
+  the events of three timed intervals by one interval, so these values are three
+  times the per-second rate: about 6.29–6.96 Hz for the first 1,000 excitatory
+  neurons. The JSON is kept unchanged; the script now divides by the number of
+  timed repetitions.
+- **Threads.** A Python counter thread retained 1.2 percent of its standalone rate
+  in one probe around `nest.Run`. This is consistent with strongly suppressed
+  Python execution during the call, but the probe does not certify that the
+  interpreter lock is held at every instant. The ratio of serial to threaded mean
+  chunk periods was 0.96 to 1.04 for 0.5–5 ms of modelled wait. The threaded loop
+  makes one extra transport call, so the ratio is not an equal-work speedup.
 
 The raw outputs, command lines, and script digests are in
 [`docs/figures/nest-3.9.0-stepwise-control.json`](docs/figures/nest-3.9.0-stepwise-control.json).
@@ -333,7 +348,7 @@ Brunel-style balanced random network (the NEST standard scaling benchmark):
 `iaf_psc_alpha`, 0.8N excitatory / 0.2N inhibitory, **fixed indegree** held
 constant across N (`fixed_indegree`, CE=400 from E + CI=100 from I ⇒ ~500
 recurrent synapses/neuron), inhibition-dominated (g=5), per-neuron Poisson drive
-tuned for an async-irregular **~13 Hz** regime. Readback is a `spike_recorder` on
+(2,800 Hz by default) in an async-irregular regime. Readback is a `spike_recorder` on
 a 1000-neuron readout subset only (mimics an NCP `RecordSpec`; recording overhead
 was not isolated). Build is
 **outside** the timer; only `nest.Simulate(T_bio)` is timed; one untimed warmup,
@@ -375,8 +390,10 @@ N=200000 T=1 ran a single timed rep, having exceeded a 60 s/rep skip threshold.)
   measurement.
 
 Fixed indegree makes total synapse count linear in N by construction. The sampled
-`rt` trend is descriptive and must not be extrapolated. Retained firing rates were
-12.3–13.5 Hz; this is a regime diagnostic, not proof of statistical invariance.
+`rt` trend is descriptive and must not be extrapolated. The retained firing rates,
+12.3–13.5 Hz, carry the normalisation error described under Caveats: for cells
+that ran three timed repetitions, the per-second rate is one third, about
+4.1–4.5 Hz. They are a regime diagnostic, not proof of statistical invariance.
 
 ### Thread-scaling efficiency
 
@@ -430,8 +447,12 @@ Efficiency = speedup(T) / T relative to the same-N T=1 baseline.
   release-pinned by this repository; later versions require a new run.
 * The ~17k–20k crossing at T=16 is interpolated (no sample between 10k and 50k)
   and is not capacity evidence.
-* `fire_hz` is reported from the first-rep event count, not the min-wall rep
-  and therefore is not paired with the retained timing sample.
+* `fire_hz` divided the events of all timed repetitions by one repetition's
+  biological time. A cell that ran three repetitions therefore reported three
+  times its per-second rate; only cells stopped after one repetition by the 60 s
+  guard were unaffected, and the retained record does not identify them. Raw event
+  totals are absent, so cell-level rates cannot be recomputed. The script now
+  divides by the number of timed repetitions and records it.
 * A second local check of the N=50000 cell differed by roughly 7–12%. It was not an
   independent clean-room reproduction, and raw receipts for the full original grid
   are absent.

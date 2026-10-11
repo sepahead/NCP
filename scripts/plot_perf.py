@@ -105,7 +105,7 @@ LIVE_CEILING_XY = (16, 1.0)  # placed at the T=16 column on the rt=1 line
 
 REGIME_RT = (
     "HISTORICAL LOCAL RUN — NOT RELEASE-BOUND · NEST 3.8.0 · OpenMP · 16 cores · ~500 syn/neuron "
-    "· ~13 Hz async-irregular"
+    "· async-irregular"
 )
 REGIME_OVERLAP = (
     "HISTORICAL SYNTHETIC STAND-IN — NOT TRANSPORT EVIDENCE · 8000-neuron net · ~8 ms compute + 10 ms work / 20 ms chunk "
