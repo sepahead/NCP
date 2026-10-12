@@ -3103,8 +3103,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 151298,
-        "sha256": "8cc31f7bab7443e24fcf270100b2856c5265b599961891333166f52a3bad1cd6",
-        "git_blob_oid": "3fc0c4babde518d3c6e6fa4ba42a63b47c3ab5f8",
+        "sha256": "14d878e762c03d797ce63cdd11b759ce39d6606351e19c6d8a7d524a15e62b8f",
+        "git_blob_oid": "b098f445f37a8822001c2c8a576297205f349161",
         "indexed": true
       },
       {

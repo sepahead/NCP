@@ -2707,7 +2707,7 @@
         "docs/plots/*.svg"
       ],
       "path": "scripts/plot_perf.py",
-      "sha256": "87d8e3c788bd0c00a2580b2f68e64b63df2485e504a2bf87f41cbcc9ba9fbe5e"
+      "sha256": "2e37b51b69700ae509f5598e661f255ee2fa7c859482234b0fb79dca5fc85fb6"
     },
     {
       "outputs": [
