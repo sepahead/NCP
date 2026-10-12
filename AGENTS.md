@@ -40,6 +40,14 @@ Before an NCP 1.0 provider or consumer task, read these files completely:
 
 Also read all scoped instructions in the target repository.
 
+## Agent index
+
+[`agent-index.json`](agent-index.json) restates the operational facts of this file
+for tools: entry documents, the delivery path, the local gates and when each
+applies, generated and frozen artifacts, and ecosystem relations. This file stays the
+operating contract. When you change a gate, a generated artifact, or a path that the
+index names, update the index and run `python3 scripts/check_agent_index.py`.
+
 ## Current development-profile boundary
 
 The first bounded local development profile remains a reference control.
@@ -147,6 +155,11 @@ Classify each artifact before you change it.
   hashes every tracked text file, including this file. After a tracked change, run
   `python3 scripts/generate_audit_artifacts.py --write`. Then run
   `python3 scripts/check_audit_artifacts.py`.
+- **Supply-chain inventory.** `evidence/supply-chain/inventory.v1.json` records each
+  code generator, its outputs, and each tracked asset with a digest. After you change
+  a generator, an asset, a fixture, or a dependency, run
+  `python3 scripts/generate_supply_chain_evidence.py --check-assets-and-generators`.
+  Regenerate the inventory with the pinned advisory database, as `scripts/check.sh` does.
 - **Frozen baselines.** `scripts/check_wire_baseline.py` and
   `scripts/check_released_baselines.py` verify the frozen candidate and released
   baselines. Do not edit them.

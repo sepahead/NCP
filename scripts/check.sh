@@ -46,6 +46,7 @@ git diff --check
 python3 scripts/gen_diagrams.py --check
 python3 scripts/generate_audit_artifacts.py --check
 python3 scripts/generate_supply_chain_evidence.py --check-assets-and-generators
+python3 scripts/check_agent_index.py
 
 step "pinned publication PDF toolchain and system-design reproduction"
 publication_venv="$tmp_dir/publication-venv"

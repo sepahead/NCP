@@ -560,6 +560,7 @@ jobs:
           python3 scripts/generate_convergence_manifest.py --self-test --check
           python3 scripts/check_markdown_links.py --self-test
           python3 scripts/check_markdown_links.py
+          python3 scripts/check_agent_index.py
           python3 scripts/check_proto_schema_parity.py
           python3 scripts/check_conformance_vectors.py
           python3 scripts/generate_conformance_manifest.py

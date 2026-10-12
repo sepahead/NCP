@@ -1,0 +1,54 @@
+{
+  "schema": "sepahead.agent-index.v1",
+  "repository": "sepahead/NCP",
+  "summary": "Neuro-Cybernetic Protocol: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
+  "entry_documents": [
+    {"path": "AGENTS.md", "role": "operating contract for agents"},
+    {"path": "README.md", "role": "overview"},
+    {"path": "DOCUMENTATION_STYLE.md", "role": "writing rules for maintained documents"},
+    {"path": "NEURO_CYBERNETIC_PROTOCOL.md", "role": "normative protocol"},
+    {"path": "contract/manifest.v1.json", "role": "normative source list and precedence"},
+    {"path": "conformance/manifest.v1.json", "role": "conformance coverage"},
+    {"path": "evidence/supply-chain/inventory.v1.json", "role": "registry of every code generator, its outputs and every tracked asset"},
+    {"path": "docs/implementation/NCP_1_0_TASK_LEDGER.md", "role": "NCP 1.0 programme ledger"},
+    {"path": "docs/governance/owner-decisions-2026-10-01.md", "role": "owner decisions, including when the v1.0.0 tag may follow"}
+  ],
+  "delivery": {
+    "default_branch": "main",
+    "merge": "Commit in a separate worktree from origin/main, run the applicable gates, then push to main directly or through a merged branch.",
+    "signing": "unsigned (commit.gpgsign=false)",
+    "attribution": "no AI attribution or co-author trailers",
+    "owner_only": ["tag", "release", "package publication", "repository setting change"]
+  },
+  "gates": [
+    {"id": "audit-inventory", "when": "after any tracked change, with the change staged", "command": "python3 scripts/generate_audit_artifacts.py --write && python3 scripts/check_audit_artifacts.py", "cost": "fast"},
+    {"id": "supply-chain-records", "when": "a code generator, asset, fixture or dependency changes", "command": "python3 scripts/generate_supply_chain_evidence.py --check-assets-and-generators", "cost": "fast"},
+    {"id": "markdown-links", "when": "a Markdown file changes", "command": "python3 scripts/check_markdown_links.py --self-test && python3 scripts/check_markdown_links.py", "cost": "fast"},
+    {"id": "diagrams", "when": "a diagram or its generator changes", "command": "python3 scripts/gen_diagrams.py --check", "cost": "fast"},
+    {"id": "plots", "when": "scripts/plot_perf.py or docs/plots changes", "command": "python3 scripts/plot_perf.py --self-test --check", "cost": "fast", "environment": "scripts/requirements-plot.txt"},
+    {"id": "agent-index", "when": "agent-index.json or a path it names changes", "command": "python3 scripts/check_agent_index.py", "cost": "fast"},
+    {"id": "frozen-baselines", "when": "a protocol, schema or vector changes", "command": "python3 scripts/check_wire_baseline.py && python3 scripts/check_released_baselines.py", "cost": "medium"},
+    {"id": "complete-local-gate", "when": "before a release-candidate handoff", "command": "scripts/check.sh", "cost": "full"}
+  ],
+  "generated": [
+    {"path": "evidence/audit/latent-path-inventory.v1.json", "regenerate": "python3 scripts/generate_audit_artifacts.py --write"},
+    {"path": "evidence/supply-chain/inventory.v1.json", "regenerate": "python3 scripts/generate_supply_chain_evidence.py, with the pinned advisory database prepared as in scripts/check.sh"},
+    {"path": "contract/manifest.v1.json", "regenerate": "python3 scripts/generate_contract_manifest.py"},
+    {"path": "conformance/manifest.v1.json", "regenerate": "python3 scripts/generate_conformance_manifest.py"},
+    {"path": "docs/diagrams/*.svg", "regenerate": "python3 scripts/gen_diagrams.py"},
+    {"path": "docs/plots/*.svg", "regenerate": "python3 scripts/plot_perf.py"},
+    {"path": "docs/implementation/NCP_1_0_TASK_LEDGER.md", "regenerate": "python3 scripts/generate_implementation_ledger.py --write"},
+    {"path": "ncp-ts/src/generated/*.ts", "regenerate": "node ncp-ts/scripts/sync-bindings.mjs"}
+  ],
+  "frozen": [
+    {"path": "conformance/baseline/", "reason": "frozen candidate and released wire baselines; scripts/check_wire_baseline.py and scripts/check_released_baselines.py verify them"}
+  ],
+  "ecosystem": [
+    {"repository": "sepahead/crebain", "relation": "consumer pinned to the 1.0.0-rc.1 candidate"},
+    {"repository": "sepahead/galadriel", "relation": "observer and raw-advisory publisher pinned to the 1.0.0-rc.1 candidate"},
+    {"repository": "sepahead/prisoma", "relation": "observer pinned to the 1.0.0-rc.1 candidate"},
+    {"repository": "sepahead/haldir", "relation": "commander adapter pinned to the 1.0.0-rc.1 candidate"},
+    {"repository": "sepahead/Paper2Brain", "relation": "Engram integration; coordination only"},
+    {"repository": "sepahead/pid-rs", "relation": "not an NCP peer; receives no NCP role receipt"}
+  ]
+}

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation and publication (no wire change)
 
+- Added `agent-index.json`, a machine-readable index of the operational facts in
+  `AGENTS.md`: entry documents, the delivery path, the local gates and when each
+  applies, generated and frozen artifacts, and ecosystem relations.
+  `scripts/check_agent_index.py` fails when a named path or script is missing, a
+  gate identifier repeats, or a machine-specific path appears; CI and
+  `scripts/check.sh` run it. `AGENTS.md` now also names the supply-chain inventory
+  gate that a generator change needs.
 - Fixed the firing-rate normalisation of `scripts/bench_realtime.py`. The spike
   recorder accumulates events over every timed repetition, but `fire_hz` divided by
   one repetition's biological time, so rows that ran three repetitions reported
