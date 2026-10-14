@@ -131,7 +131,8 @@ Same-generation crash resume is excluded.
 | Monitoring | Record-only output with explicit insufficient-evidence results. |
 | Recovery | Exact live result lookup and acknowledgement; no re-execution of a released operation. |
 
-Engram's reference application targets NEST Simulator 3.9.0.
+Engram's reference application ran on NEST Simulator 3.9.0.
+Engram now targets NEST Simulator 3.10.0, and its active environment has not yet moved.
 It supports five fixed neuron profiles and one tested persistent update/readout mechanism.
 The [local guide](docs/local-v1/README.md) states the stricter application bounds.
 

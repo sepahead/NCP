@@ -78,8 +78,8 @@ hidden by a version bump, optimistic default, model review, or local-only test.
   Stable 1.0 fixes bitmap polarity, bit order, and padding. B03 must allocate the
   field identity, limits, errors, profiles, and profile-specific placeholders.
   Runtime work must prove prepared packing, typed decoding, source pinning, and
-  restrictive commands. Native NEST 3.9 runs must exhaust 1, 2, and 3-drone
-  faults without kernel resets. Host API 2 evidence cannot satisfy this gate.
+  restrictive commands. Native NEST runs on Engram's selected release, NEST 3.10.0,
+  must exhaust 1, 2, and 3-drone faults without kernel resets. Host API 2 evidence cannot satisfy this gate.
 
 ## Protocol and implementation boundaries
 

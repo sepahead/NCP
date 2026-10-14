@@ -1,30 +1,30 @@
-mpirun -np 2 connect_test_base.py :: ============================== 19 passed in 1.94s ============================== 
-mpirun -np 2 test_connect_all_to_all.py :: ============================== 25 passed in 2.02s ============================== 
-mpirun -np 2 test_connect_arrays_mpi.py :: ============================== 3 passed in 1.41s =============================== 
-mpirun -np 2 test_connect_fixed_indegree.py :: ============================== 24 passed in 2.56s ============================== 
-mpirun -np 2 test_connect_fixed_outdegree.py :: ============================== 24 passed in 3.14s ============================== 
-mpirun -np 2 test_connect_fixed_total_number.py :: ============================== 22 passed in 3.16s ============================== 
-mpirun -np 2 test_connect_one_to_one.py :: ============================== 24 passed in 2.00s ============================== 
-mpirun -np 2 test_connect_pairwise_bernoulli.py :: ============================== 20 passed in 2.16s ============================== 
-mpirun -np 2 test_connect_symmetric_pairwise_bernoulli.py :: ============================== 23 passed in 5.64s ============================== 
-mpirun -np 2 test_getnodes.py :: ============================== 24 passed in 1.45s ============================== 
-mpirun -np 2 test_issue_1974.py :: ======================== 2 passed, 2 warnings in 1.38s ========================= 
-mpirun -np 2 test_issue_3099.py :: ============================== 3 passed in 1.38s =============================== 
-mpirun -np 2 test_issue_3108.py :: ======================== 232 passed, 1 warning in 3.85s ======================== 
-mpirun -np 2 test_issue_3659.py :: ============================== 1 passed in 1.40s =============================== 
-mpirun -np 2 test_issue_576.py :: ============================== 1 passed in 1.64s =============================== 
-mpirun -np 2 test_multiplicity.py :: ========================= 1 passed, 1 warning in 1.38s ========================= 
-mpirun -np 2 test_neuron_vp.py :: ========================= 3 passed, 1 warning in 1.39s ========================= 
-mpirun -np 2 test_spatial_positions.py :: ============================== 2 passed in 1.39s =============================== 
-mpirun -np 2 test_synapsecollection_mpi.py :: ============================== 1 passed in 1.39s =============================== 
-mpirun -np 3 test_issue_3108.py :: ======================== 232 passed, 1 warning in 3.93s ======================== 
-mpirun -np 3 test_neuron_vp.py :: ========================= 3 passed, 1 warning in 1.41s ========================= 
-mpirun -np 4 test_consistent_local_vps.py :: ========================= 1 passed, 1 warning in 1.41s ========================= ========================= 1 passed, 1 warning in 1.42s ========================= 
-mpirun -np 4 test_delay_exchange.py :: ============================== 1 passed in 1.40s =============================== 
-mpirun -np 4 test_getnodes.py :: ============================== 24 passed in 1.47s ============================== 
-mpirun -np 4 test_issue_1974.py :: ======================== 2 passed, 2 warnings in 1.41s ========================= 
-mpirun -np 4 test_issue_3108.py :: ======================== 232 passed, 1 warning in 4.06s ======================== 
-mpirun -np 4 test_localonly.py :: ============================== 3 passed in 1.42s =============================== 
-mpirun -np 4 test_set_resolution_nthreads.py :: ========================= 2 passed, 1 warning in 1.47s ========================= 
-mpirun -np 4 test_spatial_positions.py :: ============================== 2 passed in 1.43s =============================== 
-mpirun -np 4 test_spike_train_injector_mpi.py :: ============================== 2 passed in 1.40s =============================== 
+mpirun -np 2 connect_test_base.py :: ============================== 19 passed in 1.94s ==============================
+mpirun -np 2 test_connect_all_to_all.py :: ============================== 25 passed in 2.02s ==============================
+mpirun -np 2 test_connect_arrays_mpi.py :: ============================== 3 passed in 1.41s ===============================
+mpirun -np 2 test_connect_fixed_indegree.py :: ============================== 24 passed in 2.56s ==============================
+mpirun -np 2 test_connect_fixed_outdegree.py :: ============================== 24 passed in 3.14s ==============================
+mpirun -np 2 test_connect_fixed_total_number.py :: ============================== 22 passed in 3.16s ==============================
+mpirun -np 2 test_connect_one_to_one.py :: ============================== 24 passed in 2.00s ==============================
+mpirun -np 2 test_connect_pairwise_bernoulli.py :: ============================== 20 passed in 2.16s ==============================
+mpirun -np 2 test_connect_symmetric_pairwise_bernoulli.py :: ============================== 23 passed in 5.64s ==============================
+mpirun -np 2 test_getnodes.py :: ============================== 24 passed in 1.45s ==============================
+mpirun -np 2 test_issue_1974.py :: ======================== 2 passed, 2 warnings in 1.38s =========================
+mpirun -np 2 test_issue_3099.py :: ============================== 3 passed in 1.38s ===============================
+mpirun -np 2 test_issue_3108.py :: ======================== 232 passed, 1 warning in 3.85s ========================
+mpirun -np 2 test_issue_3659.py :: ============================== 1 passed in 1.40s ===============================
+mpirun -np 2 test_issue_576.py :: ============================== 1 passed in 1.64s ===============================
+mpirun -np 2 test_multiplicity.py :: ========================= 1 passed, 1 warning in 1.38s =========================
+mpirun -np 2 test_neuron_vp.py :: ========================= 3 passed, 1 warning in 1.39s =========================
+mpirun -np 2 test_spatial_positions.py :: ============================== 2 passed in 1.39s ===============================
+mpirun -np 2 test_synapsecollection_mpi.py :: ============================== 1 passed in 1.39s ===============================
+mpirun -np 3 test_issue_3108.py :: ======================== 232 passed, 1 warning in 3.93s ========================
+mpirun -np 3 test_neuron_vp.py :: ========================= 3 passed, 1 warning in 1.41s =========================
+mpirun -np 4 test_consistent_local_vps.py :: ========================= 1 passed, 1 warning in 1.41s ========================= ========================= 1 passed, 1 warning in 1.42s =========================
+mpirun -np 4 test_delay_exchange.py :: ============================== 1 passed in 1.40s ===============================
+mpirun -np 4 test_getnodes.py :: ============================== 24 passed in 1.47s ==============================
+mpirun -np 4 test_issue_1974.py :: ======================== 2 passed, 2 warnings in 1.41s =========================
+mpirun -np 4 test_issue_3108.py :: ======================== 232 passed, 1 warning in 4.06s ========================
+mpirun -np 4 test_localonly.py :: ============================== 3 passed in 1.42s ===============================
+mpirun -np 4 test_set_resolution_nthreads.py :: ========================= 2 passed, 1 warning in 1.47s =========================
+mpirun -np 4 test_spatial_positions.py :: ============================== 2 passed in 1.43s ===============================
+mpirun -np 4 test_spike_train_injector_mpi.py :: ============================== 2 passed in 1.40s ===============================
