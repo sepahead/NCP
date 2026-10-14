@@ -1,0 +1,8 @@
+{
+ "seed": 20261013,
+ "n": 1000,
+ "indegree": 100,
+ "drive_rate_hz": 6000.0,
+ "drive_weight_pa": 10.4,
+ "rec_weight_pa": 2.0
+}

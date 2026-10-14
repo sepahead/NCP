@@ -1,0 +1,1038 @@
+{
+ "date": "2026-10-13",
+ "ncp_commit": "6feba8d64e00eb7d4c5ed19c6a8234423793c448",
+ "scripts_sha256": {
+  "scripts/bench_chunk_overhead.py": "c9a0c782fc33a9597495420630fcfb39cba154df1b8029e0c16a97cb20d63de1",
+  "scripts/bench_overlap.py": "fca63ed840f1e896a1b0469805ed8c28d9725e359d339b55733c643447c4adfb",
+  "scripts/bench_realtime.py": "c864f342ece2e29d97e88617b13f6f523a54ab9a2431c3960e29cfc328616e9c"
+ },
+ "nest_version": "3.10.0",
+ "nest_build": "Source build of NEST 3.10.0 with Open MPI 5.0.10, MUSIC 1.2.1 and OpenMP (Apple clang 21, macOS SDK libc++, -O2); Python 3.11.15",
+ "machine": {
+  "computer": "Apple MacBook Pro, model identifier Mac16,5",
+  "chip": "Apple M4 Max: 16 CPU cores (12 performance, 4 efficiency), 40-core GPU",
+  "memory": "128 GB unified memory",
+  "operating_system": "macOS 26.5.1 (25F80), Darwin 25.5.0",
+  "power": "mains power, automatic power mode, other processes running",
+  "details": "benchmarks/nest-coupling/environment/environment.json and runs.json"
+ },
+ "conditions": "Mains power; other processes ran, and the load average was not recorded for these runs. Each value is the minimum wall time over timed repetitions after one untimed warm-up.",
+ "commands": [
+  "bench_chunk_overhead.py --neurons 5000 --synapses 1000 --chunk-ms 1 2 5 10 20 50 100 --t-bio-ms 1000 --reps 3 --threads 4 --strict",
+  "bench_realtime.py --n 2000 5000 10000 20000 --threads 1 4 8 --t-bio-ms 1000 --reps 3",
+  "bench_overlap.py --n 5000 --threads 4"
+ ],
+ "started_utc": "2026-10-13T16:56:13Z",
+ "finished_utc": "2026-10-13T16:57:21Z",
+ "chunk": {
+  "nest_version": "3.10.0",
+  "network": {
+   "neurons": 5000,
+   "synapses": 1000,
+   "poisson_hz": 8000.0,
+   "t_bio_ms": 1000.0,
+   "threads": 4,
+   "seed": 12345
+  },
+  "method": {
+   "warmup": 1,
+   "reps": 3,
+   "headline": "MIN wall (rebuild fresh untimed before each rep)"
+  },
+  "results": [
+   {
+    "config": "monolithic",
+    "chunk_ms": 1000.0,
+    "n_run": 1,
+    "min_s": 0.406996,
+    "median_s": 0.407572,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.0
+   },
+   {
+    "config": "chunked-efficient",
+    "chunk_ms": 1.0,
+    "n_run": 1000,
+    "min_s": 0.448086,
+    "median_s": 0.449432,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.101
+   },
+   {
+    "config": "chunked-efficient",
+    "chunk_ms": 2.0,
+    "n_run": 500,
+    "min_s": 0.428699,
+    "median_s": 0.43045,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.0533
+   },
+   {
+    "config": "chunked-efficient",
+    "chunk_ms": 5.0,
+    "n_run": 200,
+    "min_s": 0.41651,
+    "median_s": 0.417674,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.0234
+   },
+   {
+    "config": "chunked-efficient",
+    "chunk_ms": 10.0,
+    "n_run": 100,
+    "min_s": 0.410354,
+    "median_s": 0.410773,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.0083
+   },
+   {
+    "config": "chunked-efficient",
+    "chunk_ms": 20.0,
+    "n_run": 50,
+    "min_s": 0.410125,
+    "median_s": 0.413256,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.0077
+   },
+   {
+    "config": "chunked-efficient",
+    "chunk_ms": 50.0,
+    "n_run": 20,
+    "min_s": 0.407487,
+    "median_s": 0.408204,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.0012
+   },
+   {
+    "config": "chunked-efficient",
+    "chunk_ms": 100.0,
+    "n_run": 10,
+    "min_s": 0.407668,
+    "median_s": 0.409584,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.0017
+   },
+   {
+    "config": "chunked-naive",
+    "chunk_ms": 10.0,
+    "n_run": 100,
+    "min_s": 0.418537,
+    "median_s": 0.419874,
+    "total_spikes": 640914,
+    "spikes_all_reps": [
+     640914,
+     640914,
+     640914
+    ],
+    "slowdown_x": 1.0284
+   }
+  ],
+  "equivalence": {
+   "monolithic_spikes": 640914,
+   "all_efficient_identical": true,
+   "checked_reps": 24
+  }
+ },
+ "realtime": {
+  "nest_version": "3.10.0",
+  "grid": [
+   {
+    "n": 2000,
+    "threads": 1,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.3725,
+    "realtime_factor": 2.6842,
+    "build_s": 0.057,
+    "n_syn": 1001000,
+    "fire_hz": 6.6,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 2000,
+    "threads": 4,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.1392,
+    "realtime_factor": 7.1828,
+    "build_s": 0.0222,
+    "n_syn": 1001000,
+    "fire_hz": 6.36,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 2000,
+    "threads": 8,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.1466,
+    "realtime_factor": 6.8222,
+    "build_s": 0.0193,
+    "n_syn": 1001000,
+    "fire_hz": 6.62,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 5000,
+    "threads": 1,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.9522,
+    "realtime_factor": 1.0502,
+    "build_s": 0.1371,
+    "n_syn": 2501000,
+    "fire_hz": 6.96,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 5000,
+    "threads": 4,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.2894,
+    "realtime_factor": 3.455,
+    "build_s": 0.046,
+    "n_syn": 2501000,
+    "fire_hz": 6.54,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 5000,
+    "threads": 8,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.2367,
+    "realtime_factor": 4.2249,
+    "build_s": 0.0301,
+    "n_syn": 2501000,
+    "fire_hz": 6.52,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 10000,
+    "threads": 1,
+    "t_bio_ms": 1000.0,
+    "wall_s": 1.9373,
+    "realtime_factor": 0.5162,
+    "build_s": 0.2806,
+    "n_syn": 5001000,
+    "fire_hz": 6.52,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 10000,
+    "threads": 4,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.5536,
+    "realtime_factor": 1.8062,
+    "build_s": 0.088,
+    "n_syn": 5001000,
+    "fire_hz": 6.72,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 10000,
+    "threads": 8,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.3959,
+    "realtime_factor": 2.5259,
+    "build_s": 0.0647,
+    "n_syn": 5001000,
+    "fire_hz": 6.29,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 20000,
+    "threads": 1,
+    "t_bio_ms": 1000.0,
+    "wall_s": 4.1827,
+    "realtime_factor": 0.2391,
+    "build_s": 0.5702,
+    "n_syn": 10001000,
+    "fire_hz": 6.45,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 20000,
+    "threads": 4,
+    "t_bio_ms": 1000.0,
+    "wall_s": 1.1499,
+    "realtime_factor": 0.8697,
+    "build_s": 0.1754,
+    "n_syn": 10001000,
+    "fire_hz": 6.61,
+    "timed_reps": 3,
+    "skipped": false
+   },
+   {
+    "n": 20000,
+    "threads": 8,
+    "t_bio_ms": 1000.0,
+    "wall_s": 0.722,
+    "realtime_factor": 1.385,
+    "build_s": 0.129,
+    "n_syn": 10001000,
+    "fire_hz": 6.77,
+    "timed_reps": 3,
+    "skipped": false
+   }
+  ]
+ },
+ "overlap": {
+  "nest_version": "3.10.0",
+  "gil": {
+   "baseline_per_s": 23694730.0,
+   "during_run_per_s": 331252.3,
+   "retained_fraction": 0.014,
+   "gil_released": false
+  },
+  "results": [
+   {
+    "io_ms": 0.5,
+    "serial_period_ms": 10.101,
+    "overlapped_period_ms": 11.11,
+    "speedup": 0.909,
+    "realtime_capable": false
+   },
+   {
+    "io_ms": 2.0,
+    "serial_period_ms": 12.297,
+    "overlapped_period_ms": 12.368,
+    "speedup": 0.994,
+    "realtime_capable": false
+   },
+   {
+    "io_ms": 5.0,
+    "serial_period_ms": 16.76,
+    "overlapped_period_ms": 16.917,
+    "speedup": 0.991,
+    "realtime_capable": false
+   }
+  ]
+ },
+ "same_session_control": {
+  "purpose": "Separate the NEST version from variation between sessions: the 1 ms chunk slowdown was 1.448 in the 7 October 2026 NEST 3.9.0 run and 1.101 in this NEST 3.10.0 run.",
+  "design": "Same scripts, digests and commands on the same machine, in this order within seven minutes: NEST 3.10.0 (the primary record), conda-forge NEST 3.9.0, NEST 3.10.0 again.",
+  "limits": "One run per build. The two builds also differ in compiler, MUSIC support and dependency versions of NEST itself, so version and build effects are not separated.",
+  "runs": [
+   {
+    "label": "nest-3.9.0-conda-forge",
+    "nest_version": "3.9.0",
+    "nest_build": "conda-forge nest-simulator 3.9 build py311h942093b_2 (Open MPI, OpenMP, no MUSIC) in an environment made from the same dependency packages; Python 3.11.15",
+    "started_utc": "2026-10-13T17:00:52Z",
+    "finished_utc": "2026-10-13T17:01:56Z",
+    "chunk": {
+     "nest_version": "3.9.0",
+     "network": {
+      "neurons": 5000,
+      "synapses": 1000,
+      "poisson_hz": 8000.0,
+      "t_bio_ms": 1000.0,
+      "threads": 4,
+      "seed": 12345
+     },
+     "method": {
+      "warmup": 1,
+      "reps": 3,
+      "headline": "MIN wall (rebuild fresh untimed before each rep)"
+     },
+     "results": [
+      {
+       "config": "monolithic",
+       "chunk_ms": 1000.0,
+       "n_run": 1,
+       "min_s": 0.369873,
+       "median_s": 0.370076,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 1.0,
+       "n_run": 1000,
+       "min_s": 0.423648,
+       "median_s": 0.427947,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.1454
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 2.0,
+       "n_run": 500,
+       "min_s": 0.396681,
+       "median_s": 0.398069,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0725
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 5.0,
+       "n_run": 200,
+       "min_s": 0.381302,
+       "median_s": 0.382414,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0309
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 10.0,
+       "n_run": 100,
+       "min_s": 0.376101,
+       "median_s": 0.379672,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0168
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 20.0,
+       "n_run": 50,
+       "min_s": 0.373735,
+       "median_s": 0.373771,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0104
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 50.0,
+       "n_run": 20,
+       "min_s": 0.371627,
+       "median_s": 0.372312,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0047
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 100.0,
+       "n_run": 10,
+       "min_s": 0.369897,
+       "median_s": 0.372272,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0001
+      },
+      {
+       "config": "chunked-naive",
+       "chunk_ms": 10.0,
+       "n_run": 100,
+       "min_s": 0.382809,
+       "median_s": 0.384449,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.035
+      }
+     ],
+     "equivalence": {
+      "monolithic_spikes": 640914,
+      "all_efficient_identical": true,
+      "checked_reps": 24
+     }
+    },
+    "realtime": {
+     "nest_version": "3.9.0",
+     "grid": [
+      {
+       "n": 2000,
+       "threads": 1,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.3665,
+       "realtime_factor": 2.7284,
+       "build_s": 0.0576,
+       "n_syn": 1001000,
+       "fire_hz": 6.6,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 2000,
+       "threads": 4,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.1172,
+       "realtime_factor": 8.5293,
+       "build_s": 0.0228,
+       "n_syn": 1001000,
+       "fire_hz": 6.36,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 2000,
+       "threads": 8,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.1067,
+       "realtime_factor": 9.373,
+       "build_s": 0.0198,
+       "n_syn": 1001000,
+       "fire_hz": 6.62,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 5000,
+       "threads": 1,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.932,
+       "realtime_factor": 1.0729,
+       "build_s": 0.1363,
+       "n_syn": 2501000,
+       "fire_hz": 6.96,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 5000,
+       "threads": 4,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.2638,
+       "realtime_factor": 3.7903,
+       "build_s": 0.0533,
+       "n_syn": 2501000,
+       "fire_hz": 6.54,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 5000,
+       "threads": 8,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.1977,
+       "realtime_factor": 5.0584,
+       "build_s": 0.0403,
+       "n_syn": 2501000,
+       "fire_hz": 6.52,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 10000,
+       "threads": 1,
+       "t_bio_ms": 1000.0,
+       "wall_s": 1.9019,
+       "realtime_factor": 0.5258,
+       "build_s": 0.2716,
+       "n_syn": 5001000,
+       "fire_hz": 6.52,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 10000,
+       "threads": 4,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.5141,
+       "realtime_factor": 1.945,
+       "build_s": 0.0913,
+       "n_syn": 5001000,
+       "fire_hz": 6.72,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 10000,
+       "threads": 8,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.3544,
+       "realtime_factor": 2.8218,
+       "build_s": 0.0523,
+       "n_syn": 5001000,
+       "fire_hz": 6.29,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 20000,
+       "threads": 1,
+       "t_bio_ms": 1000.0,
+       "wall_s": 4.1357,
+       "realtime_factor": 0.2418,
+       "build_s": 0.5526,
+       "n_syn": 10001000,
+       "fire_hz": 6.45,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 20000,
+       "threads": 4,
+       "t_bio_ms": 1000.0,
+       "wall_s": 1.2125,
+       "realtime_factor": 0.8248,
+       "build_s": 0.1785,
+       "n_syn": 10001000,
+       "fire_hz": 6.61,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 20000,
+       "threads": 8,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.6646,
+       "realtime_factor": 1.5046,
+       "build_s": 0.1283,
+       "n_syn": 10001000,
+       "fire_hz": 6.77,
+       "timed_reps": 3,
+       "skipped": false
+      }
+     ]
+    },
+    "overlap": {
+     "nest_version": "3.9.0",
+     "gil": {
+      "baseline_per_s": 19207163.3,
+      "during_run_per_s": 216283.0,
+      "retained_fraction": 0.0113,
+      "gil_released": false
+     },
+     "results": [
+      {
+       "io_ms": 0.5,
+       "serial_period_ms": 11.621,
+       "overlapped_period_ms": 11.597,
+       "speedup": 1.002,
+       "realtime_capable": false
+      },
+      {
+       "io_ms": 2.0,
+       "serial_period_ms": 13.848,
+       "overlapped_period_ms": 13.915,
+       "speedup": 0.995,
+       "realtime_capable": false
+      },
+      {
+       "io_ms": 5.0,
+       "serial_period_ms": 18.062,
+       "overlapped_period_ms": 18.413,
+       "speedup": 0.981,
+       "realtime_capable": false
+      }
+     ]
+    }
+   },
+   {
+    "label": "nest-3.10.0-source-repeat",
+    "nest_version": "3.10.0",
+    "nest_build": "Source build of NEST 3.10.0 with Open MPI 5.0.10, MUSIC 1.2.1 and OpenMP (Apple clang 21, macOS SDK libc++, -O2); Python 3.11.15",
+    "started_utc": "2026-10-13T17:01:56Z",
+    "finished_utc": "2026-10-13T17:03:04Z",
+    "chunk": {
+     "nest_version": "3.10.0",
+     "network": {
+      "neurons": 5000,
+      "synapses": 1000,
+      "poisson_hz": 8000.0,
+      "t_bio_ms": 1000.0,
+      "threads": 4,
+      "seed": 12345
+     },
+     "method": {
+      "warmup": 1,
+      "reps": 3,
+      "headline": "MIN wall (rebuild fresh untimed before each rep)"
+     },
+     "results": [
+      {
+       "config": "monolithic",
+       "chunk_ms": 1000.0,
+       "n_run": 1,
+       "min_s": 0.403801,
+       "median_s": 0.403837,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 1.0,
+       "n_run": 1000,
+       "min_s": 0.445087,
+       "median_s": 0.44711,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.1022
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 2.0,
+       "n_run": 500,
+       "min_s": 0.423733,
+       "median_s": 0.424203,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0494
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 5.0,
+       "n_run": 200,
+       "min_s": 0.412745,
+       "median_s": 0.413773,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0221
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 10.0,
+       "n_run": 100,
+       "min_s": 0.408754,
+       "median_s": 0.40899,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0123
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 20.0,
+       "n_run": 50,
+       "min_s": 0.406805,
+       "median_s": 0.407424,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0074
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 50.0,
+       "n_run": 20,
+       "min_s": 0.405862,
+       "median_s": 0.405896,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0051
+      },
+      {
+       "config": "chunked-efficient",
+       "chunk_ms": 100.0,
+       "n_run": 10,
+       "min_s": 0.404264,
+       "median_s": 0.42781,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0011
+      },
+      {
+       "config": "chunked-naive",
+       "chunk_ms": 10.0,
+       "n_run": 100,
+       "min_s": 0.417574,
+       "median_s": 0.418346,
+       "total_spikes": 640914,
+       "spikes_all_reps": [
+        640914,
+        640914,
+        640914
+       ],
+       "slowdown_x": 1.0341
+      }
+     ],
+     "equivalence": {
+      "monolithic_spikes": 640914,
+      "all_efficient_identical": true,
+      "checked_reps": 24
+     }
+    },
+    "realtime": {
+     "nest_version": "3.10.0",
+     "grid": [
+      {
+       "n": 2000,
+       "threads": 1,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.3772,
+       "realtime_factor": 2.6509,
+       "build_s": 0.0581,
+       "n_syn": 1001000,
+       "fire_hz": 6.6,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 2000,
+       "threads": 4,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.1396,
+       "realtime_factor": 7.1611,
+       "build_s": 0.0216,
+       "n_syn": 1001000,
+       "fire_hz": 6.36,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 2000,
+       "threads": 8,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.1451,
+       "realtime_factor": 6.8921,
+       "build_s": 0.0219,
+       "n_syn": 1001000,
+       "fire_hz": 6.62,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 5000,
+       "threads": 1,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.9477,
+       "realtime_factor": 1.0551,
+       "build_s": 0.1356,
+       "n_syn": 2501000,
+       "fire_hz": 6.96,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 5000,
+       "threads": 4,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.2895,
+       "realtime_factor": 3.4546,
+       "build_s": 0.0491,
+       "n_syn": 2501000,
+       "fire_hz": 6.54,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 5000,
+       "threads": 8,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.2441,
+       "realtime_factor": 4.0972,
+       "build_s": 0.0367,
+       "n_syn": 2501000,
+       "fire_hz": 6.52,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 10000,
+       "threads": 1,
+       "t_bio_ms": 1000.0,
+       "wall_s": 1.9299,
+       "realtime_factor": 0.5182,
+       "build_s": 0.2759,
+       "n_syn": 5001000,
+       "fire_hz": 6.52,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 10000,
+       "threads": 4,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.549,
+       "realtime_factor": 1.8214,
+       "build_s": 0.086,
+       "n_syn": 5001000,
+       "fire_hz": 6.72,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 10000,
+       "threads": 8,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.4113,
+       "realtime_factor": 2.4311,
+       "build_s": 0.0525,
+       "n_syn": 5001000,
+       "fire_hz": 6.29,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 20000,
+       "threads": 1,
+       "t_bio_ms": 1000.0,
+       "wall_s": 4.0962,
+       "realtime_factor": 0.2441,
+       "build_s": 0.5608,
+       "n_syn": 10001000,
+       "fire_hz": 6.45,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 20000,
+       "threads": 4,
+       "t_bio_ms": 1000.0,
+       "wall_s": 1.1353,
+       "realtime_factor": 0.8808,
+       "build_s": 0.1708,
+       "n_syn": 10001000,
+       "fire_hz": 6.61,
+       "timed_reps": 3,
+       "skipped": false
+      },
+      {
+       "n": 20000,
+       "threads": 8,
+       "t_bio_ms": 1000.0,
+       "wall_s": 0.7348,
+       "realtime_factor": 1.3609,
+       "build_s": 0.1055,
+       "n_syn": 10001000,
+       "fire_hz": 6.77,
+       "timed_reps": 3,
+       "skipped": false
+      }
+     ]
+    },
+    "overlap": {
+     "nest_version": "3.10.0",
+     "gil": {
+      "baseline_per_s": 23675940.0,
+      "during_run_per_s": 348069.2,
+      "retained_fraction": 0.0147,
+      "gil_released": false
+     },
+     "results": [
+      {
+       "io_ms": 0.5,
+       "serial_period_ms": 10.276,
+       "overlapped_period_ms": 10.107,
+       "speedup": 1.017,
+       "realtime_capable": false
+      },
+      {
+       "io_ms": 2.0,
+       "serial_period_ms": 12.384,
+       "overlapped_period_ms": 12.645,
+       "speedup": 0.979,
+       "realtime_capable": false
+      },
+      {
+       "io_ms": 5.0,
+       "serial_period_ms": 16.897,
+       "overlapped_period_ms": 16.576,
+       "speedup": 1.019,
+       "realtime_capable": false
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,13 @@
+stoptime=STOPTIME
+timestep=TIMESTEP
+
+[nest]
+  binary=NEST_LAUNCHER
+  np=1
+
+[peer]
+  binary=PEER_LAUNCHER
+  np=1
+
+nest.spikes_out -> peer.spikes_in [WIDTH]
+peer.ack_out -> nest.ack_in [1]

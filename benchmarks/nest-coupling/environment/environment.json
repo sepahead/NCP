@@ -1,0 +1,72 @@
+{
+ "schema": "sepahead.benchmark-environment.v1",
+ "captured_utc": "2026-10-14T16:25:09Z",
+ "computer": {
+  "model_name": "MacBook Pro",
+  "model_identifier": "Mac16,5",
+  "model_number": "Z1FW000KAD/A",
+  "system_firmware": "18000.120.36",
+  "chip": "Apple M4 Max",
+  "cpu_cores": "16 (12 Performance and 4 Efficiency)",
+  "performance_cores": 12,
+  "efficiency_cores": 4,
+  "l2_cache_bytes_per_performance_cluster": 16777216,
+  "l2_cache_bytes_efficiency_cluster": 4194304,
+  "cache_line_bytes": 128,
+  "page_bytes": 16384,
+  "gpu": "Apple M4 Max",
+  "gpu_cores": "40",
+  "metal": "Metal 4",
+  "memory": "128 GB",
+  "memory_bytes": 137438953472,
+  "storage": "4.0 TB",
+  "file_system": "APFS"
+ },
+ "operating_system": {
+  "system_version": "macOS 26.5.1 (25F80)",
+  "kernel": "Darwin 25.5.0",
+  "kernel_release": "Darwin Kernel Version 25.5.0: Mon Apr 27 20:41:15 PDT 2026; root:xnu-12377.121.6~2/RELEASE_ARM64_T6041",
+  "system_integrity_protection": "Enabled"
+ },
+ "power_at_capture": {
+  "source": "Now drawing from 'Battery Power'",
+  "power_mode": "0"
+ },
+ "toolchain": {
+  "xcode": "Xcode 26.6 Build version 17F113",
+  "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "macos_sdk": "26.5"
+ },
+ "environments": {
+  "nest-3.10.0": {
+   "prefix": "<env:nest-3.10.0>",
+   "python": "3.11.15",
+   "numpy": "1.26.4",
+   "nest": "3.10.0",
+   "build_info": {
+    "have_mpi": true,
+    "have_music": true,
+    "threads_model": "openmp"
+   },
+   "mpi": "mpiexec (Open MPI) 5.0.10",
+   "music": "MUSIC 1.2.1",
+   "cmake": "cmake version 3.29.6",
+   "conda_packages": 160,
+   "conda_explicit_list": "nest-3.10.0.conda-explicit.txt",
+   "conda_explicit_list_sha256": "8af77b52f327cf065f8a28c89f2b95d381696961a3b64a243ce6f9c3cd7e8b45"
+  },
+  "nest-3.9.0-control": {
+   "prefix": "<env:nest-3.9.0-control>",
+   "python": "3.11.15",
+   "numpy": "1.26.4",
+   "nest": "3.9.0",
+   "build_info": {},
+   "mpi": "mpiexec (Open MPI) 5.0.10",
+   "music": null,
+   "cmake": "cmake version 3.29.6",
+   "conda_packages": 161,
+   "conda_explicit_list": "nest-3.9.0-control.conda-explicit.txt",
+   "conda_explicit_list_sha256": "89665127d2301e358f900b508cf21ff58788524af8b0883d14e31b9985d291aa"
+  }
+ }
+}

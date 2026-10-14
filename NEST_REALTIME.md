@@ -85,6 +85,9 @@ MUSIC coordinates co-launched simulators on a shared clock, while NCP exposes on
 simulator through a heterogeneous network protocol. A release-bound comparison needs
 one preregistered end-to-end estimand, matched workloads and hardware, raw samples,
 uncertainty, and independent reproduction; that evidence is **NOT RUN**.
+A [preregistered local comparison](benchmarks/nest-coupling/README.md) measures the
+Python local SDK over process pipes against MUSIC on one host. It is not that
+release-bound networked comparison.
 
 ### 9. Multi-simulator coupling — NEST↔NEURON↔… with a shared clock?
 Shared-clock multi-simulator coupling is outside the stable NCP 1.0 scope. This is
@@ -287,6 +290,58 @@ pass applies only to that local fixture/version and is neither a backend integra
 test nor release/scientific certification. See its header for exact commands.
 
 ---
+
+## Rerun on NEST 3.10.0 (October 2026)
+
+On 13 October 2026 the three benchmark scripts ran at NCP commit `6feba8d` with NEST 3.10.0.
+The computer was an Apple MacBook Pro (Mac16,5) with an M4 Max chip and 128 GB of memory.
+It used mains power, and other processes ran at the same time.
+The [coupling benchmark](benchmarks/nest-coupling/README.md#computer-software-and-times) gives the complete specification, packages, and times.
+The NEST build includes MPI, MUSIC, and OpenMP.
+`bench_chunk_overhead.py` and `bench_overlap.py` are byte-identical to the 3.9.0 rerun.
+`bench_realtime.py` adds the corrected rate normalization, and its timing code is unchanged.
+Each value is the minimum wall time over three timed runs after one untimed warm-up.
+
+<img alt="Three panels. Panel a: chunked Run calls cost 1.10 times one Run call for 1 ms chunks under NEST 3.10.0. A NEST 3.9.0 build gave 1.145 in the same session and 1.448 on 7 October. Panel b: biological seconds per wall-clock second for 1, 4, and 8 threads. Panel c: a Python thread keeps 1.4 percent of its rate during nest.Run." src="docs/figures/nest-3.10.0-stepwise-control.svg" width="860">
+
+The figure shows these results:
+
+- **Chunk cost.** Prepared chunks of 1 ms cost 1.10 times one `Run` call over 1 s of biological time.
+  Chunks of 10 ms cost 1.008 times, and chunks of 100 ms cost 1.002 times.
+  A `Simulate` call per 10 ms chunk costs 1.028 times.
+  All 24 checked runs gave exactly 640,914 spikes, the same count as under NEST 3.9.0.
+- **Session effect.** Within seven minutes, the same scripts ran with NEST 3.10.0, a conda-forge NEST 3.9.0 build, and NEST 3.10.0 again.
+  The 1 ms ratios were 1.101, 1.145, and 1.102.
+  The same NEST 3.9.0 build gave 1.448 on 7 October.
+  Most of that difference therefore comes from the session, not from the NEST version.
+  The two builds also differ in compiler and libraries, so the version effect is not isolated.
+- **Speed.** One thread keeps pace with real time up to about 5,000 neurons (factor 1.05).
+  At 10,000 neurons, 4 threads reach 1.81 and 8 threads reach 2.53.
+  At 20,000 neurons, 8 threads reach 1.39, and 4 threads reach 0.87.
+- **Threads.** A Python counter thread keeps 1.4 percent of its standalone rate while `nest.Run` executes.
+  The serial-to-threaded period ratios are 0.91 to 1.02 in the three runs.
+
+The raw outputs, the same-session control, command lines, and script digests are in
+[`docs/figures/nest-3.10.0-stepwise-control.json`](docs/figures/nest-3.10.0-stepwise-control.json).
+These values are indicative. They are not a calibrated performance claim.
+
+## Coupling NEST to a peer: NCP local SDK and MUSIC
+
+A [preregistered benchmark](benchmarks/nest-coupling/README.md) compared two routes on the same computer.
+NEST 3.10.0 advanced 1,000 neurons on one thread for 2 s of biological time.
+A peer received the spikes at exchange intervals of 1, 2, 5, and 10 ms.
+
+<img alt="Two panels. Panel a: median wall time per run for six arms. NEST alone and the MUSIC arm need about 1.2 s at every interval. The NCP host needs 5.25 s at 1 ms and 1.60 s at 10 ms. Panel b: the NCP exchange adds about 1.5 ms per exchange, and MUSIC adds about 25 ms per run." src="docs/figures/nest-coupling.svg" width="860">
+
+- MUSIC added 23 to 27 ms for each run at every interval. This is about 2 percent of the time for NEST alone.
+- The Python NCP local SDK added about 1.5 ms for each lockstep exchange over chunking from Python.
+- Spike content in each result added about 20 µs for each transmitted spike.
+- All 120 timed runs were valid. Every arm transmitted exactly the spikes that NEST recorded.
+
+The two routes give different guarantees.
+MUSIC sends events between co-launched simulators on a shared clock.
+The NCP local profile gives separately owned programs exact request identities, retained outcomes, and digest-bound acknowledgements.
+The result does not rank the designs, and it is not the release-bound networked comparison.
 
 ## Rerun on NEST 3.9.0 (October 2026)
 

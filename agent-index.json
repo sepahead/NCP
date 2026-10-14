@@ -41,7 +41,10 @@
     {"path": "ncp-ts/src/generated/*.ts", "regenerate": "node ncp-ts/scripts/sync-bindings.mjs"}
   ],
   "frozen": [
-    {"path": "conformance/baseline/", "reason": "frozen candidate and released wire baselines; scripts/check_wire_baseline.py and scripts/check_released_baselines.py verify them"}
+    {"path": "conformance/baseline/", "reason": "frozen candidate and released wire baselines; scripts/check_wire_baseline.py and scripts/check_released_baselines.py verify them"},
+    {"path": "benchmarks/nest-coupling/PREREGISTRATION.md", "reason": "preregistration fixed before the timed runs of 13 October 2026; PREREGISTRATION.sha256 and results/results.json record its digest"},
+    {"path": "benchmarks/nest-coupling/results/", "reason": "raw output of the timed runs; the files differ from the files as written only by the path redaction that results/REDACTION.json records"},
+    {"path": "docs/figures/nest-3.10.0-stepwise-control.json", "reason": "raw output of the NEST 3.10.0 benchmark run and its same-session control; a new measurement needs a new file"}
   ],
   "ecosystem": [
     {"repository": "sepahead/crebain", "relation": "consumer pinned to the 1.0.0-rc.1 candidate"},

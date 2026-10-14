@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation and publication (no wire change)
 
+- Added `benchmarks/nest-coupling/`, a preregistered benchmark of 13 October 2026
+  that couples a NEST 3.10.0 network to a peer process through the Python local
+  SDK 1.0.0 and through MUSIC 1.2.1. It holds the preregistration and its SHA-256,
+  the harness exactly as run, all raw outputs, the analysis, the NEST build script,
+  test-suite results, conda package lists, and run times in UTC. All 120 timed runs
+  were valid. MUSIC added about 25 ms for each 2 s run, and the NCP exchange added
+  about 1.5 ms for each lockstep exchange. `NEST_REALTIME.md` and `PERFORMANCE.md`
+  summarize it. The published raw files replace one local checkout path, and
+  `results/REDACTION.json` records the digests before and after.
+- Reran the three NEST benchmark scripts with a NEST 3.10.0 build that includes
+  MPI, MUSIC, and OpenMP. `docs/figures/nest-3.10.0-stepwise-control.json` holds the
+  raw outputs and a same-session control with conda-forge NEST 3.9.0. For 1 ms
+  chunks the slowdown is 1.10. The same NEST 3.9.0 build gave 1.145 in the same
+  session and 1.448 on 7 October, so most of the earlier difference comes from the
+  session. Both benchmark records now name the computer: an Apple MacBook Pro
+  (Mac16,5) with an M4 Max chip, 128 GB of memory, and macOS 26.5.1.
 - Added `agent-index.json`, a machine-readable index of the operational facts in
   `AGENTS.md`: entry documents, the delivery path, the local gates and when each
   applies, generated and frozen artifacts, and ecosystem relations.

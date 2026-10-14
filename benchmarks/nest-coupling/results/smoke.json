@@ -1,0 +1,111 @@
+{
+ "environment": {
+  "nest": "3.10.0",
+  "build_info": {
+   "have_mpi": true,
+   "have_music": true,
+   "threads_model": "openmp"
+  },
+  "music": "MUSIC 1.2.1",
+  "mpi": "mpiexec (Open MPI) 5.0.10",
+  "python": "3.11.15",
+  "ncp_local_dir": "<NCP checkout>/local/python",
+  "machine": "Apple M4 Max",
+  "cores": "16",
+  "os": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+  "preregistration_sha256": "22ca15ca4d8f5616ac6324536cf1a01d68097dabbb358b6831f0deb15516c3a1",
+  "params": {
+   "seed": 20261013,
+   "n": 1000,
+   "indegree": 100,
+   "drive_rate_hz": 8000.0,
+   "drive_weight_pa": 25.0,
+   "rec_weight_pa": 5.0
+  }
+ },
+ "smoke": true,
+ "runs": [
+  {
+   "arm": "mono",
+   "delta_ms": 1.0,
+   "wall_s": 1.4785895419772714,
+   "spikes": 434446,
+   "load1": 4.47412109375,
+   "received": 434446,
+   "returncode": 0,
+   "process_wall_s": 2.859490156173706,
+   "stderr_tail": "",
+   "round": "smoke"
+  },
+  {
+   "arm": "chunked",
+   "delta_ms": 1.0,
+   "wall_s": 42.933663374977186,
+   "spikes": 434446,
+   "load1": 4.51611328125,
+   "received": 434446,
+   "returncode": 0,
+   "process_wall_s": 44.3453369140625,
+   "stderr_tail": "",
+   "round": "smoke"
+  },
+  {
+   "received": null,
+   "arm": "ncp",
+   "delta_ms": 1.0,
+   "returncode": 1,
+   "process_wall_s": 1.438547134399414,
+   "stderr_tail": "c7b69/tmp/bench/ncp_host.py\", line 24, in main\n    client = LocalClient(binding, child.stdout, child.stdin, timeout_s=600)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<NCP checkout>/local/python/ncp_local/protocol.py\", line 554, in __init__\n    raise LocalError(\"binding\")\nncp_local.wire.LocalError: local NCP error: binding\n",
+   "round": "smoke"
+  },
+  {
+   "arm": "music",
+   "delta_ms": 1.0,
+   "returncode": 1,
+   "process_wall_s": 3.1607511043548584,
+   "stderr_tail": "--------------------------------\n--------------------------------------------------------------------------\nprterun has exited due to process rank 0 with PID 0 on node toruss-MacBook-Pro calling\n\"abort\". This may have caused other processes in the application to be\nterminated by signals sent by prterun (as reported here).\n--------------------------------------------------------------------------\n\u0000",
+   "round": "smoke"
+  },
+  {
+   "arm": "mono",
+   "delta_ms": 10.0,
+   "wall_s": 1.6008920000167564,
+   "spikes": 431722,
+   "load1": 4.47412109375,
+   "received": 431722,
+   "returncode": 0,
+   "process_wall_s": 3.003598928451538,
+   "stderr_tail": "",
+   "round": "smoke"
+  },
+  {
+   "arm": "chunked",
+   "delta_ms": 10.0,
+   "wall_s": 5.767906624998432,
+   "spikes": 431722,
+   "load1": 4.59619140625,
+   "received": 431722,
+   "returncode": 0,
+   "process_wall_s": 7.175660133361816,
+   "stderr_tail": "",
+   "round": "smoke"
+  },
+  {
+   "received": null,
+   "arm": "ncp",
+   "delta_ms": 10.0,
+   "returncode": 1,
+   "process_wall_s": 1.439810037612915,
+   "stderr_tail": "c7b69/tmp/bench/ncp_host.py\", line 24, in main\n    client = LocalClient(binding, child.stdout, child.stdin, timeout_s=600)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<NCP checkout>/local/python/ncp_local/protocol.py\", line 554, in __init__\n    raise LocalError(\"binding\")\nncp_local.wire.LocalError: local NCP error: binding\n",
+   "round": "smoke"
+  },
+  {
+   "arm": "music",
+   "delta_ms": 10.0,
+   "returncode": 1,
+   "process_wall_s": 2.4332001209259033,
+   "stderr_tail": "--------------------------------\n--------------------------------------------------------------------------\nprterun has exited due to process rank 0 with PID 0 on node toruss-MacBook-Pro calling\n\"abort\". This may have caused other processes in the application to be\nterminated by signals sent by prterun (as reported here).\n--------------------------------------------------------------------------\n\u0000",
+   "round": "smoke"
+  }
+ ]
+}

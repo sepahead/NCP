@@ -155,6 +155,25 @@ equivalence. A valid comparison requires one preregistered workload and estimand
 the same hardware/topology/security profile, retained raw data, uncertainty, and
 independent reproduction; that campaign is `NOT RUN`.
 
+## Matched local comparison with MUSIC (October 2026)
+
+One [preregistered benchmark](benchmarks/nest-coupling/README.md) matched the workload, hardware, and software stack.
+It ran on an Apple MacBook Pro (Mac16,5) with an M4 Max chip and 128 GB of memory, with NEST 3.10.0.
+NEST advanced 1,000 neurons for 2 s of biological time and sent its spikes to a peer process.
+
+| Exchange interval | NEST alone | MUSIC peer | NCP local SDK host (Python) |
+|---|---|---|---|
+| 1 ms | 1.166 s | 1.189 s | 5.246 s |
+| 10 ms | 1.185 s | 1.212 s | 1.598 s |
+
+The table gives median wall times over five rounds.
+The NCP exchange added about 1.5 ms for each lockstep exchange.
+MUSIC added about 25 ms for each run.
+The two routes give different guarantees, and the result does not rank the designs.
+[`NEST_REALTIME.md`](NEST_REALTIME.md#coupling-nest-to-a-peer-ncp-local-sdk-and-music) summarizes the result.
+The NEST 3.10.0 rerun of the three scripts below is in
+[`NEST_REALTIME.md`](NEST_REALTIME.md#rerun-on-nest-3100-october-2026).
+
 ## Historical chunk, scaling, and overlap measurements (NEST 3.8.0, 16 cores)
 
 Three developer benchmarks illustrate the local cost decomposition. They neither

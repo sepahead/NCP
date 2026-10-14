@@ -1,0 +1,27 @@
+{
+ "results.json": {
+  "sha256_as_written": "933c403906bec6c35ed2222633a737069f26e1491266ed75baf15f0020ecf3f1",
+  "sha256_published": "114778accc76dfb1342d379d6b2f5cf08625260df068ce2949e5921cec8b1bee",
+  "redaction": "the local NCP checkout path in environment.ncp_local_dir is replaced by '<NCP checkout>/local/python'"
+ },
+ "smoke.json": {
+  "sha256_as_written": "d02669bbecfdc9b56ccf85eb3fcc7c91a7a322e468dc5b6dd362507b29518ab8",
+  "sha256_published": "fe836b431484ce9fa2995f39a69eead1259902e039d6c226e0bc0ee5ac63262b",
+  "redaction": "the local NCP checkout path in environment.ncp_local_dir is replaced by '<NCP checkout>/local/python'"
+ },
+ "smoke2.json": {
+  "sha256_as_written": "c96ded97f8132c00e63a37823e5bd0e0f55bb165590f8dbb88c7b2e6efed61c6",
+  "sha256_published": "f9c2a2cd13588d8abde26073eced99a84ba2f1304d6506ae2994d74283bd49ce",
+  "redaction": "the local NCP checkout path in environment.ncp_local_dir is replaced by '<NCP checkout>/local/python'"
+ },
+ "analysis.json": {
+  "sha256_as_written": "f64a7e6aa411be8011e012b522e290a620a749138eb34360edfcc1456abc650c",
+  "sha256_published": "f64a7e6aa411be8011e012b522e290a620a749138eb34360edfcc1456abc650c",
+  "redaction": null
+ },
+ "run.log": {
+  "sha256_as_written": "d8fa00f15c3851cd2bf6e46089bc5ff33b8221fb859bff577c67faabea35a5c0",
+  "sha256_published": "d8fa00f15c3851cd2bf6e46089bc5ff33b8221fb859bff577c67faabea35a5c0",
+  "redaction": null
+ }
+}
