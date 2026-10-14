@@ -1,3 +1,3 @@
 # Exact, dependency-free parser for the trusted publication PDF projection.
-pypdf==6.16.1 \
-    --hash=sha256:63fec31c4092ae50b6729beedcb469055b60d20c834bde1c402df241f371f644
+pypdf==6.20.1 \
+    --hash=sha256:aa5a55ddcffdc5e5ab291d5decb23f6383f4e56f8e3263dc39af41fff03885ad
