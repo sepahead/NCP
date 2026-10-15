@@ -1643,7 +1643,7 @@ def evidence_ladder() -> Canvas:
             "5",
             "Release",
             "Immutable tag, signed artifacts, and provenance.",
-            "No 1.0 release exists. The latest release is v0.8.0 on wire 0.8.",
+            "No wire 1.0 release exists. The latest wire release is v0.8.0 on wire 0.8.",
             "NONE",
             "pomegranate",
         ),
@@ -2988,7 +2988,7 @@ def versioning() -> Canvas:
             "Stable-core digest: proposed and not yet allocated.",
             "Complete contract digest: SHA-256 over the normative sources.",
             f"Compact proto hash: {CONTRACT_HASH}, advisory only.",
-            "Release tag: none for 1.0. The latest is v0.8.0 on wire 0.8.",
+            "Wire release tag: none for 1.0. The latest wire release is v0.8.0.",
             "The gate reads only the wire version and the stable core.",
         ],
     ).box

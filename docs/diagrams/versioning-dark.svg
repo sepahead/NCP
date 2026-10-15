@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="993" viewBox="0 0 1600 993" role="img" aria-labelledby="versioning-title versioning-desc">
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1026" viewBox="0 0 1600 1026" role="img" aria-labelledby="versioning-title versioning-desc">
 <title id="versioning-title">NCP identity domains and native session gate</title>
 <desc id="versioning-desc">Package, wire, stable-core, complete-contract, compact-proto, and release identities are separate. A native session needs a canonical same-major wire and the exact stable core. Other identities are evidence only. Candidate of the UNRELEASED 1.0 line. It is not release or certification evidence.</desc>
 <defs>
@@ -7,11 +7,11 @@
 <marker id="versioning-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#6FC1BD"/></marker>
 <pattern id="versioning-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="993" fill="#131D26"/>
+<rect width="1600" height="1026" fill="#131D26"/>
 <rect x="1245.3" y="18" width="302.7" height="38" rx="19" fill="#8DB2D8"/>
 <path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="156" width="700" height="371" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<rect x="52" y="156" width="700" height="404" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
 <path d="M52 170 L52 170 Q52 156 66 156 L738 156 Q752 156 752 170 L752 170 Z" fill="#8DB2D8"/>
 <path d="M78 236 L726 236" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <rect x="842" y="156" width="706" height="140" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
@@ -22,16 +22,16 @@
 <path d="M842 330 L842 330 Q842 316 856 316 L1534 316 Q1548 316 1548 330 L1548 330 Z" fill="#6FC1BD"/>
 <circle cx="880" cy="367" r="21.2" fill="#6FC1BD"/>
 <path d="M868 396 L1522 396" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="842" y="617" width="333" height="205" rx="14" fill="#1F3340" stroke="#6FC1BD" stroke-width="3"/>
-<path d="M842 631 L842 631 Q842 617 856 617 L1161 617 Q1175 617 1175 631 L1175 631 Z" fill="#6FC1BD"/>
-<path d="M868 729 L1149 729" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="1215" y="617" width="333" height="205" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
-<path d="M1215 631 L1215 631 Q1215 617 1229 617 L1534 617 Q1548 617 1548 631 L1548 631 Z" fill="#E6A095"/>
-<path d="M1241 729 L1522 729" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="856" width="1496" height="97" rx="10" fill="#1E3240"/>
-<rect x="52" y="856" width="10" height="97" rx="5" fill="#D8AA45"/>
-<path d="M1008.5 456 L1008.5 617" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#versioning-arrow-turquoise)"/>
-<path d="M1381.5 456 L1381.5 617" fill="none" stroke="#E6A095" stroke-width="4" stroke-linejoin="round" marker-end="url(#versioning-arrow-pomegranate)"/>
+<rect x="842" y="650" width="333" height="205" rx="14" fill="#1F3340" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M842 664 L842 664 Q842 650 856 650 L1161 650 Q1175 650 1175 664 L1175 664 Z" fill="#6FC1BD"/>
+<path d="M868 762 L1149 762" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1215" y="650" width="333" height="205" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
+<path d="M1215 664 L1215 664 Q1215 650 1229 650 L1534 650 Q1548 650 1548 664 L1548 664 Z" fill="#E6A095"/>
+<path d="M1241 762 L1522 762" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="889" width="1496" height="97" rx="10" fill="#1E3240"/>
+<rect x="52" y="889" width="10" height="97" rx="5" fill="#D8AA45"/>
+<path d="M1008.5 456 L1008.5 650" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#versioning-arrow-turquoise)"/>
+<path d="M1381.5 456 L1381.5 650" fill="none" stroke="#E6A095" stroke-width="4" stroke-linejoin="round" marker-end="url(#versioning-arrow-pomegranate)"/>
 <text x="1396.7" y="43.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">CANDIDATE WIRE 1.0</text>
 <text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">IDENTITY</text>
 <text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Separate identities, and two checks open a native session</text>
@@ -42,22 +42,23 @@
 <text x="78" y="373" class="r" font-size="25" fill="#ECE5D5">Complete contract digest: SHA-256 over the normative</text>
 <text x="78" y="406" class="r" font-size="25" fill="#ECE5D5">sources.</text>
 <text x="78" y="439" class="r" font-size="25" fill="#ECE5D5">Compact proto hash: 163acc57d8a62b66, advisory only.</text>
-<text x="78" y="472" class="r" font-size="25" fill="#ECE5D5">Release tag: none for 1.0. The latest is v0.8.0 on wire 0.8.</text>
-<text x="78" y="505" class="r" font-size="25" fill="#ECE5D5">The gate reads only the wire version and the stable core.</text>
+<text x="78" y="472" class="r" font-size="25" fill="#ECE5D5">Wire release tag: none for 1.0. The latest wire release is</text>
+<text x="78" y="505" class="r" font-size="25" fill="#ECE5D5">v0.8.0.</text>
+<text x="78" y="538" class="r" font-size="25" fill="#ECE5D5">The gate reads only the wire version and the stable core.</text>
 <text x="880" y="215.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
 <text x="912" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Canonical same-major wire</text>
 <text x="868" y="274" class="r" font-size="25" fill="#ECE5D5">Accept 1 or 1.&lt;minor&gt; in canonical spelling.</text>
 <text x="880" y="375.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
 <text x="912" y="376" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Exact stable core</text>
 <text x="868" y="434" class="r" font-size="25" fill="#ECE5D5">Compare the prepared stable-core identity exactly.</text>
-<text x="868" y="677" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Native session may</text>
-<text x="868" y="709" class="s" font-size="28" fill="#ECE5D5" font-weight="700">open</text>
-<text x="868" y="767" class="r" font-size="25" fill="#ECE5D5">Both checks pass.</text>
-<text x="1241" y="677" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Reject</text>
-<text x="1241" y="767" class="r" font-size="25" fill="#ECE5D5">Either check fails. No</text>
-<text x="1241" y="800" class="r" font-size="25" fill="#ECE5D5">native session exists.</text>
+<text x="868" y="710" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Native session may</text>
+<text x="868" y="742" class="s" font-size="28" fill="#ECE5D5" font-weight="700">open</text>
+<text x="868" y="800" class="r" font-size="25" fill="#ECE5D5">Both checks pass.</text>
+<text x="1241" y="710" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Reject</text>
+<text x="1241" y="800" class="r" font-size="25" fill="#ECE5D5">Either check fails. No</text>
+<text x="1241" y="833" class="r" font-size="25" fill="#ECE5D5">native session exists.</text>
 <text x="990.5" y="508" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="end">both pass</text>
 <text x="1363.5" y="508" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="end">either fails</text>
-<text x="84" y="894" class="s" font-size="24" fill="#AAB7BE" font-weight="600">WIRE 0.8</text>
-<text x="84" y="932" class="r" font-size="25" fill="#ECE5D5">Wire 0.8 and wire 1.0 are different protocols. Only a terminating gateway joins them, and it reports no native match.</text>
+<text x="84" y="927" class="s" font-size="24" fill="#AAB7BE" font-weight="600">WIRE 0.8</text>
+<text x="84" y="965" class="r" font-size="25" fill="#ECE5D5">Wire 0.8 and wire 1.0 are different protocols. Only a terminating gateway joins them, and it reports no native match.</text>
 </svg>

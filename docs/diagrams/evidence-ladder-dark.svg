@@ -40,7 +40,7 @@
 <text x="90" y="215.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">5</text>
 <text x="122" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Release</text>
 <text x="78" y="274" class="r" font-size="25" fill="#ECE5D5">Immutable tag, signed artifacts, and provenance.</text>
-<text x="78" y="307" class="r" font-size="25" fill="#ECE5D5">No 1.0 release exists. The latest release is v0.8.0 on wire 0.8.</text>
+<text x="78" y="307" class="r" font-size="25" fill="#ECE5D5">No wire 1.0 release exists. The latest wire release is v0.8.0 on wire 0.8.</text>
 <text x="1468.3" y="213.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">NONE</text>
 <text x="90" y="404.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">4</text>
 <text x="122" y="405" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Independent and external qualification</text>
