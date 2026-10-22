@@ -686,6 +686,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/local-sdk-exchange/PROTOCOL-2.md",
+        "bytes": 3558,
+        "sha256": "f704494caeb965fcb6260a00defd432443659ce3a32549d217e246a63900743d",
+        "git_blob_oid": "696cc89ec2d505e9ee9a970d49b6f5845eae2d11",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/local-sdk-exchange/PROTOCOL-2.sha256",
+        "bytes": 80,
+        "sha256": "2f26e2c78756f8d68032b577168bf88249f8b4b63aba9af928b3db86d40c49e0",
+        "git_blob_oid": "6991ebe1f67f9fe2b4a2b4a1f4a0d4a6d3aa704a",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/local-sdk-exchange/PROTOCOL.md",
         "bytes": 4776,
         "sha256": "fffe4bcdb66e5a258bd0dff0970edec707606f736f55fc2259ce698d4fef6611",
@@ -714,6 +728,13 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/local-sdk-exchange/analyze2.py",
+        "bytes": 3684,
+        "sha256": "cdfeda273d2255789360f063e8f092c52988916416f28bbc1adf48f8ed9a834d",
+        "git_blob_oid": "42d22cd968d7bdd49243db1507842c3da8df3f7c",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/local-sdk-exchange/harness/python/client.py",
         "bytes": 2031,
         "sha256": "790b9de3bf2ba8a52982592c64f32f20cbda490a20eb1b45ff7f9ea954de9857",
@@ -739,6 +760,13 @@
         "bytes": 465,
         "sha256": "95b733341788d25da3e05f105a54b4efb5514c0e72c082b5cd26506d56c85276",
         "git_blob_oid": "2b3270acab3c5cd6065cc0a7777705b282f1c099",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/local-sdk-exchange/harness/python/transcript.py",
+        "bytes": 4412,
+        "sha256": "0364c75b44253141e43e5c3451f44d974ae6aea7a4176956c5e14776c88f3b16",
+        "git_blob_oid": "9e7272fa1c95f05f4c5e4319010626206f30f966",
         "indexed": true
       },
       {
@@ -781,6 +809,13 @@
         "bytes": 9583,
         "sha256": "afcbefbcbcbede0f9352ff2a434ffd4f0d7233a462553cb48790e542422de774",
         "git_blob_oid": "7deb23b58bb9952903b9f5a849ae80e6c279c20d",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/local-sdk-exchange/run2.py",
+        "bytes": 6294,
+        "sha256": "347b4e994bc12f3d1327920008770c1d053dc1e419c00c445f63ce7804867d79",
+        "git_blob_oid": "fc0c5f3df2dda1b56845e2b1b65b44efb106910b",
         "indexed": true
       },
       {
@@ -9189,7 +9224,7 @@
     ]
   },
   "counts": {
-    "text_files": 1273,
+    "text_files": 1278,
     "binary_or_non_utf8_files": 29,
     "occurrences": 374,
     "by_token_id": {
@@ -9222,7 +9257,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "118828ff9499c5c79e3fc2327b72e525e8b8e536506dcfb1c347ff5ab0d9196b",
+  "scanned_path_set_sha256": "00fb77a03f9f33d1e635d428e7e867831260308f0c1642c8f393ecdf4cf7e2e9",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
