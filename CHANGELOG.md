@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Local Rust SDK speed (no wire change)
+
+- The local Rust SDK now derives the profile digest once per process.
+  `LocalResponse::verify_integrity` derived it again on every call from the
+  41 KB descriptor, which took about 150 µs on the benchmark computer.
+- Request and response digests use a typed projection, without an intermediate
+  `serde_json::Value`. Unit tests check that each digest equals the generic
+  digest for every operation, outcome, code, and role, and for bodies with all
+  JSON kinds, signed zero, Unicode keys, nesting, and up to 500 spikes.
+- The owner serializes each response once and then writes the digest into the
+  placeholder of the last member. A unit test checks that the bytes equal those
+  of a complete second serialization.
+- Wire bytes, digests, and all checks are unchanged. The released and the current
+  Rust owners write the same transcript for a fixed script of valid, retried,
+  queried, and rejected requests.
+- `benchmarks/local-sdk-exchange/` holds a benchmark protocol, fixed before its
+  recorded runs, and a harness that builds the released `sdk-v1.0.0` sources and
+  the current sources side by side. The next SDK patch release carries the change.
+
 ### Documentation and publication (no wire change)
 
 - Added `benchmarks/nest-coupling/`, a preregistered benchmark of 13 October 2026

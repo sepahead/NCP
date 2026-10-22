@@ -60,6 +60,16 @@ fn encode_string(output: &mut Vec<u8>, value: &str) -> Result<(), CanonicalDiges
     push(output, value.as_bytes())
 }
 
+fn encode_number(output: &mut Vec<u8>, number: f64) -> Result<(), CanonicalDigestError> {
+    if !number.is_finite() || number.abs() > MAX_FINITE_NUMBER_MAGNITUDE {
+        return Err(CanonicalDigestError::new(
+            "canonical projection contains an out-of-budget number",
+        ));
+    }
+    push(output, &[TAG_NUMBER])?;
+    push(output, &number.to_bits().to_be_bytes())
+}
+
 fn encode_object(
     output: &mut Vec<u8>,
     object: &Map<String, Value>,
@@ -90,18 +100,12 @@ fn encode_value(
         Value::Null => push(output, &[TAG_NULL]),
         Value::Bool(false) => push(output, &[TAG_FALSE]),
         Value::Bool(true) => push(output, &[TAG_TRUE]),
-        Value::Number(number) => {
-            let number = number
-                .as_f64()
-                .filter(|number| number.is_finite() && number.abs() <= MAX_FINITE_NUMBER_MAGNITUDE)
-                .ok_or_else(|| {
-                    CanonicalDigestError::new(
-                        "canonical projection contains an out-of-budget number",
-                    )
-                })?;
-            push(output, &[TAG_NUMBER])?;
-            push(output, &number.to_bits().to_be_bytes())
-        }
+        Value::Number(number) => encode_number(
+            output,
+            number.as_f64().ok_or_else(|| {
+                CanonicalDigestError::new("canonical projection contains an out-of-budget number")
+            })?,
+        ),
         Value::String(value) => encode_string(output, value),
         Value::Array(values) => {
             push(output, &[TAG_ARRAY])?;
@@ -115,10 +119,7 @@ fn encode_value(
     }
 }
 
-pub(crate) fn canonical_projection(
-    domain: &[u8],
-    value: &Value,
-) -> Result<Vec<u8>, CanonicalDigestError> {
+fn checked_domain(domain: &[u8]) -> Result<(), CanonicalDigestError> {
     let body = domain.strip_suffix(&[0]).unwrap_or_default();
     if body.is_empty()
         || body.len() > 128
@@ -132,22 +133,80 @@ pub(crate) fn canonical_projection(
             "canonical digest domain must be a bounded lowercase ASCII identifier followed by exactly one NUL",
         ));
     }
-    let mut output = Vec::with_capacity(
-        domain
-            .len()
-            .saturating_add(512)
-            .min(MAX_PROFILE_PROJECTION_BYTES),
-    );
-    push(&mut output, domain)?;
-    encode_value(&mut output, value, 0)?;
-    Ok(output)
+    Ok(())
+}
+
+pub(crate) fn canonical_projection(
+    domain: &[u8],
+    value: &Value,
+) -> Result<Vec<u8>, CanonicalDigestError> {
+    let mut projection = ProjectionWriter::new(domain, 512)?;
+    projection.value(value, 0)?;
+    Ok(projection.finish())
+}
+
+/// Typed projection written member by member, without an intermediate JSON value.
+///
+/// It applies the tags, byte budget, depth limit, and number checks of
+/// [`canonical_projection`]. The caller writes object members in the byte order of
+/// their keys; a fixed-shape caller must check its output against
+/// [`canonical_projection`] in tests.
+pub(crate) struct ProjectionWriter {
+    output: Vec<u8>,
+}
+
+impl ProjectionWriter {
+    pub(crate) fn new(domain: &[u8], capacity: usize) -> Result<Self, CanonicalDigestError> {
+        checked_domain(domain)?;
+        let mut output = Vec::with_capacity(
+            domain
+                .len()
+                .saturating_add(capacity)
+                .min(MAX_PROFILE_PROJECTION_BYTES),
+        );
+        push(&mut output, domain)?;
+        Ok(Self { output })
+    }
+
+    /// Start an object with `members` entries. Its depth is that of its parent value.
+    pub(crate) fn object(&mut self, members: usize) -> Result<(), CanonicalDigestError> {
+        push(&mut self.output, &[TAG_OBJECT])?;
+        push_len(&mut self.output, members)
+    }
+
+    pub(crate) fn string(&mut self, value: &str) -> Result<(), CanonicalDigestError> {
+        encode_string(&mut self.output, value)
+    }
+
+    pub(crate) fn number(&mut self, value: f64) -> Result<(), CanonicalDigestError> {
+        encode_number(&mut self.output, value)
+    }
+
+    pub(crate) fn value(
+        &mut self,
+        value: &Value,
+        depth: usize,
+    ) -> Result<(), CanonicalDigestError> {
+        encode_value(&mut self.output, value, depth)
+    }
+
+    pub(crate) fn finish(self) -> Vec<u8> {
+        self.output
+    }
+
+    pub(crate) fn sha256_hex(self) -> String {
+        sha256_hex(&self.output)
+    }
 }
 
 pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(64);
+    for byte in Sha256::digest(bytes) {
+        output.push(char::from(HEX[usize::from(byte >> 4)]));
+        output.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    output
 }
 
 #[cfg(test)]

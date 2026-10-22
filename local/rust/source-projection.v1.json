@@ -55,15 +55,15 @@
       "source": "ncp-core/src/canonical_digest.rs",
       "destination": "src/canonical_digest.rs",
       "transformation": "identity",
-      "source_sha256": "d72eddd2a5ea0fdb23d19bdc699b6a1c7af1580b5d6f0debc4f080433a06345f",
-      "destination_sha256": "d72eddd2a5ea0fdb23d19bdc699b6a1c7af1580b5d6f0debc4f080433a06345f"
+      "source_sha256": "612c36c624cf5676d8a070ad730f9f3adf5bdaf5b19208cec96d5d454ae5b4f2",
+      "destination_sha256": "612c36c624cf5676d8a070ad730f9f3adf5bdaf5b19208cec96d5d454ae5b4f2"
     },
     {
       "source": "ncp-core/src/local.rs",
       "destination": "src/local.rs",
       "transformation": "identity",
-      "source_sha256": "1018977f42d0779d3218db0e676e7f1a67c21229cb09f1cc8e2d238683882619",
-      "destination_sha256": "1018977f42d0779d3218db0e676e7f1a67c21229cb09f1cc8e2d238683882619"
+      "source_sha256": "6ba3cb2830ce4e372866de793557b09118dab2bb33a15ffd572a85e9485d400a",
+      "destination_sha256": "6ba3cb2830ce4e372866de793557b09118dab2bb33a15ffd572a85e9485d400a"
     },
     {
       "source": "ncp-core/src/local_data.rs",

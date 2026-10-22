@@ -7,12 +7,15 @@
 use std::fmt;
 use std::io::{Read, Write};
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::bounded_json::preflight;
-use crate::canonical_digest::{canonical_projection, sha256_hex};
+use crate::canonical_digest::{
+    canonical_projection, sha256_hex, CanonicalDigestError, ProjectionWriter,
+};
 
 /// Maximum bytes in one local frame, excluding its four-byte length prefix.
 pub const MAX_LOCAL_FRAME_BYTES: usize = 65_536;
@@ -247,10 +250,158 @@ pub fn local_digest(domain: &str, value: &Value) -> Result<String, LocalError> {
 }
 
 /// Derive the exact installed descriptor identity, independently of caller data.
+///
+/// The descriptor is compiled in, so the digest is derived once per process.
 pub fn local_profile_digest() -> Result<String, LocalError> {
-    let descriptor: Value =
-        serde_json::from_str(LOCAL_PROFILE_DESCRIPTOR).map_err(|_| LocalError(LocalCode::Wire))?;
-    local_digest("ncp.local.profile.v1", &descriptor)
+    static DIGEST: OnceLock<Result<String, LocalError>> = OnceLock::new();
+    DIGEST
+        .get_or_init(|| {
+            let descriptor: Value = serde_json::from_str(LOCAL_PROFILE_DESCRIPTOR)
+                .map_err(|_| LocalError(LocalCode::Wire))?;
+            local_digest("ncp.local.profile.v1", &descriptor)
+        })
+        .clone()
+}
+
+const REQUEST_DOMAIN: &[u8] = b"ncp.local.request.v1\0";
+const RESPONSE_DOMAIN: &[u8] = b"ncp.local.response.v1\0";
+const RESPONSE_SCHEMA: &str = "ncp.local.response.v1";
+const ZERO_DIGEST: &str = "0000000000000000000000000000000000000000000000000000000000000000";
+
+impl LocalRole {
+    fn wire_name(self) -> &'static str {
+        match self {
+            Self::Neural => "neural",
+            Self::Body => "body",
+            Self::Capture => "capture",
+            Self::Monitor => "monitor",
+        }
+    }
+}
+
+impl LocalOperation {
+    fn wire_name(self) -> &'static str {
+        match self {
+            Self::Prepare => "prepare",
+            Self::Step => "step",
+            Self::Reserve => "reserve",
+            Self::Capture => "capture",
+            Self::Assess => "assess",
+            Self::Finish => "finish",
+            Self::Abort => "abort",
+            Self::Result => "result",
+            Self::Ack => "ack",
+        }
+    }
+}
+
+impl LocalOutcome {
+    fn wire_name(self) -> &'static str {
+        match self {
+            Self::Committed => "committed",
+            Self::RejectedBeforeExecution => "rejected_before_execution",
+            Self::Indeterminate => "indeterminate",
+            Self::Unavailable => "unavailable",
+            Self::Acknowledged => "acknowledged",
+        }
+    }
+}
+
+impl LocalCode {
+    fn wire_name(self) -> &'static str {
+        match self {
+            Self::Ok => "ok",
+            Self::Wire => "wire",
+            Self::Binding => "binding",
+            Self::Role => "role",
+            Self::State => "state",
+            Self::Conflict => "conflict",
+            Self::ResultPending => "result_pending",
+            Self::ResultReleased => "result_released",
+            Self::InvalidInput => "invalid_input",
+            Self::Capacity => "capacity",
+            Self::ExecutionUnknown => "execution_unknown",
+            Self::Retired => "retired",
+        }
+    }
+}
+
+// Typed request digest without an intermediate JSON value. It writes the members of
+// the serialized request, except `request_digest`, in the byte order of their keys,
+// so it equals `local_digest` of that object. A unit test checks the equality.
+fn request_digest(request: &LocalRequest) -> Result<String, LocalError> {
+    let project = || -> Result<String, CanonicalDigestError> {
+        let mut projection = ProjectionWriter::new(REQUEST_DOMAIN, 512)?;
+        projection.object(7)?;
+        projection.string("body")?;
+        projection.value(&request.body, 1)?;
+        projection.string("generation")?;
+        projection.string(&request.generation)?;
+        projection.string("operation")?;
+        projection.string(request.operation.wire_name())?;
+        projection.string("profile_digest")?;
+        projection.string(&request.profile_digest)?;
+        projection.string("run_id")?;
+        projection.string(&request.run_id)?;
+        projection.string("schema")?;
+        projection.string(&request.schema)?;
+        projection.string("sequence")?;
+        projection.number(request.sequence as f64)?;
+        Ok(projection.sha256_hex())
+    };
+    project().map_err(|_| LocalError(LocalCode::Wire))
+}
+
+/// Borrowed response with the member names and order of [`LocalResponse`].
+/// It serializes to the same bytes without cloning the binding or the body.
+#[derive(Serialize)]
+struct ResponseView<'a> {
+    schema: &'a str,
+    binding: &'a LocalBinding,
+    sequence: u64,
+    operation: LocalOperation,
+    request_digest: &'a str,
+    outcome: LocalOutcome,
+    code: LocalCode,
+    body: &'a Value,
+    result_digest: &'a str,
+}
+
+impl ResponseView<'_> {
+    // Typed response digest over every member except `result_digest`, written as in
+    // `request_digest`. A unit test checks the equality with `local_digest`.
+    fn digest(&self) -> Result<String, LocalError> {
+        let project = || -> Result<String, CanonicalDigestError> {
+            let mut projection = ProjectionWriter::new(RESPONSE_DOMAIN, 768)?;
+            projection.object(8)?;
+            projection.string("binding")?;
+            projection.object(4)?;
+            projection.string("generation")?;
+            projection.string(&self.binding.generation)?;
+            projection.string("profile_digest")?;
+            projection.string(&self.binding.profile_digest)?;
+            projection.string("role")?;
+            projection.string(self.binding.role.wire_name())?;
+            projection.string("run_id")?;
+            projection.string(&self.binding.run_id)?;
+            projection.string("body")?;
+            projection.value(self.body, 1)?;
+            projection.string("code")?;
+            projection.string(self.code.wire_name())?;
+            projection.string("operation")?;
+            projection.string(self.operation.wire_name())?;
+            projection.string("outcome")?;
+            projection.string(self.outcome.wire_name())?;
+            projection.string("request_digest")?;
+            projection.string(self.request_digest)?;
+            projection.string("schema")?;
+            projection.string(self.schema)?;
+            projection.string("sequence")?;
+            projection.number(self.sequence as f64)?;
+            Ok(projection.sha256_hex())
+        };
+        project().map_err(|_| LocalError(LocalCode::Wire))
+    }
 }
 
 fn digest_without<T: Serialize>(
@@ -269,12 +420,26 @@ fn digest_without<T: Serialize>(
 impl LocalRequest {
     /// Seal a constructed request after its complete payload is available.
     pub fn seal(&mut self) -> Result<(), LocalError> {
-        self.request_digest = digest_without("ncp.local.request.v1", self, "request_digest")?;
+        self.request_digest = request_digest(self)?;
         Ok(())
     }
 }
 
 impl LocalResponse {
+    fn view(&self) -> ResponseView<'_> {
+        ResponseView {
+            schema: &self.schema,
+            binding: &self.binding,
+            sequence: self.sequence,
+            operation: self.operation,
+            request_digest: &self.request_digest,
+            outcome: self.outcome,
+            code: self.code,
+            body: &self.body,
+            result_digest: &self.result_digest,
+        }
+    }
+
     /// Verify an exact sealed response from the supervisor-bound endpoint.
     ///
     /// This verifies bytes and installed context, not a signature or loaded code.
@@ -292,7 +457,7 @@ impl LocalResponse {
             || self.sequence > MAX_SEQUENCE
             || !valid_digest(&self.request_digest)
             || !valid_digest(&self.result_digest)
-            || self.result_digest != digest_without("ncp.local.response.v1", self, "result_digest")?
+            || self.result_digest != self.view().digest()?
         {
             return Err(LocalError(LocalCode::Binding));
         }
@@ -359,8 +524,7 @@ impl LocalResponse {
             || query.run_id != original.run_id
             || query.generation != original.generation
             || query.body != json!({"request_digest": original.request_digest})
-            || query.request_digest
-                != digest_without("ncp.local.request.v1", query, "request_digest")?
+            || query.request_digest != request_digest(query)?
         {
             return Err(LocalError(LocalCode::Binding));
         }
@@ -514,29 +678,57 @@ impl<B: LocalBackend> LocalOwner<B> {
         body: Value,
         reservation: Vec<u8>,
     ) -> Result<Vec<u8>, LocalError> {
+        self.sealed_response_into(request, outcome, code, body, reservation)
+            .map(|(bytes, _)| bytes)
+    }
+
+    // Return the response bytes and their result digest.
+    fn sealed_response_into(
+        &self,
+        request: &LocalRequest,
+        outcome: LocalOutcome,
+        code: LocalCode,
+        body: Value,
+        reservation: Vec<u8>,
+    ) -> Result<(Vec<u8>, String), LocalError> {
         check_result_value(&body, 0, &mut 16_384)?;
-        let mut response = LocalResponse {
-            schema: "ncp.local.response.v1".into(),
-            binding: self.binding.clone(),
+        let mut response = ResponseView {
+            schema: RESPONSE_SCHEMA,
+            binding: &self.binding,
             sequence: request.sequence,
             operation: request.operation,
-            request_digest: request.request_digest.clone(),
+            request_digest: &request.request_digest,
             outcome,
             code,
-            body,
-            result_digest: "0".repeat(64),
+            body: &body,
+            result_digest: ZERO_DIGEST,
         };
         // Prove the complete wire ceiling before the bounded digest projection.
         let mut writer = LocalWriter { bytes: reservation };
         serde_json::to_writer(&mut writer, &response)
             .map_err(|_| LocalError(LocalCode::Capacity))?;
         preflight(&writer.bytes).map_err(|_| LocalError(LocalCode::Wire))?;
-        response.result_digest =
-            digest_without("ncp.local.response.v1", &response, "result_digest")?;
-        writer.bytes.clear();
-        serde_json::to_writer(&mut writer, &response)
-            .map_err(|_| LocalError(LocalCode::Capacity))?;
-        Ok(writer.bytes)
+        let digest = response.digest()?;
+        // `result_digest` is the last member and the digest has the placeholder's
+        // length, so the final bytes differ only inside that string. Write it in
+        // place when the placeholder is where serialization put it; otherwise
+        // serialize again.
+        let length = writer.bytes.len();
+        let member = b"\"result_digest\":\"".len() + ZERO_DIGEST.len() + b"\"}".len();
+        let in_place = length >= member
+            && writer.bytes[length - member..].starts_with(b"\"result_digest\":\"")
+            && writer.bytes[length - 2 - ZERO_DIGEST.len()..length - 2] == *ZERO_DIGEST.as_bytes()
+            && writer.bytes.ends_with(b"\"}");
+        if in_place {
+            writer.bytes[length - 2 - ZERO_DIGEST.len()..length - 2]
+                .copy_from_slice(digest.as_bytes());
+        } else {
+            response.result_digest = &digest;
+            writer.bytes.clear();
+            serde_json::to_writer(&mut writer, &response)
+                .map_err(|_| LocalError(LocalCode::Capacity))?;
+        }
+        Ok((writer.bytes, digest))
     }
 
     fn reject(&self, request: &LocalRequest, code: LocalCode) -> Result<Vec<u8>, LocalError> {
@@ -625,8 +817,7 @@ impl<B: LocalBackend> LocalOwner<B> {
         if request.schema != "ncp.local.request.v1"
             || request.sequence == 0
             || request.sequence > MAX_SEQUENCE
-            || request.request_digest
-                != digest_without("ncp.local.request.v1", &request, "request_digest")?
+            || request.request_digest != request_digest(&request)?
         {
             return Err(LocalError(LocalCode::Wire));
         }
@@ -792,4 +983,221 @@ pub fn serve_local<B: LocalBackend>(
     })();
     owner.retire_generation();
     result
+}
+
+#[cfg(test)]
+mod typed_digest_tests {
+    use super::*;
+
+    const OPERATIONS: [LocalOperation; 9] = [
+        LocalOperation::Prepare,
+        LocalOperation::Step,
+        LocalOperation::Reserve,
+        LocalOperation::Capture,
+        LocalOperation::Assess,
+        LocalOperation::Finish,
+        LocalOperation::Abort,
+        LocalOperation::Result,
+        LocalOperation::Ack,
+    ];
+    const OUTCOMES: [LocalOutcome; 5] = [
+        LocalOutcome::Committed,
+        LocalOutcome::RejectedBeforeExecution,
+        LocalOutcome::Indeterminate,
+        LocalOutcome::Unavailable,
+        LocalOutcome::Acknowledged,
+    ];
+    const CODES: [LocalCode; 12] = [
+        LocalCode::Ok,
+        LocalCode::Wire,
+        LocalCode::Binding,
+        LocalCode::Role,
+        LocalCode::State,
+        LocalCode::Conflict,
+        LocalCode::ResultPending,
+        LocalCode::ResultReleased,
+        LocalCode::InvalidInput,
+        LocalCode::Capacity,
+        LocalCode::ExecutionUnknown,
+        LocalCode::Retired,
+    ];
+    const ROLES: [LocalRole; 4] = [
+        LocalRole::Neural,
+        LocalRole::Body,
+        LocalRole::Capture,
+        LocalRole::Monitor,
+    ];
+
+    fn serde_name<T: Serialize>(value: T) -> String {
+        match serde_json::to_value(value).unwrap() {
+            Value::String(name) => name,
+            other => panic!("unit variant serialized as {other}"),
+        }
+    }
+
+    #[test]
+    fn wire_names_equal_serde_names() {
+        for value in OPERATIONS {
+            assert_eq!(value.wire_name(), serde_name(value));
+        }
+        for value in OUTCOMES {
+            assert_eq!(value.wire_name(), serde_name(value));
+        }
+        for value in CODES {
+            assert_eq!(value.wire_name(), serde_name(value));
+        }
+        for value in ROLES {
+            assert_eq!(value.wire_name(), serde_name(value));
+        }
+    }
+
+    // Deterministic bodies that exercise every JSON kind, key order, Unicode keys,
+    // signed zero, integer and fractional binary64 values, nesting, and arrays.
+    fn bodies() -> Vec<Value> {
+        let mut bodies = vec![
+            json!({}),
+            json!({"stimulus": 0}),
+            json!({"request_digest": ZERO_DIGEST}),
+            json!({"z": null, "a": true, "m": false, "é": "ü", "A": [], "b": {}}),
+            json!({"negative_zero": -0.0, "integer": 9_007_199_254_740_991_u64, "small": -1e-300, "large": 1e300}),
+            json!({"deep": {"a": {"b": {"c": [[[{"d": "e"}]]]}}}}),
+        ];
+        let mut state = 0x9e37_79b9_7f4a_7c15_u64;
+        for size in [1_usize, 13, 127, 500] {
+            let mut senders = Vec::new();
+            let mut times = Vec::new();
+            for _ in 0..size {
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                senders.push(json!((state >> 33) % 1000 + 1));
+                times.push(json!(
+                    f64::from(u32::try_from((state >> 40) % 100_000).unwrap()) / 10.0
+                ));
+            }
+            bodies.push(json!({"senders": senders, "times": times}));
+        }
+        bodies
+    }
+
+    fn binding(role: LocalRole) -> LocalBinding {
+        LocalBinding {
+            profile_digest: local_profile_digest().unwrap(),
+            run_id: "0b0fd6c0-6a0e-4c1b-9d7e-3f2a1b0c9d8e".into(),
+            generation: "5f4e3d2c-1b0a-4987-a6b5-c4d3e2f1a0b9".into(),
+            role,
+        }
+    }
+
+    #[test]
+    fn typed_request_digest_equals_generic_digest() {
+        let binding = binding(LocalRole::Neural);
+        let mut checked = 0;
+        for body in bodies() {
+            for operation in OPERATIONS {
+                for sequence in [1, 2, 4_096, MAX_SEQUENCE] {
+                    let request = LocalRequest {
+                        schema: "ncp.local.request.v1".into(),
+                        profile_digest: binding.profile_digest.clone(),
+                        run_id: binding.run_id.clone(),
+                        generation: binding.generation.clone(),
+                        sequence,
+                        operation,
+                        body: body.clone(),
+                        request_digest: ZERO_DIGEST.into(),
+                    };
+                    assert_eq!(
+                        request_digest(&request).unwrap(),
+                        digest_without("ncp.local.request.v1", &request, "request_digest").unwrap()
+                    );
+                    checked += 1;
+                }
+            }
+        }
+        assert_eq!(checked, bodies().len() * OPERATIONS.len() * 4);
+    }
+
+    #[test]
+    fn typed_response_digest_and_bytes_equal_generic_forms() {
+        for role in ROLES {
+            let binding = binding(role);
+            for body in bodies() {
+                for operation in OPERATIONS {
+                    for outcome in OUTCOMES {
+                        for code in [
+                            LocalCode::Ok,
+                            LocalCode::Conflict,
+                            LocalCode::ExecutionUnknown,
+                        ] {
+                            let response = LocalResponse {
+                                schema: RESPONSE_SCHEMA.into(),
+                                binding: binding.clone(),
+                                sequence: 7,
+                                operation,
+                                request_digest: "ab".repeat(32),
+                                outcome,
+                                code,
+                                body: body.clone(),
+                                result_digest: ZERO_DIGEST.into(),
+                            };
+                            let generic =
+                                digest_without("ncp.local.response.v1", &response, "result_digest")
+                                    .unwrap();
+                            assert_eq!(response.view().digest().unwrap(), generic);
+                            assert_eq!(
+                                serde_json::to_vec(&response.view()).unwrap(),
+                                serde_json::to_vec(&response).unwrap()
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    struct Echo(Value);
+
+    impl LocalBackend for Echo {
+        fn validate(&self, _: LocalOperation, _: &Value) -> Result<(), LocalError> {
+            Ok(())
+        }
+        fn execute(&mut self, _: LocalOperation, _: &Value) -> Result<Value, LocalError> {
+            Ok(self.0.clone())
+        }
+        fn retire(&mut self) {}
+    }
+
+    // The in-place digest must give the bytes of a complete second serialization.
+    #[test]
+    fn sealed_response_bytes_equal_reserialized_response() {
+        for body in bodies() {
+            let binding = binding(LocalRole::Neural);
+            let owner = LocalOwner::new(binding.clone(), Echo(body.clone())).unwrap();
+            let request = LocalRequest {
+                schema: "ncp.local.request.v1".into(),
+                profile_digest: binding.profile_digest.clone(),
+                run_id: binding.run_id.clone(),
+                generation: binding.generation.clone(),
+                sequence: 3,
+                operation: LocalOperation::Step,
+                body: json!({}),
+                request_digest: "cd".repeat(32),
+            };
+            let bytes = owner
+                .response(
+                    &request,
+                    LocalOutcome::Committed,
+                    LocalCode::Ok,
+                    body.clone(),
+                )
+                .unwrap();
+            let parsed: LocalResponse = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(serde_json::to_vec(&parsed).unwrap(), bytes);
+            assert_eq!(
+                parsed.result_digest,
+                digest_without("ncp.local.response.v1", &parsed, "result_digest").unwrap()
+            );
+            parsed.verify_integrity(&binding).unwrap();
+        }
+    }
 }
