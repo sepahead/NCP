@@ -8485,9 +8485,9 @@
       },
       {
         "path": "scripts/check_local_scope.py",
-        "bytes": 11308,
-        "sha256": "de44eaeb61866624fff16ce53461a379b443f2b06eb670ad6de0984b122d36ec",
-        "git_blob_oid": "cd5425abe738e65205c6b5535119a1f9e381f075",
+        "bytes": 11476,
+        "sha256": "15b35d8a79ee72556932d745e60e9464ed186f4cfe88a0a78310cfd372c6813f",
+        "git_blob_oid": "e4f2c94725f46ee71c3431a98d7eac76f38c62d8",
         "indexed": true
       },
       {

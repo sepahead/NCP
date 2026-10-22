@@ -44,6 +44,9 @@ SCOPE_KEYS = {
     "scientific_validation",
 }
 RECEIPTS = ("bootstrap_receipt", "operational_receipt", "publication_receipt")
+# Both SDK packages carry this version. It follows the SDK reference revision that
+# scripts/check_local_sdk.py pins; 1.0.1 since 2026-10-22.
+SDK_VERSION = "1.0.1"
 
 
 def require(condition: bool, detail: str) -> None:
@@ -249,7 +252,7 @@ def check_scope(scope: Any, root: Path = ROOT) -> dict[str, Any]:
             manifest = tomllib.load(source)
         package = manifest["package" if row["ecosystem"] == "Rust" else "project"]
         require(
-            package["name"] == row["name"] and package["version"] == "1.0.0",
+            package["name"] == row["name"] and package["version"] == SDK_VERSION,
             "SDK package identity differs",
         )
         ecosystems.add(row["ecosystem"])
