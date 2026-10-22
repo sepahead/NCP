@@ -12,6 +12,7 @@ import io
 import json
 import math
 import os
+import re
 import select
 import struct
 import time
@@ -339,6 +340,65 @@ class _Scanner:
             self._fail("NCP-LIMIT-009", "expected ',' or ']'")
 
 
+# Each matched character is one UTF-8 byte without JSON escape semantics.
+_ASCII_STRING_RUN = re.compile(r"[\x20-\x21\x23-\x5b\x5d-\x7f]+")
+_WHITESPACE_RUN = re.compile(r"[ \n\r\t]*")
+# The reference number grammar. A following '.', 'e', 'E', or digit means that the
+# reference loop reads further, so the scanner then uses the reference method.
+_NUMBER = re.compile(r"-?(?:0(?![0-9])|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?")
+_NUMBER_CONTINUATION = frozenset(".eE0123456789")
+
+
+class _RunScanner(_Scanner):
+    """Reference scanner that matches whole runs in C.
+
+    Whitespace, complete unescaped ASCII strings, and complete numbers are matched
+    with regular expressions. Each match consumes exactly the characters that the
+    reference loop consumes and applies the same checks. Every other case uses the
+    unchanged reference method, so outcomes, error positions, and counters are equal.
+    """
+
+    def _skip_whitespace(self) -> None:
+        self.position = _WHITESPACE_RUN.match(self.text, self.position).end()
+
+    def _parse_number(self) -> None:
+        start = self.position
+        match = _NUMBER.match(self.text, start)
+        end = -1 if match is None else match.end()
+        if end < 0 or (end < len(self.text) and self.text[end] in _NUMBER_CONTINUATION):
+            return super()._parse_number()
+        self.position = end
+        spelling = self.text[start:end]
+        if not any(marker in spelling for marker in ".eE"):
+            magnitude = spelling.lstrip("-")
+            if len(magnitude) > 16 or (len(magnitude) == 16 and magnitude > "9007199254740991"):
+                self._fail("NCP-LIMIT-006", "integer exceeds the exact JSON range")
+        value = float(spelling)
+        if not math.isfinite(value) or abs(value) > MAX_FINITE_NUMBER_MAGNITUDE:
+            self._fail("NCP-LIMIT-006", "number exceeds the finite magnitude budget")
+
+    def _parse_string(self, *, capture: bool):
+        opening = self.position
+        self._expect('"')
+        start = self.position
+        limit = MAX_KEY_BYTES if capture else MAX_STRING_BYTES
+        span = _ASCII_STRING_RUN.match(self.text, start, start + limit + 1)
+        if span is not None:
+            end = span.end()
+            size = end - start
+            if size > limit:
+                self.position = end
+                self._fail("NCP-LIMIT-005", "JSON string exceeds its byte limit")
+            if end < len(self.text) and self.text[end] == '"':
+                self.position = end + 1
+                self.string_bytes += size
+                if self.string_bytes > MAX_TOTAL_STRING_BYTES:
+                    self._fail("NCP-LIMIT-005", "aggregate JSON string budget exceeded")
+                return self.text[start:end] if capture else None
+        self.position = opening
+        return super()._parse_string(capture=capture)
+
+
 def preflight(payload: bytes) -> None:
     """Admit structural bytes without creating the JSON object tree."""
     if type(payload) is not bytes or not payload or len(payload) > MAX_FRAME_BYTES:
@@ -347,12 +407,17 @@ def preflight(payload: bytes) -> None:
         text = payload.decode("utf-8", errors="strict")
     except UnicodeError as error:
         raise BoundedJsonError("NCP-LIMIT-008", "invalid UTF-8") from error
-    _Scanner(text).scan()
+    _RunScanner(text).scan()
 
 
 def decode(payload: bytes) -> Any:
     """Decode only after preflight; preserve the sign of lexical integer -0."""
     preflight(payload)
+    return _decode_checked(payload)
+
+
+def _decode_checked(payload: bytes) -> Any:
+    """Decode bytes that already passed `preflight`, without scanning them again."""
     return json.loads(
         payload, parse_int=lambda token: -0.0 if token == "-0" else int(token)
     )

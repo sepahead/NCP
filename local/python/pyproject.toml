@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ncp-local"
-version = "1.0.0"
+version = "1.0.1"
 description = "Independent pure-Python SDK for the local NCP lockstep simulation profile"
 readme = "README.md"
 requires-python = ">=3.11"

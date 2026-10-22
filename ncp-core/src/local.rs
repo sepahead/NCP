@@ -404,6 +404,8 @@ impl ResponseView<'_> {
     }
 }
 
+// The generic form of the typed digests. The unit tests compare both forms.
+#[cfg(test)]
 fn digest_without<T: Serialize>(
     domain: &str,
     value: &T,
@@ -498,10 +500,9 @@ impl LocalResponse {
             || request.profile_digest != binding.profile_digest
             || request.run_id != binding.run_id
             || request.generation != binding.generation
-            || request.request_digest
-                != digest_without("ncp.local.request.v1", request, "request_digest")?
+            || request.request_digest != request_digest(request)?
             || !valid_digest(&self.result_digest)
-            || self.result_digest != digest_without("ncp.local.response.v1", self, "result_digest")?
+            || self.result_digest != self.view().digest()?
         {
             return Err(LocalError(LocalCode::Binding));
         }
@@ -663,23 +664,23 @@ impl<B: LocalBackend> LocalOwner<B> {
         code: LocalCode,
         body: Value,
     ) -> Result<Vec<u8>, LocalError> {
-        let mut reservation = Vec::new();
-        reservation
-            .try_reserve_exact(MAX_LOCAL_FRAME_BYTES)
-            .map_err(|_| LocalError(LocalCode::Capacity))?;
-        self.response_into(request, outcome, code, body, reservation)
+        self.sealed_response(request, outcome, code, body)
+            .map(|(bytes, _)| bytes)
     }
 
-    fn response_into(
+    // Reserve the retained wire storage, then seal the response.
+    fn sealed_response(
         &self,
         request: &LocalRequest,
         outcome: LocalOutcome,
         code: LocalCode,
         body: Value,
-        reservation: Vec<u8>,
-    ) -> Result<Vec<u8>, LocalError> {
+    ) -> Result<(Vec<u8>, String), LocalError> {
+        let mut reservation = Vec::new();
+        reservation
+            .try_reserve_exact(MAX_LOCAL_FRAME_BYTES)
+            .map_err(|_| LocalError(LocalCode::Capacity))?;
         self.sealed_response_into(request, outcome, code, body, reservation)
-            .map(|(bytes, _)| bytes)
     }
 
     // Return the response bytes and their result digest.
@@ -883,8 +884,8 @@ impl<B: LocalBackend> LocalOwner<B> {
         let result = catch_unwind(AssertUnwindSafe(|| {
             self.backend.execute(request.operation, &request.body)
         }));
-        let output = match result {
-            Ok(Ok(body)) => self.response_into(
+        let sealed = match result {
+            Ok(Ok(body)) => self.sealed_response_into(
                 &request,
                 LocalOutcome::Committed,
                 LocalCode::Ok,
@@ -893,8 +894,8 @@ impl<B: LocalBackend> LocalOwner<B> {
             ),
             _ => Err(LocalError(LocalCode::ExecutionUnknown)),
         };
-        let output = match output {
-            Ok(bytes) => {
+        let (output, result_digest) = match sealed {
+            Ok(sealed) => {
                 self.prepared = true;
                 if matches!(
                     request.operation,
@@ -902,11 +903,11 @@ impl<B: LocalBackend> LocalOwner<B> {
                 ) {
                     self.finished = true;
                 }
-                bytes
+                sealed
             }
             Err(_) => {
                 self.retire_generation();
-                self.response(
+                self.sealed_response(
                     &request,
                     LocalOutcome::Indeterminate,
                     LocalCode::ExecutionUnknown,
@@ -914,12 +915,10 @@ impl<B: LocalBackend> LocalOwner<B> {
                 )?
             }
         };
-        let response: LocalResponse =
-            serde_json::from_slice(&output).map_err(|_| LocalError(LocalCode::Wire))?;
         self.retained = Some(Retained {
             sequence: request.sequence,
             request_digest: request.request_digest,
-            result_digest: response.result_digest,
+            result_digest,
             bytes: output.clone(),
         });
         Ok(output)

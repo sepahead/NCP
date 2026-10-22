@@ -62,8 +62,8 @@
       "source": "ncp-core/src/local.rs",
       "destination": "src/local.rs",
       "transformation": "identity",
-      "source_sha256": "6ba3cb2830ce4e372866de793557b09118dab2bb33a15ffd572a85e9485d400a",
-      "destination_sha256": "6ba3cb2830ce4e372866de793557b09118dab2bb33a15ffd572a85e9485d400a"
+      "source_sha256": "fa9c3187f0cd0a050268ce718ead592e9e2bc73b6f968636e2b3922a7a9c3bfc",
+      "destination_sha256": "fa9c3187f0cd0a050268ce718ead592e9e2bc73b6f968636e2b3922a7a9c3bfc"
     },
     {
       "source": "ncp-core/src/local_data.rs",

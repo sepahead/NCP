@@ -1,6 +1,6 @@
 # Local NCP Python SDK
 
-Status: released as NCP local SDK 1.0.0 under the tag `sdk-v1.0.0`. Installed application qualification and registry publication remain open.
+Status: released as NCP local SDK 1.0.1 under the tag `sdk-v1.0.1`, after 1.0.0 under `sdk-v1.0.0`. Installed application qualification and registry publication remain open.
 
 This independent SDK implements the candidate `ncp.local-lockstep.v1` profile.
 It uses Python's standard library. It does not call Rust or an FFI extension.
@@ -47,6 +47,11 @@ The parser rejects duplicate decoded keys and invalid Unicode before object deco
 It checks depth, structural budgets, safe integer spellings, and finite number magnitude.
 Floating negative zero retains its binary64 sign in digests.
 Sequence fields reject negative zero and non-integer spellings.
+
+The lockstep codec matches whole runs of whitespace, unescaped ASCII strings, and numbers with regular expressions.
+Each match consumes exactly the characters of the reference loop and applies the same checks.
+Every other input uses the unchanged reference scanner, including escapes and Unicode.
+The run-scanner tests compare outcomes, error positions, and counters with the reference scanner.
 
 The modular codec scans complete unescaped ASCII strings in bounded runs.
 It uses the unchanged reference scanner for other strings, including escapes and Unicode.

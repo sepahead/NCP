@@ -19,6 +19,7 @@ from .wire import (
     LocalPreflightError,
     MAX_FRAME_BYTES,
     MAX_SEQUENCE,
+    _decode_checked,
     decode,
     digest_without,
     encode,
@@ -65,6 +66,8 @@ CODES = frozenset(
     }
 )
 _DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+_DIGEST_HEAD = b'"result_digest":"'
+_PLACEHOLDER_TAIL = _DIGEST_HEAD + b"0" * 64 + b'"}'
 _UUID = re.compile(
     r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z"
 )
@@ -182,6 +185,13 @@ class LocalBinding:
 def make_request(
     binding: LocalBinding, sequence: int, operation: str, body: Any
 ) -> dict[str, Any]:
+    return _sealed_request(binding, sequence, operation, body)[0]
+
+
+def _sealed_request(
+    binding: LocalBinding, sequence: int, operation: str, body: Any
+) -> tuple[dict[str, Any], bytes]:
+    """Return the request snapshot and its exact encoded bytes."""
     if not _sequence(sequence) or operation not in OPERATIONS:
         raise LocalError("wire")
     request = {
@@ -195,7 +205,9 @@ def make_request(
     }
     request["request_digest"] = local_digest(REQUEST_SCHEMA, request)
     # Snapshot caller-owned data so later mutations cannot change a retry identity.
-    return decode(encode(request))
+    # `encode` already passed these bytes through `preflight`.
+    payload = encode(request)
+    return _decode_checked(payload), payload
 
 
 def validate_request(request: Any) -> None:
@@ -387,6 +399,12 @@ class LocalOwner:
     def _response(
         self, request: dict[str, Any], outcome: str, code: str, body: Any
     ) -> bytes:
+        return self._sealed_response(request, outcome, code, body)[0]
+
+    def _sealed_response(
+        self, request: dict[str, Any], outcome: str, code: str, body: Any
+    ) -> tuple[bytes, str]:
+        """Return the response bytes and their result digest."""
         _check_result_shape(body)
         response = {
             "schema": RESPONSE_SCHEMA,
@@ -400,11 +418,16 @@ class LocalOwner:
             "result_digest": "0" * 64,
         }
         # Prove the wire budget before creating a bounded typed projection.
-        encode(response)
-        response["result_digest"] = digest_without(
-            RESPONSE_SCHEMA, response, "result_digest"
-        )
-        return encode(response)
+        payload = encode(response)
+        digest = digest_without(RESPONSE_SCHEMA, response, "result_digest")
+        # `result_digest` is the last member and the digest has the placeholder's
+        # length, so the final bytes differ only inside that string.
+        if payload.endswith(_PLACEHOLDER_TAIL):
+            return payload[: -len(_PLACEHOLDER_TAIL)] + _DIGEST_HEAD + digest.encode(
+                "ascii"
+            ) + b'"}', digest
+        response["result_digest"] = digest
+        return encode(response), digest
 
     def _reject(self, request: dict[str, Any], code: str) -> bytes:
         return self._response(request, "rejected_before_execution", code, {})
@@ -502,20 +525,21 @@ class LocalOwner:
             self._high_water = sequence
             try:
                 body = self._backend.execute(operation, request["body"])
-                output = self._response(request, "committed", "ok", body)
+                output, result_digest = self._sealed_response(
+                    request, "committed", "ok", body
+                )
                 self._prepared = True
                 self._finished = operation in {"finish", "abort"}
             except BaseException:
                 self.retire_generation()
-                output = self._response(
+                output, result_digest = self._sealed_response(
                     request, "indeterminate", "execution_unknown", {}
                 )
             reservation[: len(output)] = output
-            result = decode(output)
             self._retained = _Retained(
                 sequence,
                 request["request_digest"],
-                result["result_digest"],
+                result_digest,
                 bytes(reservation[: len(output)]),
             )
             return self._retained.payload
@@ -584,14 +608,26 @@ class LocalClient:
             self._retired = True
 
     def _exchange(
-        self, request: dict[str, Any], original: dict[str, Any] | None = None
+        self,
+        request: dict[str, Any],
+        original: dict[str, Any] | None = None,
+        payload: bytes | None = None,
     ) -> dict[str, Any]:
+        return self._exchange_bytes(request, original, payload)[0]
+
+    def _exchange_bytes(
+        self,
+        request: dict[str, Any],
+        original: dict[str, Any] | None = None,
+        payload: bytes | None = None,
+    ) -> tuple[dict[str, Any], bytes]:
         if self._retired:
             raise LocalPreflightError("retired")
-        try:
-            payload = encode(request)
-        except LocalError as error:
-            raise LocalPreflightError(error.code) from error
+        if payload is None:
+            try:
+                payload = encode(request)
+            except LocalError as error:
+                raise LocalPreflightError(error.code) from error
         deadline = time.monotonic() + self._timeout_s
         try:
             write_local_frame(self._writer, payload, deadline=deadline)
@@ -607,7 +643,7 @@ class LocalClient:
                 verify_retrieved(response, self._binding, original, request)
             else:
                 verify_response(response, self._binding, request)
-            return response
+            return response, received
         except (Exception, KeyboardInterrupt) as error:
             self._retired = True
             raise LocalError("execution_unknown") from error
@@ -623,14 +659,15 @@ class LocalClient:
             if self._pending is not None:
                 raise LocalPreflightError("result_pending")
             try:
-                request = make_request(
+                request, payload = _sealed_request(
                     self._binding, self._next_sequence, operation, body
                 )
             except LocalError as error:
                 raise LocalPreflightError(error.code) from error
-            response = self._exchange(request)
+            response, received = self._exchange_bytes(request, payload=payload)
             if response["outcome"] in {"committed", "indeterminate"}:
-                self._pending = (request, decode(encode(response)))
+                # A second decode of the checked bytes keeps the caller's copy separate.
+                self._pending = (request, _decode_checked(received))
             elif response["outcome"] != "rejected_before_execution":
                 self._retired = True
                 raise LocalError("state")
@@ -642,13 +679,13 @@ class LocalClient:
             if self._pending is None:
                 raise LocalPreflightError("state")
             original, expected = self._pending
-            query = make_request(
+            query, payload = _sealed_request(
                 self._binding,
                 original["sequence"],
                 "result",
                 {"request_digest": original["request_digest"]},
             )
-            response = self._exchange(query, original)
+            response = self._exchange(query, original, payload)
             if response["result_digest"] != expected["result_digest"]:
                 self._retired = True
                 raise LocalError("execution_unknown")
@@ -659,13 +696,13 @@ class LocalClient:
             if self._pending is None:
                 raise LocalPreflightError("state")
             original, response = self._pending
-            request = make_request(
+            request, payload = _sealed_request(
                 self._binding,
                 original["sequence"],
                 "ack",
                 {"result_digest": response["result_digest"]},
             )
-            acknowledgement = self._exchange(request)
+            acknowledgement = self._exchange(request, payload=payload)
             if (
                 acknowledgement["outcome"] != "acknowledged"
                 or acknowledgement["body"] != {}

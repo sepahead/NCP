@@ -3557,9 +3557,9 @@
       },
       {
         "path": "local/python/README.md",
-        "bytes": 4121,
-        "sha256": "085ae385b9ab6b81272c510709d9fa2148fc40b6e562fe22d2474e7c74ad79ac",
-        "git_blob_oid": "88474d1c78989df4d0eeca6806db6774a8fa457d",
+        "bytes": 4549,
+        "sha256": "9dcf5c83b88c0c1d3590a948cea240ed37f1a048ef8149049050553b4cd89bf6",
+        "git_blob_oid": "3fab65541c696a936134204029c07d6d8807848e",
         "indexed": true
       },
       {
@@ -3620,9 +3620,9 @@
       },
       {
         "path": "local/python/ncp_local/protocol.py",
-        "bytes": 23839,
-        "sha256": "3317483be783576da9b42bb0f126b65b8b1f2ad25011d5c9bf4c3463733301c5",
-        "git_blob_oid": "1583687692442af2e02be26db84afaf1d1141fcb",
+        "bytes": 25529,
+        "sha256": "2e65d9fcc8cf224e2f611ab5039d9243e0ed876e7be051ee00607a0a22aada0c",
+        "git_blob_oid": "eb791b366d706877880262c4ec79e0d8532e84b9",
         "indexed": true
       },
       {
@@ -3634,16 +3634,16 @@
       },
       {
         "path": "local/python/ncp_local/wire.py",
-        "bytes": 20092,
-        "sha256": "56e256c04c143156d40850128c6519f6a649d095ddd1ceb5b909f8013318a3cc",
-        "git_blob_oid": "9f49ad6cd6104401e51a6569e965ef7877f895ab",
+        "bytes": 23116,
+        "sha256": "382a815208acd768f5a72318a8fb1b1d6873a59f7aeaa7ece78bdc0ce0d53db8",
+        "git_blob_oid": "e82f4938a3d99d619dd28b7820bfe958beefcba1",
         "indexed": true
       },
       {
         "path": "local/python/pyproject.toml",
         "bytes": 764,
-        "sha256": "a5622c2a147a21f9dc5e4f2aa56eb08994efb62f74a9d0f3422ddbacbc56bfbd",
-        "git_blob_oid": "d404feb0c6c0548eed0bf990b6cbcfb64762f8f7",
+        "sha256": "c2131b58ae43753ebc400229087ac85f3638cffc1f467421af6db1d691345250",
+        "git_blob_oid": "c7c3244a5b7406d6a3b6d13b4b81e5217235e27d",
         "indexed": true
       },
       {
@@ -3710,6 +3710,13 @@
         "indexed": true
       },
       {
+        "path": "local/python/tests/test_run_scanner.py",
+        "bytes": 4271,
+        "sha256": "441f7cfd242d99b036b7264bb2c7a4e58f607408672648b5ab12b85c52e721fe",
+        "git_blob_oid": "40814c26e628e8749a35ff2e398d4007f2e63743",
+        "indexed": true
+      },
+      {
         "path": "local/release.v1.json",
         "bytes": 4050,
         "sha256": "86507b45e172399b2a818e48de52ea8b634ac2a87fc0aca35158d8f87565a7a4",
@@ -3719,15 +3726,15 @@
       {
         "path": "local/rust/Cargo.lock",
         "bytes": 4888,
-        "sha256": "9d2a93c5e624edebac4a450d2f580f8c5366f0aa57b17146996cec8cb0074620",
-        "git_blob_oid": "a0ee8be05ff4de3fe7bbb111c94840f9fab40b6d",
+        "sha256": "5282b59ee27d1ba7d857d8cc67b20314c2082edb46d46dc90c37c174adfbde0d",
+        "git_blob_oid": "be82eb54dcb445f41b7369f38d6adbf5162a84e1",
         "indexed": true
       },
       {
         "path": "local/rust/Cargo.toml",
         "bytes": 884,
-        "sha256": "389362bf5ab53f25d3a62c1d07b60d4da1ff3e93415f115ab11ec09ba5c6795c",
-        "git_blob_oid": "fb5c4c33a97285c5351f2ff4f96cc5ae73ee7bd4",
+        "sha256": "22d41c7f2ce7954fe985c4a2668acd71d583c2644732dd468d7df99d4057587a",
+        "git_blob_oid": "fd11865828009a8be5a9dd6b1d294cde8f68006c",
         "indexed": true
       },
       {
@@ -3746,9 +3753,9 @@
       },
       {
         "path": "local/rust/README.md",
-        "bytes": 2342,
-        "sha256": "1a34ff07fbae7954e2f9361bcd4b3a9146ae07abf8ee0f8f73a7ae456b962c12",
-        "git_blob_oid": "8721a44f102d594d0b1ed6b98b294e1380ae8332",
+        "bytes": 2374,
+        "sha256": "33b8f379c60dde4a9316cb6630c2568edce6c5739700cdd4b4d93adfbdf87d9d",
+        "git_blob_oid": "64fcced92499d274fdf96ea29b4dc287af7bd8a5",
         "indexed": true
       },
       {
@@ -3782,8 +3789,8 @@
       {
         "path": "local/rust/source-projection.v1.json",
         "bytes": 8641,
-        "sha256": "7049d241be1b532a0cdc8408c5492c924ff5f5053c73c0e22dbb8866f6e30f1b",
-        "git_blob_oid": "ffcf915947beea7db6fc5bf9128d85796baea78b",
+        "sha256": "d193c455711214b4090dc4141538562c67ad114644a3f24d5f143ab7f8c5559e",
+        "git_blob_oid": "c83ecad0903077e1d6e84a53aecf878b01171f34",
         "indexed": true
       },
       {
@@ -3809,9 +3816,9 @@
       },
       {
         "path": "local/rust/src/local.rs",
-        "bytes": 44287,
-        "sha256": "6ba3cb2830ce4e372866de793557b09118dab2bb33a15ffd572a85e9485d400a",
-        "git_blob_oid": "c95337fd7a4a7430f1472be6615bc3ebd4e879a6",
+        "bytes": 44198,
+        "sha256": "fa9c3187f0cd0a050268ce718ead592e9e2bc73b6f968636e2b3922a7a9c3bfc",
+        "git_blob_oid": "57c2347fc53d880e1f29339ebf762156b0b5d04b",
         "indexed": true
       },
       {
@@ -4439,9 +4446,9 @@
       },
       {
         "path": "ncp-core/src/local.rs",
-        "bytes": 44287,
-        "sha256": "6ba3cb2830ce4e372866de793557b09118dab2bb33a15ffd572a85e9485d400a",
-        "git_blob_oid": "c95337fd7a4a7430f1472be6615bc3ebd4e879a6",
+        "bytes": 44198,
+        "sha256": "fa9c3187f0cd0a050268ce718ead592e9e2bc73b6f968636e2b3922a7a9c3bfc",
+        "git_blob_oid": "57c2347fc53d880e1f29339ebf762156b0b5d04b",
         "indexed": true
       },
       {
@@ -9182,7 +9189,7 @@
     ]
   },
   "counts": {
-    "text_files": 1272,
+    "text_files": 1273,
     "binary_or_non_utf8_files": 29,
     "occurrences": 374,
     "by_token_id": {
@@ -9215,7 +9222,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "8d1fd735b6f6f23934d40de056500b0fb8da4bceb012ff2f83eaf0e0493a7474",
+  "scanned_path_set_sha256": "118828ff9499c5c79e3fc2327b72e525e8b8e536506dcfb1c347ff5ab0d9196b",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
