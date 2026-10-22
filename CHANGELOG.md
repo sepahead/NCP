@@ -23,8 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Rust owners write the same transcript for a fixed script of valid, retried,
   queried, and rejected requests.
 - `benchmarks/local-sdk-exchange/` holds a benchmark protocol, fixed before its
-  recorded runs, and a harness that builds the released `sdk-v1.0.0` sources and
-  the current sources side by side. The next SDK patch release carries the change.
+  recorded runs, a harness that builds the released `sdk-v1.0.0` sources and the
+  current sources side by side, and the record of 22 October 2026. All 125 runs
+  were valid and all three hypotheses hold. A Rust lockstep call without spikes
+  took 359 µs with the release and 49 µs with the change, a median paired ratio
+  of 7.4. With 127 spikes the ratio was 5.0. A framed echo between two processes
+  took 7 µs in Rust and 14 µs in Python, so the transport is about 1 percent of a
+  1525 µs Python call. `PERFORMANCE.md` summarizes where the time goes.
+- This change touches files that `scripts/check_local_sdk.py` pins to the
+  historical reference revision `de751d4`. It needs the owner's decision to move
+  that revision before it reaches `main`. A later SDK patch release would carry it.
 
 ### Documentation and publication (no wire change)
 

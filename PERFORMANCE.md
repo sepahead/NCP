@@ -174,6 +174,24 @@ The two routes give different guarantees, and the result does not rank the desig
 The NEST 3.10.0 rerun of the three scripts below is in
 [`NEST_REALTIME.md`](NEST_REALTIME.md#rerun-on-nest-3100-october-2026).
 
+### Where the exchange time goes (October 2026)
+
+A [second benchmark](benchmarks/local-sdk-exchange/README.md) timed one lockstep call with an echo owner on the same computer.
+A lockstep call is one request and one acknowledgement, each with its verified response.
+
+| Part of the cost | Measured value |
+|---|---|
+| Framed echo between two processes, without NCP | 7 µs in Rust, 14 µs in Python |
+| Python client and Python owner, released SDK | 1525 µs per call |
+| Python client and Rust owner | about 850 µs per call |
+| Rust client and Rust owner, released SDK 1.0.0 | 359 µs per call |
+| Rust client and Rust owner, proposed change | 49 µs per call |
+
+The transport is about 1 percent of a Python call.
+In Python, most of the time is the pure-Python structural scan of each frame, which runs several times per call, and the pure-Python digest projection.
+In the released Rust SDK, each verification derived the profile digest again; the two verifications took 91 percent of a call.
+The proposed Rust change keeps every check and the wire bytes, and it needs the owner to move the reference revision that `scripts/check_local_sdk.py` pins.
+
 ## Historical chunk, scaling, and overlap measurements (NEST 3.8.0, 16 cores)
 
 Three developer benchmarks illustrate the local cost decomposition. They neither
