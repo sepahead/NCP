@@ -1,0 +1,398 @@
+{
+ "schema": "ncp.local-sdk-exchange-analysis.v2",
+ "protocol_sha256": "f704494caeb965fcb6260a00defd432443659ce3a32549d217e246a63900743d",
+ "rust_transcripts_identical": true,
+ "python_transcripts_identical": true,
+ "runs": 140,
+ "invalid_runs": [],
+ "summary": {
+  "phases-current-n0": {
+   "rounds": 5,
+   "total_mean_us_median": 24.680824666666634,
+   "parts_us": {
+    "decode_verify_ack": 4.450730999999951,
+    "decode_verify_response": 4.45044866666666,
+    "encode_request": 0.34753300000000936,
+    "owner_ack": 6.467753666666604,
+    "owner_step": 6.343208666666691,
+    "seal_encode_ack": 1.5340616666667128,
+    "seal_request": 1.0783180000000034
+   }
+  },
+  "phases-current-n127": {
+   "rounds": 5,
+   "total_mean_us_median": 54.29118666666648,
+   "parts_us": {
+    "decode_verify_ack": 4.443758000000018,
+    "decode_verify_response": 18.452071666666505,
+    "encode_request": 0.3356660000000084,
+    "owner_ack": 6.631476333333316,
+    "owner_step": 21.82491066666658,
+    "seal_encode_ack": 1.535574000000052,
+    "seal_request": 1.078671666666673
+   }
+  },
+  "phases-released-n0": {
+   "rounds": 5,
+   "total_mean_us_median": 337.9437889999997,
+   "parts_us": {
+    "decode_verify_ack": 154.53885533333352,
+    "decode_verify_response": 154.68291833333328,
+    "encode_request": 0.3728450000000039,
+    "owner_ack": 11.114548333333332,
+    "owner_step": 11.730138333333333,
+    "seal_encode_ack": 3.1417830000000437,
+    "seal_request": 2.6356226666666576
+   }
+  },
+  "phases-released-n127": {
+   "rounds": 5,
+   "total_mean_us_median": 383.21121200000005,
+   "parts_us": {
+    "decode_verify_ack": 156.57339333333312,
+    "decode_verify_response": 172.16996100000017,
+    "encode_request": 0.3762910000000079,
+    "owner_ack": 11.232849000000042,
+    "owner_step": 36.60101366666659,
+    "seal_encode_ack": 3.1815376666667183,
+    "seal_request": 2.6515099999999903
+   }
+  },
+  "python-python-current-n0": {
+   "rounds": 5,
+   "median_us": 503.95799917168915,
+   "min_us": 503.12499661231413,
+   "max_us": 510.9589983476326,
+   "p99_us_median": 935.2499982924201
+  },
+  "python-python-current-n127": {
+   "rounds": 5,
+   "median_us": 1338.500005658716,
+   "min_us": 1328.2919971970841,
+   "max_us": 1344.2909985315055,
+   "p99_us_median": 1969.3750000442378
+  },
+  "python-python-current-n13": {
+   "rounds": 5,
+   "median_us": 609.7499936004169,
+   "min_us": 603.8749997969717,
+   "max_us": 615.5419978313148,
+   "p99_us_median": 1097.6250050589442
+  },
+  "python-python-released-n0": {
+   "rounds": 5,
+   "median_us": 1517.5830048974603,
+   "min_us": 1512.8329978324473,
+   "max_us": 1542.2080032294616,
+   "p99_us_median": 2136.2089973990805
+  },
+  "python-python-released-n127": {
+   "rounds": 5,
+   "median_us": 4251.790996931959,
+   "min_us": 4235.2500022388995,
+   "max_us": 4260.749999957625,
+   "p99_us_median": 5077.0410016411915
+  },
+  "python-python-released-n13": {
+   "rounds": 5,
+   "median_us": 1836.9999961578287,
+   "min_us": 1833.7919973419048,
+   "max_us": 1861.1670020618476,
+   "p99_us_median": 2494.458000001032
+  },
+  "python-rust-current-n0": {
+   "rounds": 5,
+   "median_us": 259.08400129992515,
+   "min_us": 258.6249975138344,
+   "max_us": 264.49999859323725,
+   "p99_us_median": 522.7500005275942
+  },
+  "python-rust-current-n127": {
+   "rounds": 5,
+   "median_us": 634.6670052153058,
+   "min_us": 630.3749978542328,
+   "max_us": 642.0420031645335,
+   "p99_us_median": 1124.7090005781502
+  },
+  "python-rust-released-n0": {
+   "rounds": 5,
+   "median_us": 862.0830049039796,
+   "min_us": 858.7080010329373,
+   "max_us": 866.7500005685724,
+   "p99_us_median": 1384.2500047758222
+  },
+  "python-rust-released-n127": {
+   "rounds": 5,
+   "median_us": 2170.040999772027,
+   "min_us": 2164.4579974235967,
+   "max_us": 2193.916996475309,
+   "p99_us_median": 2838.45800004201
+  },
+  "raw-python": {
+   "rounds": 5,
+   "median_us": 14.582998119294643,
+   "min_us": 11.625001206994057,
+   "max_us": 15.165998775046319,
+   "p99_us_median": 34.62500171735883
+  },
+  "raw-rust": {
+   "rounds": 5,
+   "median_us": 7.292,
+   "min_us": 4.958,
+   "max_us": 7.541,
+   "p99_us_median": 13.709
+  },
+  "rust-python-current-n0": {
+   "rounds": 5,
+   "median_us": 227.25,
+   "min_us": 226.25,
+   "max_us": 229.208,
+   "p99_us_median": 433.0
+  },
+  "rust-python-current-n127": {
+   "rounds": 5,
+   "median_us": 707.2909999999999,
+   "min_us": 698.4590000000001,
+   "max_us": 711.667,
+   "p99_us_median": 1196.667
+  },
+  "rust-python-released-n0": {
+   "rounds": 5,
+   "median_us": 976.084,
+   "min_us": 971.7919999999999,
+   "max_us": 983.5829999999999,
+   "p99_us_median": 1534.0
+  },
+  "rust-python-released-n127": {
+   "rounds": 5,
+   "median_us": 2411.958,
+   "min_us": 2390.0409999999997,
+   "max_us": 2412.75,
+   "p99_us_median": 3122.0409999999997
+  },
+  "rust-rust-current-n0": {
+   "rounds": 5,
+   "median_us": 40.708,
+   "min_us": 35.708,
+   "max_us": 42.666000000000004,
+   "p99_us_median": 90.79199999999999
+  },
+  "rust-rust-current-n127": {
+   "rounds": 5,
+   "median_us": 74.0,
+   "min_us": 72.75,
+   "max_us": 77.209,
+   "p99_us_median": 128.667
+  },
+  "rust-rust-current-n13": {
+   "rounds": 5,
+   "median_us": 48.333,
+   "min_us": 40.083999999999996,
+   "max_us": 48.583,
+   "p99_us_median": 98.083
+  },
+  "rust-rust-current-n500": {
+   "rounds": 5,
+   "median_us": 162.708,
+   "min_us": 157.916,
+   "max_us": 165.167,
+   "p99_us_median": 291.95799999999997
+  },
+  "rust-rust-released-n0": {
+   "rounds": 5,
+   "median_us": 359.125,
+   "min_us": 356.54200000000003,
+   "max_us": 367.584,
+   "p99_us_median": 605.167
+  },
+  "rust-rust-released-n127": {
+   "rounds": 5,
+   "median_us": 403.25,
+   "min_us": 401.208,
+   "max_us": 409.708,
+   "p99_us_median": 713.5419999999999
+  },
+  "rust-rust-released-n13": {
+   "rounds": 5,
+   "median_us": 373.375,
+   "min_us": 372.958,
+   "max_us": 375.834,
+   "p99_us_median": 628.0409999999999
+  },
+  "rust-rust-released-n500": {
+   "rounds": 5,
+   "median_us": 517.083,
+   "min_us": 515.5,
+   "max_us": 527.833,
+   "p99_us_median": 866.584
+  }
+ },
+ "paired_ratios_released_over_current": {
+  "rust-rust-n0": {
+   "per_round": [
+    9.984933348269296,
+    8.902844649700306,
+    8.649035294117647,
+    9.111147757255937,
+    8.382927858247784
+   ],
+   "median": 8.902844649700306,
+   "min": 8.382927858247784,
+   "max": 9.984933348269296
+  },
+  "python-rust-n127": {
+   "per_round": [
+    3.397807538652653,
+    3.4315730457591838,
+    3.4803363140088055,
+    3.410383680949857,
+    3.371988099351937
+   ],
+   "median": 3.410383680949857,
+   "min": 3.371988099351937,
+   "max": 3.4803363140088055
+  },
+  "python-python-n127": {
+   "per_round": [
+    3.1595651571103183,
+    3.170380386417993,
+    3.183227479973586,
+    3.179206285578678,
+    3.1884932011756284
+   ],
+   "median": 3.179206285578678,
+   "min": 3.1595651571103183,
+   "max": 3.1884932011756284
+  },
+  "python-python-n0": {
+   "per_round": [
+    3.006873059416226,
+    3.002956401372095,
+    3.0121618578428246,
+    3.018261755281224,
+    3.0113283396469077
+   ],
+   "median": 3.0113283396469077,
+   "min": 3.002956401372095,
+   "max": 3.018261755281224
+  },
+  "rust-python-n127": {
+   "per_round": [
+    3.401116475770925,
+    3.385125814045056,
+    3.4506320342353662,
+    3.3902794424920644,
+    3.41013529084917
+   ],
+   "median": 3.401116475770925,
+   "min": 3.385125814045056,
+   "max": 3.4506320342353662
+  },
+  "rust-python-n0": {
+   "per_round": [
+    4.299045854076427,
+    4.281022026431717,
+    4.306262983425414,
+    4.295199119911991,
+    4.2888642630274685
+   ],
+   "median": 4.295199119911991,
+   "min": 4.281022026431717,
+   "max": 4.306262983425414
+  },
+  "rust-rust-n13": {
+   "per_round": [
+    9.376160063865882,
+    7.70648739079249,
+    7.691311775724018,
+    7.725053276229492,
+    8.318827649276203
+   ],
+   "median": 7.725053276229492,
+   "min": 7.691311775724018,
+   "max": 9.376160063865882
+  },
+  "rust-rust-n127": {
+   "per_round": [
+    5.472405405405405,
+    5.216904764988538,
+    5.631725085910653,
+    5.385642737896494,
+    5.508601870031442
+   ],
+   "median": 5.472405405405405,
+   "min": 5.216904764988538,
+   "max": 5.631725085910653
+  },
+  "python-python-n13": {
+   "per_round": [
+    2.9967306206398665,
+    3.0523444388611387,
+    2.984361753755178,
+    3.0518882198923736,
+    3.02066106208488
+   ],
+   "median": 3.02066106208488,
+   "min": 2.984361753755178,
+   "max": 3.0523444388611387
+  },
+  "rust-rust-n500": {
+   "per_round": [
+    3.195753388994169,
+    3.29922237138732,
+    3.1779814145585954,
+    3.1706687004871332,
+    3.126298815456056
+   ],
+   "median": 3.1779814145585954,
+   "min": 3.126298815456056,
+   "max": 3.29922237138732
+  },
+  "python-rust-n0": {
+   "per_round": [
+    3.2769376377256947,
+    3.3274266283466907,
+    3.2785225644993425,
+    3.323250951207374,
+    3.320282297874177
+   ],
+   "median": 3.320282297874177,
+   "min": 3.2769376377256947,
+   "max": 3.3274266283466907
+  }
+ },
+ "hypotheses": {
+  "H1": {
+   "criterion": "rust-rust n=0 median paired ratio >= 6",
+   "value": 8.902844649700306,
+   "holds": true
+  },
+  "H2": {
+   "criterion": "python-python n=0 median paired ratio >= 2.5",
+   "value": 3.0113283396469077,
+   "holds": true
+  },
+  "H3": {
+   "criterion": "python-python n=127 median paired ratio >= 2.5",
+   "value": 3.179206285578678,
+   "holds": true
+  },
+  "H4": {
+   "criterion": "current lower than released in every round for all eleven pairs",
+   "value": {
+    "python-python-n0": 3.002956401372095,
+    "python-python-n127": 3.1595651571103183,
+    "python-python-n13": 2.984361753755178,
+    "python-rust-n0": 3.2769376377256947,
+    "python-rust-n127": 3.371988099351937,
+    "rust-python-n0": 4.281022026431717,
+    "rust-python-n127": 3.385125814045056,
+    "rust-rust-n0": 8.382927858247784,
+    "rust-rust-n127": 5.216904764988538,
+    "rust-rust-n13": 7.691311775724018,
+    "rust-rust-n500": 3.126298815456056
+   },
+   "holds": true
+  }
+ }
+}

@@ -3,7 +3,7 @@
 > **Candidate status:** repository HEAD is the unreleased `1.0.0-rc.1` package
 > candidate, wire `1.0`, compact proto hash `163acc57d8a62b66`. The latest immutable
 > annotated protocol tag is `v0.8.0`; no `v1.0.0` tag or 1.0 publication exists.
-> The separate local SDK line is released as `sdk-v1.0.0`; see
+> The separate local SDK line is released as `sdk-v1.0.0` and `sdk-v1.0.1`; see
 > [Local SDK releases](#local-sdk-releases).
 
 NCP has four separate identities:
@@ -94,9 +94,9 @@ Legacy deployments that require the released contract must retain the immutable
 The standalone `ncp-local` Rust and Python packages in `local/rust` and
 `local/python` have their own release line. Its tags have the form
 `sdk-vMAJOR.MINOR.PATCH` and name the package version they release. The tag
-`sdk-v1.0.0` releases `ncp-local` `1.0.0`; the
-[SDK release record](local/modular/SDK_RELEASE.md) states its scope, evidence,
-and verification.
+`sdk-v1.0.0` releases `ncp-local` `1.0.0`, and the tag `sdk-v1.0.1` releases
+`ncp-local` `1.0.1`. The [SDK release record](local/modular/SDK_RELEASE.md) states
+the scope, evidence, and verification of each release.
 
 SDK tags are annotated and unsigned. They never match the protocol's `v*` tag
 pattern, so they cannot trigger the protocol release workflow or satisfy its

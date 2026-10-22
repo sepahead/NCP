@@ -1189,7 +1189,7 @@ def legend_line(
 # ──────────────────────────────── diagrams ─────────────────────────────────
 
 NOT_CERTIFICATION = "It is not release or certification evidence."
-SDK_STATUS = "The local SDK 1.0.0 is released; applications and wire 1.0 remain UNRELEASED."
+SDK_STATUS = "The local SDK 1.0.1 is released; applications and wire 1.0 remain UNRELEASED."
 
 
 def system_map() -> Canvas:

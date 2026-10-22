@@ -4,7 +4,7 @@ Status: development components with selected native observations. No complete mo
 This guide separates implemented interfaces, measured cases, and remaining requirements.
 The owning application documents retain their exact source identities and qualification limits.
 The [v1 preparation notes and checklist](PREPARATION.md) collect the current candidate scope.
-The [SDK release record](SDK_RELEASE.md) covers the separately released `ncp-local` 1.0.0 packages; it declares no product release.
+The [SDK release record](SDK_RELEASE.md) covers the separately released `ncp-local` 1.0.0 and 1.0.1 packages; it declares no product release.
 
 The [modular owner contract](owner.md) and [core descriptor](../../ncp-core/src/modular_profile.v1.json) define the SDK behavior.
 The earlier [fixed-role reference](../../docs/local-v1/README.md) has a different descriptor and acceptance mapping.

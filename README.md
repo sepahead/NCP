@@ -27,8 +27,8 @@ The [NCP System Design report](output/pdf/ncp-system-design.pdf) is the standalo
 It explains the design, the equations, and the evidence boundary of each scope.
 A Lean 4 file checks its discrete arithmetic.
 
-**Release status: local SDK 1.0.0 released; product v1 and wire 1.0 unreleased.**
-The standalone `ncp-local` Rust and Python packages are released as version `1.0.0` under the tag `sdk-v1.0.0`.
+**Release status: local SDK 1.0.1 released; product v1 and wire 1.0 unreleased.**
+The standalone `ncp-local` Rust and Python packages are released as version `1.0.1` under the tag `sdk-v1.0.1`, after `1.0.0` under `sdk-v1.0.0`.
 The [SDK release record](local/modular/SDK_RELEASE.md) states the released scope, the council decision, and the verification steps.
 The applications have source controls and selected native evidence.
 Complete qualification of their declared installed combinations and final product v1 remain open.

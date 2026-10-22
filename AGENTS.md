@@ -63,7 +63,7 @@ Its standalone Rust and independent Python packages have separate identities fro
 The local descriptor defines contract identity only; publication requires separate immutable evidence.
 Local scope decisions cannot promote a failed scientific, provenance, or operating requirement.
 The bootstrap and operational gates both remain required before the reference release `local-v1.0.0`.
-The `ncp-local` packages are released separately as a library under the tag `sdk-v1.0.0`; that release claims no application qualification.
+The `ncp-local` packages are released separately as a library under the tags `sdk-v1.0.0` and `sdk-v1.0.1`; these releases claim no application qualification.
 Read the [SDK release record](local/modular/SDK_RELEASE.md) before changing either rule.
 
 The remaining candidate-specific rules apply to the broader protocol and its retained migration surfaces.

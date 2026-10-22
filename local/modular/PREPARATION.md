@@ -2,7 +2,7 @@
 
 This page collects candidate notes, tested boundaries, and the remaining preparation checklist.
 It does not declare complete product qualification.
-The standalone `ncp-local` packages are released separately as SDK 1.0.0 under the tag `sdk-v1.0.0`.
+The standalone `ncp-local` packages are released separately as SDK 1.0.1 under the tag `sdk-v1.0.1`, after SDK 1.0.0 under `sdk-v1.0.0`.
 The [SDK release record](SDK_RELEASE.md) states that scope, its council decision, and its verification.
 The other scopes below have no release tag.
 
@@ -16,7 +16,7 @@ Author and maintainer: **[Sepehr Mahmoudian](https://github.com/sepahead)**.
 | Earlier fixed-role reference | [Local release registry](../release.v1.json) | Separate descriptor, four-owner reference, and open bootstrap and operational receipts. Its intended tag does not authorize publication. |
 | Broader protocol candidate | [`1.0.0-rc.1`, wire `1.0`](../../docs/1.0-scope.md) | Unreleased and release-blocked. Its independent review, security, distribution, and role gates remain required. |
 
-The standalone Rust and Python packages are released as version `1.0.0` under the tag `sdk-v1.0.0`.
+The standalone Rust and Python packages are released as version `1.0.1` under the tag `sdk-v1.0.1`, after `1.0.0` under `sdk-v1.0.0`.
 That release is neither a registry publication nor product acceptance.
 This preparation changes no descriptor, wire value, release flag, or canonical task state.
 

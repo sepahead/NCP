@@ -7,32 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Local Rust SDK speed (no wire change)
+### Local SDK 1.0.1 (no wire change)
 
-- The local Rust SDK now derives the profile digest once per process.
-  `LocalResponse::verify_integrity` derived it again on every call from the
-  41 KB descriptor, which took about 150 µs on the benchmark computer.
-- Request and response digests use a typed projection, without an intermediate
-  `serde_json::Value`. Unit tests check that each digest equals the generic
-  digest for every operation, outcome, code, and role, and for bodies with all
-  JSON kinds, signed zero, Unicode keys, nesting, and up to 500 spikes.
-- The owner serializes each response once and then writes the digest into the
-  placeholder of the last member. A unit test checks that the bytes equal those
-  of a complete second serialization.
-- Wire bytes, digests, and all checks are unchanged. The released and the current
-  Rust owners write the same transcript for a fixed script of valid, retried,
-  queried, and rejected requests.
-- `benchmarks/local-sdk-exchange/` holds a benchmark protocol, fixed before its
-  recorded runs, a harness that builds the released `sdk-v1.0.0` sources and the
-  current sources side by side, and the record of 22 October 2026. All 125 runs
-  were valid and all three hypotheses hold. A Rust lockstep call without spikes
-  took 359 µs with the release and 49 µs with the change, a median paired ratio
-  of 7.4. With 127 spikes the ratio was 5.0. A framed echo between two processes
-  took 7 µs in Rust and 14 µs in Python, so the transport is about 1 percent of a
-  1525 µs Python call. `PERFORMANCE.md` summarizes where the time goes.
-- This change touches files that `scripts/check_local_sdk.py` pins to the
-  historical reference revision `de751d4`. It needs the owner's decision to move
-  that revision before it reaches `main`. A later SDK patch release would carry it.
+- Both `ncp-local` packages are version 1.0.1, released under the tag
+  `sdk-v1.0.1`. Every check, every public interface, the descriptors, and every
+  byte on the wire are unchanged. `local/modular/SDK_RELEASE.md` records the
+  release and its evidence.
+- Rust: the profile digest is derived once per process. In 1.0.0, each
+  `LocalResponse::verify_integrity` call derived it again from the 41 KB
+  descriptor, about 150 µs. Request and response digests use a typed projection
+  without an intermediate `serde_json::Value`. The owner serializes each response
+  once, writes the digest into the placeholder of the last member, and keeps that
+  digest instead of parsing its own output. Unit tests compare the typed and the
+  generic digests and the single-serialization bytes.
+- Python: `preflight` uses `_RunScanner`, a subclass of the unchanged reference
+  scanner that matches whole runs of whitespace, unescaped ASCII strings, and
+  numbers with regular expressions. The client encodes each request once, and the
+  owner encodes each response once. A differential run of 5,138,806 inputs gave
+  identical scanner results, and `tests/test_run_scanner.py` repeats a seeded
+  subset.
+- The released and the 1.0.1 SDKs write the same 48-line Rust owner transcript and
+  the same 70-line Python transcript, which includes `LocalClient` frames over
+  real pipes.
+- The owner moved the SDK reference revision of `scripts/check_local_sdk.py` from
+  `de751d4` to `f29bcc8`, the 1.0.1 sources. `scripts/check_local_scope.py` now
+  requires version 1.0.1 through `SDK_VERSION`.
+- `benchmarks/local-sdk-exchange/` records two runs under protocols fixed before
+  them. Run 2 compares 1.0.0 with 1.0.1: a Rust lockstep call without spikes took
+  359 µs and 41 µs (median paired ratio 8.9), a Python call 1518 µs and 504 µs
+  (3.0), a Rust client with a Python owner 976 µs and 227 µs (4.3). All 140 runs
+  were valid and all four hypotheses hold. A framed echo between two processes
+  took 7 µs in Rust and 15 µs in Python. `PERFORMANCE.md` summarizes the result,
+  and the diagrams and the system-design PDF state SDK 1.0.1.
 
 ### Documentation and publication (no wire change)
 

@@ -176,21 +176,23 @@ The NEST 3.10.0 rerun of the three scripts below is in
 
 ### Where the exchange time goes (October 2026)
 
-A [second benchmark](benchmarks/local-sdk-exchange/README.md) timed one lockstep call with an echo owner on the same computer.
+The [local SDK exchange benchmark](benchmarks/local-sdk-exchange/README.md) timed one lockstep call with an echo owner on the same computer.
 A lockstep call is one request and one acknowledgement, each with its verified response.
+Protocol 2 compared SDK 1.0.0 with SDK 1.0.1.
 
-| Part of the cost | Measured value |
-|---|---|
-| Framed echo between two processes, without NCP | 7 µs in Rust, 14 µs in Python |
-| Python client and Python owner, released SDK | 1525 µs per call |
-| Python client and Rust owner | about 850 µs per call |
-| Rust client and Rust owner, released SDK 1.0.0 | 359 µs per call |
-| Rust client and Rust owner, proposed change | 49 µs per call |
+| Client and owner | SDK 1.0.0 | SDK 1.0.1 |
+|---|---|---|
+| Framed echo between two processes, without NCP | 7 µs in Rust, 15 µs in Python | same |
+| Rust client and Rust owner | 359 µs | 41 µs |
+| Python client and Python owner | 1518 µs | 504 µs |
+| Python client and Rust owner | 862 µs | 259 µs |
+| Rust client and Python owner | 976 µs | 227 µs |
 
-The transport is about 1 percent of a Python call.
-In Python, most of the time is the pure-Python structural scan of each frame, which runs several times per call, and the pure-Python digest projection.
-In the released Rust SDK, each verification derived the profile digest again; the two verifications took 91 percent of a call.
-The proposed Rust change keeps every check and the wire bytes, and it needs the owner to move the reference revision that `scripts/check_local_sdk.py` pins.
+The transport is a small part of a call.
+In SDK 1.0.0, each Rust verification derived the profile digest again, and the two verifications took 91 percent of a call.
+The Python SDK scanned each frame several times, character by character.
+SDK 1.0.1 removes the repeated work and keeps every check and the wire bytes.
+A Rust call is now about 25 µs of processing and two round trips of about 7 µs.
 
 ## Historical chunk, scaling, and overlap measurements (NEST 3.8.0, 16 cores)
 
