@@ -8492,9 +8492,9 @@
       },
       {
         "path": "scripts/check_local_sdk.py",
-        "bytes": 20353,
-        "sha256": "4d7b3db3ef4505173a48b4fb20ff5298c1d08d0e7aec4c6f7690f693b99e8bf4",
-        "git_blob_oid": "9273504add60f2aa9cd6bf1fa2d0459866378c17",
+        "bytes": 20522,
+        "sha256": "c846593cef5059ad2ddef08caaa39f84514ed0e20d9912a567fa19ca135f56fe",
+        "git_blob_oid": "5fdaf12a89a59ac6e747d694cec5961d36d0a056",
         "indexed": true
       },
       {

@@ -81,7 +81,9 @@ ROOT = Path(__file__).resolve().parents[1]
 KILL_WAIT_SECONDS = 5.0
 DIAGNOSTICS = None
 COMMAND_NUMBER = 0
-REFERENCE_COMMIT = "de751d499b5e07d1c95a072e08255083d77cb38b"
+# The owner moved this revision from de751d499b5e for SDK 1.0.1 on 2026-10-22.
+# The 1.0.1 change keeps the wire bytes; local/modular/SDK_RELEASE.md gives the evidence.
+REFERENCE_COMMIT = "f29bcc85c6a7de02f62d900743219c7111471858"
 # The broader root lock follows current dependency policy, not historical SDK parity.
 # source_rows() and source_unchanged() still bind it throughout this gate.
 REFERENCE_FILES = (
