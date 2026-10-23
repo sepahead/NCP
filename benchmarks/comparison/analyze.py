@@ -202,14 +202,29 @@ def hypotheses(stats: dict, blocks: int) -> dict[str, dict]:
 def decomposition(stats: dict) -> list[dict]:
     """Where the time of a pipe call goes, for each language and N (figure 3)."""
     parts = []
+
+    def spread(config: str) -> float:
+        low, high = stats[config]["range_us"]
+        return high - low
+
     for language in ("rust", "python"):
         for n in SPIKES:
-            floor = stats.get(f"raw-{language}-pipe-n{n}", {}).get("statistic_us")
-            nocheck = stats.get(f"ncp2-{language}-{language}-pipe-nocheck-n{n}", {}).get("statistic_us")
-            full = stats.get(f"ncp2-{language}-{language}-pipe-n{n}", {}).get("statistic_us")
-            if None in (floor, nocheck, full):
+            names = (
+                f"raw-{language}-pipe-n{n}",
+                f"ncp2-{language}-{language}-pipe-nocheck-n{n}",
+                f"ncp2-{language}-{language}-pipe-n{n}",
+            )
+            if any("statistic_us" not in stats.get(name, {}) for name in names):
                 continue
+            floor, nocheck, full = (stats[name]["statistic_us"] for name in names)
             protocol, digest = nocheck - floor, full - nocheck
+            # A part smaller than the spread of the block medians of its two arms is within the
+            # variation between runs, not a measured cost. This flag is descriptive; PROTOCOL.md
+            # does not define it.
+            within = {
+                "protocol": abs(protocol) < max(spread(names[0]), spread(names[1])),
+                "digest": abs(digest) < max(spread(names[1]), spread(names[2])),
+            }
             parts.append(
                 {
                     "language": language,
@@ -219,6 +234,7 @@ def decomposition(stats: dict) -> list[dict]:
                     "digest_us": max(digest, 0.0),
                     "total_us": full,
                     "below_zero": [name for name, value in (("protocol", protocol), ("digest", digest)) if value < 0],
+                    "within_variation": sorted(name for name, flag in within.items() if flag),
                 }
             )
     return parts
@@ -270,9 +286,9 @@ def log_axis(axis, theme: dict) -> None:
 
 
 def log_ticks(axis) -> None:
-    """Label 1, 2, and 5 times each power of ten when the axis spans less than two decades."""
+    """Label 1, 2, and 5 times each power of ten on short axes, 1 and 3 times on medium ones."""
     low, high = axis.get_xlim()
-    subs = (1.0, 2.0, 5.0) if high / low < 100 else (1.0,)
+    subs = (1.0, 2.0, 5.0) if high / low < 16 else (1.0, 3.0) if high / low < 1000 else (1.0,)
     axis.xaxis.set_major_locator(LogLocator(base=10, subs=subs))
 
 
@@ -425,7 +441,8 @@ def figure_decomposition(parts: list[dict], theme: dict, path: Path) -> None:
                 ("protocol_us", theme["accent"]),
                 ("digest_us", theme["accent2"]),
             ):
-                axis.barh(y, part[key], left=left, height=0.55, color=color, linewidth=0, edgecolor=theme["surface"])
+                faint = key.removesuffix("_us") in part["within_variation"]
+                axis.barh(y, part[key], left=left, height=0.55, color=color, linewidth=0, alpha=0.35 if faint else 1.0)
                 left += part[key]
             axis.text(left * 1.03, y, f"{part['total_us']:.3g} µs", va="center", fontsize=7.5, color=theme["ink"])
         axis.set_yticks(range(len(selected)))
@@ -455,13 +472,22 @@ def figure_decomposition(parts: list[dict], theme: dict, path: Path) -> None:
         fontweight="bold",
         color=theme["ink"],
     )
-    figure.tight_layout(rect=(0, 0, 1, 0.86))
+    figure.text(
+        0.01,
+        0.02,
+        "Light parts are smaller than the spread of the block medians of their arms: "
+        "variation between runs, not a measured cost.",
+        fontsize=7.5,
+        color=theme["ink2"],
+    )
+    figure.tight_layout(rect=(0, 0.06, 1, 0.86))
     save(
         figure,
         path,
         "Where the time of an NCP 2 call goes",
         "Stacked horizontal bars for Rust and Python and each N: the raw pipe floor, the rest of NCP 2, and the "
-        "digest comparison, each panel on its own linear scale. Values are in summary.md.",
+        "digest comparison, each panel on its own linear scale. Parts smaller than the spread of their block "
+        "medians are drawn light. Values are in summary.md.",
     )
 
 
@@ -583,10 +609,17 @@ def summary(stats: dict, result: dict, parts: list[dict], context: dict) -> str:
     ]
     for part in parts:
         note = f" (below zero: {', '.join(part['below_zero'])}, drawn as zero)" if part["below_zero"] else ""
+        mark = {name: "†" if name in part["within_variation"] else "" for name in ("protocol", "digest")}
         lines.append(
             f"| {LANGUAGE[part['language']]} | {part['spikes']} | {part['floor_us']:.1f} | "
-            f"{part['protocol_us']:.1f} | {part['digest_us']:.1f}{note} | {part['total_us']:.1f} |"
+            f"{part['protocol_us']:.1f}{mark['protocol']} | {part['digest_us']:.1f}{mark['digest']}{note} | "
+            f"{part['total_us']:.1f} |"
         )
+    lines += [
+        "",
+        "† Smaller than the spread of the block medians of the two arms that give the part: variation between runs, "
+        "not a measured cost.",
+    ]
     return "\n".join(lines) + "\n"
 
 
