@@ -371,7 +371,9 @@ class _RunScanner(_Scanner):
         spelling = self.text[start:end]
         if not any(marker in spelling for marker in ".eE"):
             magnitude = spelling.lstrip("-")
-            if len(magnitude) > 16 or (len(magnitude) == 16 and magnitude > "9007199254740991"):
+            if len(magnitude) > 16 or (
+                len(magnitude) == 16 and magnitude > "9007199254740991"
+            ):
                 self._fail("NCP-LIMIT-006", "integer exceeds the exact JSON range")
         value = float(spelling)
         if not math.isfinite(value) or abs(value) > MAX_FINITE_NUMBER_MAGNITUDE:

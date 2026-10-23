@@ -3690,9 +3690,9 @@
       },
       {
         "path": "local/python/ncp_local/wire.py",
-        "bytes": 23116,
-        "sha256": "382a815208acd768f5a72318a8fb1b1d6873a59f7aeaa7ece78bdc0ce0d53db8",
-        "git_blob_oid": "e82f4938a3d99d619dd28b7820bfe958beefcba1",
+        "bytes": 23146,
+        "sha256": "c71f5d9469d77d8439caf14fc1920b63e26063863247c3ce927f02c478c7ade9",
+        "git_blob_oid": "903aa52591b5cd363bfa2c59e58bb2c99c51e4e9",
         "indexed": true
       },
       {
@@ -3767,9 +3767,9 @@
       },
       {
         "path": "local/python/tests/test_run_scanner.py",
-        "bytes": 4271,
-        "sha256": "441f7cfd242d99b036b7264bb2c7a4e58f607408672648b5ab12b85c52e721fe",
-        "git_blob_oid": "40814c26e628e8749a35ff2e398d4007f2e63743",
+        "bytes": 4506,
+        "sha256": "83af70abafb8e5976f8372ff14477be722be8f1c8c0835582c25712f9e0ae259",
+        "git_blob_oid": "b7589c813e964a2f1e6990c2de8c326a1035e4e4",
         "indexed": true
       },
       {
@@ -8548,9 +8548,9 @@
       },
       {
         "path": "scripts/check_local_sdk.py",
-        "bytes": 20522,
-        "sha256": "c846593cef5059ad2ddef08caaa39f84514ed0e20d9912a567fa19ca135f56fe",
-        "git_blob_oid": "5fdaf12a89a59ac6e747d694cec5961d36d0a056",
+        "bytes": 20516,
+        "sha256": "03cebe4047c85c5cc1a27adb5d0942fbe3db815f0a9e8fcd79a6bf23f4651f2b",
+        "git_blob_oid": "59dc8761796bbedc805c954744dd93f92649933f",
         "indexed": true
       },
       {

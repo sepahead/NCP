@@ -43,8 +43,15 @@ class RunScannerTests(unittest.TestCase):
                 for context in ("{}", "[{}]", '{{"a":{}}}', "[{},1]"):
                     self.assert_same(context.format(token))
         for token in (
-            "9007199254740991", "9007199254740992", "-9007199254740992",
-            "1e300", "1e301", "1.0000000000000001e300", "1e309", "-0", "1.e5",
+            "9007199254740991",
+            "9007199254740992",
+            "-9007199254740992",
+            "1e300",
+            "1e301",
+            "1.0000000000000001e300",
+            "1e309",
+            "-0",
+            "1.e5",
         ):
             self.assert_same("[" + token + "]")
 
@@ -76,7 +83,9 @@ class RunScannerTests(unittest.TestCase):
             "times": [round(rng.uniform(0, 10), 1) + 0.1 for _ in range(13)],
         }
         text = json.dumps(
-            make_request(binding, 1, "step", body), separators=(",", ":"), ensure_ascii=False
+            make_request(binding, 1, "step", body),
+            separators=(",", ":"),
+            ensure_ascii=False,
         )
         self.assert_same(text)
         alphabet = list('{}[],:"\\ -+.eE0129aZ\x00\x1f\x7fé')
@@ -91,12 +100,19 @@ class RunScannerTests(unittest.TestCase):
         def value(depth):
             kind = rng.random()
             if depth > 34 or kind < 0.25:
-                return rng.choice([0, -0.0, 1, 2**53 - 1, 2**53, 1e300, -1e-300, 0.1, True, None])
+                return rng.choice(
+                    [0, -0.0, 1, 2**53 - 1, 2**53, 1e300, -1e-300, 0.1, True, None]
+                )
             if kind < 0.5:
-                return "".join(rng.choice('ab"\\/\b\n\x00\x1féü😀 ') for _ in range(rng.randrange(8)))
+                return "".join(
+                    rng.choice('ab"\\/\b\n\x00\x1féü😀 ')
+                    for _ in range(rng.randrange(8))
+                )
             if kind < 0.75:
                 return [value(depth + 1) for _ in range(rng.randrange(4))]
-            return {rng.choice("abcé😀"): value(depth + 1) for _ in range(rng.randrange(4))}
+            return {
+                rng.choice("abcé😀"): value(depth + 1) for _ in range(rng.randrange(4))
+            }
 
         for _ in range(5000):
             text = json.dumps(value(0), ensure_ascii=rng.random() < 0.5)
