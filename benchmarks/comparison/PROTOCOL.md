@@ -56,7 +56,7 @@ Each arm sends this information in its natural form: typed arrays for NCP 2, JSO
 NCP 2 sets 1 MiB send and receive buffers on Unix domain sockets and TCP connections (specification 9.1, rule 8). The other arms keep the defaults of their libraries, which is what their users get without tuning; on macOS, a Unix domain socket has 8 KiB buffers by default.
 NCP 1.0.1 arms use N of 0, 127, and 1788 only.
 NCP 1.0.1 is measured as released: tag `sdk-v1.0.1`, commit `99e9adc`, with the harness of `benchmarks/pipelined-ack` of that commit, changed only so that the owners build the spike body once (`harness/ncp1/`).
-The NCP 2 arms check every response as the other arms do: NCP 2 compares the spike array lengths, NCP 1.0.1 counts the spikes, and the other arms compare the length and the echoed header.
+Every arm checks every response: NCP 2 compares the lengths of the spike arrays, NCP 1.0.1 counts the spikes, and the other arms compare the length and the echoed header.
 
 ## 4. Computer and software
 
@@ -108,16 +108,16 @@ The pilot runs of 23 October 2026, made while the harness was written, suggested
 | H4 | In Rust, NCP 2 is faster than gRPC and Zenoh. | `ncp2-rust-rust-pipe` is lower than `grpc-rust-tcp` and `zenoh-rust-tcp` at N of 0, 127, and 1788 in every block; `ncp2-rust-rust-tcp` is lower than both at N of 0 and 127 in every block. |
 | H5 | In Python, NCP 2 is faster than gRPC and HTTP. | `ncp2-python-python-pipe` is lower than `grpc-python-unix`, `grpc-python-tcp`, and `http-python-tcp` at N of 0, 127, and 1788 in every block. |
 
-Exploratory questions, without a hypothesis: NCP 2 against ZeroMQ and Zenoh in Python; the cost of the digest comparison (the `nocheck` arms); the effect of the connection (pipe, Unix domain socket, TCP); behaviour at 1 MiB, where NCP 2 is expected to be slower than arms without an integrity check by about the time of the SHA-256 digests; and the tails (95th and 99th percentiles).
+Exploratory questions, without a hypothesis: NCP 2 against ZeroMQ and Zenoh in Python; the cost of the digest comparison (the `nocheck` arms); the effect of the connection (pipe, Unix domain socket, TCP); behavior at 1 MiB, where NCP 2 is expected to be slower than arms without an integrity check by about the time of the SHA-256 digests; and the tails (95th and 99th percentiles).
 
 ## 9. Analysis
 
-`analyze.py` reads `runs.jsonl` and writes `analysis.json` with each configuration's statistic and range and each hypothesis's result, and the figures:
+`analyze.py` reads `runs.jsonl` and writes `analysis.json`, with each configuration's statistic and range and each hypothesis's result; `summary.md`, with the same values as tables; and these figures:
 
-1. Call time against N for every arm, one panel for each language.
-2. The ratio of NCP 1.0.1 to NCP 2 for each language pair and N.
-3. Call time at N = 127 against the floor, with and without the digest comparison.
-4. Median, 95th, and 99th percentiles at N = 127.
+1. The call time of every arm, in one panel for each language and N, with the range of the block medians. NCP 2 is in the accent color, the other arms in gray.
+2. The call times of NCP 1.0.1 and NCP 2 for each language pair and N, joined by a line, with their ratio.
+3. Where the time goes, from the pipe arms, for each language and N: the floor (`raw-*-pipe`), the rest of NCP 2 (the `nocheck` arm minus the floor), and the digest comparison (the NCP 2 arm minus the `nocheck` arm). A part that comes out below zero is drawn as zero and reported.
+4. The median, 95th, and 99th percentiles of every arm at N = 127.
 
 ## 10. What the results do not show
 
