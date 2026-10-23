@@ -29,7 +29,8 @@ Version `1.0.1` is a patch release. It makes both SDKs faster and keeps every ch
 ### Why the reference revision moved
 
 `scripts/check_local_sdk.py` pins the local SDK sources to a reference revision. Until 1.0.1, that revision was `de751d4`, the 1.0.0 sources.
-The owner decided on 22 October 2026 to move it to `f29bcc8`, the 1.0.1 sources.
+The owner decided on 22 October 2026 to move it to the 1.0.1 sources, commit `8346549`.
+That commit differs from `f29bcc8`, which the benchmark measured, only by the formatting of one line in `wire.py` and of the new test.
 No qualification receipt binds the earlier bytes, and the descriptor and its digest did not change.
 The equivalence evidence below supports the decision. It does not replace a new qualification of the fixed-role reference.
 

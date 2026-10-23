@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same 70-line Python transcript, which includes `LocalClient` frames over
   real pipes.
 - The owner moved the SDK reference revision of `scripts/check_local_sdk.py` from
-  `de751d4` to `f29bcc8`, the 1.0.1 sources. `scripts/check_local_scope.py` now
+  `de751d4` to `8346549`, the 1.0.1 sources. `scripts/check_local_scope.py` now
   requires version 1.0.1 through `SDK_VERSION`.
 - `benchmarks/local-sdk-exchange/` records two runs under protocols fixed before
   them. Run 2 compares 1.0.0 with 1.0.1: a Rust lockstep call without spikes took

@@ -135,8 +135,8 @@
       {
         "path": "CHANGELOG.md",
         "bytes": 107546,
-        "sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
-        "git_blob_oid": "c41e3f2a5cd102a9c679015b499b0d3fb7833fcc",
+        "sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
+        "git_blob_oid": "4cb2c6a3d80ec01bb751fdcc82aa5f15cd0ffb42",
         "indexed": true
       },
       {
@@ -3529,9 +3529,9 @@
       },
       {
         "path": "local/modular/SDK_RELEASE.md",
-        "bytes": 10436,
-        "sha256": "8886c212aa718a62645dca86a3ea21b360eed415ecf4d0c3699b1e761d456b94",
-        "git_blob_oid": "6229c34ff7f45dc5f15f0c0b18c0e5fc1cee4c84",
+        "bytes": 10578,
+        "sha256": "fe50143233cefd0fa266cd94acb0e3ab62d84c22f8f9cdf520f96c99e9db412e",
+        "git_blob_oid": "450f7df08163af390ee946921f965a8a6ac6978c",
         "indexed": true
       },
       {
@@ -8549,8 +8549,8 @@
       {
         "path": "scripts/check_local_sdk.py",
         "bytes": 20516,
-        "sha256": "03cebe4047c85c5cc1a27adb5d0942fbe3db815f0a9e8fcd79a6bf23f4651f2b",
-        "git_blob_oid": "59dc8761796bbedc805c954744dd93f92649933f",
+        "sha256": "505e6bc2f90d32ecd57863451ddb583f80d52a38e45b290cd2d123cd7f0721f3",
+        "git_blob_oid": "a96bc867a11c4ddf669f85014e3f76091ccc1601",
         "indexed": true
       },
       {
@@ -9302,7 +9302,7 @@
       "column": 74,
       "token_id": "M008",
       "line_sha256": "3b2373f30c953801ee1ef95b4791f101dbd1ebfad53b4edb2fd375b867c2e251",
-      "file_sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
+      "file_sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -9316,7 +9316,7 @@
       "column": 35,
       "token_id": "M008",
       "line_sha256": "b7d18421889aa979339be0c2ddaf57a6bfe188ab8be6aea1ca7a8274767bd9c8",
-      "file_sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
+      "file_sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -9330,7 +9330,7 @@
       "column": 61,
       "token_id": "M005",
       "line_sha256": "811d78b7a3e1e1b784f4ffaa974a1774c9b6ecd3da23c8653077277f554a5ea1",
-      "file_sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
+      "file_sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -9344,7 +9344,7 @@
       "column": 33,
       "token_id": "M008",
       "line_sha256": "d99fd06bb18ff6c89eeea3eac358a4085b65b21a569704855af2046cf7124183",
-      "file_sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
+      "file_sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -9358,7 +9358,7 @@
       "column": 58,
       "token_id": "M008",
       "line_sha256": "40079fba910353399172548260fe643cd3a953e6e607e6bc1e629e40690c70df",
-      "file_sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
+      "file_sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -9372,7 +9372,7 @@
       "column": 52,
       "token_id": "M008",
       "line_sha256": "07267f2a2b963ded5aa888298598162bbbd09b2e36e70a6232535d6a5e3155f3",
-      "file_sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
+      "file_sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -9386,7 +9386,7 @@
       "column": 75,
       "token_id": "M008",
       "line_sha256": "23edc0f4299db445c52e6d256956600083b59cb34a5b0bcdcf6932902739f4ad",
-      "file_sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
+      "file_sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -9400,7 +9400,7 @@
       "column": 72,
       "token_id": "M007",
       "line_sha256": "42d6d813f7486528eb0d901b58d764987bacc5a624d0999f262560e07d711564",
-      "file_sha256": "aef2d55f711439c41b0e3c609acfe2e1e947b76d520985c4ce5033d424229d16",
+      "file_sha256": "930a064641e0a5cd7ccf7a779a11b3a8f7c26f3d6b71eeeb0d6d29bdb678cf96",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
