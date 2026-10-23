@@ -34,8 +34,8 @@ DTYPES = {
 }
 _PADDING = tuple(b" " * ((8 - n) % 8) for n in range(8))
 _ZEROS = bytes(8)
-_SURROGATE = re.compile(rb"\\u[dD][89a-fA-F]")
-_ESCAPE_PAIR = re.compile(rb"\\u[dD][89abAB][0-9a-fA-F]{2}\\u[dD][c-fC-F][0-9a-fA-F]{2}")
+_SURROGATE_ESCAPE = re.compile(rb"\\u[dD][89a-fA-F]")  # may also match after an escaped backslash
+_SURROGATE = re.compile("[\ud800-\udfff]")
 _BOM = b"\xef\xbb\xbf"
 
 
@@ -248,8 +248,6 @@ def decode(frame: bytes | bytearray | memoryview, bound: int) -> Decoded:
     raw = bytes(view[HEADER_BYTES:HEADER_BYTES + json_length])
     if raw.startswith(_BOM):
         raise FrameError("byte order mark")
-    if b"\\u" in raw and _SURROGATE.search(raw) and _SURROGATE.search(_ESCAPE_PAIR.sub(b"", raw)):
-        raise FrameError("unpaired surrogate")
     arrays_found: list[Array] = []
 
     def pairs(items: list[tuple[str, Any]]) -> Any:
@@ -278,6 +276,10 @@ def decode(frame: bytes | bytearray | memoryview, bound: int) -> Decoded:
     if type(message) is not dict:
         raise FrameError("json value is not an object")
     _check_depth(message)
+    # json.loads joins escaped surrogate pairs and the UTF-8 decoder refuses encoded surrogates,
+    # so a surrogate left in a decoded string comes from an unpaired escape.
+    if b"\\u" in raw and _SURROGATE_ESCAPE.search(raw) and _has_surrogate(message):
+        raise FrameError("unpaired surrogate")
     arrays = _bind_arrays(message, arrays_found, view[HEADER_BYTES + json_length:end], attachment_length)
     return Decoded(message, arrays, digest.hex(), frame)
 
@@ -292,6 +294,22 @@ def _check_depth(value: Any) -> None:
         for child in children:
             if type(child) in (dict, list):
                 stack.append((child, depth + 1))
+
+
+def _has_surrogate(value: Any) -> bool:
+    stack = [value]
+    while stack:
+        item = stack.pop()
+        kind = type(item)
+        if kind is str:
+            if _SURROGATE.search(item):
+                return True
+        elif kind is dict:
+            stack.extend(item.keys())
+            stack.extend(item.values())
+        elif kind is list:
+            stack.extend(item)
+    return False
 
 
 def _bind_arrays(message: dict[str, Any], placeholders: list[Array], region: memoryview,

@@ -36,7 +36,7 @@ def valid(name: str, message: dict, arrays_note: str = "") -> dict:
 
     def plain(value):
         if isinstance(value, F.Array):
-            index = decoded.arrays.index(value)
+            index = next(i for i, item in enumerate(decoded.arrays) if item is value)  # not by equal content
             return {"ncp.array": {"dtype": value.dtype, "shape": list(value.shape), "att": index}}
         if isinstance(value, dict):
             return {k: plain(v) for k, v in value.items()}
@@ -67,6 +67,13 @@ def frames() -> list[dict]:
         valid("one empty array: att [0] and A = 0", {"e": F.Array("f64", [0], b"")}),
         valid("empty attachment after an unaligned one", {"a": F.Array("u8", [1], b"a"), "b": F.Array("u8", [0], b"")}),
         valid("negative zero float", {"a": -0.0}),
+        # JSON text "\\ud83d/": an escaped backslash, then the letters ud83d. No surrogate.
+        valid("escaped backslash before u and hex digits", {"a": "\\ud83d/", "\\udc00": 1}),
+    ]
+    cases += [
+        {"name": "escaped backslash, then an escaped solidus", "frame": raw(b'{"a":"\\\\ud83d\\/"}').hex(),
+         "bound": F.HANDSHAKE_BOUND, "valid": True, "message": {"a": "\\ud83d/"},
+         "identity": hashlib.sha256(raw(b'{"a":"\\\\ud83d\\/"}')[:-32]).hexdigest(), "arrays": [], "note": ""},
     ]
     good = F.encode({"a": 1})
     nested_63 = b'{"a":' + b"[" * 63 + b"]" * 63 + b"}"
@@ -86,6 +93,9 @@ def frames() -> list[dict]:
         invalid("negative integer 2^53", raw(b'{"a":-9007199254740992}')),
         invalid("integer beyond 64 bits", raw(b'{"a":100000000000000000000}')),
         invalid("integer written as -0", raw(b'{"a":-0}')),
+        # JSON text "\\ud83d\ude00": an escaped backslash, the letters ud83d, then an unpaired
+        # low surrogate escape.
+        invalid("unpaired low surrogate after an escaped backslash", raw(b'{"a":"\\\\ud83d\\ude00"}')),
         invalid("sequence number written as -0",
                 raw(b'{"ncp":2,"session":"' + SESSION.encode() + b'","seq":-0,"op":"open","ack":null,"body":{}}')),
         invalid("shape product beyond 64 bits",

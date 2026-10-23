@@ -30,4 +30,7 @@ name = "bench_client"
 [[example]]
 name = "model_owner"
 
+[[example]]
+name = "decode_corpus"
+
 [workspace]

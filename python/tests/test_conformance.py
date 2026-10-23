@@ -19,7 +19,8 @@ with open(os.path.join(HERE, "..", "..", "conformance", "vectors.json"), encodin
 
 def plain(value, decoded):
     if isinstance(value, F.Array):
-        return {"ncp.array": {"dtype": value.dtype, "shape": list(value.shape), "att": decoded.arrays.index(value)}}
+        index = next(i for i, item in enumerate(decoded.arrays) if item is value)  # not by equal content
+        return {"ncp.array": {"dtype": value.dtype, "shape": list(value.shape), "att": index}}
     if isinstance(value, dict):
         return {k: plain(v, decoded) for k, v in value.items()}
     if isinstance(value, list):

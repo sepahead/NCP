@@ -403,6 +403,48 @@ class BindingTests(unittest.TestCase):
         finally:
             server.stop()
 
+    @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "no Unix domain sockets")
+    def test_unix_socket_session(self) -> None:
+        directory = tempfile.mkdtemp(prefix="ncp-")
+        os.chmod(directory, 0o700)
+        path = os.path.join(directory, "owner.sock")
+        server = ncp.UnixServer(make_owner, path).start()
+        try:
+            clients = [ncp.Client(ncp.connect_unix(path), application="echo", contract=CONTRACT.identity)
+                       for _ in range(3)]
+            for client in clients:
+                client.open()
+            for index, client in enumerate(clients):
+                self.assertEqual(client.call("echo", {"unix": index}).body, {"unix": index})
+            for client in clients:
+                client.close()
+        finally:
+            server.stop()
+            os.rmdir(directory)
+        self.assertFalse(os.path.exists(path))
+
+    @unittest.skipUnless(os.environ.get("NCP_RUST_EXAMPLES"), "set NCP_RUST_EXAMPLES to the Rust examples directory")
+    def test_python_client_with_the_rust_owner(self) -> None:
+        owner = os.path.join(os.environ["NCP_RUST_EXAMPLES"], "echo_owner")
+        channel, process = ncp.spawn([owner])
+        rust_contract = ncp.Contract.from_bytes(
+            b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{}},"streams":{}}')
+        client = ncp.Client(channel, application="echo", contract=rust_contract.identity)
+        self.assertTrue(client.open()["implementation"].startswith("ncp-rust/"))
+        values = {d: F.Array(d, [3], bytes(range(3 * F.DTYPES[d][1]))) for d in F.DTYPES}
+        result = client.call("echo", {"v": values, "n": -(2**53 - 1), "s": "é😀"})
+        self.assertEqual(result.body["n"], -(2**53 - 1))
+        self.assertEqual(result.body["s"], "é😀")
+        for dtype, value in values.items():
+            self.assertEqual(result.body["v"][dtype], value)
+        with self.assertRaises(ncp.Rejected):
+            client.call("echo", {"invalid": True})
+        with self.assertRaises(ncp.Ended) as ended:
+            client.call("fail", {})
+        self.assertEqual((ended.exception.code, ended.exception.executed), ("owner_failure", "unknown"))
+        client.close()
+        self.assertEqual(process.wait(timeout=10), 0)
+
     def test_remote_addresses_need_an_option(self) -> None:
         with self.assertRaises(ValueError):
             ncp.connect_tcp("192.0.2.1", 1)

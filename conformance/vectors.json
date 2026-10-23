@@ -332,6 +332,31 @@
    "note": ""
   },
   {
+   "name": "escaped backslash before u and hex digits",
+   "frame": "4e4350020000001c000000007b2261223a225c5c75643833642f222c225c5c7564633030223a317db5f78fd429f3dbef30386856f332216f0c542b3814a7b0617455e454aadd7fa3",
+   "bound": 65536,
+   "valid": true,
+   "message": {
+    "a": "\\ud83d/",
+    "\\udc00": 1
+   },
+   "identity": "b5f78fd429f3dbef30386856f332216f0c542b3814a7b0617455e454aadd7fa3",
+   "arrays": [],
+   "note": ""
+  },
+  {
+   "name": "escaped backslash, then an escaped solidus",
+   "frame": "4e43500200000014000000007b2261223a225c5c75643833645c2f227d202020e3723c34684a73c66207491731e88ef04dd58bbf27ab26b082ebff96ba43e7dd",
+   "bound": 65536,
+   "valid": true,
+   "message": {
+    "a": "\\ud83d/"
+   },
+   "identity": "e3723c34684a73c66207491731e88ef04dd58bbf27ab26b082ebff96ba43e7dd",
+   "arrays": [],
+   "note": ""
+  },
+  {
    "name": "63 nested arrays inside the object (64 levels)",
    "frame": "4e43500200000084000000007b2261223a5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d7d3035a6b7f5988b8bac075d80188ffbb7fe34ddfdea6e14e0f3e4b5bceb53076b",
    "bound": 65536,
@@ -530,6 +555,12 @@
   {
    "name": "integer written as -0",
    "frame": "4e4350020000000c000000007b2261223a2d307d202020209eaeafc18e81847f84cd5c1c7b9761dbb2ea40b9df089c66afd3e6ea5c79059f",
+   "bound": 65536,
+   "valid": false
+  },
+  {
+   "name": "unpaired low surrogate after an escaped backslash",
+   "frame": "4e4350020000001c000000007b2261223a225c5c75643833645c7564653030227d20202020202020de6e3960d15ef29f577c5029de4c2c2cf7e92a0692f6b8bd8138e2bc31a3acfe",
    "bound": 65536,
    "valid": false
   },
