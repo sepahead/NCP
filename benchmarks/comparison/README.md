@@ -67,7 +67,7 @@ Section 10 of the [protocol](PROTOCOL.md) lists the limits: one computer, lockst
 ## Correction to the protocol
 
 Section 3 of the protocol says that the NCP 1.0.1 harness is the one of `benchmarks/pipelined-ack` at commit `99e9adc`.
-That commit has no such directory. The harness comes from the pipelined-acknowledgement benchmark of the October 2026 campaign, on the branch `campaign/oct-2026`, which is not yet on `main`.
+That commit has no such directory. The harness comes from the pipelined-acknowledgement benchmark of the October 2026 campaign, which is now in [`../pipelined-ack`](../pipelined-ack).
 [`harness/ncp1/`](harness/ncp1) holds the exact files that the runs used. The NCP 1.0.1 SDK is the one of commit `99e9adc`, as the protocol says.
 The protocol stays unchanged, so that its digest still identifies the text that was fixed before the runs.
 
