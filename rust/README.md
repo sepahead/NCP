@@ -121,6 +121,8 @@ To call many sessions at once, use `ncp::call_all(&mut clients, op, bodies)`.
 
 `Publisher` numbers and chains the messages of a stream; `Subscriber` reports each frame as accepted (with the number of lost messages before it), a repeat, a broken chain, an unknown contract, or a bad frame.
 `Tap` records the frames that a channel sends and receives (`with_tap` on a channel), and `transcript::verify` checks the digests, the sequence numbers, and the hash chain.
+`Tap::create` gives each record to the operating system at once, so a transcript keeps every record up to a crash of the recording program; `Tap::create_buffered` saves one system call for each frame but loses its buffer in a crash.
+A failure to write a record is an error of the channel's send or receive.
 
 ## Options
 

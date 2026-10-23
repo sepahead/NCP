@@ -128,14 +128,16 @@ Every level runs in the gate, except the campaigns, which run before a release a
 
 ## 8. Performance targets and comparisons
 
-Targets for NCP 2 on the same computer as section 3, to be tested by preregistered protocols:
+Targets for NCP 2 on the same computer as section 3, tested by preregistered protocols:
 
-| Measure | NCP 1.0.1 | NCP 2 target |
-| --- | --- | --- |
-| Rust client and Rust echo owner, one call | 35.6 µs | ≤ 15 µs |
-| Python client and Python echo owner, one call | 466 µs | ≤ 150 µs |
-| NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | ≤ 0.10 ms |
-| Spike payloads (D4 of the NEST campaign) | 0.4–1.4 ms, and failure above 64 KiB | ≤ 0.15 ms, no failure |
+| Measure | NCP 1.0.1 | NCP 2 target | NCP 2 measured |
+| --- | --- | --- | --- |
+| Rust client and Rust echo owner, one call | 35.6 µs | ≤ 15 µs | 9.1 µs ([comparison benchmark](../../benchmarks/comparison/README.md), H2) |
+| Python client and Python echo owner, one call | 466 µs | ≤ 150 µs | 38.6 µs (H2) |
+| NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | ≤ 0.10 ms | not yet measured |
+| Spike payloads (D4 of the NEST campaign) | 0.4–1.4 ms, and failure above 64 KiB | ≤ 0.15 ms, no failure | not yet measured; 1788 spikes in one call take 32.8 µs (Rust) and 67.8 µs (Python) without NEST |
+
+In the comparison benchmark, all five preregistered hypotheses held: NCP 2 is 4.2 to 165 times faster than NCP 1.0.1, adds 4.6 µs to a raw pipe, and is faster than gRPC and Zenoh in Rust and than gRPC and HTTP/1.1 in Python up to 1788 spikes. At 1 MiB, systems without an integrity check are faster, by about the time of one SHA-256 digest.
 
 Comparisons, with the same workloads, shown as figures in this repository and in the thesis:
 

@@ -133,7 +133,9 @@ tap.close()
 reports = ncp.verify_transcript("run-17.ncpt")  # one report for each session
 ```
 
-The tap keeps records in a buffer of 1 MiB and writes them all when you call `close()`.
+A tap gives each record to the operating system at once, so the transcript keeps every record up to a crash of the recording program.
+`Tap(path, buffered=True)` collects records in a buffer of 1 MiB instead: one system call fewer for each frame, but a crash loses the records in the buffer.
+A failure to write a record raises, so that a session never runs on without its record.
 
 ## Options
 
