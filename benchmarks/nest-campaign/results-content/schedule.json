@@ -1,0 +1,369 @@
+{
+ "protocol_sha256": "f2920fc12c144d18b2b0f948723807fa1ef8f2127ed95a8f8375ed0a60d9c0ff",
+ "seed": 20261025,
+ "smoke": false,
+ "created_utc": "2026-10-23T05:01:07.873096Z",
+ "commit": "8c1399f72ddebc215099a6ffca29254ab057b67f",
+ "order": [
+  {
+   "block": 0,
+   "config": "aeif-t2-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "aeif-t1-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "aeif-t4-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "alpha-t1-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "brunel-t1-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "alpha-t2-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "alpha-t1-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "brunel-t4-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "brunel-t4-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "aeif-t4-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "aeif-t1-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "brunel-t2-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "alpha-t8-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "brunel-t8-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "brunel-t1-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "alpha-t2-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "brunel-t8-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "aeif-t2-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "alpha-t8-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "brunel-t2-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "aeif-t8-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "aeif-t8-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "alpha-t4-d1",
+   "seed": 20261025
+  },
+  {
+   "block": 0,
+   "config": "alpha-t4-d5",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "brunel-t1-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "alpha-t1-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "alpha-t2-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "alpha-t4-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "aeif-t2-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "brunel-t1-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "aeif-t4-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "aeif-t8-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "alpha-t8-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "aeif-t4-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "alpha-t2-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "aeif-t1-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "alpha-t8-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "brunel-t8-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "aeif-t8-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "alpha-t4-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "alpha-t1-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "brunel-t4-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "aeif-t2-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "brunel-t8-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "brunel-t4-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "brunel-t2-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "aeif-t1-d5",
+   "seed": 20261026
+  },
+  {
+   "block": 1,
+   "config": "brunel-t2-d1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "brunel-t4-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "brunel-t2-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "brunel-t8-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "aeif-t1-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "brunel-t1-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "brunel-t1-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "brunel-t2-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "alpha-t4-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "alpha-t4-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "aeif-t8-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "aeif-t4-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "alpha-t1-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "aeif-t4-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "alpha-t8-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "aeif-t2-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "alpha-t2-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "aeif-t2-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "aeif-t8-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "alpha-t1-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "alpha-t2-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "aeif-t1-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "brunel-t4-d1",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "brunel-t8-d5",
+   "seed": 20261027
+  },
+  {
+   "block": 2,
+   "config": "alpha-t8-d1",
+   "seed": 20261027
+  }
+ ]
+}

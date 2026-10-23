@@ -1,0 +1,229 @@
+{
+ "protocol_sha256": "8466f39cbc374a006a56ffee66f70f8904b21885ca2bf9880864e1b3b1f13cdb",
+ "trials": 3816,
+ "expected_trials": 3816,
+ "table": {
+  "backend-raise/python": {
+   "detected": 60
+  },
+  "flip-c2o/python": {
+   "detected": 600
+  },
+  "flip-c2o/rust": {
+   "detected": 600
+  },
+  "flip-o2c/python": {
+   "detected": 600
+  },
+  "flip-o2c/rust": {
+   "detected": 600
+  },
+  "kill-client/python": {
+   "owner-retired": 120
+  },
+  "kill-owner/python": {
+   "completed": 11,
+   "detected": 109
+  },
+  "kill-owner/rust": {
+   "detected": 111,
+   "completed": 9
+  },
+  "nest-kill/nest": {
+   "detected": 30
+  },
+  "nest-raise/nest": {
+   "detected": 30
+  },
+  "oversize-request/python": {
+   "detected": 60
+  },
+  "oversize-request/rust": {
+   "detected": 60
+  },
+  "oversize-response/python": {
+   "detected": 60
+  },
+  "soak/python": {
+   "completed": 3
+  },
+  "soak/rust": {
+   "completed": 3
+  },
+  "stall/python": {
+   "detected": 30
+  },
+  "truncate-c2o/python": {
+   "detected": 180
+  },
+  "truncate-c2o/rust": {
+   "detected": 180
+  },
+  "truncate-o2c/python": {
+   "detected": 180
+  },
+  "truncate-o2c/rust": {
+   "detected": 180
+  }
+ },
+ "frame_faults": {
+  "trials": 3120,
+  "damaged": 3119,
+  "undamaged": 1,
+  "damaged_in_length_prefix": 24
+ },
+ "stall_seconds": {
+  "median": 2.0391000000000004,
+  "max": 2.1379
+ },
+ "kill_owner_steps_before_kill": {
+  "6": 9,
+  "7": 20,
+  "0": 111,
+  "3": 15,
+  "2": 23,
+  "4": 24,
+  "5": 17,
+  "1": 21
+ },
+ "soaks": {
+  "rust": [
+   {
+    "block": 0,
+    "calls": 300000,
+    "seconds": 12.79,
+    "median_us": 39.5,
+    "p99_us": 62.208,
+    "client_rss_growth": 0.695187165775401,
+    "owner_rss_growth": 0.0,
+    "client_fds": [
+     8,
+     8
+    ],
+    "owner_fds": [
+     6,
+     6
+    ]
+   },
+   {
+    "block": 1,
+    "calls": 300000,
+    "seconds": 11.57,
+    "median_us": 34.125,
+    "p99_us": 51.208,
+    "client_rss_growth": 0.7351351351351352,
+    "owner_rss_growth": 0.0,
+    "client_fds": [
+     8,
+     8
+    ],
+    "owner_fds": [
+     6,
+     6
+    ]
+   },
+   {
+    "block": 2,
+    "calls": 300000,
+    "seconds": 29.18,
+    "median_us": 76.375,
+    "p99_us": 552.5,
+    "client_rss_growth": 0.75,
+    "owner_rss_growth": 0.035502958579881616,
+    "client_fds": [
+     8,
+     8
+    ],
+    "owner_fds": [
+     6,
+     6
+    ]
+   }
+  ],
+  "python": [
+   {
+    "block": 0,
+    "calls": 60000,
+    "seconds": 31.21,
+    "median_us": 494.58300054538995,
+    "p99_us": 710.083004378248,
+    "client_rss_growth": 0.09611307420494697,
+    "owner_rss_growth": 0.013778100072516342,
+    "client_fds": [
+     30,
+     30
+    ],
+    "owner_fds": [
+     26,
+     26
+    ]
+   },
+   {
+    "block": 1,
+    "calls": 60000,
+    "seconds": 30.66,
+    "median_us": 496.79199582897127,
+    "p99_us": 623.3750027604401,
+    "client_rss_growth": 0.11515601783060925,
+    "owner_rss_growth": 0.026714801444043257,
+    "client_fds": [
+     30,
+     30
+    ],
+    "owner_fds": [
+     26,
+     26
+    ]
+   },
+   {
+    "block": 2,
+    "calls": 60000,
+    "seconds": 95.08,
+    "median_us": 1238.9580006129108,
+    "p99_us": 8584.95900320122,
+    "client_rss_growth": 0.09330628803245444,
+    "owner_rss_growth": 0.015873015873015817,
+    "client_fds": [
+     30,
+     30
+    ],
+    "owner_fds": [
+     26,
+     26
+    ]
+   }
+  ]
+ },
+ "hypotheses": {
+  "F1": {
+   "criterion": "no trial accepts a wrong result",
+   "holds": true
+  },
+  "F2": {
+   "criterion": "every damaged frame is detected",
+   "damaged": 3119,
+   "holds": true
+  },
+  "F3": {
+   "criterion": "every kill-client trial: owner retired and exited",
+   "holds": true
+  },
+  "F4": {
+   "criterion": "every stall detected within the time limit plus 1 s",
+   "max_seconds": 2.1379,
+   "holds": true
+  },
+  "F5": {
+   "criterion": "oversize-response, backend-raise, nest-raise end in indeterminate and retire",
+   "holds": true
+  },
+  "F6": {
+   "criterion": "every oversize request refused before writing, session then completes",
+   "holds": true
+  },
+  "F7": {
+   "criterion": "soak: RSS growth < 10 % after the first 10 %, descriptors constant",
+   "holds": false
+  }
+ }
+}

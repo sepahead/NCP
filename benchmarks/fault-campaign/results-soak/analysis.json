@@ -1,0 +1,351 @@
+{
+ "trials": [
+  {
+   "block": 0,
+   "kind": "python",
+   "calls": 200000,
+   "seconds": 99.12,
+   "valid": true,
+   "samples": 162,
+   "partial_samples": 2,
+   "rss_growth_after_first_tenth": {
+    "client": 0.006168608636052175,
+    "owner": 0.019204389574760006
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     26
+    ]
+   },
+   "owner_rss_kb_deciles": [
+    21296,
+    23328,
+    23776,
+    23776,
+    23776,
+    23776,
+    23776,
+    23776,
+    23776,
+    23776,
+    23776
+   ],
+   "client_rss_kb_deciles": [
+    22064,
+    23344,
+    23456,
+    23456,
+    23456,
+    23456,
+    23472,
+    23488,
+    23488,
+    23488,
+    23488
+   ],
+   "timing": {
+    "calls": 4096,
+    "median_us": 483.2499980693683,
+    "p05_us": 460.24999755900353,
+    "p95_us": 528.4579965518788,
+    "p99_us": 564.3750046147034,
+    "min_us": 368.500011973083,
+    "max_us": 1456.9589984603226
+   }
+  },
+  {
+   "block": 0,
+   "kind": "rust",
+   "calls": 1000000,
+   "seconds": 46.75,
+   "valid": true,
+   "samples": 66,
+   "partial_samples": 10,
+   "rss_growth_after_first_tenth": {
+    "client": 0.005952380952380931,
+    "owner": 0.005586592178770999
+   },
+   "descriptors": {
+    "client": [
+     8
+    ],
+    "owner": [
+     6
+    ]
+   },
+   "owner_rss_kb_deciles": [
+    2864,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880
+   ],
+   "client_rss_kb_deciles": [
+    2688,
+    2704,
+    2704,
+    2704,
+    2704,
+    2704,
+    2704,
+    2704,
+    2704,
+    2704,
+    2704
+   ],
+   "timing": {
+    "calls": 4096,
+    "max_us": 944.542,
+    "median_us": 38.458999999999996,
+    "min_us": 29.125,
+    "p05_us": 37.833,
+    "p95_us": 43.667,
+    "p99_us": 48.541999999999994
+   }
+  },
+  {
+   "block": 1,
+   "kind": "python",
+   "calls": 200000,
+   "seconds": 99.1,
+   "valid": true,
+   "samples": 163,
+   "partial_samples": 1,
+   "rss_growth_after_first_tenth": {
+    "client": 0.004908835904628317,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     26
+    ]
+   },
+   "owner_rss_kb_deciles": [
+    21360,
+    23840,
+    23840,
+    23840,
+    23840,
+    23840,
+    23840,
+    23840,
+    23840,
+    23840,
+    23840
+   ],
+   "client_rss_kb_deciles": [
+    21360,
+    22816,
+    22928,
+    22928,
+    22928,
+    22928,
+    22928,
+    22928,
+    22928,
+    22928,
+    22928
+   ],
+   "timing": {
+    "calls": 4096,
+    "median_us": 485.0000113947317,
+    "p05_us": 455.54101234301925,
+    "p95_us": 531.540994415991,
+    "p99_us": 570.6250085495412,
+    "min_us": 373.7499937415123,
+    "max_us": 1584.8749899305403
+   }
+  },
+  {
+   "block": 1,
+   "kind": "rust",
+   "calls": 1000000,
+   "seconds": 41.42,
+   "valid": true,
+   "samples": 67,
+   "partial_samples": 0,
+   "rss_growth_after_first_tenth": {
+    "client": 0.0,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     8
+    ],
+    "owner": [
+     6
+    ]
+   },
+   "owner_rss_kb_deciles": [
+    2688,
+    2912,
+    2912,
+    2912,
+    2912,
+    2912,
+    2912,
+    2912,
+    2912,
+    2912,
+    2912
+   ],
+   "client_rss_kb_deciles": [
+    2576,
+    2752,
+    2752,
+    2752,
+    2752,
+    2752,
+    2752,
+    2752,
+    2752,
+    2752,
+    2752
+   ],
+   "timing": {
+    "calls": 4096,
+    "max_us": 967.9590000000001,
+    "median_us": 38.791999999999994,
+    "min_us": 29.042,
+    "p05_us": 37.75,
+    "p95_us": 44.333,
+    "p99_us": 48.791000000000004
+   }
+  },
+  {
+   "block": 2,
+   "kind": "python",
+   "calls": 200000,
+   "seconds": 99.04,
+   "valid": true,
+   "samples": 163,
+   "partial_samples": 1,
+   "rss_growth_after_first_tenth": {
+    "client": 0.004143646408839796,
+    "owner": 0.022932592077831826
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     26
+    ]
+   },
+   "owner_rss_kb_deciles": [
+    21168,
+    23024,
+    23136,
+    23440,
+    23552,
+    23552,
+    23552,
+    23552,
+    23552,
+    23552,
+    23552
+   ],
+   "client_rss_kb_deciles": [
+    21680,
+    23168,
+    23264,
+    23264,
+    23264,
+    23264,
+    23264,
+    23264,
+    23264,
+    23264,
+    23264
+   ],
+   "timing": {
+    "calls": 4096,
+    "median_us": 483.41699584852904,
+    "p05_us": 452.58300087880343,
+    "p95_us": 532.5829988578334,
+    "p99_us": 571.209006011486,
+    "min_us": 367.12500150315464,
+    "max_us": 1098.9580041496083
+   }
+  },
+  {
+   "block": 2,
+   "kind": "rust",
+   "calls": 1000000,
+   "seconds": 38.41,
+   "valid": true,
+   "samples": 62,
+   "partial_samples": 0,
+   "rss_growth_after_first_tenth": {
+    "client": 0.0,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     8
+    ],
+    "owner": [
+     6
+    ]
+   },
+   "owner_rss_kb_deciles": [
+    2640,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880,
+    2880
+   ],
+   "client_rss_kb_deciles": [
+    2560,
+    2736,
+    2736,
+    2736,
+    2736,
+    2736,
+    2736,
+    2736,
+    2736,
+    2736,
+    2736
+   ],
+   "timing": {
+    "calls": 4096,
+    "max_us": 1054.5,
+    "median_us": 35.542,
+    "min_us": 28.666999999999998,
+    "p05_us": 34.5,
+    "p95_us": 40.25,
+    "p99_us": 43.833
+   }
+  }
+ ],
+ "hypotheses": {
+  "S1": {
+   "criterion": "RSS of client and owner grows < 2 % after the first 10 % of each soak",
+   "holds": false
+  },
+  "S2": {
+   "criterion": "open descriptors of client and owner constant after the first sample",
+   "holds": true
+  }
+ },
+ "all_valid": true
+}

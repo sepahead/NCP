@@ -1,0 +1,2877 @@
+{
+ "protocol_sha256": "2ab03111053f320e2c4b702e48f04f7cf49dcc45808e2b02d3842cf547912f44",
+ "seed": 20261024,
+ "blocks": 3,
+ "smoke": false,
+ "only": null,
+ "commit": "0ee354e124a922d753c6da7644c24354f7c9e7be",
+ "created_utc": "2026-10-23T03:03:48.293259Z",
+ "configurations": 191,
+ "order": [
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n250-t8-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d5-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n250-t8-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d5-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n250-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n25000-t8-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n250-t8-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d5-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d1-chunked-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d5-ncp-py-1.0.1-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n2500-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d5-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d1-ncp-py-1.0.1-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d5-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d5-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d5-ncp-rs-1.0.1-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n25000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d5-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d5-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d5-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n2500-t8-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d5-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d1-ncp-py-1.0.0-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n2500-t8-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d5-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d5-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d5-ncp-rs-1.0.1-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d5-chunked-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d5-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d5-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d5-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n2500-t8-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d5-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d5-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d5-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d5-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d5-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d5-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d5-ncp-py-1.0.1-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d5-chunked-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d5-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d1-ncp-rs-1.0.1-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d5-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d5-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d5-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d1-ncp-py-1.0.0-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d5-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d5-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n2500-t8-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d5-ncp-py-1.0.0-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d5-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d5-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n25000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d20-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d1-chunked-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d5-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d5-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d5-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t1-d5-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n1000-t4-d1-ncp-py-1.0.1-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t8-d5-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d5-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n250-t8-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d20-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d5-ncp-py-1.0.0-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-aeif-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d5-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n25000-t8-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d5-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t1-d1-music",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d5-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D3-brunel-n25000-t8-d1-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n10000-t4-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t4-d1-mono",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D4-brunel-n10000-t4-d1-ncp-rs-1.0.1-spikes",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D1-brunel-n1000-t8-d20-ncp-py-1.0.0",
+   "seed": 20261024
+  },
+  {
+   "block": 0,
+   "config": "D2-alpha-n1000-t4-d20-chunked",
+   "seed": 20261024
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n250-t8-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d5-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d5-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n25000-t8-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d5-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d5-ncp-py-1.0.0-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d5-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d1-ncp-py-1.0.0-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d1-ncp-rs-1.0.1-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d5-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d5-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d5-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n2500-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d5-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d1-chunked-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n25000-t8-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d5-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d5-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d5-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d5-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d5-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d5-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n2500-t8-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n2500-t8-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d5-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d5-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d5-ncp-py-1.0.0-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d5-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d5-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n2500-t8-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n25000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d1-chunked-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d5-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d5-chunked-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d5-ncp-py-1.0.1-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d1-ncp-py-1.0.1-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d5-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d5-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n250-t8-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d1-ncp-rs-1.0.1-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d1-ncp-py-1.0.1-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d5-ncp-rs-1.0.1-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d5-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d5-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d5-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d5-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d5-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d5-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n25000-t8-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n250-t8-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d5-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d5-chunked-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d5-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d5-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d5-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n250-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n10000-t4-d5-ncp-py-1.0.1-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d5-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d5-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d5-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d5-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d20-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d20-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d5-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t1-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n2500-t8-d1-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d1-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d20-mono",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n25000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d1-ncp-py-1.0.0-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t4-d1-chunked",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d5-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t8-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D4-brunel-n1000-t4-d5-ncp-rs-1.0.1-spikes",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D3-brunel-n250-t8-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-aeif-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d1-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t8-d5-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D2-alpha-n1000-t4-d1-music",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261025
+  },
+  {
+   "block": 1,
+   "config": "D1-brunel-n10000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261025
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d5-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d5-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n2500-t8-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d5-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d1-ncp-rs-1.0.1-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d1-ncp-rs-1.0.1-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d5-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n2500-t8-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d5-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n250-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d5-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n25000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d1-ncp-py-1.0.1-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d5-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d5-ncp-rs-1.0.1-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d5-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d5-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d5-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d5-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n250-t8-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d5-ncp-py-1.0.1-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d5-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d5-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n25000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d5-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n2500-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d1-ncp-py-1.0.0-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d5-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d1-chunked-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d5-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d5-chunked-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d5-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d5-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d5-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d1-chunked-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d5-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d5-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d5-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d5-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n25000-t8-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d5-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n2500-t8-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n25000-t8-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d5-chunked-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n2500-t8-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d5-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d1-ncp-py-1.0.0-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d5-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d5-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n250-t8-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n250-t8-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d5-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d5-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d5-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d5-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d5-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d5-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d5-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d1-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t4-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d5-ncp-rs-1.0.1-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d5-ncp-py-1.0.0-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d20-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d1-ncp-py-1.0.1-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n1000-t4-d5-ncp-py-1.0.0-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d5-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n250-t8-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d20-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D4-brunel-n10000-t4-d5-ncp-py-1.0.1-spikes",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d5-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d20-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t1-d20-ncp-py-1.0.0",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t8-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t1-d1-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n1000-t1-d20-music",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d5-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d1-ncp-py-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-aeif-n1000-t4-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d1-chunked",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D3-brunel-n25000-t8-d1-mono",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t4-d5-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t1-d20-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D1-brunel-n10000-t8-d1-ncp-rs-1.0.1",
+   "seed": 20261026
+  },
+  {
+   "block": 2,
+   "config": "D2-alpha-n1000-t4-d20-chunked",
+   "seed": 20261026
+  }
+ ]
+}

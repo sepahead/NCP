@@ -1,0 +1,55 @@
+{
+ "model_check": {
+  "returncode": 0,
+  "stdout": [
+   "sequential steps=4 faults=2 states=      310 completed=     1 violations=[] (0.0 s)",
+   "deferred   steps=4 faults=2 states=      310 completed=     1 violations=[] (0.0 s)",
+   "pipelined  steps=4 faults=2 states=      451 completed=     1 violations=['P6'] (0.0 s)"
+  ],
+  "verdicts": {
+   "sequential": [],
+   "deferred": [],
+   "pipelined": [
+    "P6"
+   ]
+  }
+ },
+ "model_check_faults3": {
+  "returncode": 0,
+  "stdout": [
+   "sequential steps=3 faults=3 states=      335 completed=     1 violations=[] (0.0 s)",
+   "deferred   steps=3 faults=3 states=      335 completed=     1 violations=[] (0.0 s)",
+   "pipelined  steps=3 faults=3 states=      553 completed=     1 violations=['P6'] (0.0 s)"
+  ],
+  "verdicts": {
+   "sequential": [],
+   "deferred": [],
+   "pipelined": [
+    "P6"
+   ]
+  }
+ },
+ "mutation_self_test": {
+  "returncode": 0,
+  "stdout": [
+   "mutant owner_ignores_pending            expected P3: caught {'sequential': [], 'deferred': [], 'pipelined': ['P3', 'P6']}",
+   "mutant owner_accepts_wrong_ack          expected P3: caught {'sequential': ['P3'], 'deferred': ['P3'], 'pipelined': ['P3', 'P6']}",
+   "mutant client_unknown_as_not_executed   expected P5: caught {'sequential': ['P5'], 'deferred': ['P5'], 'pipelined': ['P5', 'P6']}"
+  ]
+ },
+ "conformance": {
+  "returncode": 0,
+  "stdout": [
+   "conformance: 20000 traces, 130202 frames; model owner equals LocalOwner"
+  ]
+ },
+ "environment": {
+  "computer": "Mac16,5",
+  "chip": "Apple M4 Max",
+  "os": "26.5.1",
+  "kernel": "25.5.0",
+  "rustc": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+  "python_endpoints": "3.11.15",
+  "power": "Now drawing from 'AC Power'"
+ }
+}

@@ -1,0 +1,37 @@
+{
+ "protocol_sha256": "34e209894e8d3ba10b352691adf01684ad6d4fc4c39ef59b6c3bfffef8c35e73",
+ "seed": 20261027,
+ "created_utc": "2026-10-23T05:26:16.976185Z",
+ "order": [
+  {
+   "block": 0,
+   "kind": "python",
+   "id": 0
+  },
+  {
+   "block": 0,
+   "kind": "rust",
+   "id": 1
+  },
+  {
+   "block": 1,
+   "kind": "python",
+   "id": 2
+  },
+  {
+   "block": 1,
+   "kind": "rust",
+   "id": 3
+  },
+  {
+   "block": 2,
+   "kind": "python",
+   "id": 4
+  },
+  {
+   "block": 2,
+   "kind": "rust",
+   "id": 5
+  }
+ ]
+}

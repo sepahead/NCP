@@ -1,0 +1,48 @@
+{
+ "trials": 72,
+ "failed": [],
+ "by_threads": {
+  "1": {
+   "trials": 18,
+   "ncp_exact": 18,
+   "music_exact": 18,
+   "music_channels_exact_min": 1000,
+   "music_channels_exact_max": 1000
+  },
+  "2": {
+   "trials": 18,
+   "ncp_exact": 18,
+   "music_exact": 0,
+   "music_channels_exact_min": 500,
+   "music_channels_exact_max": 500
+  },
+  "4": {
+   "trials": 18,
+   "ncp_exact": 18,
+   "music_exact": 0,
+   "music_channels_exact_min": 250,
+   "music_channels_exact_max": 250
+  },
+  "8": {
+   "trials": 18,
+   "ncp_exact": 18,
+   "music_exact": 0,
+   "music_channels_exact_min": 125,
+   "music_channels_exact_max": 125
+  }
+ },
+ "hypotheses": {
+  "C1": {
+   "criterion": "NCP host receives exactly the reference in every trial",
+   "holds": true
+  },
+  "C2": {
+   "criterion": "NEST recorder in the MUSIC run equals the reference in every trial",
+   "holds": true
+  },
+  "C3": {
+   "criterion": "with one thread, MUSIC delivers exactly the recorded spikes in every trial",
+   "holds": true
+  }
+ }
+}

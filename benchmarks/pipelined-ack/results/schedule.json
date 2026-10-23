@@ -1,0 +1,252 @@
+{
+ "protocol_sha256": "3ad030313232a9364b6f4f6224d8365e53d4027af7f3fa3ac2ffe3adcb92eb0c",
+ "seed": 20261023,
+ "blocks": 3,
+ "calls": 3000,
+ "warmup": 500,
+ "smoke": false,
+ "commit": "0ee354e124a922d753c6da7644c24354f7c9e7be",
+ "created_utc": "2026-10-23T03:01:34.388754Z",
+ "order": [
+  {
+   "block": 0,
+   "config": "rust-python-pipelined-n0"
+  },
+  {
+   "block": 0,
+   "config": "python-rust-sequential-n0"
+  },
+  {
+   "block": 0,
+   "config": "rust-rust-sequential-n0"
+  },
+  {
+   "block": 0,
+   "config": "rust-python-pipelined-n127"
+  },
+  {
+   "block": 0,
+   "config": "rust-python-sequential-n127"
+  },
+  {
+   "block": 0,
+   "config": "rust-python-sequential-n0"
+  },
+  {
+   "block": 0,
+   "config": "python-python-sdk-n0"
+  },
+  {
+   "block": 0,
+   "config": "python-python-sequential-n0"
+  },
+  {
+   "block": 0,
+   "config": "python-python-sdk-n127"
+  },
+  {
+   "block": 0,
+   "config": "rust-rust-pipelined-n0"
+  },
+  {
+   "block": 0,
+   "config": "python-python-pipelined-n127"
+  },
+  {
+   "block": 0,
+   "config": "rust-rust-pipelined-n127"
+  },
+  {
+   "block": 0,
+   "config": "python-python-pipelined-n0"
+  },
+  {
+   "block": 0,
+   "config": "python-python-sequential-n127"
+  },
+  {
+   "block": 0,
+   "config": "python-rust-sdk-n127"
+  },
+  {
+   "block": 0,
+   "config": "python-rust-pipelined-n127"
+  },
+  {
+   "block": 0,
+   "config": "python-rust-sequential-n127"
+  },
+  {
+   "block": 0,
+   "config": "python-rust-pipelined-n0"
+  },
+  {
+   "block": 0,
+   "config": "rust-rust-sequential-n127"
+  },
+  {
+   "block": 0,
+   "config": "python-rust-sdk-n0"
+  },
+  {
+   "block": 1,
+   "config": "python-rust-sdk-n0"
+  },
+  {
+   "block": 1,
+   "config": "python-python-sequential-n127"
+  },
+  {
+   "block": 1,
+   "config": "python-rust-sequential-n127"
+  },
+  {
+   "block": 1,
+   "config": "python-rust-sequential-n0"
+  },
+  {
+   "block": 1,
+   "config": "python-python-sdk-n127"
+  },
+  {
+   "block": 1,
+   "config": "rust-python-sequential-n0"
+  },
+  {
+   "block": 1,
+   "config": "rust-rust-sequential-n127"
+  },
+  {
+   "block": 1,
+   "config": "rust-rust-pipelined-n127"
+  },
+  {
+   "block": 1,
+   "config": "rust-rust-pipelined-n0"
+  },
+  {
+   "block": 1,
+   "config": "rust-python-sequential-n127"
+  },
+  {
+   "block": 1,
+   "config": "python-python-sdk-n0"
+  },
+  {
+   "block": 1,
+   "config": "python-rust-pipelined-n0"
+  },
+  {
+   "block": 1,
+   "config": "python-rust-sdk-n127"
+  },
+  {
+   "block": 1,
+   "config": "rust-python-pipelined-n127"
+  },
+  {
+   "block": 1,
+   "config": "python-rust-pipelined-n127"
+  },
+  {
+   "block": 1,
+   "config": "python-python-sequential-n0"
+  },
+  {
+   "block": 1,
+   "config": "python-python-pipelined-n0"
+  },
+  {
+   "block": 1,
+   "config": "rust-python-pipelined-n0"
+  },
+  {
+   "block": 1,
+   "config": "rust-rust-sequential-n0"
+  },
+  {
+   "block": 1,
+   "config": "python-python-pipelined-n127"
+  },
+  {
+   "block": 2,
+   "config": "rust-rust-pipelined-n127"
+  },
+  {
+   "block": 2,
+   "config": "rust-rust-sequential-n127"
+  },
+  {
+   "block": 2,
+   "config": "python-rust-pipelined-n127"
+  },
+  {
+   "block": 2,
+   "config": "python-python-sequential-n127"
+  },
+  {
+   "block": 2,
+   "config": "python-rust-pipelined-n0"
+  },
+  {
+   "block": 2,
+   "config": "python-python-sequential-n0"
+  },
+  {
+   "block": 2,
+   "config": "python-rust-sequential-n127"
+  },
+  {
+   "block": 2,
+   "config": "python-python-sdk-n127"
+  },
+  {
+   "block": 2,
+   "config": "python-rust-sdk-n127"
+  },
+  {
+   "block": 2,
+   "config": "rust-python-sequential-n127"
+  },
+  {
+   "block": 2,
+   "config": "python-python-sdk-n0"
+  },
+  {
+   "block": 2,
+   "config": "python-rust-sequential-n0"
+  },
+  {
+   "block": 2,
+   "config": "rust-python-pipelined-n0"
+  },
+  {
+   "block": 2,
+   "config": "rust-python-sequential-n0"
+  },
+  {
+   "block": 2,
+   "config": "rust-python-pipelined-n127"
+  },
+  {
+   "block": 2,
+   "config": "rust-rust-pipelined-n0"
+  },
+  {
+   "block": 2,
+   "config": "python-rust-sdk-n0"
+  },
+  {
+   "block": 2,
+   "config": "python-python-pipelined-n0"
+  },
+  {
+   "block": 2,
+   "config": "rust-rust-sequential-n0"
+  },
+  {
+   "block": 2,
+   "config": "python-python-pipelined-n127"
+  }
+ ]
+}

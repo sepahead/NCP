@@ -1,0 +1,12 @@
+# run.py writes Cargo.toml from this template for each measured SDK source.
+[package]
+name = "ncp-local-exchange-bench"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ncp-local = { path = "@NCP_LOCAL@" }
+serde_json = { version = "=1.0.150", features = ["float_roundtrip"] }
+
+[workspace]

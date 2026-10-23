@@ -1,0 +1,9 @@
+{
+ "file": "runs.jsonl",
+ "replaced": "the absolute path of the campaign checkout on the benchmark computer",
+ "with": "<checkout>",
+ "occurrences": 6,
+ "where": "stderr_tail of failed runs",
+ "sha256_before": "fc6cda62a18fde5db45445fb99a9c8cb675f9c928095c1d2525b1dcbdce4c995",
+ "sha256_after": "944484ca78057350c9bd79693d2cb85ee6fcf31936eb21d018bc660ac969adc6"
+}
