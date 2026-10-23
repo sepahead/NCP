@@ -11,6 +11,7 @@ and serves one session per connection, such as the Rust example `model_owner`.
 
 Usage: conformance.py [--traces 20000] [--seed 20261023] [--owner COMMAND...]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -25,11 +26,12 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "python"))
 
 import ncp  # noqa: E402
-from ncp import frame as F  # noqa: E402
 import ncp2_model as M  # noqa: E402
+from ncp import frame as F  # noqa: E402
 
 CONTRACT = ncp.Contract.from_bytes(
-    b'{"ncp_contract":1,"application":"model","version":"1","operations":{"step":{}},"streams":{}}')
+    b'{"ncp_contract":1,"application":"model","version":"1","operations":{"step":{}},"streams":{}}'
+)
 
 
 class Handler:
@@ -88,8 +90,16 @@ def run_trace(rng: random.Random, length: int, new_owner=python_owner) -> tuple[
 
 def _run_trace(rng: random.Random, length: int, handle) -> tuple[int, int]:
     session = str(uuid.uuid4())
-    open_frame = F.encode({"ncp": 2, "session": session, "seq": 0, "op": "open", "ack": None,
-                           "body": {"application": "model", "contract": CONTRACT.identity, "bound": F.HANDSHAKE_BOUND}})
+    open_frame = F.encode(
+        {
+            "ncp": 2,
+            "session": session,
+            "seq": 0,
+            "op": "open",
+            "ack": None,
+            "body": {"application": "model", "contract": CONTRACT.identity, "bound": F.HANDSHAKE_BOUND},
+        }
+    )
     open_response = handle(open_frame)
     open_request = ("q", 0, "open", None)  # distinct from any step request, as the real frames are
     model = (True, 0, (open_request, ("p", 0, open_request, "ok", None, M.OPEN)), False, 0)
@@ -125,8 +135,16 @@ def _run_trace(rng: random.Random, length: int, handle) -> tuple[int, int]:
             request = ("q", seq, version, ack)
             op = "step"
             body = {"seq": seq, "version": version if version == "bad" else 0, "fail": fail}
-            frame = F.encode({"ncp": 2, "session": session, "seq": seq, "op": op,
-                              "ack": None if ack is None else real_id.get(ack, "0" * 64), "body": body})
+            frame = F.encode(
+                {
+                    "ncp": 2,
+                    "session": session,
+                    "seq": seq,
+                    "op": op,
+                    "ack": None if ack is None else real_id.get(ack, "0" * 64),
+                    "body": body,
+                }
+            )
             first = None
         steps = M.owner_step(model, request, ghost, may_fail=fail)
         new_model, model_response, ghost, _ = steps[-1] if fail and len(steps) > 1 else steps[0]
@@ -170,8 +188,9 @@ def main() -> int:
         if external:
             external.stop()
     name = " ".join(os.path.basename(part) for part in args.owner[:2]) if args.owner else "the Python owner"
-    print(f"conformance: {args.traces} traces, {total} requests, {repeats} repeats; "
-          f"{name} answers like the model owner")
+    print(
+        f"conformance: {args.traces} traces, {total} requests, {repeats} repeats; {name} answers like the model owner"
+    )
     return 0
 
 

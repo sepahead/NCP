@@ -3,6 +3,7 @@
 grpc_echo.py server unix|tcp                 (prints "ready TARGET")
 grpc_echo.py client unix|tcp CALLS WARMUP SPIKES
 """
+
 from __future__ import annotations
 
 import os
@@ -12,7 +13,6 @@ import time
 from concurrent import futures
 
 import grpc
-
 from common import Responder, check, measure, report, request, start_server, stop_server
 
 METHOD = "/bench.Echo/Call"
@@ -22,7 +22,8 @@ OPTIONS = [("grpc.max_receive_message_length", 64 << 20), ("grpc.max_send_messag
 def server(kind: str) -> None:
     respond = Responder()
     handler = grpc.method_handlers_generic_handler(
-        "bench.Echo", {"Call": grpc.unary_unary_rpc_method_handler(lambda data, context: respond(data))})
+        "bench.Echo", {"Call": grpc.unary_unary_rpc_method_handler(lambda data, context: respond(data))}
+    )
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1), options=OPTIONS)
     server.add_generic_rpc_handlers((handler,))
     if kind == "unix":

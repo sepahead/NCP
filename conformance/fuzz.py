@@ -10,6 +10,7 @@ must accept or reject each frame alike, and accepted frames must decode to the s
 Usage: fuzz.py --decoder PATH [--cases 200000] [--seed 20261023] [--save DIR]
 The decoder is a program like the Rust example `decode_corpus`: decoder CORPUS BOUND.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,14 +29,83 @@ from ncp import frame as F  # noqa: E402
 
 BOUND = F.MAX_BOUND
 INTS = [0, 1, -1, 7, 2**31, -(2**31), 2**32, 2**53 - 1, -(2**53 - 1), 10**15, 123456789012345]
-FLOATS = [0.0, -0.0, 0.1, -2.5, 1e300, -1e-300, 5e-324, 2.2250738585072014e-308, 1.7976931348623157e308,
-          1e16, 9007199254740993.0, 0.30000000000000004, 1.5e-7]
-STRINGS = ["", "a", "é", "😀", "\u0000", "\"\\/", " ", "﻿", "ncp.array", "att", "a\nb", "\u007f", "日本"]
-TOKENS = ["{", "}", "[", "]", '"', ",", ":", "-", "+", ".", "e", "E", "0", "1", "9", " ", "\t", "\n", "\r",
-          "true", "false", "null", "NaN", "Infinity", "-Infinity", "\\u", "\\ud83d", "\\ude00", "\\ud83d\\ude00",
-          "\\u0000", '\\"', "\\\\", "\\x", "\\/", "é", "\x00", "\x1f", "-0", "-0.0", "0.0", "1e400", "1e-400",
-          "9007199254740991", "9007199254740992", "-9007199254740992", "18446744073709551616", "1E2", "01",
-          '"ncp.array"', '"att"', '"dtype"', '"shape"', '"u8"', '"f64"', "﻿", '"a"', '"a":1', "[[[[", "]]]]"]
+FLOATS = [
+    0.0,
+    -0.0,
+    0.1,
+    -2.5,
+    1e300,
+    -1e-300,
+    5e-324,
+    2.2250738585072014e-308,
+    1.7976931348623157e308,
+    1e16,
+    9007199254740993.0,
+    0.30000000000000004,
+    1.5e-7,
+]
+STRINGS = ["", "a", "é", "😀", "\u0000", '"\\/', " ", "﻿", "ncp.array", "att", "a\nb", "\u007f", "日本"]
+TOKENS = [
+    "{",
+    "}",
+    "[",
+    "]",
+    '"',
+    ",",
+    ":",
+    "-",
+    "+",
+    ".",
+    "e",
+    "E",
+    "0",
+    "1",
+    "9",
+    " ",
+    "\t",
+    "\n",
+    "\r",
+    "true",
+    "false",
+    "null",
+    "NaN",
+    "Infinity",
+    "-Infinity",
+    "\\u",
+    "\\ud83d",
+    "\\ude00",
+    "\\ud83d\\ude00",
+    "\\u0000",
+    '\\"',
+    "\\\\",
+    "\\x",
+    "\\/",
+    "é",
+    "\x00",
+    "\x1f",
+    "-0",
+    "-0.0",
+    "0.0",
+    "1e400",
+    "1e-400",
+    "9007199254740991",
+    "9007199254740992",
+    "-9007199254740992",
+    "18446744073709551616",
+    "1E2",
+    "01",
+    '"ncp.array"',
+    '"att"',
+    '"dtype"',
+    '"shape"',
+    '"u8"',
+    '"f64"',
+    "﻿",
+    '"a"',
+    '"a":1',
+    "[[[[",
+    "]]]]",
+]
 RAW = [b"\xff", b"\xc0\x80", b"\xed\xa0\x80", b"\xf4\x90\x80\x80", b"\xef\xbb\xbf", b"\x80", b"\xe2\x82"]
 
 
@@ -48,8 +118,10 @@ def random_value(rng: random.Random, depth: int, arrays: list[F.Array]) -> objec
         if kind == 1:
             return rng.choice(FLOATS) if rng.random() < 0.6 else rng.uniform(-1e6, 1e6)
         if kind == 2:
-            return rng.choice(STRINGS) + "".join(chr(rng.choice([rng.randint(32, 126), rng.randint(0xA0, 0xD7FF),
-                                                                  rng.randint(0xE000, 0x10FFFF)])) for _ in range(rng.randrange(4)))
+            return rng.choice(STRINGS) + "".join(
+                chr(rng.choice([rng.randint(32, 126), rng.randint(0xA0, 0xD7FF), rng.randint(0xE000, 0x10FFFF)]))
+                for _ in range(rng.randrange(4))
+            )
         if kind == 3:
             return rng.random() < 0.5
         if kind == 4:
@@ -78,7 +150,7 @@ def wrap(text: bytes, attachments: bytes = b"") -> bytes:
 
 def split(frame: bytes) -> tuple[bytes, bytes]:
     _, json_length, attachment_length = F.HEADER.unpack_from(frame)
-    return frame[12:12 + json_length].rstrip(b" "), frame[12 + json_length:12 + json_length + attachment_length]
+    return frame[12 : 12 + json_length].rstrip(b" "), frame[12 + json_length : 12 + json_length + attachment_length]
 
 
 def edit_text(rng: random.Random, text: bytes) -> bytes:
@@ -89,15 +161,39 @@ def edit_text(rng: random.Random, text: bytes) -> bytes:
         if action == 0:
             text = text[:position] + piece + text[position:]
         elif action == 1:
-            text = text[:position] + piece + text[position + rng.randint(1, 3):]
+            text = text[:position] + piece + text[position + rng.randint(1, 3) :]
         else:
-            text = text[:position] + text[position + rng.randint(1, 4):]
+            text = text[:position] + text[position + rng.randint(1, 4) :]
     return text
 
 
-TRICKY = [b"0", b"1", b"-1", b"-0", b"9007199254740991", b"9007199254740992", b"4294967296", b"1e2", b"1.0",
-          b"null", b"true", b'"u8"', b'"f64"', b'"c64"', b'["u8"]', b"[]", b"[1]", b"[0]", b"[[1]]", b"{}",
-          b'"\\ud83d"', b"[4294967296,4294967296]", b"[9007199254740992,0]", b"[2,2]", b"[1,0]"]
+TRICKY = [
+    b"0",
+    b"1",
+    b"-1",
+    b"-0",
+    b"9007199254740991",
+    b"9007199254740992",
+    b"4294967296",
+    b"1e2",
+    b"1.0",
+    b"null",
+    b"true",
+    b'"u8"',
+    b'"f64"',
+    b'"c64"',
+    b'["u8"]',
+    b"[]",
+    b"[1]",
+    b"[0]",
+    b"[[1]]",
+    b"{}",
+    b'"\\ud83d"',
+    b"[4294967296,4294967296]",
+    b"[9007199254740992,0]",
+    b"[2,2]",
+    b"[1,0]",
+]
 
 
 def array_case(rng: random.Random) -> bytes:
@@ -127,8 +223,13 @@ def array_case(rng: random.Random) -> bytes:
         if index and len(region) % 8:
             region += bytes(8 - len(region) % 8)
         region += data
-    text = (b"{" + b",".join(b'"r%d":%s' % (i, r) for i, r in enumerate(references))
-            + b',"att":[' + b",".join(b"%d" % max(0, n) for n in lengths) + b"]}")
+    text = (
+        b"{"
+        + b",".join(b'"r%d":%s' % (i, r) for i, r in enumerate(references))
+        + b',"att":['
+        + b",".join(b"%d" % max(0, n) for n in lengths)
+        + b"]}"
+    )
     return wrap(text, region)
 
 
@@ -179,7 +280,7 @@ def same(a, b) -> bool:
     if isinstance(a, dict):
         return a.keys() == b.keys() and all(same(a[k], b[k]) for k in a)
     if isinstance(a, list):
-        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b))
+        return len(a) == len(b) and all(same(x, y) for x, y in zip(a, b, strict=True))
     if isinstance(a, float):
         return a == b and (a != 0 or str(a) == str(b))
     return a == b
@@ -193,8 +294,12 @@ def python_result(frame: bytes) -> dict:
     except Exception as error:  # a crash is a finding, not a rejection
         return {"ok": "crash", "error": f"{type(error).__name__}: {error}"}
     message = plain(decoded.message, decoded)
-    return {"ok": True, "identity": decoded.identity, "message": message,
-            "arrays": [bytes(item.data).hex() for item in decoded.arrays]}
+    return {
+        "ok": True,
+        "identity": decoded.identity,
+        "message": message,
+        "arrays": [bytes(item.data).hex() for item in decoded.arrays],
+    }
 
 
 def main() -> int:
@@ -221,19 +326,26 @@ def main() -> int:
         print(f"the decoder printed {len(lines)} lines for {len(frames)} frames")
         return 1
     accepted = differences = 0
-    for index, (frame, line) in enumerate(zip(frames, lines)):
+    for index, (frame, line) in enumerate(zip(frames, lines, strict=True)):
         other = json.loads(line)
         mine = python_result(frame)
         if mine["ok"] is True:
             accepted += 1
-        agree = mine["ok"] == other["ok"] and (mine["ok"] is not True or (
-            mine["identity"] == other["identity"] and mine["arrays"] == other["arrays"]
-            and same(mine["message"], other["message"])))
+        agree = mine["ok"] == other["ok"] and (
+            mine["ok"] is not True
+            or (
+                mine["identity"] == other["identity"]
+                and mine["arrays"] == other["arrays"]
+                and same(mine["message"], other["message"])
+            )
+        )
         if not agree:
             differences += 1
             if differences <= 10:
-                print(f"case {index}: python {mine.get('ok')} ({mine.get('error', '')}), "
-                      f"other {other.get('ok')} ({other.get('error', '')})\n  frame {frame.hex()}")
+                print(
+                    f"case {index}: python {mine.get('ok')} ({mine.get('error', '')}), "
+                    f"other {other.get('ok')} ({other.get('error', '')})\n  frame {frame.hex()}"
+                )
             if args.save:
                 os.makedirs(args.save, exist_ok=True)
                 with open(os.path.join(args.save, f"case-{index}.bin"), "wb") as out:

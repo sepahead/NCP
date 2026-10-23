@@ -1,4 +1,5 @@
 """The byte-stream binding: pipes, Unix domain sockets, and TCP (section 9.1)."""
+
 from __future__ import annotations
 
 import ipaddress
@@ -9,7 +10,8 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Any, Callable, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from . import frame as F
 from .exchange import Owner, bad_frame_response
@@ -28,18 +30,25 @@ class StreamChannel:
 
     lossy = False
 
-    def __init__(self, read: Callable[[int], bytes], write: Callable[[bytes], None], fileno: int, *,
-                 tap: Tap | None = None, close: Callable[[], None] | None = None) -> None:
+    def __init__(
+        self,
+        read: Callable[[int], bytes],
+        write: Callable[[bytes], None],
+        fileno: int,
+        *,
+        tap: Tap | None = None,
+        close: Callable[[], None] | None = None,
+    ) -> None:
         self._read, self._write, self._fileno, self._close = read, write, fileno, close
         self._buffer = bytearray()
         self.tap = tap
 
     @classmethod
-    def from_fds(cls, read_fd: int, write_fd: int, *, tap: Tap | None = None) -> "StreamChannel":
+    def from_fds(cls, read_fd: int, write_fd: int, *, tap: Tap | None = None) -> StreamChannel:
         def write(data: bytes) -> None:
             view = memoryview(data)
             while view:
-                view = view[os.write(write_fd, view):]
+                view = view[os.write(write_fd, view) :]
 
         def close() -> None:
             for fd in {read_fd, write_fd}:
@@ -51,7 +60,7 @@ class StreamChannel:
         return cls(lambda n: os.read(read_fd, n), write, read_fd, tap=tap, close=close)
 
     @classmethod
-    def from_socket(cls, sock: socket.socket, *, tap: Tap | None = None) -> "StreamChannel":
+    def from_socket(cls, sock: socket.socket, *, tap: Tap | None = None) -> StreamChannel:
         if sock.family in (socket.AF_INET, socket.AF_INET6):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         return cls(sock.recv, sock.sendall, sock.fileno(), tap=tap, close=sock.close)
@@ -133,11 +142,11 @@ def serve_stdio(owner: Owner, *, tap: Tap | None = None) -> None:
     serve(owner, StreamChannel.from_fds(0, frames_out, tap=tap))
 
 
-def spawn(argv: Sequence[str], *, tap: Tap | None = None, env: dict[str, str] | None = None,
-          cwd: str | None = None) -> tuple[StreamChannel, subprocess.Popen[bytes]]:
+def spawn(
+    argv: Sequence[str], *, tap: Tap | None = None, env: dict[str, str] | None = None, cwd: str | None = None
+) -> tuple[StreamChannel, subprocess.Popen[bytes]]:
     """Start an owner process and return a channel to its standard input and output."""
-    process = subprocess.Popen(list(argv), stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0,
-                               env=env, cwd=cwd)
+    process = subprocess.Popen(list(argv), stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0, env=env, cwd=cwd)
     stdin, stdout = process.stdin, process.stdout
     assert stdin is not None and stdout is not None
     read_fd, write_fd = stdout.fileno(), stdin.fileno()
@@ -145,7 +154,7 @@ def spawn(argv: Sequence[str], *, tap: Tap | None = None, env: dict[str, str] | 
     def write(data: bytes) -> None:
         view = memoryview(data)
         while view:
-            view = view[os.write(write_fd, view):]
+            view = view[os.write(write_fd, view) :]
 
     def close() -> None:
         # The Popen file objects own the descriptors; close them through those objects.
@@ -167,12 +176,15 @@ def _check_address(host: str, allow_remote: bool) -> None:
     except socket.gaierror as error:
         raise ValueError(f"cannot resolve {host!r}") from error
     if not all(ipaddress.ip_address(address.split("%")[0]).is_loopback for address in addresses):
-        raise ValueError(f"{host!r} is not a loopback address; pass allow_remote=True for a trusted "
-                         "cluster network, or use a secure tunnel or the Zenoh binding")
+        raise ValueError(
+            f"{host!r} is not a loopback address; pass allow_remote=True for a trusted "
+            "cluster network, or use a secure tunnel or the Zenoh binding"
+        )
 
 
-def connect_tcp(host: str, port: int, *, allow_remote: bool = False, tap: Tap | None = None,
-                timeout: float = 10.0) -> StreamChannel:
+def connect_tcp(
+    host: str, port: int, *, allow_remote: bool = False, tap: Tap | None = None, timeout: float = 10.0
+) -> StreamChannel:
     _check_address(host, allow_remote)
     sock = socket.create_connection((host, port), timeout=timeout)
     sock.settimeout(None)
@@ -199,7 +211,7 @@ class _Server:
         self._thread = threading.Thread(target=self._accept, daemon=True)
         self._stopped = False
 
-    def start(self) -> "_Server":
+    def start(self) -> _Server:
         self._thread.start()
         return self
 
@@ -220,8 +232,9 @@ class _Server:
 class TcpServer(_Server):
     """Serve one owner session for each TCP connection, each in its own thread."""
 
-    def __init__(self, make_owner: Callable[[], Owner], host: str = "127.0.0.1", port: int = 0, *,
-                 allow_remote: bool = False) -> None:
+    def __init__(
+        self, make_owner: Callable[[], Owner], host: str = "127.0.0.1", port: int = 0, *, allow_remote: bool = False
+    ) -> None:
         _check_address(host, allow_remote)
         super().__init__(make_owner, socket.create_server((host, port)))
         self.address: tuple[Any, ...] = self._socket.getsockname()

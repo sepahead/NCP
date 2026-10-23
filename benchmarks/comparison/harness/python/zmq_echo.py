@@ -3,6 +3,7 @@
 zmq_echo.py server ipc|tcp                   (prints "ready ENDPOINT")
 zmq_echo.py client ipc|tcp CALLS WARMUP SPIKES
 """
+
 from __future__ import annotations
 
 import os
@@ -10,7 +11,6 @@ import sys
 import tempfile
 
 import zmq
-
 from common import Responder, check, measure, report, request, start_server, stop_server
 
 
@@ -37,6 +37,7 @@ def client(kind: str) -> None:
     socket = context.socket(zmq.REQ)
     socket.connect(endpoint)
     try:
+
         def call(index: int) -> None:
             data = request(index, spikes)
             socket.send(data)

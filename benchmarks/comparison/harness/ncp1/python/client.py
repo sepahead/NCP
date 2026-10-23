@@ -6,6 +6,7 @@ same public functions, so that only the order of frames differs. A pipelined cli
 breaks the v1 client rule that only a verified acknowledgement advances the sequence;
 this harness measures what that rule costs. Prints one JSON line.
 """
+
 from __future__ import annotations
 
 import json
@@ -21,8 +22,15 @@ from ncp_local.wire import decode, encode, read_local_frame, write_local_frame
 def summary(samples: list[float]) -> dict:
     ordered = sorted(samples)
     at = lambda q: ordered[round((len(ordered) - 1) * q)] * 1e6  # noqa: E731
-    return {"calls": len(ordered), "median_us": at(0.5), "p05_us": at(0.05), "p95_us": at(0.95),
-            "p99_us": at(0.99), "min_us": at(0.0), "max_us": at(1.0)}
+    return {
+        "calls": len(ordered),
+        "median_us": at(0.5),
+        "p05_us": at(0.05),
+        "p95_us": at(0.95),
+        "p99_us": at(0.99),
+        "min_us": at(0.0),
+        "max_us": at(1.0),
+    }
 
 
 class Channel:
@@ -44,12 +52,14 @@ class Channel:
 def main() -> None:
     mode, n, calls, warmup, command = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), int(sys.argv[4]), sys.argv[5:]
     binding = LocalBinding.fresh("neural")
-    child = subprocess.Popen(command + [json.dumps(binding.as_dict())], stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE, bufsize=0)
+    child = subprocess.Popen(
+        command + [json.dumps(binding.as_dict())], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0
+    )
     samples, received = [], 0
     if mode == "soak":
         # LocalClient.call with a uniform reservoir of 4096 call times, so that memory stays fixed.
         import random
+
         rng, timed = random.Random(20261022), 0
         client = LocalClient(binding, child.stdout, child.stdin, timeout_s=60)
         assert client.call("prepare", {"n": n})["outcome"] == "committed"
@@ -125,8 +135,18 @@ def main() -> None:
         assert channel.receive(ack)["outcome"] == "acknowledged"
     child.stdin.close()
     status = child.wait(timeout=60)
-    print(json.dumps({"mode": mode, "language": "python", "n": n, "valid": received == (13 if n == 0 else n),
-                      "owner_exit": status, "timing": summary(samples)}))
+    print(
+        json.dumps(
+            {
+                "mode": mode,
+                "language": "python",
+                "n": n,
+                "valid": received == (13 if n == 0 else n),
+                "owner_exit": status,
+                "timing": summary(samples),
+            }
+        )
+    )
 
 
 if __name__ == "__main__":

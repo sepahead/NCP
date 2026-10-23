@@ -15,7 +15,11 @@ impl Handler for Model {
         }
         Ok(())
     }
-    fn execute(&mut self, _op: &str, request: &Decoded) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
+    fn execute(
+        &mut self,
+        _op: &str,
+        request: &Decoded,
+    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
         let body = &request.message["body"];
         if body["fail"] == true {
             return Err("injected failure".into());
@@ -24,8 +28,17 @@ impl Handler for Model {
     }
 }
 
-fn serve_one<R: std::io::Read, W: std::io::Write>(contract: &Contract, channel: std::io::Result<ncp::StreamChannel<R, W>>) {
-    let mut owner = Owner::new(&contract.application, &contract.identity, Model, contract.operations.clone(), HANDSHAKE_BOUND);
+fn serve_one<R: std::io::Read, W: std::io::Write>(
+    contract: &Contract,
+    channel: std::io::Result<ncp::StreamChannel<R, W>>,
+) {
+    let mut owner = Owner::new(
+        &contract.application,
+        &contract.identity,
+        Model,
+        contract.operations.clone(),
+        HANDSHAKE_BOUND,
+    );
     if let Ok(mut channel) = channel {
         let _ = binding::serve(&mut owner, &mut channel);
     }

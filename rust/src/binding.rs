@@ -19,14 +19,22 @@ pub struct StreamChannel<R: Read, W: Write> {
 
 impl<R: Read, W: Write> std::fmt::Debug for StreamChannel<R, W> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StreamChannel").field("open", &self.writer.is_some()).field("tap", &self.tap.is_some()).finish_non_exhaustive()
+        f.debug_struct("StreamChannel")
+            .field("open", &self.writer.is_some())
+            .field("tap", &self.tap.is_some())
+            .finish_non_exhaustive()
     }
 }
 
 impl<R: Read, W: Write> StreamChannel<R, W> {
     /// A channel over a reader and a writer.
     pub fn new(reader: R, writer: W) -> StreamChannel<R, W> {
-        StreamChannel { reader: BufReader::with_capacity(1 << 16, reader), writer: Some(writer), tap: None, closer: None }
+        StreamChannel {
+            reader: BufReader::with_capacity(1 << 16, reader),
+            writer: Some(writer),
+            tap: None,
+            closer: None,
+        }
     }
 
     /// Record every frame in a transcript (section 10).
@@ -41,7 +49,10 @@ impl<R: Read, W: Write> StreamChannel<R, W> {
 
     /// Send one frame.
     pub fn send_frame(&mut self, frame: &[u8]) -> io::Result<()> {
-        let writer = self.writer.as_mut().ok_or_else(|| io::Error::new(io::ErrorKind::BrokenPipe, "channel closed"))?;
+        let writer = self
+            .writer
+            .as_mut()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::BrokenPipe, "channel closed"))?;
         writer.write_all(frame)?;
         writer.flush()?;
         if let Some(tap) = &self.tap {
@@ -53,9 +64,9 @@ impl<R: Read, W: Write> StreamChannel<R, W> {
     fn read_header(&mut self, header: &mut [u8; HEADER_BYTES]) -> Result<(), Error> {
         match self.reader.read_exact(header) {
             Ok(()) => Ok(()),
-            Err(error) if error.kind() == io::ErrorKind::UnexpectedEof => {
-                Err(Error::Io(io::Error::new(io::ErrorKind::UnexpectedEof, "the peer closed the stream")))
-            }
+            Err(error) if error.kind() == io::ErrorKind::UnexpectedEof => Err(Error::Io(
+                io::Error::new(io::ErrorKind::UnexpectedEof, "the peer closed the stream"),
+            )),
             Err(error) => Err(Error::Io(error)),
         }
     }
@@ -99,7 +110,10 @@ impl<R: Read, W: Write> Channel for StreamChannel<R, W> {
 
 /// Serve one session on a byte stream until the peer closes it. A bad frame gets the bad-frame
 /// response, and the connection closes (section 9.1).
-pub fn serve<H: Handler, R: Read, W: Write>(owner: &mut Owner<H>, channel: &mut StreamChannel<R, W>) -> Result<(), Error> {
+pub fn serve<H: Handler, R: Read, W: Write>(
+    owner: &mut Owner<H>,
+    channel: &mut StreamChannel<R, W>,
+) -> Result<(), Error> {
     loop {
         let frame_bytes = match channel.receive_frame(owner.bound()) {
             Ok(bytes) => bytes,
@@ -107,7 +121,14 @@ pub fn serve<H: Handler, R: Read, W: Write>(owner: &mut Owner<H>, channel: &mut 
                 let _ = channel.send_frame(&bad_frame_response());
                 return Ok(());
             }
-            Err(Error::Io(error)) if matches!(error.kind(), io::ErrorKind::UnexpectedEof | io::ErrorKind::BrokenPipe | io::ErrorKind::ConnectionReset) => {
+            Err(Error::Io(error))
+                if matches!(
+                    error.kind(),
+                    io::ErrorKind::UnexpectedEof
+                        | io::ErrorKind::BrokenPipe
+                        | io::ErrorKind::ConnectionReset
+                ) =>
+            {
                 return Ok(())
             }
             Err(other) => return Err(other),
@@ -115,7 +136,11 @@ pub fn serve<H: Handler, R: Read, W: Write>(owner: &mut Owner<H>, channel: &mut 
         match owner.handle(frame_bytes) {
             Ok(response) => {
                 if let Err(error) = channel.send_frame(&response) {
-                    return if error.kind() == io::ErrorKind::BrokenPipe { Ok(()) } else { Err(Error::Io(error)) };
+                    return if error.kind() == io::ErrorKind::BrokenPipe {
+                        Ok(())
+                    } else {
+                        Err(Error::Io(error))
+                    };
                 }
             }
             Err(FrameError(_)) => {
@@ -140,9 +165,18 @@ pub type ChildChannel = StreamChannel<ChildStdout, ChildStdin>;
 
 /// Start an owner process and return a channel to it.
 pub fn spawn(mut command: Command) -> io::Result<(ChildChannel, Child)> {
-    let mut child = command.stdin(Stdio::piped()).stdout(Stdio::piped()).spawn()?;
-    let stdin = child.stdin.take().ok_or_else(|| io::Error::other("no stdin"))?;
-    let stdout = child.stdout.take().ok_or_else(|| io::Error::other("no stdout"))?;
+    let mut child = command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()?;
+    let stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| io::Error::other("no stdin"))?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| io::Error::other("no stdout"))?;
     Ok((StreamChannel::new(stdout, stdin), child))
 }
 
@@ -189,7 +223,8 @@ pub fn listen_tcp(address: impl ToSocketAddrs, allow_remote: bool) -> io::Result
 
 /// A channel over a Unix domain socket connection.
 #[cfg(unix)]
-pub type UnixChannel = StreamChannel<std::os::unix::net::UnixStream, std::os::unix::net::UnixStream>;
+pub type UnixChannel =
+    StreamChannel<std::os::unix::net::UnixStream, std::os::unix::net::UnixStream>;
 
 /// Connect to an owner that listens on a Unix domain socket (section 9.1, rule 5).
 #[cfg(unix)]

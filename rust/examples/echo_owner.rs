@@ -17,7 +17,9 @@ fn spikes(n: usize) -> (Array, Array) {
     let mut state = 0x2545_f491_4f6c_dd1d_u64;
     let (mut senders, mut times) = (Vec::with_capacity(n), Vec::with_capacity(n));
     for _ in 0..n {
-        state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+        state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
         senders.push(((state >> 33) % 1000 + 1) as u32);
         times.push(((state >> 20) % 100) as f64 / 10.0 + 0.1);
     }
@@ -41,7 +43,11 @@ impl Handler for Echo {
         }
         Ok(())
     }
-    fn execute(&mut self, op: &str, request: &Decoded) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
+    fn execute(
+        &mut self,
+        op: &str,
+        request: &Decoded,
+    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
         match op {
             "fail" => Err("requested failure".into()),
             "spikes" => {
@@ -51,19 +57,39 @@ impl Handler for Echo {
                 }
                 let (senders, times) = self.cache.entry(n).or_insert_with(|| spikes(n)).clone();
                 let body = json!({"senders": senders.reference(0), "times": times.reference(1)});
-                Ok(Reply { body, arrays: vec![senders, times] })
+                Ok(Reply {
+                    body,
+                    arrays: vec![senders, times],
+                })
             }
-            _ => Ok(Reply { body: request.message["body"].clone(), arrays: request.owned_arrays() }),
+            _ => Ok(Reply {
+                body: request.message["body"].clone(),
+                arrays: request.owned_arrays(),
+            }),
         }
     }
 }
 
 fn owner(contract: &Contract, check_digests: bool) -> Owner<Echo> {
-    let owner = Owner::new(&contract.application, &contract.identity, Echo::default(), contract.operations.clone(), ncp::MAX_BOUND);
-    if check_digests { owner } else { owner.without_digest_check() }
+    let owner = Owner::new(
+        &contract.application,
+        &contract.identity,
+        Echo::default(),
+        contract.operations.clone(),
+        ncp::MAX_BOUND,
+    );
+    if check_digests {
+        owner
+    } else {
+        owner.without_digest_check()
+    }
 }
 
-fn serve_one<R: std::io::Read, W: std::io::Write>(contract: &Contract, check: bool, channel: std::io::Result<ncp::StreamChannel<R, W>>) {
+fn serve_one<R: std::io::Read, W: std::io::Write>(
+    contract: &Contract,
+    check: bool,
+    channel: std::io::Result<ncp::StreamChannel<R, W>>,
+) {
     if let Ok(mut channel) = channel {
         let _ = binding::serve(&mut owner(contract, check), &mut channel);
     }
@@ -87,7 +113,9 @@ fn main() -> std::io::Result<()> {
             std::io::stdout().flush()?;
             for stream in listener.incoming() {
                 let (stream, contract) = (stream?, contract.clone());
-                std::thread::spawn(move || serve_one(&contract, check, binding::unix_channel(stream)));
+                std::thread::spawn(move || {
+                    serve_one(&contract, check, binding::unix_channel(stream))
+                });
             }
         }
         Some(_) => {
@@ -96,7 +124,9 @@ fn main() -> std::io::Result<()> {
             std::io::stdout().flush()?;
             for stream in listener.incoming() {
                 let (stream, contract) = (stream?, contract.clone());
-                std::thread::spawn(move || serve_one(&contract, check, binding::tcp_channel(stream)));
+                std::thread::spawn(move || {
+                    serve_one(&contract, check, binding::tcp_channel(stream))
+                });
             }
         }
     }

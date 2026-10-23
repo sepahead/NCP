@@ -1,4 +1,5 @@
 """Deterministic spike body shared by the Python client checks and the Python owner."""
+
 from __future__ import annotations
 
 

@@ -4,6 +4,7 @@ A frame is a 12-byte header, a JSON region padded to a multiple of 8, aligned bi
 attachments, and the SHA-256 digest of everything before it. Identities are digests of
 exact bytes, so NCP needs no canonical encoding.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -28,9 +29,16 @@ MAX_ATTACHMENTS = 1024
 ARRAY_KEY = "ncp.array"
 # dtype -> (struct code for one element, element size, numpy dtype string)
 DTYPES = {
-    "u8": ("B", 1, "u1"), "i8": ("b", 1, "i1"), "u16": ("<H", 2, "<u2"), "i16": ("<h", 2, "<i2"),
-    "u32": ("<I", 4, "<u4"), "i32": ("<i", 4, "<i4"), "u64": ("<Q", 8, "<u8"), "i64": ("<q", 8, "<i8"),
-    "f32": ("<f", 4, "<f4"), "f64": ("<d", 8, "<f8"),
+    "u8": ("B", 1, "u1"),
+    "i8": ("b", 1, "i1"),
+    "u16": ("<H", 2, "<u2"),
+    "i16": ("<h", 2, "<i2"),
+    "u32": ("<I", 4, "<u4"),
+    "i32": ("<i", 4, "<i4"),
+    "u64": ("<Q", 8, "<u8"),
+    "i64": ("<q", 8, "<i8"),
+    "f32": ("<f", 4, "<f4"),
+    "f64": ("<d", 8, "<f8"),
 }
 _PADDING = tuple(b" " * ((8 - n) % 8) for n in range(8))
 _ZEROS = bytes(8)
@@ -69,7 +77,7 @@ class Array:
         self.dtype, self.shape, self.data, self._index = dtype, shape, view, -1
 
     @classmethod
-    def from_numpy(cls, value: Any) -> "Array":
+    def from_numpy(cls, value: Any) -> Array:
         """Wrap a numpy array. Non-contiguous or big-endian input is copied once."""
         kind = value.dtype.kind
         if kind not in "uif":
@@ -96,8 +104,12 @@ class Array:
         return [value for (value,) in struct.iter_unpack(code, self.data)]
 
     def __eq__(self, other: object) -> bool:
-        return (isinstance(other, Array) and self.dtype == other.dtype and self.shape == other.shape
-                and self.data == other.data)
+        return (
+            isinstance(other, Array)
+            and self.dtype == other.dtype
+            and self.shape == other.shape
+            and self.data == other.data
+        )
 
     def __repr__(self) -> str:
         return f"Array({self.dtype!r}, {self.shape!r}, <{len(self.data)} bytes>)"
@@ -132,14 +144,18 @@ def encode(message: dict[str, Any]) -> bytes:
         return {ARRAY_KEY: {"dtype": value.dtype, "shape": list(value.shape), "att": len(found) - 1}}
 
     try:
-        text = json.dumps(message, ensure_ascii=False, allow_nan=False, separators=(",", ":"),
-                          default=default)
+        text = json.dumps(message, ensure_ascii=False, allow_nan=False, separators=(",", ":"), default=default)
         if found:
             if len(found) > MAX_ATTACHMENTS:
                 raise FrameError("too many attachments")
             # The text is one JSON object; append the att member before its closing brace.
-            text = text[:-1] + ("," if len(text) > 2 else "") + '"att":[' + ",".join(
-                str(len(item.data)) for item in found) + "]}"
+            text = (
+                text[:-1]
+                + ("," if len(text) > 2 else "")
+                + '"att":['
+                + ",".join(str(len(item.data)) for item in found)
+                + "]}"
+            )
         payload = text.encode("utf-8")
     except (TypeError, ValueError, UnicodeEncodeError) as error:
         if isinstance(error, FrameError):
@@ -260,7 +276,7 @@ def decode(frame: bytes | bytearray | memoryview, bound: int, *, check_digest: b
     else:
         digest = bytes(view[end:])
     try:
-        text = str(view[HEADER_BYTES:HEADER_BYTES + json_length], "utf-8")
+        text = str(view[HEADER_BYTES : HEADER_BYTES + json_length], "utf-8")
     except UnicodeDecodeError as error:
         raise FrameError("json region is not UTF-8") from error
     if text.startswith("\ufeff"):
@@ -300,7 +316,7 @@ def decode(frame: bytes | bytearray | memoryview, bound: int, *, check_digest: b
     # so a surrogate left in a decoded string comes from an unpaired escape.
     if "\\u" in text and _SURROGATE_ESCAPE.search(text) and _has_surrogate(message):
         raise FrameError("unpaired surrogate")
-    arrays = _bind_arrays(message, arrays_found, view[HEADER_BYTES + json_length:end], attachment_length)
+    arrays = _bind_arrays(message, arrays_found, view[HEADER_BYTES + json_length : end], attachment_length)
     return Decoded(message, arrays, digest.hex(), frame)
 
 
@@ -313,7 +329,7 @@ def _check_decoded(message: dict[str, Any]) -> None:
         item, depth = stack.pop()
         if depth > MAX_DEPTH:
             raise FrameError("nesting depth")
-        for child in (item.values() if type(item) is dict else item):
+        for child in item.values() if type(item) is dict else item:
             kind = type(child)
             if kind is int:
                 if not -MAX_INTEGER <= child <= MAX_INTEGER:
@@ -343,14 +359,18 @@ def _has_surrogate(value: Any) -> bool:
     return False
 
 
-def _bind_arrays(message: dict[str, Any], placeholders: list[Array], region: memoryview,
-                 attachment_length: int) -> list[Array]:
+def _bind_arrays(
+    message: dict[str, Any], placeholders: list[Array], region: memoryview, attachment_length: int
+) -> list[Array]:
     if "att" not in message:
         lengths: list[int] = []
     else:
         lengths = message["att"]
-        if type(lengths) is not list or len(lengths) > MAX_ATTACHMENTS or not all(
-                type(n) is int and n >= 0 for n in lengths):
+        if (
+            type(lengths) is not list
+            or len(lengths) > MAX_ATTACHMENTS
+            or not all(type(n) is int and n >= 0 for n in lengths)
+        ):
             raise FrameError("att")
     if not lengths:
         if attachment_length or placeholders:
@@ -361,7 +381,7 @@ def _bind_arrays(message: dict[str, Any], placeholders: list[Array], region: mem
     for index, length in enumerate(lengths):
         if index and offset % 8:
             pad = 8 - offset % 8
-            if region[offset:offset + pad] != _ZEROS[:pad]:
+            if region[offset : offset + pad] != _ZEROS[:pad]:
                 raise FrameError("nonzero attachment padding")
             offset += pad
         offsets.append(offset)
@@ -375,8 +395,7 @@ def _bind_arrays(message: dict[str, Any], placeholders: list[Array], region: mem
             raise FrameError("array attachment index")
         if type(placeholder.shape) is not list:
             raise FrameError("array shape")
-        real = Array(placeholder.dtype, placeholder.shape,
-                     region[offsets[index]:offsets[index] + lengths[index]])
+        real = Array(placeholder.dtype, placeholder.shape, region[offsets[index] : offsets[index] + lengths[index]])
         placeholder.dtype, placeholder.shape, placeholder.data = real.dtype, real.shape, real.data
         bound[index] = placeholder
     if any(item is None for item in bound):

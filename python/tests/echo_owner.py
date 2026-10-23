@@ -6,6 +6,7 @@ echo_owner.py tcp                              one session per connection; print
 
 --no-digest-check turns off the comparison of request digests (spec section 3, rule 4).
 """
+
 import os
 import struct
 import sys
@@ -14,7 +15,9 @@ import time
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import ncp  # noqa: E402
 
-CONTRACT = ncp.Contract.from_bytes(b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}')
+CONTRACT = ncp.Contract.from_bytes(
+    b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}'
+)
 
 
 def spikes(n):
@@ -54,8 +57,9 @@ class Echo:
 
 
 def make_owner(max_bound=ncp.MAX_BOUND, check_digests=True):
-    return ncp.Owner("echo", CONTRACT.identity, Echo(), CONTRACT.operations, max_bound=max_bound,
-                     check_digests=check_digests)
+    return ncp.Owner(
+        "echo", CONTRACT.identity, Echo(), CONTRACT.operations, max_bound=max_bound, check_digests=check_digests
+    )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 """Run the shared conformance vectors (conformance/vectors.json) against the Python SDK."""
+
 from __future__ import annotations
 
 import json
@@ -52,16 +53,31 @@ def run_scenario(scenario, contract):
         else:
             if "open" in step:
                 spec = step["open"]
-                body = {"application": spec.get("application", "conformance"),
-                        "contract": spec.get("contract", contract.identity), "bound": spec.get("bound")}
+                body = {
+                    "application": spec.get("application", "conformance"),
+                    "contract": spec.get("contract", contract.identity),
+                    "bound": spec.get("bound"),
+                }
                 body.pop(spec.get("omit", ""), None)
             else:
                 body = step.get("body", {})
-            ack = {"last": history[-1] if history else None, "stale": history[-2] if len(history) > 1 else None,
-                   "none": None, "other": "0" * 64}[step["ack"]]
+            ack = {
+                "last": history[-1] if history else None,
+                "stale": history[-2] if len(history) > 1 else None,
+                "none": None,
+                "other": "0" * 64,
+            }[step["ack"]]
             session = VECTORS["session"] if step.get("session") != "other" else str(uuid.uuid4())
-            frame = F.encode({"ncp": step.get("ncp", 2), "session": session, "seq": step["seq"], "op": step["op"],
-                              "ack": ack, "body": body})
+            frame = F.encode(
+                {
+                    "ncp": step.get("ncp", 2),
+                    "session": session,
+                    "seq": step["seq"],
+                    "op": step["op"],
+                    "ack": ack,
+                    "body": body,
+                }
+            )
         response = owner.handle(frame)
         message = F.decode(response, F.MAX_BOUND).message
         observed = [message["outcome"], message["code"]]

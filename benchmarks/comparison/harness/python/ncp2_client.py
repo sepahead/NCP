@@ -6,6 +6,7 @@ ncp2_client.py CALLS WARMUP SPIKES [--no-digest-check] --connect unix:PATH|tcp:H
 Each call sends a small `spikes` request and gets SPIKES spikes back as a u32 and an f64 array
 (or the body {"count": 13} when SPIKES is 0). Prints one JSON line (see common.py).
 """
+
 from __future__ import annotations
 
 import sys
@@ -14,7 +15,8 @@ import ncp
 from common import measure, report
 
 CONTRACT = ncp.Contract.from_bytes(
-    b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}')
+    b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}'
+)
 
 
 def main() -> None:
@@ -34,8 +36,9 @@ def main() -> None:
     else:
         channel, process = ncp.spawn(arguments[4:])
     bound = max(ncp.DEFAULT_BOUND, 1 << (spikes * 12 + 65536 - 1).bit_length())
-    client = ncp.Client(channel, application="echo", contract=CONTRACT.identity, bound=min(bound, ncp.MAX_BOUND),
-                        check_digests=check)
+    client = ncp.Client(
+        channel, application="echo", contract=CONTRACT.identity, bound=min(bound, ncp.MAX_BOUND), check_digests=check
+    )
     client.open()
 
     def call(index: int) -> None:

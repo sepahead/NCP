@@ -2,6 +2,7 @@
 
 Usage: owner.py BINDING_JSON. Serves one generation on the inherited pipes.
 """
+
 from __future__ import annotations
 
 import json
@@ -9,7 +10,6 @@ import os
 import sys
 
 from ncp_local import LocalBinding, LocalOwner, serve_local
-
 from spikes import spikes
 
 

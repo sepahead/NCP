@@ -3,6 +3,7 @@
 http_echo.py server                          (prints "ready HOST:PORT")
 http_echo.py client CALLS WARMUP SPIKES
 """
+
 from __future__ import annotations
 
 import http.client
@@ -45,6 +46,7 @@ def client() -> None:
     connection.connect()
     connection.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     try:
+
         def call(index: int) -> None:
             data = request(index, spikes)
             connection.request("POST", "/echo", body=data, headers={"Content-Type": "application/octet-stream"})

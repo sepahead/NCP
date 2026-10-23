@@ -3,6 +3,7 @@
 zenoh_echo.py server                         (prints "ready tcp/127.0.0.1:PORT")
 zenoh_echo.py client CALLS WARMUP SPIKES
 """
+
 from __future__ import annotations
 
 import os
@@ -11,7 +12,6 @@ import sys
 import time
 
 import zenoh
-
 from common import Responder, check, measure, report, request, start_server, stop_server
 
 KEY = "bench/echo"

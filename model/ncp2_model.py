@@ -34,6 +34,7 @@ The client may also send one invalid body, which the owner must reject without e
 `--self-test` injects each known defect in turn and requires its property to fail.
 Standard library only. Usage: ncp2_model.py [--steps 3] [--faults 2] [--network both]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -94,11 +95,14 @@ def owner_step(owner, request, ghost, may_fail):
     counter += 1
     identity = ("r", seq, counter)
     out = []
-    for fails in ((False, True) if may_fail else (False,)):
+    for fails in (False, True) if may_fail else (False,):
         response = reply("ended", "owner_failure", identity) if fails else reply("ok", None, identity)
         now_ended = ended or fails
-        new_ghost = (executed + ((seq, request, identity, ack),),
-                     ended_at if ended_at is not None else (len(executed) if now_ended else None), faulty)
+        new_ghost = (
+            executed + ((seq, request, identity, ack),),
+            ended_at if ended_at is not None else (len(executed) if now_ended else None),
+            faulty,
+        )
         out.append(((alive, seq, (request, response), now_ended, counter), response, new_ghost, fails))
     return out
 
@@ -116,8 +120,16 @@ def client_receive(client, response, ghost):
     if not matches:
         return client, ghost
     if outcome == "ok":
-        return ("ready", seq, identity, None, accepted + ((seq, outstanding, identity),), rejected, retries,
-                sent_bad), ghost
+        return (
+            "ready",
+            seq,
+            identity,
+            None,
+            accepted + ((seq, outstanding, identity),),
+            rejected,
+            retries,
+            sent_bad,
+        ), ghost
     if outcome == "rejected":
         # Rule 7.6.4: nothing changed at the owner. Return to the last accepted sequence number.
         base = accepted[-1][0] if accepted else 0
@@ -171,14 +183,21 @@ def successors(state, steps, lossy):
 
     def takes(queue):
         if lossy:
-            return [(queue[i], queue[:i] + queue[i + 1:]) for i in range(len(queue))
-                    if i == 0 or queue[i] != queue[i - 1]]
+            return [
+                (queue[i], queue[:i] + queue[i + 1 :]) for i in range(len(queue)) if i == 0 or queue[i] != queue[i - 1]
+            ]
         return [(queue[0], queue[1:])] if queue else []
 
     def send(request, faulty_now=False, bad=sent_bad):
         new_client = ("waiting", request[1], ack, request, accepted, rejected, retries, bad)
-        return (owner, new_client, put(to_owner, request), to_client,
-                (executed, ended_at, faulty or faulty_now), budget - (1 if faulty_now else 0))
+        return (
+            owner,
+            new_client,
+            put(to_owner, request),
+            to_client,
+            (executed, ended_at, faulty or faulty_now),
+            budget - (1 if faulty_now else 0),
+        )
 
     if phase == "ready":
         if seq < steps:
@@ -192,8 +211,9 @@ def successors(state, steps, lossy):
             out.append((owner, ("done",) + client[1:], to_owner, to_client, ghost, budget))
     if phase == "waiting":
         if lossy and retries > 0:
-            out.append((owner, client[:6] + (retries - 1, sent_bad), put(to_owner, outstanding), to_client,
-                        ghost, budget))
+            out.append(
+                (owner, client[:6] + (retries - 1, sent_bad), put(to_owner, outstanding), to_client, ghost, budget)
+            )
         out.append((owner, ("retired",) + client[1:], to_owner, to_client, ghost, budget))
     if alive:
         for frame, rest in takes(to_owner):
@@ -208,12 +228,21 @@ def successors(state, steps, lossy):
                 out.append((new_owner, client, rest, put(to_client, response), new_ghost, budget - (1 if used else 0)))
     for frame, rest in takes(to_client):
         if frame == "x":
-            out.append((owner, client if lossy or phase != "waiting" else ("retired",) + client[1:],
-                        to_owner, rest, ghost, budget))
+            out.append(
+                (
+                    owner,
+                    client if lossy or phase != "waiting" else ("retired",) + client[1:],
+                    to_owner,
+                    rest,
+                    ghost,
+                    budget,
+                )
+            )
             continue
         if frame[4] == "bad_frame":
-            out.append((owner, ("retired",) + client[1:] if phase == "waiting" else client, to_owner, rest,
-                        ghost, budget))
+            out.append(
+                (owner, ("retired",) + client[1:] if phase == "waiting" else client, to_owner, rest, ghost, budget)
+            )
             continue
         if frame[3] == "ended" and phase == "waiting" and budget > 0 and frame[2] == outstanding:
             # Faulty client: treats an ended response as ok and continues.
@@ -226,13 +255,24 @@ def successors(state, steps, lossy):
             for index, frame in enumerate(queue):
                 if frame == "x":
                     continue
-                variants = [queue[:index] + ("x",) + queue[index + 1:]]
+                variants = [queue[:index] + ("x",) + queue[index + 1 :]]
                 if lossy:
-                    variants = [tuple(sorted(variants[0], key=repr)), queue[:index] + queue[index + 1:],
-                                put(queue, frame)]
+                    variants = [
+                        tuple(sorted(variants[0], key=repr)),
+                        queue[:index] + queue[index + 1 :],
+                        put(queue, frame),
+                    ]
                 for changed in variants:
-                    out.append((owner, client, changed if name == "o" else to_owner,
-                                changed if name == "c" else to_client, ghost, budget - 1))
+                    out.append(
+                        (
+                            owner,
+                            client,
+                            changed if name == "o" else to_owner,
+                            changed if name == "c" else to_client,
+                            ghost,
+                            budget - 1,
+                        )
+                    )
         if alive:
             out.append(((False,) + owner[1:], client, (), to_client, ghost, budget - 1))
         if phase in ("ready", "waiting"):
@@ -244,8 +284,7 @@ def explore(steps, faults, network, limit=20_000_000, stop_on=None):
     lossy = network == "message"
     open_request = ("q", 0, 0, None)
     kept = (open_request, ("p", 0, open_request, "ok", None, OPEN))
-    start = ((True, 0, kept, False, 0), ("ready", 0, OPEN, None, (), (), 2, False), (), (), ((), None, False),
-             faults)
+    start = ((True, 0, kept, False, 0), ("ready", 0, OPEN, None, (), (), 2, False), (), (), ((), None, False), faults)
     seen = {start}
     queue = deque([start])
     violations: dict[str, int] = {}
@@ -265,8 +304,14 @@ def explore(steps, faults, network, limit=20_000_000, stop_on=None):
                     raise RuntimeError("state limit reached")
                 seen.add(nxt)
                 queue.append(nxt)
-    return {"network": network, "steps": steps, "faults": faults, "states": len(seen),
-            "completed": completed, "violations": sorted(violations)}
+    return {
+        "network": network,
+        "steps": steps,
+        "faults": faults,
+        "states": len(seen),
+        "completed": completed,
+        "violations": sorted(violations),
+    }
 
 
 def main() -> int:
@@ -285,8 +330,10 @@ def main() -> int:
         result = explore(args.steps, args.faults, network)
         result["seconds"] = round(time.monotonic() - started, 2)
         report["runs"].append(result)
-        print(f"{network:8s} steps={args.steps} faults={args.faults} states={result['states']:>9} "
-              f"completed={result['completed']:>7} violations={result['violations']} ({result['seconds']} s)")
+        print(
+            f"{network:8s} steps={args.steps} faults={args.faults} states={result['states']:>9} "
+            f"completed={result['completed']:>7} violations={result['violations']} ({result['seconds']} s)"
+        )
         if result["violations"] or not result["completed"]:
             status = 1
     if args.self_test:
@@ -301,8 +348,9 @@ def main() -> int:
             caught = expected in found
             status |= 0 if caught else 1
             print(f"mutant {mutant:30s} must fail {expected}: {'caught' if caught else 'MISSED'} {sorted(found)}")
-            report["self_test"].append({"mutant": mutant, "expected": expected, "found": sorted(found),
-                                        "caught": caught})
+            report["self_test"].append(
+                {"mutant": mutant, "expected": expected, "found": sorted(found), "caught": caught}
+            )
         ACTIVE.clear()
     if args.json:
         with open(args.json, "w") as handle:

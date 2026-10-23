@@ -9,6 +9,7 @@ schedule (schedule.json): three blocks, each with every configuration once, in a
 with a fixed seed. Each finished run is appended to runs.jsonl and synced to disk, so a lost
 session loses at most the run in progress; a later call skips recorded runs. Needs cargo.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -36,7 +37,7 @@ SMOKE_CALLS = (100, 10)
 
 
 def now() -> str:
-    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    return dt.datetime.now(dt.UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 def out(command: list[str], **kwargs) -> str:
@@ -63,9 +64,12 @@ def build(work: Path, ncp1: Path) -> dict[str, Path]:
     shutil.copy(HERE / "harness" / "ncp1" / "rust" / "Cargo.lock", v1 / "Cargo.lock")
     cargo_build(v1 / "Cargo.toml", work / "ncp1-target")
     examples = work / "ncp2-target" / "release" / "examples"
-    return {"bench_client": examples / "bench_client", "echo_owner": examples / "echo_owner",
-            "harness": work / "harness-target" / "release" / "ncp-comparison-bench",
-            "ncp1": work / "ncp1-target" / "release" / "ncp-local-exchange-bench"}
+    return {
+        "bench_client": examples / "bench_client",
+        "echo_owner": examples / "echo_owner",
+        "harness": work / "harness-target" / "release" / "ncp-comparison-bench",
+        "ncp1": work / "ncp1-target" / "release" / "ncp-local-exchange-bench",
+    }
 
 
 def configurations(python: str, binaries: dict[str, Path]) -> dict[str, dict]:
@@ -83,30 +87,64 @@ def configurations(python: str, binaries: dict[str, Path]) -> dict[str, dict]:
     configs: dict[str, dict] = {}
 
     def add(name: str, spikes: int, client: list[str], server: list[str] | None = None, family: str = "") -> None:
-        configs[f"{name}-n{spikes}"] = {"arm": name, "spikes": spikes, "client": client, "server": server,
-                                        "family": family}
+        configs[f"{name}-n{spikes}"] = {
+            "arm": name,
+            "spikes": spikes,
+            "client": client,
+            "server": server,
+            "family": family,
+        }
 
     for n in SPIKES:
         args = ["{calls}", "{warmup}", str(n)]
         add("ncp2-rust-rust-pipe", n, rust_client + args + ["--"] + rust_owner, family="ncp2")
-        add("ncp2-rust-rust-unix", n, rust_client + args + ["--connect", "{address}"],
-            rust_owner + ["unix", "{socket}"], family="ncp2")
-        add("ncp2-rust-rust-tcp", n, rust_client + args + ["--connect", "{address}"], rust_owner + ["tcp"],
-            family="ncp2")
+        add(
+            "ncp2-rust-rust-unix",
+            n,
+            rust_client + args + ["--connect", "{address}"],
+            rust_owner + ["unix", "{socket}"],
+            family="ncp2",
+        )
+        add(
+            "ncp2-rust-rust-tcp",
+            n,
+            rust_client + args + ["--connect", "{address}"],
+            rust_owner + ["tcp"],
+            family="ncp2",
+        )
         add("ncp2-rust-python-pipe", n, rust_client + args + ["--"] + py_owner, family="ncp2")
         add("ncp2-python-rust-pipe", n, py_client + args + ["--"] + rust_owner, family="ncp2")
         add("ncp2-python-python-pipe", n, py_client + args + ["--"] + py_owner, family="ncp2")
-        add("ncp2-python-python-unix", n, py_client + args + ["--connect", "{address}"],
-            py_owner + ["unix", "{socket}"], family="ncp2")
-        add("ncp2-python-python-tcp", n, py_client + args + ["--connect", "{address}"], py_owner + ["tcp"],
-            family="ncp2")
+        add(
+            "ncp2-python-python-unix",
+            n,
+            py_client + args + ["--connect", "{address}"],
+            py_owner + ["unix", "{socket}"],
+            family="ncp2",
+        )
+        add(
+            "ncp2-python-python-tcp",
+            n,
+            py_client + args + ["--connect", "{address}"],
+            py_owner + ["tcp"],
+            family="ncp2",
+        )
         add("raw-rust-pipe", n, [bench, "raw-client"] + args + ["--", bench, "raw-server"], family="floor")
-        add("raw-python-pipe", n, py + [str(harness / "raw_pipe.py"), "client"] + args
-            + ["--"] + py + [str(harness / "raw_pipe.py"), "server"], family="floor")
-        add("grpc-rust-tcp", n, [bench, "grpc-client"] + args + ["{address}"], [bench, "grpc-server"],
-            family="other")
-        add("zenoh-rust-tcp", n, [bench, "zenoh-client"] + args + ["{address}"], [bench, "zenoh-server"],
-            family="other")
+        add(
+            "raw-python-pipe",
+            n,
+            py
+            + [str(harness / "raw_pipe.py"), "client"]
+            + args
+            + ["--"]
+            + py
+            + [str(harness / "raw_pipe.py"), "server"],
+            family="floor",
+        )
+        add("grpc-rust-tcp", n, [bench, "grpc-client"] + args + ["{address}"], [bench, "grpc-server"], family="other")
+        add(
+            "zenoh-rust-tcp", n, [bench, "zenoh-client"] + args + ["{address}"], [bench, "zenoh-server"], family="other"
+        )
         for kind in ("unix", "tcp"):
             add(f"grpc-python-{kind}", n, py + [str(harness / "grpc_echo.py"), "client", kind] + args, family="other")
         for kind in ("ipc", "tcp"):
@@ -124,9 +162,16 @@ def configurations(python: str, binaries: dict[str, Path]) -> dict[str, dict]:
 
 def environment(ncp1: Path) -> dict:
     return {
-        "PYTHONPATH": os.pathsep.join([str(ROOT / "python"), str(HERE / "harness" / "python"),
-                                       str(ncp1 / "local" / "python"), str(HERE / "harness" / "ncp1" / "python")]),
-        "PYTHONDONTWRITEBYTECODE": "1", "PYTHONUNBUFFERED": "1",
+        "PYTHONPATH": os.pathsep.join(
+            [
+                str(ROOT / "python"),
+                str(HERE / "harness" / "python"),
+                str(ncp1 / "local" / "python"),
+                str(HERE / "harness" / "ncp1" / "python"),
+            ]
+        ),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONUNBUFFERED": "1",
     }
 
 
@@ -169,23 +214,53 @@ def validity(python: str, binaries: dict[str, Path], configs: dict[str, dict], e
     conformance = ROOT / "conformance"
     socket_directory = tempfile.mkdtemp(prefix="ncpv", dir="/tmp")
     checks = [
-        ("rust_tests", ["cargo", "test", "--release", "--locked", "--quiet", "--manifest-path",
-                        str(ROOT / "rust" / "Cargo.toml")], {"CARGO_TARGET_DIR": str(binaries["echo_owner"].parents[2])}),
-        ("python_tests", [python, "-s", str(ROOT / "python" / "tests" / "test_ncp.py")],
-         {"NCP_RUST_EXAMPLES": str(binaries["echo_owner"].parent)}),
+        (
+            "rust_tests",
+            ["cargo", "test", "--release", "--locked", "--quiet", "--manifest-path", str(ROOT / "rust" / "Cargo.toml")],
+            {"CARGO_TARGET_DIR": str(binaries["echo_owner"].parents[2])},
+        ),
+        (
+            "python_tests",
+            [python, "-s", str(ROOT / "python" / "tests" / "test_ncp.py")],
+            {"NCP_RUST_EXAMPLES": str(binaries["echo_owner"].parent)},
+        ),
         ("python_conformance_vectors", [python, "-s", str(ROOT / "python" / "tests" / "test_conformance.py")], {}),
         ("model_conformance_python_owner", [python, "-s", str(model / "conformance.py"), "--traces", "20000"], {}),
-        ("model_conformance_rust_owner", [python, "-s", str(model / "conformance.py"), "--traces", "20000",
-                                          "--owner", str(binaries["echo_owner"].parent / "model_owner"),
-                                          f"{socket_directory}/m"], {}),
-        ("differential_fuzzing", [python, "-s", str(conformance / "fuzz.py"), "--decoder",
-                                  str(binaries["echo_owner"].parent / "decode_corpus"), "--cases", "200000"], {}),
+        (
+            "model_conformance_rust_owner",
+            [
+                python,
+                "-s",
+                str(model / "conformance.py"),
+                "--traces",
+                "20000",
+                "--owner",
+                str(binaries["echo_owner"].parent / "model_owner"),
+                f"{socket_directory}/m",
+            ],
+            {},
+        ),
+        (
+            "differential_fuzzing",
+            [
+                python,
+                "-s",
+                str(conformance / "fuzz.py"),
+                "--decoder",
+                str(binaries["echo_owner"].parent / "decode_corpus"),
+                "--cases",
+                "200000",
+            ],
+            {},
+        ),
     ]
     try:
         for name, command, extra in checks:
             process = subprocess.run(command, capture_output=True, text=True, env=dict(os.environ, **env, **extra))
-            record[name] = {"returncode": process.returncode,
-                            "tail": (process.stdout + process.stderr).strip().splitlines()[-3:]}
+            record[name] = {
+                "returncode": process.returncode,
+                "tail": (process.stdout + process.stderr).strip().splitlines()[-3:],
+            }
     finally:
         shutil.rmtree(socket_directory, ignore_errors=True)
     smoke = {}
@@ -205,19 +280,25 @@ def describe_environment(python: str, ncp1: Path) -> dict:
 
     lock_digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()  # noqa: E731
     return {
-        "computer": safe(["sysctl", "-n", "hw.model"]), "chip": safe(["sysctl", "-n", "machdep.cpu.brand_string"]),
-        "cores": safe(["sysctl", "-n", "hw.ncpu"]), "memory_bytes": safe(["sysctl", "-n", "hw.memsize"]),
-        "os": safe(["sw_vers", "-productVersion"]), "kernel": platform.release(),
+        "computer": safe(["sysctl", "-n", "hw.model"]),
+        "chip": safe(["sysctl", "-n", "machdep.cpu.brand_string"]),
+        "cores": safe(["sysctl", "-n", "hw.ncpu"]),
+        "memory_bytes": safe(["sysctl", "-n", "hw.memsize"]),
+        "os": safe(["sw_vers", "-productVersion"]),
+        "kernel": platform.release(),
         "power": safe(["pmset", "-g", "batt"]).splitlines()[0] if safe(["pmset", "-g", "batt"]) else "unavailable",
-        "rustc": safe(["rustc", "--version"]), "cargo": safe(["cargo", "--version"]),
+        "rustc": safe(["rustc", "--version"]),
+        "cargo": safe(["cargo", "--version"]),
         "python": safe([python, "-c", "import sys; print(sys.version.split()[0])"]),
         "python_packages": safe([python, "-m", "pip", "freeze"]).splitlines(),
         "ncp2_commit": safe(["git", "-C", str(ROOT), "rev-parse", "HEAD"]),
         "ncp2_worktree_clean": safe(["git", "-C", str(ROOT), "status", "--porcelain"]) == "",
         "ncp1_commit": safe(["git", "-C", str(ncp1), "rev-parse", "HEAD"]),
-        "cargo_lock_sha256": {"ncp2": lock_digest(ROOT / "rust" / "Cargo.lock"),
-                              "harness": lock_digest(HERE / "harness" / "rust" / "Cargo.lock"),
-                              "ncp1_harness": lock_digest(HERE / "harness" / "ncp1" / "rust" / "Cargo.lock")},
+        "cargo_lock_sha256": {
+            "ncp2": lock_digest(ROOT / "rust" / "Cargo.lock"),
+            "harness": lock_digest(HERE / "harness" / "rust" / "Cargo.lock"),
+            "ncp1_harness": lock_digest(HERE / "harness" / "ncp1" / "rust" / "Cargo.lock"),
+        },
     }
 
 
@@ -249,9 +330,15 @@ def main() -> None:
             names = sorted(configs)
             rng.shuffle(names)
             order += [{"block": block, "config": name} for name in names]
-        schedule = {"protocol_sha256": hashlib.sha256((HERE / "PROTOCOL.md").read_bytes()).hexdigest(),
-                    "seed": SEED, "blocks": blocks, "smoke": args.smoke, "calls": {str(k): v for k, v in CALLS.items()},
-                    "created_utc": now(), "order": order}
+        schedule = {
+            "protocol_sha256": hashlib.sha256((HERE / "PROTOCOL.md").read_bytes()).hexdigest(),
+            "seed": SEED,
+            "blocks": blocks,
+            "smoke": args.smoke,
+            "calls": {str(k): v for k, v in CALLS.items()},
+            "created_utc": now(),
+            "order": order,
+        }
         schedule_path.write_text(json.dumps(schedule, indent=1) + "\n")
     schedule = json.loads(schedule_path.read_text())
     runs_path = args.results / "runs.jsonl"
@@ -267,8 +354,11 @@ def main() -> None:
                     failed_once.add(key)
     # A failed run is repeated once, after all scheduled runs (PROTOCOL.md, exclusions).
     queue = deque(entry for entry in schedule["order"] if (entry["block"], entry["config"]) not in done | failed_once)
-    retries = deque(dict(entry, retry=True) for entry in schedule["order"]
-                    if (entry["block"], entry["config"]) in failed_once - done)
+    retries = deque(
+        dict(entry, retry=True)
+        for entry in schedule["order"]
+        if (entry["block"], entry["config"]) in failed_once - done
+    )
     full_env = dict(os.environ, **env)
     while queue or retries:
         entry = queue.popleft() if queue else retries.popleft()
@@ -277,10 +367,22 @@ def main() -> None:
         load = os.getloadavg()
         started = now()
         code, result, tail = run_one(config, calls, warmup, full_env)
-        row = {"block": entry["block"], "config": entry["config"], "arm": config["arm"], "family": config["family"],
-               "spikes": config["spikes"], "returncode": code, "retry": bool(entry.get("retry")),
-               "load1_before": round(load[0], 2), "load5_before": round(load[1], 2), "started_utc": started,
-               "finished_utc": now(), "load1_after": round(os.getloadavg()[0], 2), "stderr_tail": tail, **result}
+        row = {
+            "block": entry["block"],
+            "config": entry["config"],
+            "arm": config["arm"],
+            "family": config["family"],
+            "spikes": config["spikes"],
+            "returncode": code,
+            "retry": bool(entry.get("retry")),
+            "load1_before": round(load[0], 2),
+            "load5_before": round(load[1], 2),
+            "started_utc": started,
+            "finished_utc": now(),
+            "load1_after": round(os.getloadavg()[0], 2),
+            "stderr_tail": tail,
+            **result,
+        }
         with runs_path.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
             handle.flush()

@@ -3,14 +3,16 @@
 A complete, verified transcript proves which frames the recorder sent and received, and in
 which order. It does not prove who produced them.
 """
+
 from __future__ import annotations
 
 import os
 import struct
 import threading
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import BinaryIO, Iterator
+from typing import BinaryIO
 
 from . import frame as F
 from .exchange import check_request, check_response
@@ -142,4 +144,3 @@ def verify(path: str | os.PathLike[str]) -> dict[str, SessionReport]:
     for session, (seq, _, _) in pending.items():
         sessions[session].problems.append(f"seq {seq}: no response")
     return sessions
-

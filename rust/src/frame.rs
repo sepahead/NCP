@@ -123,7 +123,11 @@ macro_rules! from_slice {
             for value in values {
                 data.extend_from_slice(&value.to_le_bytes());
             }
-            Array { dtype: $dtype, shape: vec![values.len() as u64], data }
+            Array {
+                dtype: $dtype,
+                shape: vec![values.len() as u64],
+                data,
+            }
         }
     };
 }
@@ -248,21 +252,33 @@ pub fn encode(message: &Value, arrays: &[Array]) -> Result<Vec<u8>, FrameError> 
 /// 2^53 - 1 and at most MAX_DEPTH levels of nesting.
 fn check_tree(value: &Value, depth: usize) -> Result<(), FrameError> {
     // Only objects and arrays count as levels, as in the decoder's scan.
-    let too_deep = || if depth > MAX_DEPTH { bad("nesting depth") } else { Ok(()) };
+    let too_deep = || {
+        if depth > MAX_DEPTH {
+            bad("nesting depth")
+        } else {
+            Ok(())
+        }
+    };
     match value {
         Value::Number(number) => {
-            let magnitude = number.as_u64().or_else(|| number.as_i64().map(i64::unsigned_abs));
+            let magnitude = number
+                .as_u64()
+                .or_else(|| number.as_i64().map(i64::unsigned_abs));
             if magnitude.is_some_and(|m| m > MAX_INTEGER) {
                 return bad("integer magnitude");
             }
         }
         Value::Array(items) => {
             too_deep()?;
-            items.iter().try_for_each(|item| check_tree(item, depth + 1))?;
+            items
+                .iter()
+                .try_for_each(|item| check_tree(item, depth + 1))?;
         }
         Value::Object(object) => {
             too_deep()?;
-            object.values().try_for_each(|item| check_tree(item, depth + 1))?;
+            object
+                .values()
+                .try_for_each(|item| check_tree(item, depth + 1))?;
         }
         _ => {}
     }
@@ -278,12 +294,17 @@ fn check_references(message: &Value, arrays: &[Array]) -> Result<(), FrameError>
     }
     let mut used = vec![false; arrays.len()];
     for (dtype, shape, index) in references {
-        let array = arrays.get(index).ok_or_else(|| FrameError("array reference index".into()))?;
+        let array = arrays
+            .get(index)
+            .ok_or_else(|| FrameError("array reference index".into()))?;
         if used[index] {
             return bad("each array needs exactly one reference in the message");
         }
         used[index] = true;
-        let count = shape.iter().try_fold(1u64, |acc, &n| acc.checked_mul(n)).and_then(|c| c.checked_mul(dtype.size() as u64));
+        let count = shape
+            .iter()
+            .try_fold(1u64, |acc, &n| acc.checked_mul(n))
+            .and_then(|c| c.checked_mul(dtype.size() as u64));
         if dtype != array.dtype || shape != array.shape || count != Some(array.data.len() as u64) {
             return bad("array reference differs from the array");
         }
@@ -300,8 +321,9 @@ pub fn remaining_length(header: &[u8], bound: usize) -> Result<usize, FrameError
         return bad("magic");
     }
     let json_length = u32::from_be_bytes([header[4], header[5], header[6], header[7]]) as usize;
-    let attachment_length = u32::from_be_bytes([header[8], header[9], header[10], header[11]]) as usize;
-    if json_length < 2 || (HEADER_BYTES + json_length) % 8 != 0 {
+    let attachment_length =
+        u32::from_be_bytes([header[8], header[9], header[10], header[11]]) as usize;
+    if json_length < 2 || !(HEADER_BYTES + json_length).is_multiple_of(8) {
         return bad("json region length");
     }
     if HEADER_BYTES + DIGEST_BYTES + json_length + attachment_length > bound {
@@ -360,7 +382,9 @@ macro_rules! to_vec {
 impl Decoded {
     /// The little-endian bytes of array `index`, without a copy.
     pub fn array_bytes(&self, index: usize) -> Option<&[u8]> {
-        self.arrays.get(index).map(|array| &self.frame[array.start..array.end])
+        self.arrays
+            .get(index)
+            .map(|array| &self.frame[array.start..array.end])
     }
 
     to_vec!(array_u8, u8, Dtype::U8);
@@ -378,7 +402,11 @@ impl Decoded {
     pub fn owned_arrays(&self) -> Vec<Array> {
         self.arrays
             .iter()
-            .map(|a| Array { dtype: a.dtype, shape: a.shape.clone(), data: self.frame[a.start..a.end].to_vec() })
+            .map(|a| Array {
+                dtype: a.dtype,
+                shape: a.shape.clone(),
+                data: self.frame[a.start..a.end].to_vec(),
+            })
             .collect()
     }
 }
@@ -391,7 +419,11 @@ pub fn decode(frame: Vec<u8>, bound: usize) -> Result<Decoded, FrameError> {
 /// As [`decode`]. With `check_digest` false, the digest field is not compared with the frame
 /// bytes, and the identity is the digest field as received. Use it only on a pipe pair or a
 /// Unix domain socket with no other program between the two endpoints (spec section 3, rule 4).
-pub fn decode_with(frame: Vec<u8>, bound: usize, check_digest: bool) -> Result<Decoded, FrameError> {
+pub fn decode_with(
+    frame: Vec<u8>,
+    bound: usize,
+    check_digest: bool,
+) -> Result<Decoded, FrameError> {
     let frame = Arc::new(frame);
     let rest = remaining_length(&frame, bound)?;
     if frame.len() != HEADER_BYTES + rest {
@@ -406,13 +438,27 @@ pub fn decode_with(frame: Vec<u8>, bound: usize, check_digest: bool) -> Result<D
     let json = &frame[HEADER_BYTES..HEADER_BYTES + json_length];
     scan(json)?;
     let mut deserializer = serde_json::Deserializer::from_slice(json);
-    let message = StrictSeed.deserialize(&mut deserializer).map_err(|e| FrameError(format!("json: {e}")))?;
-    deserializer.end().map_err(|e| FrameError(format!("json: {e}")))?;
+    let message = StrictSeed
+        .deserialize(&mut deserializer)
+        .map_err(|e| FrameError(format!("json: {e}")))?;
+    deserializer
+        .end()
+        .map_err(|e| FrameError(format!("json: {e}")))?;
     if !message.is_object() {
         return bad("json value is not an object");
     }
-    let arrays = bind_arrays(&message, HEADER_BYTES + json_length, attachment_length, &frame)?;
-    Ok(Decoded { message, arrays, identity: hex(&frame[end..]), frame })
+    let arrays = bind_arrays(
+        &message,
+        HEADER_BYTES + json_length,
+        attachment_length,
+        &frame,
+    )?;
+    Ok(Decoded {
+        message,
+        arrays,
+        identity: hex(&frame[end..]),
+        frame,
+    })
 }
 
 /// One pass over the JSON text outside strings: integer literals within 2^53 - 1, nesting depth
@@ -446,7 +492,9 @@ fn scan(json: &[u8]) -> Result<(), FrameError> {
             }
             b'-' | b'0'..=b'9' => {
                 let start = index;
-                while index < json.len() && matches!(json[index], b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9') {
+                while index < json.len()
+                    && matches!(json[index], b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9')
+                {
                     index += 1;
                 }
                 let token = &json[start..index];
@@ -507,7 +555,9 @@ impl<'de> Visitor<'de> for StrictVisitor {
         Ok(Value::from(v))
     }
     fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<Value, E> {
-        Number::from_f64(v).map(Value::Number).ok_or_else(|| E::custom("number outside the binary64 range"))
+        Number::from_f64(v)
+            .map(Value::Number)
+            .ok_or_else(|| E::custom("number outside the binary64 range"))
     }
     fn visit_str<E>(self, v: &str) -> Result<Value, E> {
         Ok(Value::String(v.to_owned()))
@@ -538,7 +588,12 @@ impl<'de> Visitor<'de> for StrictVisitor {
     }
 }
 
-fn bind_arrays(message: &Value, region_start: usize, attachment_length: usize, frame: &[u8]) -> Result<Vec<ArrayRef>, FrameError> {
+fn bind_arrays(
+    message: &Value,
+    region_start: usize,
+    attachment_length: usize,
+    frame: &[u8],
+) -> Result<Vec<ArrayRef>, FrameError> {
     let mut references = Vec::new();
     collect_references(message, &mut references)?;
     let lengths: Vec<usize> = match message.get("att") {
@@ -567,15 +622,21 @@ fn bind_arrays(message: &Value, region_start: usize, attachment_length: usize, f
     let mut offsets = Vec::with_capacity(lengths.len());
     let mut offset = 0usize;
     for (index, length) in lengths.iter().enumerate() {
-        if index > 0 && offset % 8 != 0 {
+        if index > 0 && !offset.is_multiple_of(8) {
             let padded = offset.next_multiple_of(8);
-            if padded > attachment_length || frame[region_start + offset..region_start + padded].iter().any(|&b| b != 0) {
+            if padded > attachment_length
+                || frame[region_start + offset..region_start + padded]
+                    .iter()
+                    .any(|&b| b != 0)
+            {
                 return bad("nonzero attachment padding");
             }
             offset = padded;
         }
         offsets.push(offset);
-        offset = offset.checked_add(*length).ok_or_else(|| FrameError("att".into()))?;
+        offset = offset
+            .checked_add(*length)
+            .ok_or_else(|| FrameError("att".into()))?;
     }
     if offset != attachment_length {
         return bad("attachment region length");
@@ -593,12 +654,23 @@ fn bind_arrays(message: &Value, region_start: usize, attachment_length: usize, f
             return bad("array length differs from shape and dtype");
         }
         let start = region_start + offsets[index];
-        arrays[index] = Some(ArrayRef { dtype, shape, start, end: start + lengths[index] });
+        arrays[index] = Some(ArrayRef {
+            dtype,
+            shape,
+            start,
+            end: start + lengths[index],
+        });
     }
-    arrays.into_iter().map(|a| a.ok_or_else(|| FrameError("attachment without array".into()))).collect()
+    arrays
+        .into_iter()
+        .map(|a| a.ok_or_else(|| FrameError("attachment without array".into())))
+        .collect()
 }
 
-fn collect_references(value: &Value, out: &mut Vec<(Dtype, Vec<u64>, usize)>) -> Result<(), FrameError> {
+fn collect_references(
+    value: &Value,
+    out: &mut Vec<(Dtype, Vec<u64>, usize)>,
+) -> Result<(), FrameError> {
     match value {
         Value::Object(object) => {
             if let Some(spec) = object.get(ARRAY_KEY) {
@@ -609,13 +681,27 @@ fn collect_references(value: &Value, out: &mut Vec<(Dtype, Vec<u64>, usize)>) ->
                     Value::Object(spec) if spec.len() == 3 => spec,
                     _ => return bad("array members"),
                 };
-                let dtype = spec.get("dtype").and_then(Value::as_str).and_then(Dtype::parse);
-                let shape = spec.get("shape").and_then(Value::as_array).and_then(|items| {
-                    items.iter().map(|n| if n.is_u64() { n.as_u64() } else { None }).collect::<Option<Vec<u64>>>()
-                });
-                let index = spec.get("att").filter(|n| n.is_u64()).and_then(Value::as_u64);
+                let dtype = spec
+                    .get("dtype")
+                    .and_then(Value::as_str)
+                    .and_then(Dtype::parse);
+                let shape = spec
+                    .get("shape")
+                    .and_then(Value::as_array)
+                    .and_then(|items| {
+                        items
+                            .iter()
+                            .map(|n| if n.is_u64() { n.as_u64() } else { None })
+                            .collect::<Option<Vec<u64>>>()
+                    });
+                let index = spec
+                    .get("att")
+                    .filter(|n| n.is_u64())
+                    .and_then(Value::as_u64);
                 match (dtype, shape, index) {
-                    (Some(dtype), Some(shape), Some(index)) => out.push((dtype, shape, index as usize)),
+                    (Some(dtype), Some(shape), Some(index)) => {
+                        out.push((dtype, shape, index as usize))
+                    }
                     (None, _, _) => return bad("array dtype"),
                     _ => return bad("array members"),
                 }

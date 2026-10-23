@@ -1,16 +1,15 @@
 """Tests of the Python reference SDK against the rules of spec/NCP-2.md."""
+
 from __future__ import annotations
 
 import array
 import hashlib
-import json
 import os
 import socket
 import struct
 import sys
 import tempfile
 import threading
-import time
 import unittest
 import uuid
 
@@ -19,9 +18,9 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 
 import ncp  # noqa: E402
+from echo_owner import CONTRACT, Echo, make_owner  # noqa: E402
 from ncp import frame as F  # noqa: E402
 from ncp.exchange import bad_frame_response, check_response  # noqa: E402
-from echo_owner import CONTRACT, Echo, make_owner  # noqa: E402
 
 OTHER = "0" * 64
 
@@ -37,8 +36,9 @@ def request(session: str, seq: int, op: str, ack: str | None, body=None, ncp_ver
     return F.encode({"ncp": ncp_version, "session": session, "seq": seq, "op": op, "ack": ack, "body": body})
 
 
-def open_request(session: str, contract: str = CONTRACT.identity, bound: int = F.DEFAULT_BOUND,
-                 application: str = "echo") -> bytes:
+def open_request(
+    session: str, contract: str = CONTRACT.identity, bound: int = F.DEFAULT_BOUND, application: str = "echo"
+) -> bytes:
     return request(session, 0, "open", None, {"application": application, "contract": contract, "bound": bound})
 
 
@@ -51,9 +51,17 @@ def response_of(frame: bytes) -> dict:
 class FrameTests(unittest.TestCase):
     def test_round_trip_and_alignment(self) -> None:
         values = array.array("d", [0.5, -2.25, 1e300])
-        frame = F.encode({"body": {"a": 1, "b": [1.5, None, True, "é"],
-                                   "v": F.Array("f64", [3], values.tobytes()),
-                                   "w": F.Array("u8", [1], b"\x07"), "x": F.Array("i16", [2, 1], b"\x01\x00\xff\xff")}})
+        frame = F.encode(
+            {
+                "body": {
+                    "a": 1,
+                    "b": [1.5, None, True, "é"],
+                    "v": F.Array("f64", [3], values.tobytes()),
+                    "w": F.Array("u8", [1], b"\x07"),
+                    "x": F.Array("i16", [2, 1], b"\x01\x00\xff\xff"),
+                }
+            }
+        )
         _, json_length, attachment_length = F.HEADER.unpack_from(frame)
         self.assertEqual((12 + json_length) % 8, 0)
         decoded = F.decode(frame, F.HANDSHAKE_BOUND)
@@ -69,8 +77,16 @@ class FrameTests(unittest.TestCase):
 
     def test_encoder_refuses_frames_that_receivers_must_reject(self) -> None:
         F.encode({"n": 2**53 - 1, "m": -(2**53 - 1), "t": True})
-        for message in ({"n": 2**53}, {"n": -(2**53)}, {"n": [1, {"m": 2**64}]}, {1: "a"},
-                        {"a": {None: 1}}, {"a": "\ud83d"}, {"x": float("nan")}, {"x": b"bytes"}):
+        for message in (
+            {"n": 2**53},
+            {"n": -(2**53)},
+            {"n": [1, {"m": 2**64}]},
+            {1: "a"},
+            {"a": {None: 1}},
+            {"a": "\ud83d"},
+            {"x": float("nan")},
+            {"x": b"bytes"},
+        ):
             with self.subTest(message=repr(message)), self.assertRaises(F.FrameError):
                 F.encode(message)
         deep: object = 1
@@ -94,8 +110,17 @@ class FrameTests(unittest.TestCase):
             import numpy
         except ImportError:
             self.skipTest("numpy is not installed")
-        decoded = F.decode(F.encode({"s": numpy.int64(7), "f": numpy.float32(0.5), "b": numpy.bool_(True),
-                                     "v": numpy.arange(6, dtype=numpy.int16).reshape(2, 3)}), F.HANDSHAKE_BOUND)
+        decoded = F.decode(
+            F.encode(
+                {
+                    "s": numpy.int64(7),
+                    "f": numpy.float32(0.5),
+                    "b": numpy.bool_(True),
+                    "v": numpy.arange(6, dtype=numpy.int16).reshape(2, 3),
+                }
+            ),
+            F.HANDSHAKE_BOUND,
+        )
         message = decoded.message
         self.assertEqual((message["s"], message["f"], message["b"]), (7, 0.5, True))
         self.assertIs(type(message["s"]), int)
@@ -127,12 +152,12 @@ class FrameTests(unittest.TestCase):
         _, json_length, _ = F.HEADER.unpack_from(frame)
         start = 12 + json_length
         self.assertEqual(start % 8, 0)
-        self.assertEqual(frame[start:start + 3], b"abc")
-        self.assertEqual(frame[start + 3:start + 8], bytes(5))
-        self.assertEqual(frame[start + 8:start + 16], struct.pack("<d", 2.0))
+        self.assertEqual(frame[start : start + 3], b"abc")
+        self.assertEqual(frame[start + 3 : start + 8], bytes(5))
+        self.assertEqual(frame[start + 8 : start + 16], struct.pack("<d", 2.0))
 
     def test_every_dtype(self) -> None:
-        for dtype, (code, size, _) in F.DTYPES.items():
+        for dtype, (_, size, _) in F.DTYPES.items():
             data = bytes(range(size * 2))
             array_value = F.Array(dtype, [2], data)
             decoded = F.decode(F.encode({"v": array_value}), F.HANDSHAKE_BOUND)
@@ -152,7 +177,7 @@ class FrameTests(unittest.TestCase):
         cases = {
             "digest": good[:-1] + bytes([good[-1] ^ 1]),
             "magic": b"NCP\x01" + good[4:],
-            "json alignment": F.HEADER.pack(F.MAGIC, 3, 0) + b'{} ' + bytes(32),
+            "json alignment": F.HEADER.pack(F.MAGIC, 3, 0) + b"{} " + bytes(32),
             "length": good + b"x",
             "duplicate": raw_frame(b'{"a":1,"a":1}'),
             "integer": raw_frame(b'{"a":-9007199254740992}'),
@@ -162,26 +187,34 @@ class FrameTests(unittest.TestCase):
             "unpaired low": raw_frame(b'{"a":"\\ude00"}'),
             "bom": raw_frame(b'\xef\xbb\xbf{"a":1}'),
             "utf16": raw_frame('{"a":1}'.encode("utf-16-le")),
-            "not object": raw_frame(b'[1,2]'),
-            "depth": raw_frame(b'{"a":' + b'[' * 64 + b']' * 64 + b'}'),
+            "not object": raw_frame(b"[1,2]"),
+            "depth": raw_frame(b'{"a":' + b"[" * 64 + b"]" * 64 + b"}"),
             "att without attachments": raw_frame(b'{"att":[4],"v":{"ncp.array":{"dtype":"u8","shape":[4],"att":0}}}'),
             "attachments without att": raw_frame(b'{"a":1}', b"abcd"),
             "attachment without array": raw_frame(b'{"att":[4]}', b"abcd"),
             "array without attachment": raw_frame(b'{"v":{"ncp.array":{"dtype":"u8","shape":[4],"att":0}}}'),
             "shape mismatch": raw_frame(b'{"att":[4],"v":{"ncp.array":{"dtype":"u16","shape":[4],"att":0}}}', b"abcd"),
             "unknown dtype": raw_frame(b'{"att":[4],"v":{"ncp.array":{"dtype":"c64","shape":[1],"att":0}}}', b"abcd"),
-            "reused attachment": raw_frame(b'{"att":[4],"v":{"ncp.array":{"dtype":"u8","shape":[4],"att":0}},'
-                                           b'"w":{"ncp.array":{"dtype":"u8","shape":[4],"att":0}}}', b"abcd"),
-            "array extra member": raw_frame(b'{"att":[4],"v":{"ncp.array":{"dtype":"u8","shape":[4],"att":0},"x":1}}', b"abcd"),
-            "nonzero padding": raw_frame(b'{"att":[1,1],"v":{"ncp.array":{"dtype":"u8","shape":[1],"att":0}},'
-                                         b'"w":{"ncp.array":{"dtype":"u8","shape":[1],"att":1}}}', b"a\x01\x00\x00\x00\x00\x00\x00b"),
+            "reused attachment": raw_frame(
+                b'{"att":[4],"v":{"ncp.array":{"dtype":"u8","shape":[4],"att":0}},'
+                b'"w":{"ncp.array":{"dtype":"u8","shape":[4],"att":0}}}',
+                b"abcd",
+            ),
+            "array extra member": raw_frame(
+                b'{"att":[4],"v":{"ncp.array":{"dtype":"u8","shape":[4],"att":0},"x":1}}', b"abcd"
+            ),
+            "nonzero padding": raw_frame(
+                b'{"att":[1,1],"v":{"ncp.array":{"dtype":"u8","shape":[1],"att":0}},'
+                b'"w":{"ncp.array":{"dtype":"u8","shape":[1],"att":1}}}',
+                b"a\x01\x00\x00\x00\x00\x00\x00b",
+            ),
         }
         for name, frame in cases.items():
             with self.subTest(name):
                 with self.assertRaises(F.FrameError):
                     F.decode(frame, F.HANDSHAKE_BOUND)
-        self.assertEqual(F.decode(raw_frame(b'{"a":"\\ud83d\\ude00"}'), F.HANDSHAKE_BOUND).message["a"], "\U0001F600")
-        deepest = F.decode(raw_frame(b'{"a":' + b'[' * 63 + b']' * 63 + b'}'), F.HANDSHAKE_BOUND).message["a"]
+        self.assertEqual(F.decode(raw_frame(b'{"a":"\\ud83d\\ude00"}'), F.HANDSHAKE_BOUND).message["a"], "\U0001f600")
+        deepest = F.decode(raw_frame(b'{"a":' + b"[" * 63 + b"]" * 63 + b"}"), F.HANDSHAKE_BOUND).message["a"]
         for _ in range(62):
             deepest = deepest[0]
         self.assertEqual(deepest, [])  # 64 levels including the top object are accepted
@@ -213,15 +246,25 @@ class OwnerTests(unittest.TestCase):
 
     def test_not_open_and_wrong_protocol(self) -> None:
         self.assertEqual(self.call(1, "echo", OTHER)["code"], "not_open")
-        self.assertEqual(response_of(self.owner.handle(request(self.session, 0, "open", None, {}, ncp_version=3)))["code"],
-                         "wrong_protocol")
+        self.assertEqual(
+            response_of(self.owner.handle(request(self.session, 0, "open", None, {}, ncp_version=3)))["code"],
+            "wrong_protocol",
+        )
 
     def test_open_checks(self) -> None:
-        self.assertEqual(response_of(self.owner.handle(open_request(self.session, contract=OTHER)))["code"], "contract_mismatch")
-        self.assertEqual(response_of(self.owner.handle(open_request(self.session, application="other")))["code"], "contract_mismatch")
-        self.assertEqual(response_of(self.owner.handle(open_request(self.session, bound=1000)))["code"], "bound_unacceptable")
-        self.assertEqual(response_of(self.owner.handle(request(self.session, 0, "open", None, {"application": "echo"})))["code"],
-                         "body_invalid")
+        self.assertEqual(
+            response_of(self.owner.handle(open_request(self.session, contract=OTHER)))["code"], "contract_mismatch"
+        )
+        self.assertEqual(
+            response_of(self.owner.handle(open_request(self.session, application="other")))["code"], "contract_mismatch"
+        )
+        self.assertEqual(
+            response_of(self.owner.handle(open_request(self.session, bound=1000)))["code"], "bound_unacceptable"
+        )
+        self.assertEqual(
+            response_of(self.owner.handle(request(self.session, 0, "open", None, {"application": "echo"})))["code"],
+            "body_invalid",
+        )
         self.assertIsNone(self.owner.session)
         reply = response_of(self.owner.handle(open_request(self.session, bound=F.MAX_BOUND)))
         self.assertEqual(reply["outcome"], "ok")
@@ -360,8 +403,19 @@ class _ScriptedChannel:
     def send(self, frame: bytes) -> None:
         request = F.decode(frame, F.MAX_BOUND).message
         outcome, code, body = self.script.pop(0)
-        self.inbox.append(F.encode({"ncp": 2, "session": request["session"], "seq": request["seq"],
-                                    "request": F.identity(frame), "outcome": outcome, "code": code, "body": body}))
+        self.inbox.append(
+            F.encode(
+                {
+                    "ncp": 2,
+                    "session": request["session"],
+                    "seq": request["seq"],
+                    "request": F.identity(frame),
+                    "outcome": outcome,
+                    "code": code,
+                    "body": body,
+                }
+            )
+        )
 
     def receive(self, bound: int, timeout: float | None, frame_timeout: float | None = None) -> bytes:
         return self.inbox.pop(0)
@@ -371,12 +425,21 @@ class _ScriptedChannel:
 
 
 class ForwardCompatibilityTests(unittest.TestCase):
-    OPEN = {"bound": F.HANDSHAKE_BOUND, "application": "echo", "contract": CONTRACT.identity,
-            "implementation": "later", "features": ["later"]}
+    OPEN = {
+        "bound": F.HANDSHAKE_BOUND,
+        "application": "echo",
+        "contract": CONTRACT.identity,
+        "implementation": "later",
+        "features": ["later"],
+    }
 
     def client(self, *script: tuple[str, str | None, object]) -> ncp.Client:
-        client = ncp.Client(_ScriptedChannel([("ok", None, self.OPEN), *script]), application="echo",
-                            contract=CONTRACT.identity, bound=F.HANDSHAKE_BOUND)
+        client = ncp.Client(
+            _ScriptedChannel([("ok", None, self.OPEN), *script]),
+            application="echo",
+            contract=CONTRACT.identity,
+            bound=F.HANDSHAKE_BOUND,
+        )
         self.assertEqual(client.open()["features"], ["later"])  # unknown open members are ignored
         return client
 
@@ -408,8 +471,9 @@ class StreamTests(unittest.TestCase):
         self.assertEqual((delivery.status, delivery.lost), ("accepted", 2))
         changed = F.encode({**F.decode(sent[4], F.MAX_BOUND).message, "body": {"i": 99}})
         self.assertEqual(subscriber.receive(changed).status, "accepted")  # a re-encoded frame with the right prev
-        forged = F.encode({"ncp": 2, "stream": "sensors/camera-0", "seq": 6, "prev": OTHER,
-                           "contract": CONTRACT.identity, "body": {}})
+        forged = F.encode(
+            {"ncp": 2, "stream": "sensors/camera-0", "seq": 6, "prev": OTHER, "contract": CONTRACT.identity, "body": {}}
+        )
         self.assertEqual(subscriber.receive(forged).status, "broken_chain")
         other = ncp.Publisher("x", OTHER, sent.append)
         self.assertEqual(subscriber.receive(other.publish({})).status, "unknown_contract")
@@ -437,6 +501,7 @@ class TranscriptTests(unittest.TestCase):
 
     def test_changed_and_truncated_transcripts(self) -> None:
         from ncp import transcript as T
+
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "t.ncpt")
             self.run_session(path)
@@ -458,7 +523,9 @@ class TranscriptTests(unittest.TestCase):
                 for record in records:
                     handle.write(T.RECORD.pack(record.kind, record.time_ns, len(record.frame)) + record.frame)
             (report,) = ncp.verify_transcript(changed).values()
-            self.assertTrue(any("ack does not name the previous response" in p for p in report.problems), report.problems)
+            self.assertTrue(
+                any("ack does not name the previous response" in p for p in report.problems), report.problems
+            )
 
 
 class BindingTests(unittest.TestCase):
@@ -480,8 +547,9 @@ class BindingTests(unittest.TestCase):
         path = os.path.join(directory, "owner.sock")
         server = ncp.UnixServer(make_owner, path).start()
         try:
-            clients = [ncp.Client(ncp.connect_unix(path), application="echo", contract=CONTRACT.identity)
-                       for _ in range(3)]
+            clients = [
+                ncp.Client(ncp.connect_unix(path), application="echo", contract=CONTRACT.identity) for _ in range(3)
+            ]
             for client in clients:
                 client.open()
             for index, client in enumerate(clients):
@@ -498,7 +566,8 @@ class BindingTests(unittest.TestCase):
         owner = os.path.join(os.environ["NCP_RUST_EXAMPLES"], "echo_owner")
         channel, process = ncp.spawn([owner])
         rust_contract = ncp.Contract.from_bytes(
-            b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}')
+            b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}'
+        )
         client = ncp.Client(channel, application="echo", contract=rust_contract.identity)
         self.assertTrue(client.open()["implementation"].startswith("ncp-rust/"))
         values = {d: F.Array(d, [3], bytes(range(3 * F.DTYPES[d][1]))) for d in F.DTYPES}
@@ -545,8 +614,9 @@ class BindingTests(unittest.TestCase):
         self.assertFalse(thread.is_alive())
         left.close()
         left2, right2 = socket.socketpair()
-        thread = threading.Thread(target=ncp.serve, args=(make_owner(), ncp.StreamChannel.from_socket(right2)),
-                                  kwargs={"frame_timeout": 0.2})
+        thread = threading.Thread(
+            target=ncp.serve, args=(make_owner(), ncp.StreamChannel.from_socket(right2)), kwargs={"frame_timeout": 0.2}
+        )
         thread.start()
         left2.sendall(b"NCP\x02")  # a header that never completes
         reply = ncp.StreamChannel.from_socket(left2).receive(F.MAX_BOUND, 2.0)
@@ -563,8 +633,10 @@ class BindingTests(unittest.TestCase):
         server = ncp.TcpServer(make_owner).start()
         try:
             host, port = server.address[:2]
-            clients = [ncp.Client(ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity)
-                       for _ in range(8)]
+            clients = [
+                ncp.Client(ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity)
+                for _ in range(8)
+            ]
             for client in clients:
                 client.open()
             results = ncp.call_all(clients, "echo", [{"agent": index} for index in range(8)])

@@ -1,9 +1,11 @@
 """Exchange sessions: messages, the owner state machine, and the client (sections 6 and 7)."""
+
 from __future__ import annotations
 
 import re
 import uuid
-from typing import Any, Callable, Iterable, Protocol
+from collections.abc import Callable, Iterable
+from typing import Any, Protocol
 
 from . import frame as F
 from .frame import FrameError
@@ -16,11 +18,24 @@ _IDENTITY = re.compile(r"[0-9a-f]{64}\Z")
 _REQUEST_MEMBERS = frozenset({"ncp", "session", "seq", "op", "ack", "body"})
 _RESPONSE_MEMBERS = frozenset({"ncp", "session", "seq", "request", "outcome", "code", "body"})
 OUTCOMES = ("ok", "rejected", "ended")
-REJECTION_CODES = frozenset({
-    "wrong_protocol", "not_open", "already_open", "wrong_session", "seq_stale", "seq_gap",
-    "seq_conflict", "ack_missing", "ack_mismatch", "unknown_op", "body_invalid",
-    "contract_mismatch", "bound_unacceptable", "session_ended",
-})
+REJECTION_CODES = frozenset(
+    {
+        "wrong_protocol",
+        "not_open",
+        "already_open",
+        "wrong_session",
+        "seq_stale",
+        "seq_gap",
+        "seq_conflict",
+        "ack_missing",
+        "ack_mismatch",
+        "unknown_op",
+        "body_invalid",
+        "contract_mismatch",
+        "bound_unacceptable",
+        "session_ended",
+    }
+)
 ENDING_CODES = frozenset({"result_too_large", "owner_failure", "bad_frame", "shutdown"})
 EXECUTED = {"result_too_large": "yes", "owner_failure": "unknown", "bad_frame": "no", "shutdown": "no"}
 _CODE = re.compile(r"[a-z_]{1,64}")
@@ -60,9 +75,16 @@ def check_request(message: dict[str, Any]) -> None:
     if keys != _REQUEST_MEMBERS:
         raise FrameError("request members")
     session, seq, op, ack = message["session"], message["seq"], message["op"], message["ack"]
-    if (type(message["ncp"]) is not int or type(session) is not str or _SESSION.match(session) is None
-            or type(seq) is not int or seq < 0 or type(op) is not str or _OPERATION.match(op) is None
-            or not (ack is None or is_identity(ack))):
+    if (
+        type(message["ncp"]) is not int
+        or type(session) is not str
+        or _SESSION.match(session) is None
+        or type(seq) is not int
+        or seq < 0
+        or type(op) is not str
+        or _OPERATION.match(op) is None
+        or not (ack is None or is_identity(ack))
+    ):
         raise FrameError("request member types")
 
 
@@ -74,15 +96,28 @@ def check_response(message: dict[str, Any]) -> None:
     if type(message["ncp"]) is not int or outcome not in OUTCOMES:
         raise FrameError("response member types")
     if outcome == "ok":
-        valid = (code is None and type(message["session"]) is str and type(message["seq"]) is int
-                 and is_identity(message["request"]))
+        valid = (
+            code is None
+            and type(message["session"]) is str
+            and type(message["seq"]) is int
+            and is_identity(message["request"])
+        )
     elif outcome == "rejected":
-        valid = (type(code) is str and _CODE.fullmatch(code) is not None and type(message["seq"]) is int
-                 and is_identity(message["request"]))
+        valid = (
+            type(code) is str
+            and _CODE.fullmatch(code) is not None
+            and type(message["seq"]) is int
+            and is_identity(message["request"])
+        )
     else:
-        valid = type(code) is str and _CODE.fullmatch(code) is not None and (
-            (message["session"] is None and message["seq"] is None and message["request"] is None)
-            or (type(message["seq"]) is int and is_identity(message["request"])))
+        valid = (
+            type(code) is str
+            and _CODE.fullmatch(code) is not None
+            and (
+                (message["session"] is None and message["seq"] is None and message["request"] is None)
+                or (type(message["seq"]) is int and is_identity(message["request"]))
+            )
+        )
     if not valid:
         raise FrameError("response member types")
 
@@ -98,9 +133,17 @@ class Owner:
     (spec section 3, rule 4). The response digests are always computed.
     """
 
-    def __init__(self, application: str, contract: str, handler: Handler, operations: Iterable[str], *,
-                 max_bound: int = F.DEFAULT_BOUND, implementation: str = IMPLEMENTATION,
-                 check_digests: bool = True) -> None:
+    def __init__(
+        self,
+        application: str,
+        contract: str,
+        handler: Handler,
+        operations: Iterable[str],
+        *,
+        max_bound: int = F.DEFAULT_BOUND,
+        implementation: str = IMPLEMENTATION,
+        check_digests: bool = True,
+    ) -> None:
         if not is_identity(contract):
             raise ValueError("contract must be an identity")
         if not F.HANDSHAKE_BOUND <= max_bound <= F.MAX_BOUND:
@@ -125,8 +168,17 @@ class Owner:
         session, seq, op = request["session"], request["seq"], request["op"]
 
         def reply(outcome: str, code: str | None, body: Any) -> bytes:
-            return F.encode({"ncp": PROTOCOL, "session": session, "seq": seq, "request": request_id,
-                             "outcome": outcome, "code": code, "body": body})
+            return F.encode(
+                {
+                    "ncp": PROTOCOL,
+                    "session": session,
+                    "seq": seq,
+                    "request": request_id,
+                    "outcome": outcome,
+                    "code": code,
+                    "body": body,
+                }
+            )
 
         def reject(code: str, detail: str | None = None) -> bytes:
             return reply("rejected", code, {"detail": detail} if detail else {})
@@ -188,25 +240,42 @@ class Owner:
         self.kept = (request_id, response, F.identity(response))
         return response
 
-    def _open(self, request: dict[str, Any], request_id: str, reply: Callable[..., bytes],
-              reject: Callable[..., bytes]) -> bytes:
+    def _open(
+        self, request: dict[str, Any], request_id: str, reply: Callable[..., bytes], reject: Callable[..., bytes]
+    ) -> bytes:
         body = request["body"]
         if request["ack"] is not None or type(body) is not dict:
             return reject("body_invalid", "open body")
         if not body.keys() >= {"application", "contract", "bound"} or not body.keys() <= {
-                "application", "contract", "bound", "run"}:
+            "application",
+            "contract",
+            "bound",
+            "run",
+        }:
             return reject("body_invalid", "open members")
         bound, run = body["bound"], body.get("run")
-        if (type(body["application"]) is not str or not is_identity(body["contract"]) or type(bound) is not int
-                or not (run is None or (type(run) is str and len(run) <= 256))):
+        if (
+            type(body["application"]) is not str
+            or not is_identity(body["contract"])
+            or type(bound) is not int
+            or not (run is None or (type(run) is str and len(run) <= 256))
+        ):
             return reject("body_invalid", "open member types")
         if body["application"] != self.application or body["contract"] != self.contract:
             return reject("contract_mismatch")
         if not F.HANDSHAKE_BOUND <= bound <= F.MAX_BOUND:
             return reject("bound_unacceptable")
         effective = min(bound, self.max_bound)
-        response = reply("ok", None, {"bound": effective, "application": self.application,
-                                      "contract": self.contract, "implementation": self.implementation})
+        response = reply(
+            "ok",
+            None,
+            {
+                "bound": effective,
+                "application": self.application,
+                "contract": self.contract,
+                "implementation": self.implementation,
+            },
+        )
         self.session, self.bound, self.high = request["session"], effective, 0
         self.kept = (request_id, response, F.identity(response))
         return response
@@ -214,8 +283,17 @@ class Owner:
 
 def bad_frame_response() -> bytes:
     """The response a byte-stream owner sends for a bad frame before it closes (section 9.1)."""
-    return F.encode({"ncp": PROTOCOL, "session": None, "seq": None, "request": None, "outcome": "ended",
-                     "code": "bad_frame", "body": {}})
+    return F.encode(
+        {
+            "ncp": PROTOCOL,
+            "session": None,
+            "seq": None,
+            "request": None,
+            "outcome": "ended",
+            "code": "bad_frame",
+            "body": {},
+        }
+    )
 
 
 class Rejected(Exception):
@@ -264,9 +342,18 @@ class Client:
     the same conditions as for the owner (spec section 3, rule 4).
     """
 
-    def __init__(self, channel: Channel, *, application: str, contract: str, bound: int = F.DEFAULT_BOUND,
-                 run: str | None = None, timeout: float | None = None, retries: int = 3,
-                 check_digests: bool = True) -> None:
+    def __init__(
+        self,
+        channel: Channel,
+        *,
+        application: str,
+        contract: str,
+        bound: int = F.DEFAULT_BOUND,
+        run: str | None = None,
+        timeout: float | None = None,
+        retries: int = 3,
+        check_digests: bool = True,
+    ) -> None:
         if not is_identity(contract):
             raise ValueError("contract must be an identity")
         self.channel, self.application, self.contract = channel, application, contract
@@ -280,14 +367,20 @@ class Client:
         self.owner: dict[str, Any] | None = None
 
     def open(self) -> dict[str, Any]:
-        body: dict[str, Any] = {"application": self.application, "contract": self.contract,
-                                "bound": self.requested_bound}
+        body: dict[str, Any] = {
+            "application": self.application,
+            "contract": self.contract,
+            "bound": self.requested_bound,
+        }
         if self.run is not None:
             body["run"] = self.run
         result = self._exchange(0, "open", body)
         info = result.body
-        if (type(info) is not dict or type(info.get("bound")) is not int
-                or not F.HANDSHAKE_BOUND <= info["bound"] <= self.requested_bound):
+        if (
+            type(info) is not dict
+            or type(info.get("bound")) is not int
+            or not F.HANDSHAKE_BOUND <= info["bound"] <= self.requested_bound
+        ):
             raise ProtocolError("open response")
         self.bound = info["bound"]
         self.owner = info
@@ -315,8 +408,9 @@ class Client:
     def _exchange(self, seq: int, op: str, body: Any) -> Result:
         if self.ended:
             raise ProtocolError("session ended")
-        request = F.encode({"ncp": PROTOCOL, "session": self.session, "seq": seq, "op": op,
-                            "ack": self.ack, "body": body})
+        request = F.encode(
+            {"ncp": PROTOCOL, "session": self.session, "seq": seq, "op": op, "ack": self.ack, "body": body}
+        )
         if len(request) > self.bound:
             raise ValueError(f"request of {len(request)} bytes exceeds the bound {self.bound}")
         request_id = F.identity(request)
@@ -358,8 +452,12 @@ class Client:
             if message["session"] is None:  # an ended response that names no request
                 self.ended = True
                 raise Ended(message["code"], executed(message["code"]))
-            if (message["session"] == self.session and message["seq"] == seq
-                    and message["request"] == request_id and message["ncp"] == PROTOCOL):
+            if (
+                message["session"] == self.session
+                and message["seq"] == seq
+                and message["request"] == request_id
+                and message["ncp"] == PROTOCOL
+            ):
                 return decoded
             if not self.channel.lossy:
                 self.ended = True

@@ -1,9 +1,11 @@
 """Streams: sequenced, hash-chained messages without retries (sections 6.3 and 8)."""
+
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from . import frame as F
 from .exchange import PROTOCOL, is_identity
@@ -18,10 +20,15 @@ def check_stream_message(message: dict[str, Any]) -> None:
     if message.keys() - {"att"} != _MEMBERS:
         raise FrameError("stream message members")
     seq, prev = message["seq"], message["prev"]
-    if (message["ncp"] != PROTOCOL or type(message["stream"]) is not str
-            or _STREAM.match(message["stream"]) is None or type(seq) is not int or seq < 1
-            or not is_identity(message["contract"])
-            or not ((seq == 1 and prev is None) or (seq > 1 and is_identity(prev)))):
+    if (
+        message["ncp"] != PROTOCOL
+        or type(message["stream"]) is not str
+        or _STREAM.match(message["stream"]) is None
+        or type(seq) is not int
+        or seq < 1
+        or not is_identity(message["contract"])
+        or not ((seq == 1 and prev is None) or (seq > 1 and is_identity(prev)))
+    ):
         raise FrameError("stream message member types")
 
 
@@ -37,8 +44,16 @@ class Publisher:
 
     def publish(self, body: Any) -> bytes:
         self.seq += 1
-        frame = F.encode({"ncp": PROTOCOL, "stream": self.stream, "seq": self.seq, "prev": self.prev,
-                          "contract": self.contract, "body": body})
+        frame = F.encode(
+            {
+                "ncp": PROTOCOL,
+                "stream": self.stream,
+                "seq": self.seq,
+                "prev": self.prev,
+                "contract": self.contract,
+                "body": body,
+            }
+        )
         self.prev = F.identity(frame)
         self._send(frame)
         return frame
@@ -60,8 +75,9 @@ class Subscriber:
     conditions of spec section 3, rule 4.
     """
 
-    def __init__(self, contracts: set[str] | frozenset[str], bound: int = F.MAX_BOUND, *,
-                 check_digests: bool = True) -> None:
+    def __init__(
+        self, contracts: set[str] | frozenset[str], bound: int = F.MAX_BOUND, *, check_digests: bool = True
+    ) -> None:
         self.contracts, self.bound, self.check_digests = frozenset(contracts), bound, check_digests
         self._next: dict[str, int] = {}
         self._last: dict[str, str] = {}

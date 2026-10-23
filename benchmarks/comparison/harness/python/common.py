@@ -1,4 +1,5 @@
 """Shared parts of the Python benchmark clients: payloads, timing, and the result line."""
+
 from __future__ import annotations
 
 import json
@@ -7,7 +8,7 @@ import struct
 import subprocess
 import sys
 import time
-from typing import Callable
+from collections.abc import Callable
 
 
 def request(index: int, spikes: int) -> bytes:
@@ -60,9 +61,18 @@ def measure(call: Callable[[int], None], calls: int, warmup: int) -> list[float]
 def report(times: list[float], **fields) -> None:
     ordered = sorted(times)
     pick = lambda q: ordered[round((len(ordered) - 1) * q)]  # noqa: E731
-    line = {"calls": len(ordered), **fields, "median_us": pick(0.5), "p05_us": pick(0.05), "p95_us": pick(0.95),
-            "p99_us": pick(0.99), "mean_us": sum(ordered) / len(ordered), "min_us": ordered[0],
-            "max_us": ordered[-1], "quantiles_us": [pick(i / 100) for i in range(101)]}
+    line = {
+        "calls": len(ordered),
+        **fields,
+        "median_us": pick(0.5),
+        "p05_us": pick(0.05),
+        "p95_us": pick(0.95),
+        "p99_us": pick(0.99),
+        "mean_us": sum(ordered) / len(ordered),
+        "min_us": ordered[0],
+        "max_us": ordered[-1],
+        "quantiles_us": [pick(i / 100) for i in range(101)],
+    }
     sys.stdout.write(json.dumps(line) + "\n")
     sys.stdout.flush()
 

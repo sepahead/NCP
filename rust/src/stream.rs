@@ -6,12 +6,17 @@ use serde_json::{json, Value};
 use std::collections::{BTreeSet, HashMap};
 
 fn is_stream(s: &str) -> bool {
-    !s.is_empty() && s.len() <= 256 && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.' | b'-' | b'/'))
+    !s.is_empty()
+        && s.len() <= 256
+        && s.bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.' | b'-' | b'/'))
 }
 
 /// Fail unless the message has the stream form of section 6.3.
 pub fn check_stream_message(message: &Value) -> Result<(), FrameError> {
-    let object = message.as_object().ok_or_else(|| FrameError("stream message".into()))?;
+    let object = message
+        .as_object()
+        .ok_or_else(|| FrameError("stream message".into()))?;
     let required = ["ncp", "stream", "seq", "prev", "contract", "body"];
     let ok = object.len() == required.len() + usize::from(object.contains_key("att"))
         && required.iter().all(|k| object.contains_key(*k))
@@ -23,7 +28,11 @@ pub fn check_stream_message(message: &Value) -> Result<(), FrameError> {
             Some(seq) if seq > 1 => is_identity(&object["prev"]),
             _ => false,
         };
-    if ok { Ok(()) } else { Err(FrameError("stream message members".into())) }
+    if ok {
+        Ok(())
+    } else {
+        Err(FrameError("stream message members".into()))
+    }
 }
 
 /// Number, chain, and encode the messages of one stream.
@@ -41,7 +50,12 @@ impl Publisher {
         if !is_stream(stream) || !is_identity(&Value::from(contract)) {
             return Err(FrameError("stream identifier or contract".into()));
         }
-        Ok(Publisher { stream: stream.to_owned(), contract: contract.to_owned(), seq: 0, prev: None })
+        Ok(Publisher {
+            stream: stream.to_owned(),
+            contract: contract.to_owned(),
+            seq: 0,
+            prev: None,
+        })
     }
 
     /// Encode the next message. The caller sends the returned frame.
@@ -86,7 +100,12 @@ pub struct Subscriber {
 impl Subscriber {
     /// A subscriber that accepts the given contract identities.
     pub fn new(contracts: impl IntoIterator<Item = String>) -> Subscriber {
-        Subscriber { contracts: contracts.into_iter().collect(), next: HashMap::new(), last: HashMap::new(), check_digests: true }
+        Subscriber {
+            contracts: contracts.into_iter().collect(),
+            next: HashMap::new(),
+            last: HashMap::new(),
+            check_digests: true,
+        }
     }
 
     /// Stop comparing each frame's digest with its bytes, under the conditions of spec
@@ -98,12 +117,17 @@ impl Subscriber {
 
     /// Check one frame; on acceptance, also return the decoded message.
     pub fn receive(&mut self, frame_bytes: Vec<u8>) -> (Delivery, Option<frame::Decoded>) {
-        let decoded = match frame::decode_with(frame_bytes, MAX_BOUND, self.check_digests).and_then(|d| check_stream_message(&d.message).map(|_| d)) {
+        let decoded = match frame::decode_with(frame_bytes, MAX_BOUND, self.check_digests)
+            .and_then(|d| check_stream_message(&d.message).map(|_| d))
+        {
             Ok(decoded) => decoded,
             Err(_) => return (Delivery::BadFrame, None),
         };
         let message = &decoded.message;
-        if !self.contracts.contains(message["contract"].as_str().unwrap_or_default()) {
+        if !self
+            .contracts
+            .contains(message["contract"].as_str().unwrap_or_default())
+        {
             return (Delivery::UnknownContract, Some(decoded));
         }
         let stream = message["stream"].as_str().unwrap_or_default().to_owned();
@@ -112,11 +136,17 @@ impl Subscriber {
         if seq < expected {
             return (Delivery::Repeat, Some(decoded));
         }
-        if seq == expected && message["prev"].as_str() != self.last.get(&stream).map(String::as_str) {
+        if seq == expected && message["prev"].as_str() != self.last.get(&stream).map(String::as_str)
+        {
             return (Delivery::BrokenChain, Some(decoded));
         }
         self.next.insert(stream.clone(), seq + 1);
         self.last.insert(stream, decoded.identity.clone());
-        (Delivery::Accepted { lost: seq - expected }, Some(decoded))
+        (
+            Delivery::Accepted {
+                lost: seq - expected,
+            },
+            Some(decoded),
+        )
     }
 }

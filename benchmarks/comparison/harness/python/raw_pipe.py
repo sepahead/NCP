@@ -3,6 +3,7 @@
 raw_pipe.py server                       (answers requests on stdin and stdout)
 raw_pipe.py client CALLS WARMUP SPIKES -- SERVER COMMAND...
 """
+
 from __future__ import annotations
 
 import os
@@ -27,7 +28,7 @@ def read_exactly(fd: int, size: int) -> bytes:
 def write_all(fd: int, data: bytes) -> None:
     view = memoryview(data)
     while view:
-        view = view[os.write(fd, view):]
+        view = view[os.write(fd, view) :]
 
 
 def server() -> None:
@@ -45,7 +46,7 @@ def server() -> None:
 def client() -> None:
     separator = sys.argv.index("--")
     calls, warmup, spikes = (int(value) for value in sys.argv[2:5])
-    process = subprocess.Popen(sys.argv[separator + 1:], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    process = subprocess.Popen(sys.argv[separator + 1 :], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     write_fd, read_fd = process.stdin.fileno(), process.stdout.fileno()
 
     def call(index: int) -> None:

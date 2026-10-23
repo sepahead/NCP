@@ -12,7 +12,10 @@ pub use binding::{connect_tcp, listen_tcp, serve, serve_stdio, spawn, tcp_channe
 #[cfg(unix)]
 pub use binding::{connect_unix, unix_channel};
 pub use exchange::{Channel, Client, Error, Handler, Owner, Reply, IMPLEMENTATION, PROTOCOL};
-pub use frame::{decode, encode, identity, Array, Decoded, Dtype, FrameError, DEFAULT_BOUND, HANDSHAKE_BOUND, MAX_BOUND};
+pub use frame::{
+    decode, encode, identity, Array, Decoded, Dtype, FrameError, DEFAULT_BOUND, HANDSHAKE_BOUND,
+    MAX_BOUND,
+};
 pub use stream::{Delivery, Publisher, Subscriber};
 pub use transcript::Tap;
 
@@ -39,18 +42,35 @@ pub struct Contract {
 impl Contract {
     /// Parse a contract document.
     pub fn from_bytes(data: Vec<u8>) -> Result<Contract, FrameError> {
-        let document: serde_json::Value = serde_json::from_slice(&data).map_err(|e| FrameError(e.to_string()))?;
-        let application = document["application"].as_str().unwrap_or_default().to_owned();
-        let operations = document["operations"].as_object().map(|o| o.keys().cloned().collect());
-        let streams = document["streams"].as_object().map(|o| o.keys().cloned().collect());
-        match (document["ncp_contract"].as_u64(), operations, streams, document["version"].is_string()) {
-            (Some(1), Some(operations), Some(streams), true) if (1..=128).contains(&application.chars().count()) => Ok(Contract {
-                identity: frame::hex(&Sha256::digest(&data)),
-                data,
-                application,
-                operations,
-                streams,
-            }),
+        let document: serde_json::Value =
+            serde_json::from_slice(&data).map_err(|e| FrameError(e.to_string()))?;
+        let application = document["application"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned();
+        let operations = document["operations"]
+            .as_object()
+            .map(|o| o.keys().cloned().collect());
+        let streams = document["streams"]
+            .as_object()
+            .map(|o| o.keys().cloned().collect());
+        match (
+            document["ncp_contract"].as_u64(),
+            operations,
+            streams,
+            document["version"].is_string(),
+        ) {
+            (Some(1), Some(operations), Some(streams), true)
+                if (1..=128).contains(&application.chars().count()) =>
+            {
+                Ok(Contract {
+                    identity: frame::hex(&Sha256::digest(&data)),
+                    data,
+                    application,
+                    operations,
+                    streams,
+                })
+            }
             _ => Err(FrameError("not an NCP contract".into())),
         }
     }
@@ -63,12 +83,18 @@ impl Contract {
 pub fn random_session() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let mut bytes = [0u8; 16];
-    let from_os = std::fs::File::open("/dev/urandom").and_then(|mut f| std::io::Read::read_exact(&mut f, &mut bytes));
+    let from_os = std::fs::File::open("/dev/urandom")
+        .and_then(|mut f| std::io::Read::read_exact(&mut f, &mut bytes));
     if from_os.is_err() {
         for (index, chunk) in bytes.chunks_mut(8).enumerate() {
             let mut hasher = RandomState::new().build_hasher();
             hasher.write_u64(COUNTER.fetch_add(1, Ordering::Relaxed));
-            hasher.write_u128(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0));
+            hasher.write_u128(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|d| d.as_nanos())
+                    .unwrap_or(0),
+            );
             hasher.write_usize(index);
             chunk.copy_from_slice(&hasher.finish().to_le_bytes());
         }
@@ -76,7 +102,14 @@ pub fn random_session() -> String {
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
     let h = frame::hex(&bytes);
-    format!("{}-{}-{}-{}-{}", &h[0..8], &h[8..12], &h[12..16], &h[16..20], &h[20..32])
+    format!(
+        "{}-{}-{}-{}-{}",
+        &h[0..8],
+        &h[8..12],
+        &h[12..16],
+        &h[16..20],
+        &h[20..32]
+    )
 }
 
 /// Send one request to each session and wait for all responses (spec section 16). Sessions are
@@ -95,7 +128,10 @@ pub fn call_all<C: Channel + Send>(
             .collect();
         handles
             .into_iter()
-            .map(|h| h.join().unwrap_or_else(|_| Err(Error::Protocol("session thread panicked".into()))))
+            .map(|h| {
+                h.join()
+                    .unwrap_or_else(|_| Err(Error::Protocol("session thread panicked".into())))
+            })
             .collect()
     })
 }

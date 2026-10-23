@@ -43,12 +43,18 @@ pub fn executed_for(code: &str) -> &'static str {
 }
 
 fn is_code(value: &Value) -> bool {
-    value.as_str().is_some_and(|c| (1..=64).contains(&c.len()) && c.bytes().all(|b| b.is_ascii_lowercase() || b == b'_'))
+    value.as_str().is_some_and(|c| {
+        (1..=64).contains(&c.len()) && c.bytes().all(|b| b.is_ascii_lowercase() || b == b'_')
+    })
 }
 
 /// Whether a value is an identity: 64 lowercase hexadecimal characters.
 pub fn is_identity(value: &Value) -> bool {
-    value.as_str().is_some_and(|s| s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+    value.as_str().is_some_and(|s| {
+        s.len() == 64
+            && s.bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    })
 }
 
 fn is_session(s: &str) -> bool {
@@ -67,7 +73,9 @@ fn is_operation(s: &str) -> bool {
     !b.is_empty()
         && b.len() <= 64
         && b[0].is_ascii_lowercase()
-        && b.iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, b'_' | b'.' | b'-'))
+        && b.iter().all(|&c| {
+            c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, b'_' | b'.' | b'-')
+        })
 }
 
 fn members(object: &Map<String, Value>, required: &[&str]) -> bool {
@@ -77,35 +85,60 @@ fn members(object: &Map<String, Value>, required: &[&str]) -> bool {
 
 /// Fail unless the message has the request form of section 6.1.
 pub fn check_request(message: &Value) -> Result<(), FrameError> {
-    let object = message.as_object().ok_or_else(|| FrameError("request".into()))?;
+    let object = message
+        .as_object()
+        .ok_or_else(|| FrameError("request".into()))?;
     let ok = members(object, &["ncp", "session", "seq", "op", "ack", "body"])
         && object["ncp"].is_u64()
         && object["session"].as_str().is_some_and(is_session)
         && object["seq"].is_u64()
         && object["op"].as_str().is_some_and(is_operation)
         && (object["ack"].is_null() || is_identity(&object["ack"]));
-    if ok { Ok(()) } else { Err(FrameError("request members".into())) }
+    if ok {
+        Ok(())
+    } else {
+        Err(FrameError("request members".into()))
+    }
 }
 
 /// Fail unless the message has the response form of section 6.2.
 pub fn check_response(message: &Value) -> Result<(), FrameError> {
-    let object = message.as_object().ok_or_else(|| FrameError("response".into()))?;
-    if !members(object, &["ncp", "session", "seq", "request", "outcome", "code", "body"]) || !object["ncp"].is_u64() {
+    let object = message
+        .as_object()
+        .ok_or_else(|| FrameError("response".into()))?;
+    if !members(
+        object,
+        &[
+            "ncp", "session", "seq", "request", "outcome", "code", "body",
+        ],
+    ) || !object["ncp"].is_u64()
+    {
         return Err(FrameError("response members".into()));
     }
     let ok = match object["outcome"].as_str() {
         Some("ok") => {
-            object["code"].is_null() && object["session"].is_string() && object["seq"].is_u64() && is_identity(&object["request"])
+            object["code"].is_null()
+                && object["session"].is_string()
+                && object["seq"].is_u64()
+                && is_identity(&object["request"])
         }
-        Some("rejected") => is_code(&object["code"]) && object["seq"].is_u64() && is_identity(&object["request"]),
+        Some("rejected") => {
+            is_code(&object["code"]) && object["seq"].is_u64() && is_identity(&object["request"])
+        }
         Some("ended") => {
             is_code(&object["code"])
-                && ((object["session"].is_null() && object["seq"].is_null() && object["request"].is_null())
+                && ((object["session"].is_null()
+                    && object["seq"].is_null()
+                    && object["request"].is_null())
                     || (object["seq"].is_u64() && is_identity(&object["request"])))
         }
         _ => false,
     };
-    if ok { Ok(()) } else { Err(FrameError("response member types".into())) }
+    if ok {
+        Ok(())
+    } else {
+        Err(FrameError("response member types".into()))
+    }
 }
 
 /// A result of an application operation: a body and the arrays that it refers to.
@@ -119,7 +152,10 @@ pub struct Reply {
 
 impl From<Value> for Reply {
     fn from(body: Value) -> Reply {
-        Reply { body, arrays: Vec::new() }
+        Reply {
+            body,
+            arrays: Vec::new(),
+        }
     }
 }
 
@@ -128,7 +164,11 @@ pub trait Handler {
     /// Check a request body. Return `Err(detail)` to reject it. Must not change any state.
     fn validate(&mut self, op: &str, request: &Decoded) -> Result<(), String>;
     /// Execute one request. An `Err` ends the session with `owner_failure`.
-    fn execute(&mut self, op: &str, request: &Decoded) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>>;
+    fn execute(
+        &mut self,
+        op: &str,
+        request: &Decoded,
+    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>>;
 }
 
 /// The owner state machine of section 7.3. One instance serves one session.
@@ -161,10 +201,25 @@ impl<H: Handler> fmt::Debug for Owner<H> {
 
 impl<H: Handler> Owner<H> {
     /// A new owner for one session of `application` with contract identity `contract`.
-    pub fn new(application: &str, contract: &str, handler: H, operations: impl IntoIterator<Item = String>, max_bound: usize) -> Owner<H> {
-        assert!(is_identity(&Value::from(contract)), "contract must be an identity");
-        assert!((HANDSHAKE_BOUND..=MAX_BOUND).contains(&max_bound), "max_bound");
-        let operations = operations.into_iter().filter(|op| op != "open" && op != "close").collect();
+    pub fn new(
+        application: &str,
+        contract: &str,
+        handler: H,
+        operations: impl IntoIterator<Item = String>,
+        max_bound: usize,
+    ) -> Owner<H> {
+        assert!(
+            is_identity(&Value::from(contract)),
+            "contract must be an identity"
+        );
+        assert!(
+            (HANDSHAKE_BOUND..=MAX_BOUND).contains(&max_bound),
+            "max_bound"
+        );
+        let operations = operations
+            .into_iter()
+            .filter(|op| op != "open" && op != "close")
+            .collect();
         Owner {
             application: application.to_owned(),
             contract: contract.to_owned(),
@@ -214,7 +269,11 @@ impl<H: Handler> Owner<H> {
         let seq = request["seq"].as_u64().unwrap_or_default();
         let op = request["op"].as_str().unwrap_or_default().to_owned();
         let request_id = decoded.identity.clone();
-        let reply = |outcome: &str, code: Option<&str>, body: Value, arrays: &[Array]| -> Result<Arc<Vec<u8>>, FrameError> {
+        let reply = |outcome: &str,
+                     code: Option<&str>,
+                     body: Value,
+                     arrays: &[Array]|
+         -> Result<Arc<Vec<u8>>, FrameError> {
             let message = json!({"ncp": PROTOCOL, "session": session, "seq": seq, "request": request_id,
                                   "outcome": outcome, "code": code, "body": body});
             frame::encode(&message, arrays).map(Arc::new)
@@ -272,7 +331,14 @@ impl<H: Handler> Owner<H> {
             }
             if let Err(detail) = self.handler.validate(&op, &decoded) {
                 let detail: String = detail.chars().take(256).collect();
-                return reject("body_invalid", if detail.is_empty() { None } else { Some(detail) });
+                return reject(
+                    "body_invalid",
+                    if detail.is_empty() {
+                        None
+                    } else {
+                        Some(detail)
+                    },
+                );
             }
         }
         self.kept = None;
@@ -290,17 +356,31 @@ impl<H: Handler> Owner<H> {
                 Ok(result) => match reply("ok", None, result.body, &result.arrays) {
                     Err(error) => {
                         self.ended = true;
-                        reply("ended", Some("owner_failure"), json!({"detail": error.0.chars().take(256).collect::<String>()}), &[])?
+                        reply(
+                            "ended",
+                            Some("owner_failure"),
+                            json!({"detail": error.0.chars().take(256).collect::<String>()}),
+                            &[],
+                        )?
                     }
                     Ok(response) if response.len() > self.bound => {
                         self.ended = true;
-                        reply("ended", Some("result_too_large"), json!({"size": response.len(), "bound": self.bound}), &[])?
+                        reply(
+                            "ended",
+                            Some("result_too_large"),
+                            json!({"size": response.len(), "bound": self.bound}),
+                            &[],
+                        )?
                     }
                     Ok(response) => response,
                 },
             }
         };
-        self.kept = Some((decoded.identity.clone(), response.clone(), frame::identity(&response)));
+        self.kept = Some((
+            decoded.identity.clone(),
+            response.clone(),
+            frame::identity(&response),
+        ));
         Ok(response)
     }
 
@@ -315,8 +395,12 @@ impl<H: Handler> Owner<H> {
             (Value::Null, Some(body)) => body,
             _ => return reject("body_invalid", Some("open body".into())),
         };
-        let keys_ok = ["application", "contract", "bound"].iter().all(|k| body.contains_key(*k))
-            && body.keys().all(|k| matches!(k.as_str(), "application" | "contract" | "bound" | "run"));
+        let keys_ok = ["application", "contract", "bound"]
+            .iter()
+            .all(|k| body.contains_key(*k))
+            && body
+                .keys()
+                .all(|k| matches!(k.as_str(), "application" | "contract" | "bound" | "run"));
         if !keys_ok {
             return reject("body_invalid", Some("open members".into()));
         }
@@ -325,10 +409,16 @@ impl<H: Handler> Owner<H> {
             Some(run) => run.as_str().is_some_and(|r| r.chars().count() <= 256),
         };
         let bound = body["bound"].as_u64();
-        if !body["application"].is_string() || !is_identity(&body["contract"]) || bound.is_none() || !run_ok {
+        if !body["application"].is_string()
+            || !is_identity(&body["contract"])
+            || bound.is_none()
+            || !run_ok
+        {
             return reject("body_invalid", Some("open member types".into()));
         }
-        if body["application"] != self.application.as_str() || body["contract"] != self.contract.as_str() {
+        if body["application"] != self.application.as_str()
+            || body["contract"] != self.contract.as_str()
+        {
             return reject("contract_mismatch", None);
         }
         let bound = bound.unwrap_or_default() as usize;
@@ -346,7 +436,11 @@ impl<H: Handler> Owner<H> {
         self.session = request["session"].as_str().map(str::to_owned);
         self.bound = effective;
         self.high = 0;
-        self.kept = Some((decoded.identity.clone(), response.clone(), frame::identity(&response)));
+        self.kept = Some((
+            decoded.identity.clone(),
+            response.clone(),
+            frame::identity(&response),
+        ));
         Ok(response)
     }
 }
@@ -387,7 +481,9 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::Rejected { code, .. } => write!(f, "rejected: {code}"),
-            Error::Ended { code, executed } => write!(f, "session ended: {code} (executed: {executed})"),
+            Error::Ended { code, executed } => {
+                write!(f, "session ended: {code} (executed: {executed})")
+            }
             Error::Protocol(reason) => write!(f, "protocol error: {reason}"),
             Error::Frame(error) => write!(f, "{error}"),
             Error::Io(error) => write!(f, "io: {error}"),
@@ -530,7 +626,12 @@ impl<C: Channel> Client<C> {
 
     /// Close the session and the channel.
     pub fn close(&mut self) -> Result<(), Error> {
-        let result = if !self.ended && self.opened { self.exchange(self.seq + 1, "close", json!({}), &[]).map(|_| ()) } else { Ok(()) };
+        let result = if !self.ended && self.opened {
+            self.exchange(self.seq + 1, "close", json!({}), &[])
+                .map(|_| ())
+        } else {
+            Ok(())
+        };
         self.ended = true;
         if !self.channel.lossy() {
             self.channel.close();
@@ -538,31 +639,57 @@ impl<C: Channel> Client<C> {
         result
     }
 
-    fn exchange(&mut self, seq: u64, op: &str, body: Value, arrays: &[Array]) -> Result<Decoded, Error> {
+    fn exchange(
+        &mut self,
+        seq: u64,
+        op: &str,
+        body: Value,
+        arrays: &[Array],
+    ) -> Result<Decoded, Error> {
         if self.ended {
             return Err(Error::Protocol("session ended".into()));
         }
         let message = json!({"ncp": PROTOCOL, "session": self.session, "seq": seq, "op": op, "ack": self.ack, "body": body});
         let request = frame::encode(&message, arrays)?;
         if request.len() > self.bound {
-            return Err(Error::Protocol(format!("request of {} bytes exceeds the bound {}", request.len(), self.bound)));
+            return Err(Error::Protocol(format!(
+                "request of {} bytes exceeds the bound {}",
+                request.len(),
+                self.bound
+            )));
         }
         let request_id = frame::identity(&request);
-        let attempts = if self.channel.lossy() { self.retries + 1 } else { 1 };
+        let attempts = if self.channel.lossy() {
+            self.retries + 1
+        } else {
+            1
+        };
         for attempt in 0..attempts {
             self.channel.send(&request)?;
             let decoded = match self.receive_match(seq, &request_id) {
-                Err(Error::Io(error)) if error.kind() == std::io::ErrorKind::TimedOut || error.kind() == std::io::ErrorKind::WouldBlock => {
+                Err(Error::Io(error))
+                    if error.kind() == std::io::ErrorKind::TimedOut
+                        || error.kind() == std::io::ErrorKind::WouldBlock =>
+                {
                     if attempt + 1 < attempts {
                         continue;
                     }
                     self.ended = true;
-                    return Err(Error::Ended { code: "timeout".into(), executed: "unknown" });
+                    return Err(Error::Ended {
+                        code: "timeout".into(),
+                        executed: "unknown",
+                    });
                 }
                 other => other?,
             };
-            let outcome = decoded.message["outcome"].as_str().unwrap_or_default().to_owned();
-            let code = decoded.message["code"].as_str().unwrap_or_default().to_owned();
+            let outcome = decoded.message["outcome"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned();
+            let code = decoded.message["code"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned();
             return match outcome.as_str() {
                 "ok" => {
                     self.seq = seq;
@@ -572,7 +699,10 @@ impl<C: Channel> Client<C> {
                     }
                     Ok(decoded)
                 }
-                "rejected" => Err(Error::Rejected { code, body: decoded.message["body"].clone() }),
+                "rejected" => Err(Error::Rejected {
+                    code,
+                    body: decoded.message["body"].clone(),
+                }),
                 _ => {
                     self.ended = true;
                     let executed = executed_for(&code);
@@ -589,17 +719,23 @@ impl<C: Channel> Client<C> {
                 Ok(bytes) => bytes,
                 Err(Error::Frame(error)) if !self.channel.lossy() => {
                     self.ended = true;
-                    return Err(Error::Protocol(format!("bad frame from the owner: {error}")));
+                    return Err(Error::Protocol(format!(
+                        "bad frame from the owner: {error}"
+                    )));
                 }
                 Err(Error::Frame(_)) => continue,
                 Err(other) => return Err(other),
             };
-            let decoded = match frame::decode_with(frame_bytes, self.bound, self.check_digests).and_then(|d| check_response(&d.message).map(|_| d)) {
+            let decoded = match frame::decode_with(frame_bytes, self.bound, self.check_digests)
+                .and_then(|d| check_response(&d.message).map(|_| d))
+            {
                 Ok(decoded) => decoded,
                 Err(_) if self.channel.lossy() => continue,
                 Err(error) => {
                     self.ended = true;
-                    return Err(Error::Protocol(format!("bad frame from the owner: {error}")));
+                    return Err(Error::Protocol(format!(
+                        "bad frame from the owner: {error}"
+                    )));
                 }
             };
             let message = &decoded.message;
@@ -609,12 +745,18 @@ impl<C: Channel> Client<C> {
                 let executed = executed_for(&code);
                 return Err(Error::Ended { code, executed });
             }
-            if message["session"] == self.session.as_str() && message["seq"] == seq && message["request"] == request_id && message["ncp"] == PROTOCOL {
+            if message["session"] == self.session.as_str()
+                && message["seq"] == seq
+                && message["request"] == request_id
+                && message["ncp"] == PROTOCOL
+            {
                 return Ok(decoded);
             }
             if !self.channel.lossy() {
                 self.ended = true;
-                return Err(Error::Protocol("response does not match the request".into()));
+                return Err(Error::Protocol(
+                    "response does not match the request".into(),
+                ));
             }
         }
     }

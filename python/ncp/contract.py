@@ -1,12 +1,14 @@
 """Application contracts and the multi-session host helper (sections 11 and 15)."""
+
 from __future__ import annotations
 
 import hashlib
 import json
 import os
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from .exchange import Client, Ended, Rejected, Result
 
@@ -23,24 +25,36 @@ class Contract:
     streams: frozenset[str]
 
     @classmethod
-    def from_bytes(cls, data: bytes) -> "Contract":
+    def from_bytes(cls, data: bytes) -> Contract:
         document = json.loads(data.decode("utf-8"))
-        if (type(document) is not dict or document.get("ncp_contract") != 1
-                or type(document.get("application")) is not str or not 1 <= len(document["application"]) <= 128
-                or type(document.get("version")) is not str or type(document.get("operations")) is not dict
-                or type(document.get("streams")) is not dict):
+        if (
+            type(document) is not dict
+            or document.get("ncp_contract") != 1
+            or type(document.get("application")) is not str
+            or not 1 <= len(document["application"]) <= 128
+            or type(document.get("version")) is not str
+            or type(document.get("operations")) is not dict
+            or type(document.get("streams")) is not dict
+        ):
             raise ValueError("not an NCP contract")
-        return cls(data, hashlib.sha256(data).hexdigest(), document["application"], document["version"],
-                   frozenset(document["operations"]), frozenset(document["streams"]))
+        return cls(
+            data,
+            hashlib.sha256(data).hexdigest(),
+            document["application"],
+            document["version"],
+            frozenset(document["operations"]),
+            frozenset(document["streams"]),
+        )
 
     @classmethod
-    def load(cls, path: str | os.PathLike[str]) -> "Contract":
+    def load(cls, path: str | os.PathLike[str]) -> Contract:
         with open(path, "rb") as handle:
             return cls.from_bytes(handle.read())
 
 
-def call_all(clients: Sequence[Client], op: str, bodies: Sequence[Any], *,
-             executor: ThreadPoolExecutor | None = None) -> list[Result | Exception]:
+def call_all(
+    clients: Sequence[Client], op: str, bodies: Sequence[Any], *, executor: ThreadPoolExecutor | None = None
+) -> list[Result | Exception]:
     """Send one request to each session and wait for all responses (spec section 16).
 
     Sessions are independent: an exception of one session is returned in its place and does

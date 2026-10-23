@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sepahead-ncp"
+version = "2.0.0a1"
+description = "NCP 2: exactly-once exchanges and hash-chained streams between independent programs (reference SDK, standard library only)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT OR Apache-2.0"
+authors = [{ name = "Sepehr Mahmoudian" }]
+dependencies = []
+keywords = ["co-simulation", "closed-loop", "neurorobotics", "protocol", "exactly-once"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Repository = "https://github.com/sepahead/NCP"
+Specification = "https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md"
+
+[tool.setuptools.packages.find]
+include = ["ncp*"]
+
+[tool.setuptools.package-data]
+ncp = ["py.typed"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "I"]
