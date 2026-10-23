@@ -1,0 +1,33 @@
+[package]
+name = "ncp"
+version = "2.0.0-alpha.1"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "NCP 2: exactly-once exchanges and hash-chained streams between independent programs"
+repository = "https://github.com/sepahead/NCP"
+publish = false
+
+[dependencies]
+serde = "=1.0.228"
+serde_json = { version = "=1.0.150", features = ["float_roundtrip"] }
+sha2 = "=0.10.9"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+
+[[example]]
+name = "echo_owner"
+
+[[example]]
+name = "bench_client"
+
+[[example]]
+name = "model_owner"
+
+[workspace]
