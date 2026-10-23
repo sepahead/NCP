@@ -1,0 +1,21 @@
+# Rust comparison arms of benchmarks/comparison: a raw pipe floor, gRPC (tonic), and Zenoh.
+# Kept outside the ncp crate so that the protocol stays lean.
+[package]
+name = "ncp-comparison-bench"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+bytes = "1"
+prost = "0.14"
+serde_json = "=1.0.150"
+tokio = { version = "1", features = ["rt", "net", "macros", "time"] }
+tonic = "0.14"
+tonic-prost = "0.14"
+zenoh = { version = "=1.9.0", default-features = false, features = ["transport_tcp"] }
+
+[profile.release]
+codegen-units = 1
+
+[workspace]
