@@ -1,0 +1,12 @@
+# The Rust host of the NCP 2 arms of the NEST campaign (see ../../PROTOCOL-3.md).
+[package]
+name = "ncp2-nest-host"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ncp = { package = "sepahead-ncp-core", path = "../../../../rust" }
+serde_json = "=1.0.154"
+
+[workspace]
