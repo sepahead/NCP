@@ -412,10 +412,18 @@ fn encoders_refuse_frames_that_receivers_must_reject() {
     assert!(frame::encode(&json!({"n": 9007199254740992_u64}), &[]).is_err(), "integer above 2^53 - 1");
     assert!(frame::encode(&json!({"n": i64::MIN}), &[]).is_err(), "integer below -(2^53 - 1)");
     let mut deep = json!(1);
-    for _ in 0..64 {
+    for _ in 0..63 {
         deep = json!([deep]);
     }
-    assert!(frame::encode(&json!({"d": deep}), &[]).is_err(), "65 levels");
+    assert!(frame::encode(&json!({"d": deep.clone()}), &[]).is_ok(), "64 levels, a number at the deepest level");
+    assert!(frame::encode(&json!({"d": [deep]}), &[]).is_err(), "65 levels");
+    let x = Array::from_u8(b"x");
+    let mut nested = x.reference(0);
+    for _ in 0..60 {
+        nested = json!([nested]);
+    }
+    assert!(frame::encode(&json!({"a": nested}), std::slice::from_ref(&x)).is_ok(), "array shape list at level 64");
+    assert!(frame::encode(&json!({"a": [nested]}), std::slice::from_ref(&x)).is_err(), "array shape list at level 65");
     assert!(frame::encode(&json!({"a": 1}), std::slice::from_ref(&ok)).is_err(), "unreferenced array");
     assert!(frame::encode(&json!({"a": ok.reference(0), "b": ok.reference(0)}), std::slice::from_ref(&ok)).is_err(), "array referred to twice");
     assert!(frame::encode(&json!({"a": ok.reference(1)}), std::slice::from_ref(&ok)).is_err(), "reference index out of range");
@@ -451,4 +459,45 @@ fn an_unencodable_result_ends_the_session_with_owner_failure() {
     let response = frame::decode(owner.handle(call).expect("response").to_vec(), MAX_BOUND).expect("decode").message;
     assert_eq!((response["outcome"].as_str(), response["code"].as_str()), (Some("ended"), Some("owner_failure")));
     assert!(response["body"]["detail"].as_str().is_some_and(|d| d.contains("integer magnitude")));
+}
+
+#[test]
+fn the_digest_check_can_be_turned_off() {
+    let good = frame::encode(&json!({"a": 1}), &[]).expect("encode");
+    let mut wrong = good.clone();
+    let last = wrong.len() - 1;
+    wrong[last] ^= 1;
+    assert!(frame::decode(wrong.clone(), MAX_BOUND).is_err(), "checked: a wrong digest is a bad frame");
+    let unchecked = frame::decode_with(wrong.clone(), MAX_BOUND, false).expect("unchecked");
+    assert_eq!(unchecked.identity, frame::identity(&wrong), "the identity is the digest field as received");
+    assert_eq!(unchecked.message, json!({"a": 1}));
+    // A whole session with the check off at both ends.
+    let contract = contract();
+    let channel = Memory { owner: owner(Echo::default(), MAX_BOUND).without_digest_check(), inbox: VecDeque::new(),
+                           drop_responses: 0, lossy: false };
+    let mut client = Client::new(channel, &contract.application, &contract.identity).without_digest_check();
+    client.open().expect("open");
+    let arrays = all_dtypes();
+    let reply = client.call("echo", json!({"v": array_body(&arrays)}), &arrays).expect("call");
+    assert_eq!(reply.array_bytes(9).expect("bytes"), &arrays[9].data[..]);
+    client.close().expect("close");
+}
+
+#[test]
+fn a_damaged_body_is_a_bad_frame() {
+    // An owner over TCP answers a request whose body was changed with the bad-frame response.
+    let listener = binding::listen_tcp("127.0.0.1:0", false).expect("listen");
+    let address = listener.local_addr().expect("address");
+    let server = std::thread::spawn(move || {
+        let (stream, _) = listener.accept().expect("accept");
+        let mut channel = binding::tcp_channel(stream).expect("channel");
+        binding::serve(&mut owner(Echo::default(), MAX_BOUND), &mut channel).expect("serve");
+    });
+    let mut damaged = frame::encode(&json!({"a": "x".repeat(70_000)}), &[]).expect("encode");
+    damaged[40_000] ^= 1;
+    let mut channel = binding::connect_tcp(address, false).expect("connect");
+    channel.send_frame(&damaged).expect("send");
+    let response = frame::decode(channel.receive_frame(MAX_BOUND).expect("response"), MAX_BOUND).expect("decode");
+    assert_eq!(response.message["code"], "bad_frame");
+    server.join().expect("server");
 }

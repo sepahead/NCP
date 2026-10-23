@@ -46,6 +46,9 @@ Rules:
 2. The frame length, `44 + J + A`, MUST NOT exceed the receiver's bound.
 3. A receiver MUST check the magic, `J`, `A`, and the bound before it reads the rest of the frame.
 4. A receiver MUST compute the digest and compare it with the digest field before it parses the JSON region. A frame with a different digest is a bad frame.
+   Exception: on a pipe pair or a Unix domain socket where no other program can change frames between the two endpoints, an application MAY turn off this comparison for the frames that it receives.
+   The identity of a received frame is then its digest field as received.
+   A transcript verifier always makes the comparison (section 10).
 5. The identity of a frame is the digest field as 64 lowercase hexadecimal characters. Senders and receivers compute identities from the exact bytes. NCP defines no canonical encoding.
 
 ## 4. JSON region
@@ -325,6 +328,7 @@ The descriptions of bodies, units, and clocks are the application's. NCP only co
 - Pipes and Unix domain sockets rely on operating-system access control. TCP is limited to loopback by default. On networks that are not trusted, use a secure tunnel or the Zenoh binding with mutual TLS and access control.
 - Applications that need authority, such as commands to physical machines, add their own signed authority in their contract. Haldir does this for plant commands.
 - Bounds limit memory. Receivers check lengths before they allocate.
+- If an application turns off the digest comparison (section 3, rule 4), damage between the two endpoints is not detected while the session runs. Identities, the hash chain, and transcript verification do not change.
 
 ## 14. Conformance
 

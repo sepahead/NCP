@@ -136,9 +136,10 @@ pub struct Owner<H: Handler> {
     session: Option<String>,
     bound: usize,
     high: u64,
-    kept: Option<(String, Arc<[u8]>, String)>, // request identity, response frame, response identity
+    kept: Option<(String, Arc<Vec<u8>>, String)>, // request identity, response frame, response identity
     ended: bool,
     closed: bool,
+    check_digests: bool,
 }
 
 impl<H: Handler> fmt::Debug for Owner<H> {
@@ -171,7 +172,16 @@ impl<H: Handler> Owner<H> {
             kept: None,
             ended: false,
             closed: false,
+            check_digests: true,
         }
+    }
+
+    /// Stop comparing each request's digest with its bytes. Use it only on a pipe pair or a Unix
+    /// domain socket with no other program between the endpoints (spec section 3, rule 4).
+    /// Response digests are always computed.
+    pub fn without_digest_check(mut self) -> Owner<H> {
+        self.check_digests = false;
+        self
     }
 
     /// The bound that the binding must apply to the next request.
@@ -191,18 +201,18 @@ impl<H: Handler> Owner<H> {
 
     /// Handle one request frame and return the response frame. Fails only for a bad frame,
     /// which the binding handles (section 9).
-    pub fn handle(&mut self, frame_bytes: Vec<u8>) -> Result<Arc<[u8]>, FrameError> {
-        let decoded = frame::decode(frame_bytes, self.bound)?;
+    pub fn handle(&mut self, frame_bytes: Vec<u8>) -> Result<Arc<Vec<u8>>, FrameError> {
+        let decoded = frame::decode_with(frame_bytes, self.bound, self.check_digests)?;
         check_request(&decoded.message)?;
         let request = &decoded.message;
         let session = request["session"].as_str().unwrap_or_default().to_owned();
         let seq = request["seq"].as_u64().unwrap_or_default();
         let op = request["op"].as_str().unwrap_or_default().to_owned();
         let request_id = decoded.identity.clone();
-        let reply = |outcome: &str, code: Option<&str>, body: Value, arrays: &[Array]| -> Result<Arc<[u8]>, FrameError> {
+        let reply = |outcome: &str, code: Option<&str>, body: Value, arrays: &[Array]| -> Result<Arc<Vec<u8>>, FrameError> {
             let message = json!({"ncp": PROTOCOL, "session": session, "seq": seq, "request": request_id,
                                   "outcome": outcome, "code": code, "body": body});
-            frame::encode(&message, arrays).map(Arc::from)
+            frame::encode(&message, arrays).map(Arc::new)
         };
         let reject = |code: &str, detail: Option<String>| {
             let body = match detail {
@@ -292,9 +302,9 @@ impl<H: Handler> Owner<H> {
     fn open(
         &mut self,
         decoded: &Decoded,
-        reply: impl Fn(&str, Option<&str>, Value, &[Array]) -> Result<Arc<[u8]>, FrameError>,
-        reject: impl Fn(&str, Option<String>) -> Result<Arc<[u8]>, FrameError>,
-    ) -> Result<Arc<[u8]>, FrameError> {
+        reply: impl Fn(&str, Option<&str>, Value, &[Array]) -> Result<Arc<Vec<u8>>, FrameError>,
+        reject: impl Fn(&str, Option<String>) -> Result<Arc<Vec<u8>>, FrameError>,
+    ) -> Result<Arc<Vec<u8>>, FrameError> {
         let request = &decoded.message;
         let body = match (&request["ack"], request["body"].as_object()) {
             (Value::Null, Some(body)) => body,
@@ -420,6 +430,7 @@ pub struct Client<C: Channel> {
     ack: Option<String>,
     ended: bool,
     opened: bool,
+    check_digests: bool,
 }
 
 impl<C: Channel> fmt::Debug for Client<C> {
@@ -450,7 +461,15 @@ impl<C: Channel> Client<C> {
             ack: None,
             ended: false,
             opened: false,
+            check_digests: true,
         }
+    }
+
+    /// Stop comparing each response's digest with its bytes, under the conditions of spec
+    /// section 3, rule 4.
+    pub fn without_digest_check(mut self) -> Client<C> {
+        self.check_digests = false;
+        self
     }
 
     /// Request a session bound (default 1 MiB).
@@ -570,7 +589,7 @@ impl<C: Channel> Client<C> {
                 Err(Error::Frame(_)) => continue,
                 Err(other) => return Err(other),
             };
-            let decoded = match frame::decode(frame_bytes, self.bound).and_then(|d| check_response(&d.message).map(|_| d)) {
+            let decoded = match frame::decode_with(frame_bytes, self.bound, self.check_digests).and_then(|d| check_response(&d.message).map(|_| d)) {
                 Ok(decoded) => decoded,
                 Err(_) if self.channel.lossy() => continue,
                 Err(error) => {

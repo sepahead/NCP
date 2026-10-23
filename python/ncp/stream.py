@@ -54,16 +54,21 @@ class Delivery:
 
 
 class Subscriber:
-    """Check the frames of any number of streams (section 8)."""
+    """Check the frames of any number of streams (section 8).
 
-    def __init__(self, contracts: set[str] | frozenset[str], bound: int = F.MAX_BOUND) -> None:
-        self.contracts, self.bound = frozenset(contracts), bound
+    `check_digests=False` stops the comparison of each frame's digest with its bytes, under the
+    conditions of spec section 3, rule 4.
+    """
+
+    def __init__(self, contracts: set[str] | frozenset[str], bound: int = F.MAX_BOUND, *,
+                 check_digests: bool = True) -> None:
+        self.contracts, self.bound, self.check_digests = frozenset(contracts), bound, check_digests
         self._next: dict[str, int] = {}
         self._last: dict[str, str] = {}
 
     def receive(self, frame: bytes | bytearray | memoryview) -> Delivery:
         try:
-            decoded = F.decode(frame, self.bound)
+            decoded = F.decode(frame, self.bound, check_digest=self.check_digests)
             check_stream_message(decoded.message)
         except FrameError:
             return Delivery("bad_frame")

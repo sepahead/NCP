@@ -76,6 +76,18 @@ def frames() -> list[dict]:
          "identity": hashlib.sha256(raw(b'{"a":"\\\\ud83d\\/"}')[:-32]).hexdigest(), "arrays": [], "note": ""},
     ]
     good = F.encode({"a": 1})
+
+    def array_at(lists: int) -> bytes:
+        # The object is level 1, the lists levels 2 to lists + 1, then the array reference,
+        # its spec, and its shape list: the shape list is at level lists + 4.
+        return (b'{"a":' + b"[" * lists + b'{"ncp.array":{"dtype":"u8","shape":[1],"att":0}}' + b"]" * lists
+                + b',"att":[1]}')
+
+    cases.append({"name": "array shape list at level 64", "frame": raw(array_at(60), b"x").hex(),
+                  "bound": F.HANDSHAKE_BOUND, "valid": True,
+                  "message": json.loads(array_at(60)),
+                  "identity": hashlib.sha256(raw(array_at(60), b"x")[:-32]).hexdigest(),
+                  "arrays": [b"x".hex()], "note": ""})
     nested_63 = b'{"a":' + b"[" * 63 + b"]" * 63 + b"}"
     nested_64 = b'{"a":' + b"[" * 64 + b"]" * 64 + b"}"
     cases += [
@@ -83,6 +95,10 @@ def frames() -> list[dict]:
          "bound": F.HANDSHAKE_BOUND, "valid": True, "message": json.loads(nested_63),
          "identity": hashlib.sha256(raw(nested_63)[:-32]).hexdigest(), "arrays": [], "note": ""},
         invalid("64 nested arrays inside the object (65 levels)", raw(nested_64)),
+        invalid("array shape list at level 65", raw(array_at(61), b"x")),
+        invalid("dtype that is a list", raw(b'{"att":[1],"v":{"ncp.array":{"dtype":["u8"],"shape":[1],"att":0}}}', b"x")),
+        invalid("shape element 2^53 with a zero product",
+                raw(b'{"att":[0],"v":{"ncp.array":{"dtype":"u8","shape":[9007199254740992,0],"att":0}}}')),
         invalid("digest", good[:-1] + bytes([good[-1] ^ 1])),
         invalid("magic version 1", b"NCP\x01" + good[4:]),
         invalid("json region not aligned", raw(b"{}", pad=False)),

@@ -80,17 +80,25 @@ pub struct Subscriber {
     contracts: BTreeSet<String>,
     next: HashMap<String, u64>,
     last: HashMap<String, String>,
+    check_digests: bool,
 }
 
 impl Subscriber {
     /// A subscriber that accepts the given contract identities.
     pub fn new(contracts: impl IntoIterator<Item = String>) -> Subscriber {
-        Subscriber { contracts: contracts.into_iter().collect(), next: HashMap::new(), last: HashMap::new() }
+        Subscriber { contracts: contracts.into_iter().collect(), next: HashMap::new(), last: HashMap::new(), check_digests: true }
+    }
+
+    /// Stop comparing each frame's digest with its bytes, under the conditions of spec
+    /// section 3, rule 4.
+    pub fn without_digest_check(mut self) -> Subscriber {
+        self.check_digests = false;
+        self
     }
 
     /// Check one frame; on acceptance, also return the decoded message.
     pub fn receive(&mut self, frame_bytes: Vec<u8>) -> (Delivery, Option<frame::Decoded>) {
-        let decoded = match frame::decode(frame_bytes, MAX_BOUND).and_then(|d| check_stream_message(&d.message).map(|_| d)) {
+        let decoded = match frame::decode_with(frame_bytes, MAX_BOUND, self.check_digests).and_then(|d| check_stream_message(&d.message).map(|_| d)) {
             Ok(decoded) => decoded,
             Err(_) => return (Delivery::BadFrame, None),
         };

@@ -81,6 +81,13 @@ class FrameTests(unittest.TestCase):
             F.encode({"d": [deep]})
         with self.assertRaises(F.FrameError):
             F.encode([1])  # type: ignore[arg-type]
+        # An array's reference object nests three levels below its container.
+        nested: object = F.Array("u8", [1], b"x")
+        for _ in range(60):
+            nested = [nested]
+        F.encode({"a": nested})  # shape list at level 64
+        with self.assertRaises(F.FrameError):
+            F.encode({"a": [nested]})
 
     def test_numpy_values(self) -> None:
         try:
@@ -95,6 +102,23 @@ class FrameTests(unittest.TestCase):
         self.assertEqual(message["v"].to_numpy().tolist(), [[0, 1, 2], [3, 4, 5]])
         with self.assertRaises(F.FrameError):
             F.encode({"s": numpy.uint64(2**64 - 1)})
+
+    def test_the_digest_check_can_be_turned_off(self) -> None:
+        good = F.encode({"a": 1})
+        wrong = good[:-1] + bytes([good[-1] ^ 1])
+        with self.assertRaises(F.FrameError):
+            F.decode(wrong, F.HANDSHAKE_BOUND)
+        decoded = F.decode(wrong, F.HANDSHAKE_BOUND, check_digest=False)
+        self.assertEqual(decoded.identity, F.identity(wrong))
+        self.assertEqual(decoded.message, {"a": 1})
+        owner = ncp.Owner("echo", CONTRACT.identity, Echo(), CONTRACT.operations, check_digests=False)
+        channel, process = ncp.spawn([sys.executable, "-I", os.path.join(HERE, "echo_owner.py"), "--no-digest-check"])
+        client = ncp.Client(channel, application="echo", contract=CONTRACT.identity, check_digests=False)
+        client.open()
+        self.assertEqual(client.call("echo", {"v": F.Array("u8", [2], b"ab")}).body["v"].tolist(), [97, 98])
+        client.close()
+        self.assertEqual(process.wait(timeout=10), 0)
+        self.assertFalse(owner.check_digests)
 
     def test_attachments_are_eight_byte_aligned_in_the_frame(self) -> None:
         frame = F.encode({"a": F.Array("u8", [3], b"abc"), "b": F.Array("f64", [1], struct.pack("<d", 2.0))})
@@ -428,7 +452,7 @@ class BindingTests(unittest.TestCase):
         owner = os.path.join(os.environ["NCP_RUST_EXAMPLES"], "echo_owner")
         channel, process = ncp.spawn([owner])
         rust_contract = ncp.Contract.from_bytes(
-            b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{}},"streams":{}}')
+            b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}')
         client = ncp.Client(channel, application="echo", contract=rust_contract.identity)
         self.assertTrue(client.open()["implementation"].startswith("ncp-rust/"))
         values = {d: F.Array(d, [3], bytes(range(3 * F.DTYPES[d][1]))) for d in F.DTYPES}
@@ -444,6 +468,20 @@ class BindingTests(unittest.TestCase):
         self.assertEqual((ended.exception.code, ended.exception.executed), ("owner_failure", "unknown"))
         client.close()
         self.assertEqual(process.wait(timeout=10), 0)
+
+    def test_a_damaged_body_is_a_bad_frame(self) -> None:
+        server = ncp.TcpServer(make_owner).start()
+        try:
+            host, port = server.address[:2]
+            damaged = bytearray(F.encode({"a": "x" * 70_000}))
+            damaged[40_000] ^= 1
+            with socket.create_connection((host, port)) as sock:
+                sock.sendall(damaged)
+                channel = ncp.StreamChannel.from_socket(sock)
+                response = F.decode(channel.receive(F.MAX_BOUND, 10), F.MAX_BOUND).message
+            self.assertEqual(response["code"], "bad_frame")
+        finally:
+            server.stop()
 
     def test_remote_addresses_need_an_option(self) -> None:
         with self.assertRaises(ValueError):

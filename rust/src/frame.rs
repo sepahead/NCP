@@ -162,6 +162,10 @@ impl Array {
 }
 
 /// The identity of a frame: its digest field as 64 lowercase hexadecimal characters.
+///
+/// # Panics
+///
+/// If `frame` is shorter than the digest field. Every frame is longer.
 pub fn identity(frame: &[u8]) -> String {
     hex(&frame[frame.len() - DIGEST_BYTES..])
 }
@@ -243,9 +247,8 @@ pub fn encode(message: &Value, arrays: &[Array]) -> Result<Vec<u8>, FrameError> 
 /// The rules of section 4 that `serde_json::Value` does not guarantee: integers within
 /// 2^53 - 1 and at most MAX_DEPTH levels of nesting.
 fn check_tree(value: &Value, depth: usize) -> Result<(), FrameError> {
-    if depth > MAX_DEPTH {
-        return bad("nesting depth");
-    }
+    // Only objects and arrays count as levels, as in the decoder's scan.
+    let too_deep = || if depth > MAX_DEPTH { bad("nesting depth") } else { Ok(()) };
     match value {
         Value::Number(number) => {
             let magnitude = number.as_u64().or_else(|| number.as_i64().map(i64::unsigned_abs));
@@ -253,8 +256,14 @@ fn check_tree(value: &Value, depth: usize) -> Result<(), FrameError> {
                 return bad("integer magnitude");
             }
         }
-        Value::Array(items) => items.iter().try_for_each(|item| check_tree(item, depth + 1))?,
-        Value::Object(object) => object.values().try_for_each(|item| check_tree(item, depth + 1))?,
+        Value::Array(items) => {
+            too_deep()?;
+            items.iter().try_for_each(|item| check_tree(item, depth + 1))?;
+        }
+        Value::Object(object) => {
+            too_deep()?;
+            object.values().try_for_each(|item| check_tree(item, depth + 1))?;
+        }
         _ => {}
     }
     Ok(())
@@ -321,8 +330,8 @@ pub struct Decoded {
     pub arrays: Vec<ArrayRef>,
     /// The identity of the frame.
     pub identity: String,
-    /// The exact frame bytes.
-    pub frame: Arc<[u8]>,
+    /// The exact frame bytes, shared without copying.
+    pub frame: Arc<Vec<u8>>,
 }
 
 macro_rules! to_vec {
@@ -375,8 +384,15 @@ impl Decoded {
 }
 
 /// Check and decode one complete frame. Fails with FrameError for a bad frame.
-pub fn decode(frame: impl Into<Arc<[u8]>>, bound: usize) -> Result<Decoded, FrameError> {
-    let frame: Arc<[u8]> = frame.into();
+pub fn decode(frame: Vec<u8>, bound: usize) -> Result<Decoded, FrameError> {
+    decode_with(frame, bound, true)
+}
+
+/// As [`decode`]. With `check_digest` false, the digest field is not compared with the frame
+/// bytes, and the identity is the digest field as received. Use it only on a pipe pair or a
+/// Unix domain socket with no other program between the two endpoints (spec section 3, rule 4).
+pub fn decode_with(frame: Vec<u8>, bound: usize, check_digest: bool) -> Result<Decoded, FrameError> {
+    let frame = Arc::new(frame);
     let rest = remaining_length(&frame, bound)?;
     if frame.len() != HEADER_BYTES + rest {
         return bad("frame length");
@@ -384,8 +400,7 @@ pub fn decode(frame: impl Into<Arc<[u8]>>, bound: usize) -> Result<Decoded, Fram
     let json_length = u32::from_be_bytes([frame[4], frame[5], frame[6], frame[7]]) as usize;
     let attachment_length = u32::from_be_bytes([frame[8], frame[9], frame[10], frame[11]]) as usize;
     let end = HEADER_BYTES + json_length + attachment_length;
-    let digest = Sha256::digest(&frame[..end]);
-    if digest.as_slice() != &frame[end..] {
+    if check_digest && Sha256::digest(&frame[..end]).as_slice() != &frame[end..] {
         return bad("digest");
     }
     let json = &frame[HEADER_BYTES..HEADER_BYTES + json_length];
@@ -397,7 +412,7 @@ pub fn decode(frame: impl Into<Arc<[u8]>>, bound: usize) -> Result<Decoded, Fram
         return bad("json value is not an object");
     }
     let arrays = bind_arrays(&message, HEADER_BYTES + json_length, attachment_length, &frame)?;
-    Ok(Decoded { message, arrays, identity: hex(&digest), frame })
+    Ok(Decoded { message, arrays, identity: hex(&frame[end..]), frame })
 }
 
 /// One pass over the JSON text outside strings: integer literals within 2^53 - 1, nesting depth

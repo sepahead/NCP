@@ -34,9 +34,9 @@ DTYPES = {
 }
 _PADDING = tuple(b" " * ((8 - n) % 8) for n in range(8))
 _ZEROS = bytes(8)
-_SURROGATE_ESCAPE = re.compile(rb"\\u[dD][89a-fA-F]")  # may also match after an escaped backslash
+_SURROGATE_ESCAPE = re.compile(r"\\u[dD][89a-fA-F]")  # may also match after an escaped backslash
+_NEGATIVE_ZERO = re.compile(r"-0(?![.eE0-9])")  # may also match inside a string
 _SURROGATE = re.compile("[\ud800-\udfff]")
-_BOM = b"\xef\xbb\xbf"
 
 
 class FrameError(ValueError):
@@ -53,12 +53,12 @@ class Array:
     __slots__ = ("dtype", "shape", "data", "_index")
 
     def __init__(self, dtype: str, shape: tuple[int, ...] | list[int], data: Any) -> None:
-        if dtype not in DTYPES:
+        if type(dtype) is not str or dtype not in DTYPES:
             raise FrameError(f"unknown dtype {dtype!r}")
         shape = tuple(shape)
         count = 1
         for n in shape:
-            if type(n) is not int or n < 0:
+            if type(n) is not int or not 0 <= n <= MAX_INTEGER:
                 raise FrameError("array shape")
             count *= n
         view = memoryview(data)
@@ -145,8 +145,8 @@ def encode(message: dict[str, Any]) -> bytes:
         if isinstance(error, FrameError):
             raise
         raise FrameError(f"cannot encode the message: {error}") from error
-    json_region = payload + _PADDING[(HEADER_BYTES + len(payload)) % 8]
-    parts: list[Any] = [b"", json_region]
+    padding = _PADDING[(HEADER_BYTES + len(payload)) % 8]
+    parts: list[Any] = [b"", payload, padding]
     attachment_bytes = 0
     for index, item in enumerate(found):
         if index and attachment_bytes % 8:
@@ -155,9 +155,12 @@ def encode(message: dict[str, Any]) -> bytes:
             attachment_bytes += pad
         parts.append(item.data)
         attachment_bytes += len(item.data)
-    parts[0] = HEADER.pack(MAGIC, len(json_region), attachment_bytes)
-    body = b"".join(parts)
-    return body + hashlib.sha256(body).digest()
+    parts[0] = HEADER.pack(MAGIC, len(payload) + len(padding), attachment_bytes)
+    digest = hashlib.sha256()
+    for part in parts:
+        digest.update(part)
+    parts.append(digest.digest())
+    return b"".join(parts)  # the only copy of the frame bytes
 
 
 def identity(frame: bytes | bytearray | memoryview) -> str:
@@ -216,6 +219,16 @@ def _check_tree(message: dict[str, Any]) -> None:
                     raise FrameError("integer magnitude")
             elif kind is dict or kind is list or kind is tuple or isinstance(child, (dict, list, tuple)):
                 stack.append((child, depth + 1))
+            elif depth + 3 > MAX_DEPTH and _is_array(child):
+                # {"ncp.array": {"shape": [...]}} nests three levels below its container.
+                raise FrameError("nesting depth")
+
+
+def _is_array(value: Any) -> bool:
+    if isinstance(value, Array):
+        return True
+    numpy = sys.modules.get("numpy")
+    return hasattr(value, "__array_interface__") and not (numpy is not None and isinstance(value, numpy.generic))
 
 
 def _integer(text: str) -> int:
@@ -227,26 +240,30 @@ def _integer(text: str) -> int:
     raise FrameError("integer magnitude")
 
 
-def _real(text: str) -> float:
-    value = float(text)
-    if math.isfinite(value):
-        return value
-    raise FrameError("number outside the binary64 range")
+def decode(frame: bytes | bytearray | memoryview, bound: int, *, check_digest: bool = True) -> Decoded:
+    """Check and decode one complete frame. Raise FrameError for a bad frame.
 
-
-def decode(frame: bytes | bytearray | memoryview, bound: int) -> Decoded:
-    """Check and decode one complete frame. Raise FrameError for a bad frame."""
+    With `check_digest=False`, the decoder does not compare the digest field with the frame
+    bytes, and the identity is the digest field as received. Use it only on a pipe pair or a Unix
+    domain socket with no other program between the two endpoints (spec section 3, rule 4).
+    """
     view = memoryview(frame)
     rest = remaining_length(view, bound)
     if len(view) != HEADER_BYTES + rest:
         raise FrameError("frame length")
     _, json_length, attachment_length = HEADER.unpack_from(view)
     end = HEADER_BYTES + json_length + attachment_length
-    digest = hashlib.sha256(view[:end]).digest()
-    if digest != view[end:]:
-        raise FrameError("digest")
-    raw = bytes(view[HEADER_BYTES:HEADER_BYTES + json_length])
-    if raw.startswith(_BOM):
+    if check_digest:
+        digest = hashlib.sha256(view[:end]).digest()
+        if digest != view[end:]:
+            raise FrameError("digest")
+    else:
+        digest = bytes(view[end:])
+    try:
+        text = str(view[HEADER_BYTES:HEADER_BYTES + json_length], "utf-8")
+    except UnicodeDecodeError as error:
+        raise FrameError("json region is not UTF-8") from error
+    if text.startswith("\ufeff"):
         raise FrameError("byte order mark")
     arrays_found: list[Array] = []
 
@@ -267,33 +284,47 @@ def decode(frame: bytes | bytearray | memoryview, bound: int) -> Decoded:
         return result
 
     try:
-        message = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs, parse_int=_integer,
-                             parse_float=_real, parse_constant=_reject_constant)
+        message = json.loads(text, object_pairs_hook=pairs, parse_constant=_reject_constant)
     except FrameError:
         raise
     except (ValueError, RecursionError) as error:
         raise FrameError("json") from error
     if type(message) is not dict:
         raise FrameError("json value is not an object")
-    _check_depth(message)
+    _check_decoded(message)
+    if "-0" in text and _NEGATIVE_ZERO.search(text):
+        # -0 written as an integer decodes to 0. Parse again with a callback to tell it apart
+        # from the same characters in a string; this is rare, so the usual path stays fast.
+        json.loads(text, parse_int=_integer, parse_constant=_reject_constant)
     # json.loads joins escaped surrogate pairs and the UTF-8 decoder refuses encoded surrogates,
     # so a surrogate left in a decoded string comes from an unpaired escape.
-    if b"\\u" in raw and _SURROGATE_ESCAPE.search(raw) and _has_surrogate(message):
+    if "\\u" in text and _SURROGATE_ESCAPE.search(text) and _has_surrogate(message):
         raise FrameError("unpaired surrogate")
     arrays = _bind_arrays(message, arrays_found, view[HEADER_BYTES + json_length:end], attachment_length)
     return Decoded(message, arrays, digest.hex(), frame)
 
 
-def _check_depth(value: Any) -> None:
-    stack = [(value, 1)]
+def _check_decoded(message: dict[str, Any]) -> None:
+    """The rules of section 4 that json.loads does not check: integer magnitude, finite numbers,
+    and nesting depth, counting the three levels of each array reference."""
+    isfinite = math.isfinite
+    stack: list[tuple[Any, int]] = [(message, 1)]
     while stack:
         item, depth = stack.pop()
         if depth > MAX_DEPTH:
             raise FrameError("nesting depth")
-        children = item.values() if type(item) is dict else item
-        for child in children:
-            if type(child) in (dict, list):
+        for child in (item.values() if type(item) is dict else item):
+            kind = type(child)
+            if kind is int:
+                if not -MAX_INTEGER <= child <= MAX_INTEGER:
+                    raise FrameError("integer magnitude")
+            elif kind is float:
+                if not isfinite(child):
+                    raise FrameError("number outside the binary64 range")
+            elif kind is dict or kind is list:
                 stack.append((child, depth + 1))
+            elif kind is Array and depth + 3 > MAX_DEPTH:
+                raise FrameError("nesting depth")
 
 
 def _has_surrogate(value: Any) -> bool:

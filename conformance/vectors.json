@@ -357,6 +357,151 @@
    "note": ""
   },
   {
+   "name": "array shape list at level 64",
+   "frame": "4e435002000000bc000000017b2261223a5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b7b226e63702e6172726179223a7b226474797065223a227538222c227368617065223a5b315d2c22617474223a307d7d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d2c22617474223a5b315d7d2020202078bfb229aa79a603865c23519a86edd89d65ac9e9c62752802a8d5f3ca1ad58f37",
+   "bound": 65536,
+   "valid": true,
+   "message": {
+    "a": [
+     [
+      [
+       [
+        [
+         [
+          [
+           [
+            [
+             [
+              [
+               [
+                [
+                 [
+                  [
+                   [
+                    [
+                     [
+                      [
+                       [
+                        [
+                         [
+                          [
+                           [
+                            [
+                             [
+                              [
+                               [
+                                [
+                                 [
+                                  [
+                                   [
+                                    [
+                                     [
+                                      [
+                                       [
+                                        [
+                                         [
+                                          [
+                                           [
+                                            [
+                                             [
+                                              [
+                                               [
+                                                [
+                                                 [
+                                                  [
+                                                   [
+                                                    [
+                                                     [
+                                                      [
+                                                       [
+                                                        [
+                                                         [
+                                                          [
+                                                           [
+                                                            [
+                                                             [
+                                                              [
+                                                               [
+                                                                {
+                                                                 "ncp.array": {
+                                                                  "dtype": "u8",
+                                                                  "shape": [
+                                                                   1
+                                                                  ],
+                                                                  "att": 0
+                                                                 }
+                                                                }
+                                                               ]
+                                                              ]
+                                                             ]
+                                                            ]
+                                                           ]
+                                                          ]
+                                                         ]
+                                                        ]
+                                                       ]
+                                                      ]
+                                                     ]
+                                                    ]
+                                                   ]
+                                                  ]
+                                                 ]
+                                                ]
+                                               ]
+                                              ]
+                                             ]
+                                            ]
+                                           ]
+                                          ]
+                                         ]
+                                        ]
+                                       ]
+                                      ]
+                                     ]
+                                    ]
+                                   ]
+                                  ]
+                                 ]
+                                ]
+                               ]
+                              ]
+                             ]
+                            ]
+                           ]
+                          ]
+                         ]
+                        ]
+                       ]
+                      ]
+                     ]
+                    ]
+                   ]
+                  ]
+                 ]
+                ]
+               ]
+              ]
+             ]
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     ]
+    ],
+    "att": [
+     1
+    ]
+   },
+   "identity": "bfb229aa79a603865c23519a86edd89d65ac9e9c62752802a8d5f3ca1ad58f37",
+   "arrays": [
+    "78"
+   ],
+   "note": ""
+  },
+  {
    "name": "63 nested arrays inside the object (64 levels)",
    "frame": "4e43500200000084000000007b2261223a5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d7d3035a6b7f5988b8bac075d80188ffbb7fe34ddfdea6e14e0f3e4b5bceb53076b",
    "bound": 65536,
@@ -495,6 +640,24 @@
   {
    "name": "64 nested arrays inside the object (65 levels)",
    "frame": "4e4350020000008c000000007b2261223a5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d7d202020202020e5caea67d48b8bb20041d1ba129ffd2099b2eea04b1e9320e88177d82d67d696",
+   "bound": 65536,
+   "valid": false
+  },
+  {
+   "name": "array shape list at level 65",
+   "frame": "4e435002000000bc000000017b2261223a5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b7b226e63702e6172726179223a7b226474797065223a227538222c227368617065223a5b315d2c22617474223a307d7d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d5d2c22617474223a5b315d7d202078f49eaeac9ca85f5dad3f8c433badc57b6c39cc26251aa37d757180349714a079",
+   "bound": 65536,
+   "valid": false
+  },
+  {
+   "name": "dtype that is a list",
+   "frame": "4e43500200000044000000017b22617474223a5b315d2c2276223a7b226e63702e6172726179223a7b226474797065223a5b227538225d2c227368617065223a5b315d2c22617474223a307d7d7d20207897437593674b8c75e49c7e1977632df0522db436893748fb6eaef77f05b39b94",
+   "bound": 65536,
+   "valid": false
+  },
+  {
+   "name": "shape element 2^53 with a zero product",
+   "frame": "4e43500200000054000000007b22617474223a5b305d2c2276223a7b226e63702e6172726179223a7b226474797065223a227538222c227368617065223a5b393030373139393235343734303939322c305d2c22617474223a307d7d7d202020daa7e701fd7a9cec41b9592c37b80972210ce4de3b18889d11477a066f384c8a",
    "bound": 65536,
    "valid": false
   },

@@ -84,10 +84,15 @@ class Owner:
 
     `handle` takes one frame and returns the response frame. It never raises for a bad
     request; it raises FrameError only for a bad frame, which the binding handles.
+
+    `check_digests=False` stops the comparison of each request's digest with its bytes. Use it
+    only on a pipe pair or a Unix domain socket with no other program between the endpoints
+    (spec section 3, rule 4). The response digests are always computed.
     """
 
     def __init__(self, application: str, contract: str, handler: Handler, operations: Iterable[str], *,
-                 max_bound: int = F.DEFAULT_BOUND, implementation: str = IMPLEMENTATION) -> None:
+                 max_bound: int = F.DEFAULT_BOUND, implementation: str = IMPLEMENTATION,
+                 check_digests: bool = True) -> None:
         if not is_identity(contract):
             raise ValueError("contract must be an identity")
         if not F.HANDSHAKE_BOUND <= max_bound <= F.MAX_BOUND:
@@ -95,6 +100,7 @@ class Owner:
         self.application, self.contract, self.handler = application, contract, handler
         self.operations = frozenset(operations) - {"open", "close"}
         self.max_bound, self.implementation = max_bound, implementation
+        self.check_digests = check_digests
         self.session: str | None = None
         self.bound = F.HANDSHAKE_BOUND
         self.high = 0
@@ -103,7 +109,8 @@ class Owner:
         self.closed = False
 
     def handle(self, frame_bytes: bytes | bytearray | memoryview) -> bytes:
-        decoded = F.decode(frame_bytes, self.bound)
+        """Handle one request frame and return the response frame."""
+        decoded = F.decode(frame_bytes, self.bound, check_digest=self.check_digests)
         request = decoded.message
         check_request(request)
         request_id = decoded.identity
@@ -243,14 +250,20 @@ class Result:
 
 
 class Client:
-    """The client rules of section 7.6, over one channel."""
+    """The client rules of section 7.6, over one channel.
+
+    `check_digests=False` stops the comparison of each response's digest with its bytes, under
+    the same conditions as for the owner (spec section 3, rule 4).
+    """
 
     def __init__(self, channel: Channel, *, application: str, contract: str, bound: int = F.DEFAULT_BOUND,
-                 run: str | None = None, timeout: float | None = None, retries: int = 3) -> None:
+                 run: str | None = None, timeout: float | None = None, retries: int = 3,
+                 check_digests: bool = True) -> None:
         if not is_identity(contract):
             raise ValueError("contract must be an identity")
         self.channel, self.application, self.contract = channel, application, contract
         self.requested_bound, self.run, self.timeout, self.retries = bound, run, timeout, retries
+        self.check_digests = check_digests
         self.session = str(uuid.uuid4())
         self.bound = F.HANDSHAKE_BOUND
         self.seq = 0
@@ -326,7 +339,7 @@ class Client:
         while True:
             frame = self.channel.receive(self.bound, self.timeout)
             try:
-                decoded = F.decode(frame, self.bound)
+                decoded = F.decode(frame, self.bound, check_digest=self.check_digests)
                 check_response(decoded.message)
             except FrameError as error:
                 if self.channel.lossy:

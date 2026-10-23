@@ -50,16 +50,20 @@ impl<R: Read, W: Write> StreamChannel<R, W> {
         Ok(())
     }
 
+    fn read_header(&mut self, header: &mut [u8; HEADER_BYTES]) -> Result<(), Error> {
+        match self.reader.read_exact(header) {
+            Ok(()) => Ok(()),
+            Err(error) if error.kind() == io::ErrorKind::UnexpectedEof => {
+                Err(Error::Io(io::Error::new(io::ErrorKind::UnexpectedEof, "the peer closed the stream")))
+            }
+            Err(error) => Err(Error::Io(error)),
+        }
+    }
+
     /// Receive one complete frame, checking its header against `bound`.
     pub fn receive_frame(&mut self, bound: usize) -> Result<Vec<u8>, Error> {
         let mut header = [0u8; HEADER_BYTES];
-        match self.reader.read_exact(&mut header) {
-            Ok(()) => {}
-            Err(error) if error.kind() == io::ErrorKind::UnexpectedEof => {
-                return Err(Error::Io(io::Error::new(io::ErrorKind::UnexpectedEof, "the peer closed the stream")))
-            }
-            Err(error) => return Err(Error::Io(error)),
-        }
+        self.read_header(&mut header)?;
         let rest = frame::remaining_length(&header, bound)?;
         let mut frame = Vec::with_capacity(HEADER_BYTES + rest);
         frame.extend_from_slice(&header);

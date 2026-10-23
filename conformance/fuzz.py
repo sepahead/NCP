@@ -95,7 +95,46 @@ def edit_text(rng: random.Random, text: bytes) -> bytes:
     return text
 
 
+TRICKY = [b"0", b"1", b"-1", b"-0", b"9007199254740991", b"9007199254740992", b"4294967296", b"1e2", b"1.0",
+          b"null", b"true", b'"u8"', b'"f64"', b'"c64"', b'["u8"]', b"[]", b"[1]", b"[0]", b"[[1]]", b"{}",
+          b'"\\ud83d"', b"[4294967296,4294967296]", b"[9007199254740992,0]", b"[2,2]", b"[1,0]"]
+
+
+def array_case(rng: random.Random) -> bytes:
+    """A frame with array references whose members and nesting are chosen to probe the rules."""
+    count = rng.randint(1, 3)
+    references, attachments, lengths = [], [], []
+    for index in range(count):
+        n = rng.choice([0, 1, 2, 4])
+        dtype = rng.choice([b'"u8"', b'"u16"', b'"f64"'])
+        members = {b"dtype": dtype, b"shape": b"[%d]" % n, b"att": b"%d" % index}
+        if rng.random() < 0.5:
+            members[rng.choice(list(members))] = rng.choice(TRICKY)
+        if rng.random() < 0.1:
+            members[b"extra"] = b"1"
+        if rng.random() < 0.1:
+            members.pop(rng.choice(list(members)))
+        spec = b"{" + b",".join(b'"%s":%s' % item for item in members.items()) + b"}"
+        depth = rng.choice([0, 1, 2, 58, 59, 60, 61, 62])
+        references.append(b"[" * depth + b'{"ncp.array":' + spec + b"}" + b"]" * depth)
+        size = {b'"u8"': 1, b'"u16"': 2, b'"f64"': 8}[dtype] * n
+        attachments.append(bytes(rng.randrange(256) for _ in range(size)))
+        lengths.append(size)
+    if rng.random() < 0.1:
+        lengths[rng.randrange(count)] += rng.choice([-1, 1, 8])
+    region = b""
+    for index, data in enumerate(attachments):
+        if index and len(region) % 8:
+            region += bytes(8 - len(region) % 8)
+        region += data
+    text = (b"{" + b",".join(b'"r%d":%s' % (i, r) for i, r in enumerate(references))
+            + b',"att":[' + b",".join(b"%d" % max(0, n) for n in lengths) + b"]}")
+    return wrap(text, region)
+
+
 def make_case(rng: random.Random) -> bytes:
+    if rng.random() < 0.2:
+        return array_case(rng)
     arrays: list[F.Array] = []
     message = {f"k{i}": random_value(rng, 1, arrays) for i in range(rng.randrange(1, 5))}
     try:
