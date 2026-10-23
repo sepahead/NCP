@@ -266,6 +266,7 @@ The byte-stream binding sends frames back to back over one reliable, ordered byt
 5. An owner that listens on a Unix domain socket SHOULD create it in a directory that only the users of the session can access. On one machine, a Unix domain socket is the preferred connection between programs that the owner does not start.
 6. A TCP endpoint MUST set `TCP_NODELAY`. By default, a TCP endpoint MUST listen on and connect to loopback addresses only. Other addresses require an explicit option. Use a secure tunnel or the Zenoh binding with TLS on networks that are not trusted.
 7. If the connection closes, the session ends. A request without a response is possibly executed.
+8. An implementation SHOULD set the send and receive buffers of a socket to at least 1 MiB. Small default buffers, such as the 8 KiB of a Unix domain socket on macOS, multiply the time that a large frame takes.
 
 ### 9.2 Zenoh binding
 

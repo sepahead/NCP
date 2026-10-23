@@ -129,6 +129,19 @@ def configurations(python: str, binaries: dict[str, Path]) -> dict[str, dict]:
             py_owner + ["tcp"],
             family="ncp2",
         )
+        # The receiver's digest comparison off at both ends (spec section 3, rule 4).
+        add(
+            "ncp2-rust-rust-pipe-nocheck",
+            n,
+            rust_client + args + ["--no-digest-check", "--"] + rust_owner + ["--no-digest-check"],
+            family="ncp2",
+        )
+        add(
+            "ncp2-python-python-pipe-nocheck",
+            n,
+            py_client + args + ["--no-digest-check", "--"] + py_owner + ["--no-digest-check"],
+            family="ncp2",
+        )
         add("raw-rust-pipe", n, [bench, "raw-client"] + args + ["--", bench, "raw-server"], family="floor")
         add(
             "raw-python-pipe",
@@ -175,6 +188,15 @@ def environment(ncp1: Path) -> dict:
     }
 
 
+def power_source() -> str:
+    """The power source, for example "AC Power" or "Battery Power" (macOS), or "unknown"."""
+    try:
+        line = out(["pmset", "-g", "batt"]).splitlines()[0]
+    except (OSError, subprocess.CalledProcessError, IndexError):
+        return "unknown"
+    return line.split("'")[1] if line.count("'") >= 2 else line
+
+
 def run_one(config: dict, calls: int, warmup: int, env: dict) -> tuple[int, dict, list[str]]:
     """Start the server if any, run the client, stop the server. Returns (code, result, stderr tail)."""
     socket_directory = tempfile.mkdtemp(prefix="ncpb", dir="/tmp")  # socket paths must be short
@@ -192,7 +214,11 @@ def run_one(config: dict, calls: int, warmup: int, env: dict) -> tuple[int, dict
         process = subprocess.run(command, capture_output=True, text=True, env=env, timeout=1800)
         lines = process.stdout.strip().splitlines()
         result = json.loads(lines[-1]) if process.returncode == 0 and lines else {}
-        return process.returncode, result, process.stderr.strip().splitlines()[-3:]
+        result.update(result.pop("timing", {}))  # the NCP 1.0.1 harness nests its statistics
+        code = process.returncode
+        if code == 0 and result.get("valid") is False:
+            code = 2  # the NCP 1.0.1 harness counted a wrong response
+        return code, result, process.stderr.strip().splitlines()[-3:]
     except subprocess.TimeoutExpired:
         return 124, {}, ["timeout"]
     finally:
@@ -365,6 +391,7 @@ def main() -> None:
         config = configs[entry["config"]]
         calls, warmup = SMOKE_CALLS if schedule["smoke"] else CALLS[config["spikes"]]
         load = os.getloadavg()
+        power = power_source()
         started = now()
         code, result, tail = run_one(config, calls, warmup, full_env)
         row = {
@@ -376,6 +403,7 @@ def main() -> None:
             "returncode": code,
             "retry": bool(entry.get("retry")),
             "load1_before": round(load[0], 2),
+            "power": power,
             "load5_before": round(load[1], 2),
             "started_utc": started,
             "finished_utc": now(),

@@ -15,6 +15,7 @@ name = "ncp"
 serde = "=1.0.229"
 serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
 sha2 = "=0.11.1"
+socket2 = "=0.6.5"
 
 [lints.rust]
 unsafe_code = "forbid"

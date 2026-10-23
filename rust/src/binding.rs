@@ -9,6 +9,19 @@ use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
 
+/// The kernel buffer size that the binding sets for Unix domain sockets and TCP connections.
+///
+/// macOS gives Unix domain sockets 8 KiB buffers by default; a 1 MiB frame then crosses in 128
+/// pieces and takes about 11 times as long (benchmarks/comparison). The kernel uses the memory
+/// only while data waits. A smaller system limit applies without an error.
+pub const SOCKET_BUFFER: usize = 1 << 20;
+
+fn enlarge_buffers(socket: socket2::SockRef<'_>) {
+    // Ignored on failure: the kernel then keeps its own limit.
+    let _ = socket.set_send_buffer_size(SOCKET_BUFFER);
+    let _ = socket.set_recv_buffer_size(SOCKET_BUFFER);
+}
+
 /// Frames over one reliable, ordered byte stream.
 pub struct StreamChannel<R: Read, W: Write> {
     reader: BufReader<R>,
@@ -202,9 +215,10 @@ pub fn connect_tcp(address: impl ToSocketAddrs, allow_remote: bool) -> io::Resul
     tcp_channel(stream)
 }
 
-/// Wrap an accepted or connected TCP stream: sets TCP_NODELAY.
+/// Wrap an accepted or connected TCP stream: sets TCP_NODELAY and [`SOCKET_BUFFER`].
 pub fn tcp_channel(stream: TcpStream) -> io::Result<TcpChannel> {
     stream.set_nodelay(true)?;
+    enlarge_buffers(socket2::SockRef::from(&stream));
     let writer = stream.try_clone()?;
     let closer = stream.try_clone()?;
     let mut channel = StreamChannel::new(stream, writer);
@@ -232,9 +246,10 @@ pub fn connect_unix(path: impl AsRef<std::path::Path>) -> io::Result<UnixChannel
     unix_channel(std::os::unix::net::UnixStream::connect(path)?)
 }
 
-/// Wrap an accepted or connected Unix domain socket stream.
+/// Wrap an accepted or connected Unix domain socket stream: sets [`SOCKET_BUFFER`].
 #[cfg(unix)]
 pub fn unix_channel(stream: std::os::unix::net::UnixStream) -> io::Result<UnixChannel> {
+    enlarge_buffers(socket2::SockRef::from(&stream));
     let writer = stream.try_clone()?;
     let closer = stream.try_clone()?;
     let mut channel = StreamChannel::new(stream, writer);

@@ -19,6 +19,10 @@ from .frame import FrameError
 from .transcript import RECEIVED, SENT, Tap
 
 _READ_CHUNK = 1 << 16
+# The kernel buffer size for Unix domain sockets and TCP connections. macOS gives Unix domain
+# sockets 8 KiB buffers by default; a 1 MiB frame then crosses in 128 pieces and takes about 11
+# times as long (benchmarks/comparison). The kernel uses the memory only while data waits.
+SOCKET_BUFFER = 1 << 20
 
 
 class ChannelClosed(EOFError):
@@ -63,6 +67,11 @@ class StreamChannel:
     def from_socket(cls, sock: socket.socket, *, tap: Tap | None = None) -> StreamChannel:
         if sock.family in (socket.AF_INET, socket.AF_INET6):
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        for option in (socket.SO_SNDBUF, socket.SO_RCVBUF):
+            try:
+                sock.setsockopt(socket.SOL_SOCKET, option, SOCKET_BUFFER)
+            except OSError:
+                pass  # the kernel keeps its own limit
         return cls(sock.recv, sock.sendall, sock.fileno(), tap=tap, close=sock.close)
 
     def send(self, frame: bytes) -> None:
