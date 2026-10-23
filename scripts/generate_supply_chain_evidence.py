@@ -177,6 +177,13 @@ REVIEWED_ADVISORY_FINDINGS = {
         "2.2.0",
         (),
     ): "transitive-unmaintained-no-upstream-fix",
+    (
+        "RUSTSEC-2024-0449",
+        "unmaintained",
+        "unsafe-libyaml",
+        "0.2.11",
+        (),
+    ): "transitive-unmaintained-no-upstream-fix",
 }
 REVIEWED_ADVISORY_IDS = {key[0] for key in REVIEWED_ADVISORY_FINDINGS}
 ARCHIVE_FILE_MANIFEST_SCHEMA = "ncp.archived-source-file-manifest.v1"

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security: dependency updates in the root lockfile (no wire change)
+
+- The current RustSec database (`640bf5a9`) reported vulnerabilities in the Zenoh
+  transport stack of the root `Cargo.lock`. The lockfile now resolves
+  `quinn-proto` 0.11.19 (RUSTSEC-2026-0338 to -0342), `rustls` 0.23.46
+  (RUSTSEC-2026-0346 to -0349), `rustls-webpki` 0.103.16 (RUSTSEC-2026-0382),
+  and `webpki-roots` and `webpki-root-certs` 1.0.10 (RUSTSEC-2026-0381 and -0383).
+  The `quinn-proto` update also moves `rustls-platform-verifier` to 0.7.1 and
+  removes several duplicate crates. All updates are semver-compatible.
+- `deny.toml` and the reviewed findings of the supply-chain generator record the
+  unmaintained `unsafe-libyaml` 0.2.11 (RUSTSEC-2024-0449), which reaches the
+  lockfile only through `serde_yaml` in `zenoh-config` 1.9.0 and has no fix. It is
+  a maintenance notice without a vulnerability, like the two recorded before it.
+- The supply-chain evidence is regenerated at the advisory revision `640bf5a9`.
+  `cargo deny` passes for the root, the local SDK, and the ADR-semantics lockfiles,
+  and the `ncp-zenoh` and `ncp-gateway` tests pass. The local SDK lockfile has none
+  of these crates.
+
 ### Local SDK 1.0.1 (no wire change)
 
 - Both `ncp-local` packages are version 1.0.1, released under the tag

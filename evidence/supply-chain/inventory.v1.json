@@ -2700,7 +2700,7 @@
         "evidence/supply-chain/*.json"
       ],
       "path": "scripts/generate_supply_chain_evidence.py",
-      "sha256": "322b25c358694b3f02c1914523bdbe81a5292f7c1403706b6dd14e6a43604bcf"
+      "sha256": "4bb5d472683fb88c6298a7488e110089ff91e8624875184329240fb09a40fdfb"
     },
     {
       "outputs": [
@@ -2751,12 +2751,12 @@
     }
   ],
   "locked_inputs": {
-    "Cargo.lock": "f597b5f00899f44b0ecabde9d8b7de8adeed8b1de5ccbad67f7c08f3da5363ad",
+    "Cargo.lock": "ffc339d18c1b91c9a1a93b70dae5cb82f8a16750b42705e488ce78062077b40c",
     "Cargo.toml": "7c7da37433f9f39bc277bc45580db5c0fb932cd3332d77c86bc1ef7130f5e273",
     "buf.gen.yaml": "7f690ea2319ceabab73f56a1a131c27a1d839ccbef10c601c77589b8990066ac",
     "buf.yaml": "62f7a56b96555a24f90ec0f258d17e480600e484a04481aa2c21d9d64d2f9ea3",
     "bun.lock": "5b6eb5b5de3eee4c993c7b6e289b88fd915478e42246e9544a2a74602550a346",
-    "deny.toml": "5f8e204e16ae8ed3bf7f9d98defc370d211545944490843f9347c2a6a2c0056d",
+    "deny.toml": "c748c67f1e144125c28e8c71327f0ab410fa5a64fcface26a1ab8f90145fe010",
     "ncp-core/Cargo.toml": "417da09809280b86a5294dab9dd841813c41c1ac815f9b29253fc9f37ae2f5e2",
     "ncp-cpp/Cargo.toml": "e531941f58cdb34900601384b49c9f1f6ac624c64843cff0c60c37e763259e38",
     "ncp-gateway/Cargo.toml": "dc511c267ac3e2453a26b0eb3baf51a4275402528855ca2fc363db84f47c9f64",

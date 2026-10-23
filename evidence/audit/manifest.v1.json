@@ -8,8 +8,8 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "4ced38526167f4cce8f48b47c54190ba18727da1343d4b11d17881dda661c451",
-      "bytes": 577351,
+      "sha256": "d403c0b319f7743013a94af005f7dc727c68526fbb7e96871da8a306c2e099af",
+      "bytes": 577353,
       "records": 374
     },
     {
@@ -53,8 +53,8 @@
     },
     {
       "path": "Cargo.lock",
-      "sha256": "f597b5f00899f44b0ecabde9d8b7de8adeed8b1de5ccbad67f7c08f3da5363ad",
-      "bytes": 94486
+      "sha256": "ffc339d18c1b91c9a1a93b70dae5cb82f8a16750b42705e488ce78062077b40c",
+      "bytes": 93050
     },
     {
       "path": "bun.lock",
@@ -63,8 +63,8 @@
     },
     {
       "path": "evidence/supply-chain/vulnerability-report.v1.json",
-      "sha256": "513424d1d620ee61451040c62e66d3415c162e385e0e96323d41f2431102c460",
-      "bytes": 2342
+      "sha256": "03b6e9f5885d5b30db6ff48d77308e4f9977e3387e6dd139e77183e0de59ed6f",
+      "bytes": 2575
     }
   ],
   "generation_policy": "Rebuild from current repository inputs; byte drift or an unclassified latent path fails the local gate."
