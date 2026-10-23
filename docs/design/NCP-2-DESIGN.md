@@ -66,6 +66,8 @@ Each row names an assumption of NCP 1, the question, and the decision.
 | 11 | Recording is a separate application role. | Can recording be part of every session? | Yes. Any binding can write a transcript; a verifier checks the chain offline. Prisoma builds on this. |
 | 12 | The SDKs need many dependencies. | What is the minimum? | Python: standard library only. Rust: `serde`, `serde_json`, `sha2`. Zenoh only in the optional binding. |
 | 13 | Two version lines (SDK and wire) are clear. | Do users understand them? | No. One version: NCP 2 for protocol and SDKs. |
+| 14 | The receiver must compute every digest again. | What does the second hash protect? | Only against damage between the endpoints. Identities, the acknowledgement chain, and transcripts need one hash for each frame, and the sender computes it. On a pipe pair or a Unix domain socket with no program in between, a receiver may skip the comparison (specification 3.4). The default stays on. Measured with Rust at both ends: 34.9 to 24.6 µs at 1788 spikes, 974 to 568 µs at 1 MiB. |
+| 15 | A receiver must know every code. | What happens when a later version adds a code or an `open` response member? | A strict 2.0 client would read the response as a bad frame. Receivers use the outcome of an unknown code, and clients ignore unknown `open` response members (specification 7.5 and 7.1). NCP 2 can grow without a new protocol version. |
 
 ## 5. Rejected alternatives
 
@@ -79,6 +81,11 @@ Each row names an assumption of NCP 1, the question, and the decision.
 | gRPC as the transport | At-most-once by default, HTTP/2 stack, no hash chain. NRP-core uses it; we compare against it instead. |
 | ROS 2 as the live binding | Large runtime for every user. A later bridge can map NCP streams and commands to ROS 2 for robots that use it. Zenoh on the same network does not make NCP messages ROS 2 messages. |
 | Removing Zenoh entirely | Leaves live fleets without discovery and fan-out. Kept as an option instead. |
+| No digest | Removes the identities, the acknowledgement chain, and transcripts: the reasons for NCP. |
+| A faster hash that is not SHA-256 (BLAKE3, xxHash) | Not in the Python standard library. SHA-256 has hardware support on ARMv8 and x86: 2968 MB/s with `sha2` 0.11 and 3464 MB/s with OpenSSL on the computer of section 3. |
+| Hashing each frame while it arrives, to overlap the hash with the transfer | Measured: no gain on pipes (974 to 940 µs at 1 MiB, Rust at both ends). The receiver's copy and hash run in series either way. Only streaming at both ends would overlap the two hashes; that couples the owner to the binding and gains nothing below 64 KiB. |
+| A hash chain over transcript records | The session chain already commits to every accepted exchange. A transcript that several sessions share records the arrival order, not the execution order, so it cannot replace a deterministic order (section 11). |
+| Consensus inside NCP | Existing implementations do it better (etcd, openraft), and it makes progress only under timing assumptions. NCP can carry their messages. |
 
 ## 6. Red-team review
 
@@ -88,7 +95,7 @@ Each row names an assumption of NCP 1, the question, and the decision.
 | Replay of an earlier request in the same session | `seq_stale`, or the kept response if it is the last one |
 | A different request with the same sequence number | `seq_conflict` |
 | Acknowledgement of a response that the client did not get | `ack_mismatch`; nothing executes |
-| Damaged frame | Digest mismatch: bad frame |
+| Damaged frame | Digest mismatch: bad frame. A receiver that turned off the comparison on a local binding (specification 3.4) does not detect it while the session runs; the transcript verifier does. |
 | Peer that computes valid digests for false content | Not prevented by NCP. Bindings authenticate peers (operating system, TLS); applications add signed authority. |
 | Memory exhaustion by length fields | Lengths are checked against the bound before allocation |
 | Slow sender | Per-frame time limits in the bindings |
@@ -109,9 +116,9 @@ Every level runs in the gate, except the campaigns, which run before a release a
 | --- | --- | --- |
 | Unit | Each function of each SDK | Standard test runners |
 | Conformance | Every MUST of the specification | Shared vectors in `conformance/`: frames, arrays, owner rules, client rules, streams, transcripts. Both SDKs must give identical results. |
-| Cross-language | Rust and Python together | Rust client with Python owner and the reverse, with attachments, over pipes and TCP |
+| Cross-language | Rust and Python together | Rust client with Python owner and the reverse, with attachments, over pipes, Unix domain sockets, and TCP |
 | Model | Safety in every reachable state | Exhaustive search with lost, repeated, delayed, and changed frames and crashes; a mutation self-test shows that each property catches a defect; the real owners answer like the model on random traces |
-| Fuzz | Decoders under arbitrary input | Seeded mutation of valid frames in both SDKs; no crash, every bad frame rejected |
+| Fuzz | Decoders under arbitrary input | Differential: `conformance/fuzz.py` sends random, edited, and damaged frames with valid digests, and structured array references, to both decoders. Acceptance, messages, identities, and array bytes must be equal, and no decoder may crash. |
 | Modular composition | The ecosystem as a set of optional modules | A host with neural, body, monitor, and recorder modules in every subset of the optional ones; faults injected into each module; Prisoma verifies the transcript of every run; two runs with the same seed give the same message bodies |
 | Faults | Behavior under real faults | Bit flips, truncation, killed processes, stalls, oversized frames, and raising backends, for each binding |
 | Soak | Resources over long runs | Memory and open descriptors over 10^6 calls |
@@ -161,3 +168,47 @@ Each step leaves every project working.
 | Engram's owner is another agent | NCP 1.0.1 stays usable; the migration is offered, not forced |
 | Haldir's lineage | Its NCP move needs an owner-signed epoch like epochs 20 and 21 |
 | Hidden users of the TypeScript and C++ code | Checked before removal; a small NCP 2 implementation replaces them where needed |
+| Misuse of the optional digest comparison | Off only by an explicit option; the documentation states the conditions; the transcript verifier always compares |
+
+## 11. Coordination across sessions
+
+NCP 2 makes each session exactly-once and verifiable. Applications build coordination between sessions on these properties.
+This section states the limits, what NCP gives, the patterns that work with NCP 2 as specified, and the profiles that are planned or deferred.
+
+### 11.1 Limits that no protocol removes
+
+- **Consensus.** No deterministic algorithm reaches agreement on an asynchronous network if one process can crash (Fischer, Lynch, and Paterson, 1985). Raft and Paxos are always safe and make progress only while the network behaves.
+- **Atomic commit.** Two-phase commit is safe, but it blocks if the coordinator fails after the participants voted yes. Commit that does not block needs consensus (Gray and Lamport, 2006) or a bound on message delay.
+- **Lossy links.** No finite exchange of messages gives two parties common knowledge of a decision (the two generals problem).
+- **Physical actions.** A robot cannot undo a movement. For robots, an atomic action means a check of feasibility and a coordinated start, not a rollback.
+
+### 11.2 What NCP gives
+
+- **Retry-safe messages.** Each call executes at most once, and its outcome says whether it executed: yes, no, or unknown. After a failure, at most one call in each session is unknown.
+- **Verifiable references.** Identities are SHA-256 digests of exact bytes. A message can name other messages by identity, and no message can name a message that was made after it.
+- **Evidence.** Each session is one hash chain. The identity of the last response commits to every accepted exchange of the session (specification, property 7.7.6).
+- **A vote step.** An owner checks a request (`validate`) before it executes it (`execute`), and a rejection changes no state.
+
+### 11.3 Patterns with NCP 2 as specified
+
+| Pattern | How |
+| --- | --- |
+| One host, many owners (1 → N) | One session for each owner. The SDKs send one request to each session and wait for all responses (`call_all`). Sessions are independent: a failure ends only its own session. |
+| Many clients, one owner (N → 1) | One owner process serves one session for each connection. The application decides how requests from different sessions combine. |
+| Many to many (N → N) | Sessions for commands, streams for sensors and telemetry. Across computers, the Zenoh binding routes and discovers. |
+| Order across sessions | An owner that serves many sessions executes their requests in an order that its application controls. For a replayable order, the application makes the order deterministic (rounds, section 11.4) instead of recording an arrival order. |
+| Atomic action across owners | Two-phase commit in the application: `prepare` (validate and hold) to every owner, then `commit` or `abort`. NCP makes each message exactly-once and each vote verifiable by its identity. The limits of section 11.1 apply. |
+| Replicated owners | An external consensus service, such as etcd or openraft, chooses the active owner. NCP does not include consensus. |
+| Clusters | Specification section 16. |
+
+### 11.4 Planned and deferred profiles
+
+| Profile | What it adds | Status and condition |
+| --- | --- | --- |
+| Rounds | An owner applies round k only when every agent sent it or a deadline passed, in a fixed order, and returns to each agent the identities of the requests that it applied. Multi-agent steps become deterministic and verifiable. | Planned; built with the multi-agent benchmark, which exercises it. Names `ncp.round` and `ncp.round_record`. |
+| Zenoh binding | Routing, discovery, and lossy links for fleets (specification 9.2). | Planned, as an optional package. |
+| Two-phase actions | Operations `ncp.prepare`, `ncp.commit`, `ncp.abort`, and `ncp.status`, with a deadline and an optional start time. | Deferred until a consumer needs it. Needs a model check with crashes and losses first. |
+| Causal references | A body member `ncp.refs` lists the identities that a message depends on; a verifier builds the happens-before graph across transcripts. | Deferred until a tool such as Prisoma needs the graph. Applications can put identities in their bodies today. |
+| Session resume | A client continues a session after an owner restart; "unknown" becomes "executed" or "not executed". | Deferred. It needs durable session state before each response (one fsync per call) and an application that restores its own state, which NEST cannot do. |
+
+Specification section 15 reserves the `ncp.` names for these profiles.

@@ -79,7 +79,7 @@ pub fn random_session() -> String {
     format!("{}-{}-{}-{}-{}", &h[0..8], &h[8..12], &h[12..16], &h[16..20], &h[20..32])
 }
 
-/// Send one request to each session and wait for all responses (section 15). Sessions are
+/// Send one request to each session and wait for all responses (spec section 16). Sessions are
 /// independent: each result is returned in its place.
 pub fn call_all<C: Channel + Send>(
     clients: &mut [Client<C>],

@@ -23,6 +23,13 @@ REJECTION_CODES = frozenset({
 })
 ENDING_CODES = frozenset({"result_too_large", "owner_failure", "bad_frame", "shutdown"})
 EXECUTED = {"result_too_large": "yes", "owner_failure": "unknown", "bad_frame": "no", "shutdown": "no"}
+_CODE = re.compile(r"[a-z_]{1,64}")
+
+
+def executed(code: str) -> str:
+    """Whether the request named by an `ended` response executed: "yes", "no", or "unknown".
+    A code that this version does not know gives "unknown" (spec section 7.5)."""
+    return EXECUTED.get(code, "unknown")
 
 
 class BodyInvalid(Exception):
@@ -70,9 +77,10 @@ def check_response(message: dict[str, Any]) -> None:
         valid = (code is None and type(message["session"]) is str and type(message["seq"]) is int
                  and is_identity(message["request"]))
     elif outcome == "rejected":
-        valid = code in REJECTION_CODES and type(message["seq"]) is int and is_identity(message["request"])
+        valid = (type(code) is str and _CODE.fullmatch(code) is not None and type(message["seq"]) is int
+                 and is_identity(message["request"]))
     else:
-        valid = code in ENDING_CODES and (
+        valid = type(code) is str and _CODE.fullmatch(code) is not None and (
             (message["session"] is None and message["seq"] is None and message["request"] is None)
             or (type(message["seq"]) is int and is_identity(message["request"])))
     if not valid:
@@ -332,7 +340,7 @@ class Client:
             if outcome == "rejected":
                 raise Rejected(message["code"], message["body"])
             self.ended = True
-            raise Ended(message["code"], EXECUTED[message["code"]], message["body"])
+            raise Ended(message["code"], executed(message["code"]), message["body"])
         raise AssertionError("unreachable")
 
     def _receive_match(self, seq: int, request_id: str) -> F.Decoded:
@@ -347,9 +355,9 @@ class Client:
                 self.ended = True
                 raise ProtocolError(f"bad frame from the owner: {error}") from error
             message = decoded.message
-            if message["session"] is None and message["code"] in ("bad_frame", "shutdown"):
+            if message["session"] is None:  # an ended response that names no request
                 self.ended = True
-                raise Ended(message["code"], EXECUTED[message["code"]])
+                raise Ended(message["code"], executed(message["code"]))
             if (message["session"] == self.session and message["seq"] == seq
                     and message["request"] == request_id and message["ncp"] == PROTOCOL):
                 return decoded

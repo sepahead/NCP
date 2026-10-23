@@ -501,3 +501,53 @@ fn a_damaged_body_is_a_bad_frame() {
     assert_eq!(response.message["code"], "bad_frame");
     server.join().expect("server");
 }
+
+/// Answers each request with the next scripted (outcome, code, body).
+struct Scripted {
+    script: VecDeque<(&'static str, Option<&'static str>, Value)>,
+    inbox: VecDeque<Vec<u8>>,
+}
+
+impl Channel for Scripted {
+    fn lossy(&self) -> bool {
+        false
+    }
+    fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
+        let request = frame::decode(frame_bytes.to_vec(), MAX_BOUND).map_err(std::io::Error::other)?.message;
+        let (outcome, code, body) = self.script.pop_front().expect("script");
+        let response = json!({"ncp": 2, "session": request["session"], "seq": request["seq"], "request": frame::identity(frame_bytes),
+                              "outcome": outcome, "code": code, "body": body});
+        self.inbox.push_back(frame::encode(&response, &[]).map_err(std::io::Error::other)?);
+        Ok(())
+    }
+    fn receive(&mut self, _bound: usize) -> Result<Vec<u8>, Error> {
+        Ok(self.inbox.pop_front().expect("response"))
+    }
+}
+
+fn scripted(script: Vec<(&'static str, Option<&'static str>, Value)>) -> Client<Scripted> {
+    let contract = contract();
+    let open = json!({"bound": HANDSHAKE_BOUND, "application": "echo", "contract": contract.identity,
+                      "implementation": "later", "features": ["later"]});
+    let mut steps = vec![("ok", None, open)];
+    steps.extend(script);
+    let mut client = Client::new(Scripted { script: steps.into(), inbox: VecDeque::new() }, &contract.application, &contract.identity)
+        .with_bound(HANDSHAKE_BOUND);
+    assert_eq!(client.open().expect("open")["features"], json!(["later"]), "unknown open members are ignored");
+    client
+}
+
+#[test]
+fn unknown_codes_are_handled_by_outcome() {
+    let mut client = scripted(vec![("rejected", Some("later_reason"), json!({})), ("ended", Some("later_end"), json!({}))]);
+    match client.call("echo", json!({}), &[]) {
+        Err(Error::Rejected { code, .. }) => assert_eq!(code, "later_reason"),
+        other => panic!("expected a rejection, got {other:?}"),
+    }
+    match client.call("echo", json!({}), &[]) {
+        Err(Error::Ended { code, executed }) => assert_eq!((code.as_str(), executed), ("later_end", "unknown")),
+        other => panic!("expected an ending, got {other:?}"),
+    }
+    let mut client = scripted(vec![("rejected", Some("Later-Reason"), json!({}))]);
+    assert!(matches!(client.call("echo", json!({}), &[]), Err(Error::Protocol(_))), "a code outside the format is a bad frame");
+}

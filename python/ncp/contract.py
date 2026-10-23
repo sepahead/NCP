@@ -41,7 +41,7 @@ class Contract:
 
 def call_all(clients: Sequence[Client], op: str, bodies: Sequence[Any], *,
              executor: ThreadPoolExecutor | None = None) -> list[Result | Exception]:
-    """Send one request to each session and wait for all responses (section 15).
+    """Send one request to each session and wait for all responses (spec section 16).
 
     Sessions are independent: an exception of one session is returned in its place and does
     not stop the others.

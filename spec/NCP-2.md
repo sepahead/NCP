@@ -118,7 +118,7 @@ A response is an object with exactly these members (`att` is optional):
 | `seq` | The sequence number of the request. |
 | `request` | The identity of the request frame. |
 | `outcome` | `ok`, `rejected`, or `ended` (section 7.4). |
-| `code` | `null` if `outcome` is `ok`; otherwise a code from section 7.5. |
+| `code` | `null` if `outcome` is `ok`; otherwise a code of 1 to 64 characters from `a`–`z` and `_` (section 7.5). |
 | `body` | Any JSON value. For `rejected` and `ended`, an object with optional detail members. |
 | `att` | The attachment lengths (section 5). |
 
@@ -162,6 +162,7 @@ A receiver MUST treat a message with a missing member, an extra member, or a mem
    | `contract` | The owner's contract identity. |
    | `implementation` | The name and version of the owner's NCP implementation. |
 
+   A client MUST ignore members of this body that it does not know. Later versions can add members.
 5. After the `open` response, both sides use the session bound for all frames of the session.
 
 ### 7.2 Owner state
@@ -217,6 +218,8 @@ A `rejected` response changes no state. The owner does not keep it, and the same
 
 For `contract_mismatch` and `bound_unacceptable`, the owner responds to `open` and stays without a session.
 
+Later versions of this specification can add codes. A receiver MUST accept a code that it does not know and use the outcome: after `rejected`, the request did not execute; after `ended`, the request is possibly executed.
+
 ### 7.6 Client rules
 
 1. The client sends one request at a time and keeps its frame bytes until it accepts a response.
@@ -236,7 +239,7 @@ These rules give the following properties, which the model check in `model/` tes
 3. The owner executes request `n + 1` only after the client acknowledged response `n` by its identity.
 4. A response that the client accepts as `ok` is the response to its own request, from one execution.
 5. A request that the client learns was `rejected` did not execute.
-6. In a complete transcript, each request names the identity of the response before it, and each response names the identity of its request. The session is one hash chain.
+6. In a complete transcript, each request names the identity of the response before it, and each response names the identity of its request. The session is one hash chain, so the identity of the last response commits to every accepted request and response of the session.
 
 ## 8. Streams
 
@@ -335,7 +338,16 @@ The descriptions of bodies, units, and clocks are the application's. NCP only co
 An implementation conforms if it passes the vectors in `conformance/` for the parts that it implements: frames, arrays, owner rules, client rules, streams, bindings, and transcripts.
 The vectors give exact input frames and the expected outcome, code, and state.
 
-## 15. Threads, processes, and clusters (informative)
+## 15. Reserved names
+
+These names are reserved for later versions of NCP and for NCP profiles. Applications MUST NOT use them with other meanings.
+
+1. Operation names that start with `ncp.`.
+2. Object members, at any level of a body, whose names start with `ncp.`. Section 5 uses `ncp.array`.
+
+The design record (`docs/design/NCP-2-DESIGN.md`, section 11) describes the profiles that are planned for these names.
+
+## 16. Threads, processes, and clusters (informative)
 
 NCP needs no change for parallel programs. These patterns use it as specified:
 

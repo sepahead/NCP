@@ -349,6 +349,52 @@ class ClientTests(unittest.TestCase):
             client.call("echo", {})
 
 
+class _ScriptedChannel:
+    """Answers each request with the next scripted (outcome, code, body)."""
+
+    lossy = False
+
+    def __init__(self, script: list[tuple[str, str | None, object]]) -> None:
+        self.script, self.inbox = list(script), []
+
+    def send(self, frame: bytes) -> None:
+        request = F.decode(frame, F.MAX_BOUND).message
+        outcome, code, body = self.script.pop(0)
+        self.inbox.append(F.encode({"ncp": 2, "session": request["session"], "seq": request["seq"],
+                                    "request": F.identity(frame), "outcome": outcome, "code": code, "body": body}))
+
+    def receive(self, bound: int, timeout: float | None, frame_timeout: float | None = None) -> bytes:
+        return self.inbox.pop(0)
+
+    def close(self) -> None:
+        pass
+
+
+class ForwardCompatibilityTests(unittest.TestCase):
+    OPEN = {"bound": F.HANDSHAKE_BOUND, "application": "echo", "contract": CONTRACT.identity,
+            "implementation": "later", "features": ["later"]}
+
+    def client(self, *script: tuple[str, str | None, object]) -> ncp.Client:
+        client = ncp.Client(_ScriptedChannel([("ok", None, self.OPEN), *script]), application="echo",
+                            contract=CONTRACT.identity, bound=F.HANDSHAKE_BOUND)
+        self.assertEqual(client.open()["features"], ["later"])  # unknown open members are ignored
+        return client
+
+    def test_unknown_codes_are_handled_by_outcome(self) -> None:
+        client = self.client(("rejected", "later_reason", {}), ("ended", "later_end", {}))
+        with self.assertRaises(ncp.Rejected) as rejected:
+            client.call("echo", {})
+        self.assertEqual(rejected.exception.code, "later_reason")
+        with self.assertRaises(ncp.Ended) as ended:
+            client.call("echo", {})
+        self.assertEqual((ended.exception.code, ended.exception.executed), ("later_end", "unknown"))
+
+    def test_a_code_outside_the_format_is_a_bad_frame(self) -> None:
+        client = self.client(("rejected", "Later-Reason", {}))
+        with self.assertRaises(ncp.ProtocolError):
+            client.call("echo", {})
+
+
 class StreamTests(unittest.TestCase):
     def test_subscriber_rules(self) -> None:
         sent = []

@@ -11,7 +11,9 @@ pub const PROTOCOL: u64 = 2;
 /// The name and version of this implementation, sent in the `open` response.
 pub const IMPLEMENTATION: &str = concat!("ncp-rust/", env!("CARGO_PKG_VERSION"));
 
-const REJECTION_CODES: [&str; 14] = [
+/// The rejection codes of this version (spec section 7.5). Later versions can add codes; a
+/// receiver handles an unknown code by its outcome.
+pub const REJECTION_CODES: [&str; 14] = [
     "wrong_protocol",
     "not_open",
     "already_open",
@@ -27,15 +29,21 @@ const REJECTION_CODES: [&str; 14] = [
     "bound_unacceptable",
     "session_ended",
 ];
-const ENDING_CODES: [&str; 4] = ["result_too_large", "owner_failure", "bad_frame", "shutdown"];
+/// The ending codes of this version (spec section 7.5).
+pub const ENDING_CODES: [&str; 4] = ["result_too_large", "owner_failure", "bad_frame", "shutdown"];
 
-/// Whether the request named by an `ended` response executed (section 7.5).
+/// Whether the request named by an `ended` response executed: "yes", "no", or "unknown". A code
+/// that this version does not know gives "unknown" (spec section 7.5).
 pub fn executed_for(code: &str) -> &'static str {
     match code {
         "result_too_large" => "yes",
-        "owner_failure" => "unknown",
-        _ => "no",
+        "bad_frame" | "shutdown" => "no",
+        _ => "unknown",
     }
+}
+
+fn is_code(value: &Value) -> bool {
+    value.as_str().is_some_and(|c| (1..=64).contains(&c.len()) && c.bytes().all(|b| b.is_ascii_lowercase() || b == b'_'))
 }
 
 /// Whether a value is an identity: 64 lowercase hexadecimal characters.
@@ -85,16 +93,13 @@ pub fn check_response(message: &Value) -> Result<(), FrameError> {
     if !members(object, &["ncp", "session", "seq", "request", "outcome", "code", "body"]) || !object["ncp"].is_u64() {
         return Err(FrameError("response members".into()));
     }
-    let code = object["code"].as_str();
     let ok = match object["outcome"].as_str() {
         Some("ok") => {
             object["code"].is_null() && object["session"].is_string() && object["seq"].is_u64() && is_identity(&object["request"])
         }
-        Some("rejected") => {
-            code.is_some_and(|c| REJECTION_CODES.contains(&c)) && object["seq"].is_u64() && is_identity(&object["request"])
-        }
+        Some("rejected") => is_code(&object["code"]) && object["seq"].is_u64() && is_identity(&object["request"]),
         Some("ended") => {
-            code.is_some_and(|c| ENDING_CODES.contains(&c))
+            is_code(&object["code"])
                 && ((object["session"].is_null() && object["seq"].is_null() && object["request"].is_null())
                     || (object["seq"].is_u64() && is_identity(&object["request"])))
         }
