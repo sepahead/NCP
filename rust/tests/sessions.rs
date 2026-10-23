@@ -317,15 +317,15 @@ fn transcripts_detect_tampering() {
             (2, "echo", json!({"a": 2})),
         ] {
             let request = frame::encode(&json!({"ncp": 2, "session": session, "seq": seq, "op": op, "ack": ack, "body": body}), &[]).expect("encode");
-            tap.record(transcript::SENT, &request);
+            tap.record(transcript::SENT, &request).expect("record");
             channel.send(&request).expect("send");
             let response = channel.receive(MAX_BOUND).expect("response");
-            tap.record(transcript::RECEIVED, &response);
+            tap.record(transcript::RECEIVED, &response).expect("record");
             ack = Value::from(frame::identity(&response));
         }
         // A forged request whose ack names no response the client received.
         let forged = frame::encode(&json!({"ncp": 2, "session": session, "seq": 3, "op": "echo", "ack": "0".repeat(64), "body": {}}), &[]).expect("encode");
-        tap.record(transcript::SENT, &forged);
+        tap.record(transcript::SENT, &forged).expect("record");
         tap.flush().expect("flush");
     }
     let sessions = transcript::verify(&path).expect("verify");
@@ -804,4 +804,28 @@ fn unknown_codes_are_handled_by_outcome() {
         matches!(client.call("echo", json!({}), &[]), Err(Error::Protocol(_))),
         "a code outside the format is a bad frame"
     );
+}
+
+#[test]
+fn a_tap_keeps_its_records_when_the_program_dies() {
+    let directory = scratch("crash");
+    let frame_bytes = frame::encode(&json!({"a": 1}), &[]).expect("encode");
+    for (name, buffered, expected) in [("direct.ncpt", false, 3), ("buffered.ncpt", true, 0)] {
+        let path = directory.join(name);
+        let tap = if buffered {
+            ncp::Tap::create_buffered(&path)
+        } else {
+            ncp::Tap::create(&path)
+        }
+        .expect("tap");
+        for _ in 0..3 {
+            tap.record(transcript::SENT, &frame_bytes).expect("record");
+        }
+        std::mem::forget(tap); // no destructor runs, as in a crash
+        let records = match transcript::read(&path) {
+            Ok(records) => records.len(),
+            Err(_) => 0, // the buffered tap had not even written the file magic
+        };
+        assert_eq!(records, expected, "{name}");
+    }
 }

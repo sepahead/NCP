@@ -24,21 +24,38 @@ SENT, RECEIVED = 1, 2
 
 
 class Tap:
-    """Append every frame that a channel sends or receives to a transcript file."""
+    """Append every frame that a channel sends or receives to a transcript file.
 
-    def __init__(self, path: str | os.PathLike[str]) -> None:
+    By default, each record goes to the operating system at once, so the transcript keeps every
+    record up to a crash of this program. With `buffered=True`, records collect in a buffer of
+    1 MiB: one system call fewer for each frame, but a crash loses the records in the buffer.
+    A failure to write raises, so that a session never runs on without its record.
+    """
+
+    def __init__(self, path: str | os.PathLike[str], *, buffered: bool = False) -> None:
         self._file: BinaryIO = open(path, "xb", buffering=1 << 20)
-        self._file.write(FILE_MAGIC)
+        self._buffered = buffered
         self._lock = threading.Lock()
+        self._file.write(FILE_MAGIC)
+        if not buffered:
+            self._file.flush()
 
     def record(self, kind: int, frame: bytes | bytearray | memoryview) -> None:
         with self._lock:
             self._file.write(RECORD.pack(kind, time.monotonic_ns(), len(frame)))
             self._file.write(frame)
+            if not self._buffered:
+                self._file.flush()
 
     def close(self) -> None:
         with self._lock:
             self._file.close()
+
+    def __enter__(self) -> Tap:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
 
 
 @dataclass

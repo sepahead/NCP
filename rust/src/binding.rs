@@ -69,7 +69,7 @@ impl<R: Read, W: Write> StreamChannel<R, W> {
         writer.write_all(frame)?;
         writer.flush()?;
         if let Some(tap) = &self.tap {
-            tap.record(SENT, frame);
+            tap.record(SENT, frame)?;
         }
         Ok(())
     }
@@ -94,7 +94,7 @@ impl<R: Read, W: Write> StreamChannel<R, W> {
         frame.resize(HEADER_BYTES + rest, 0);
         self.reader.read_exact(&mut frame[HEADER_BYTES..])?;
         if let Some(tap) = &self.tap {
-            tap.record(RECEIVED, &frame);
+            tap.record(RECEIVED, &frame)?;
         }
         Ok(frame)
     }

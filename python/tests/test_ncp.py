@@ -7,6 +7,7 @@ import hashlib
 import os
 import socket
 import struct
+import subprocess
 import sys
 import tempfile
 import threading
@@ -17,8 +18,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 sys.path.insert(0, HERE)
 
-import ncp  # noqa: E402
 from echo_owner import CONTRACT, Echo, make_owner  # noqa: E402
+
+import ncp  # noqa: E402
 from ncp import frame as F  # noqa: E402
 from ncp.exchange import bad_frame_response, check_response  # noqa: E402
 
@@ -456,6 +458,28 @@ class ForwardCompatibilityTests(unittest.TestCase):
         client = self.client(("rejected", "Later-Reason", {}))
         with self.assertRaises(ncp.ProtocolError):
             client.call("echo", {})
+
+
+class TapTests(unittest.TestCase):
+    def test_a_tap_keeps_its_records_when_the_program_dies(self) -> None:
+        from ncp import transcript as T
+
+        directory = tempfile.mkdtemp(prefix="ncp-tap-")
+        frame = F.encode({"a": 1})
+        program = (
+            "import os, sys; sys.path.insert(0, sys.argv[1]); from ncp import transcript as T; "
+            "tap = T.Tap(sys.argv[2], buffered=sys.argv[3] == '1'); "
+            "[tap.record(T.SENT, bytes.fromhex(sys.argv[4])) for _ in range(3)]; os._exit(1)"
+        )
+        for name, buffered, expected in (("direct.ncpt", "0", 3), ("buffered.ncpt", "1", 0)):
+            path = os.path.join(directory, name)
+            root = os.path.join(HERE, "..")
+            subprocess.run([sys.executable, "-I", "-c", program, root, path, buffered, frame.hex()], check=False)
+            try:
+                records = len(list(T.read(path)))
+            except F.FrameError:
+                records = 0  # the buffered tap had not even written the file magic
+            self.assertEqual(records, expected, name)
 
 
 class StreamTests(unittest.TestCase):

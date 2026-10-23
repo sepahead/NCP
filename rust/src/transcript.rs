@@ -17,36 +17,61 @@ pub const SENT: u8 = 1;
 pub const RECEIVED: u8 = 2;
 
 /// Append every frame that a channel sends or receives to a transcript file.
+///
+/// A tap from [`Tap::create`] gives each record to the operating system at once, so the
+/// transcript keeps every record up to a crash of this program. A tap from
+/// [`Tap::create_buffered`] collects records in a buffer of 1 MiB: one system call fewer for each
+/// frame, but a crash loses the records in the buffer.
 #[derive(Debug)]
 pub struct Tap {
     file: Mutex<BufWriter<File>>,
     origin: Instant,
+    buffered: bool,
 }
 
 impl Tap {
-    /// Create a new transcript file. Fails if the file exists.
+    /// Create a new transcript file that receives each record at once. Fails if the file exists.
     pub fn create(path: impl AsRef<Path>) -> io::Result<Tap> {
+        Tap::open(path.as_ref(), false)
+    }
+
+    /// Create a new transcript file whose records collect in a buffer of 1 MiB.
+    pub fn create_buffered(path: impl AsRef<Path>) -> io::Result<Tap> {
+        Tap::open(path.as_ref(), true)
+    }
+
+    fn open(path: &Path, buffered: bool) -> io::Result<Tap> {
         let file = File::options().write(true).create_new(true).open(path)?;
         let mut writer = BufWriter::with_capacity(1 << 20, file);
         writer.write_all(&FILE_MAGIC)?;
+        if !buffered {
+            writer.flush()?;
+        }
         Ok(Tap {
             file: Mutex::new(writer),
             origin: Instant::now(),
+            buffered,
         })
     }
 
-    /// Record one frame.
-    pub fn record(&self, kind: u8, frame: &[u8]) {
+    /// Record one frame. A failure to write is an error, so that a session never runs on
+    /// without its record.
+    pub fn record(&self, kind: u8, frame: &[u8]) -> io::Result<()> {
         let nanos = self.origin.elapsed().as_nanos() as u64;
-        if let Ok(mut file) = self.file.lock() {
-            let _ = file.write_all(&[kind]);
-            let _ = file.write_all(&nanos.to_be_bytes());
-            let _ = file.write_all(&(frame.len() as u32).to_be_bytes());
-            let _ = file.write_all(frame);
+        let mut header = [0u8; 13];
+        header[0] = kind;
+        header[1..9].copy_from_slice(&nanos.to_be_bytes());
+        header[9..13].copy_from_slice(&(frame.len() as u32).to_be_bytes());
+        let mut file = self.file.lock().map_err(|_| io::Error::other("tap lock"))?;
+        file.write_all(&header)?;
+        file.write_all(frame)?;
+        if !self.buffered {
+            file.flush()?;
         }
+        Ok(())
     }
 
-    /// Flush the file.
+    /// Write the records that are still in the buffer.
     pub fn flush(&self) -> io::Result<()> {
         self.file
             .lock()

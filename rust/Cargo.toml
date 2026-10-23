@@ -6,6 +6,9 @@ rust-version = "1.88"
 license = "MIT OR Apache-2.0"
 description = "NCP 2: exactly-once exchanges and hash-chained streams between independent programs"
 repository = "https://github.com/sepahead/NCP"
+readme = "README.md"
+keywords = ["co-simulation", "protocol", "exactly-once", "neurorobotics"]
+categories = ["network-programming", "science"]
 publish = false
 
 [lib]
