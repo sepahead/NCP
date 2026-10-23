@@ -1,0 +1,163 @@
+# NCP 2 design record
+
+Status: decided on 23 October 2026 by the owner (option B of the council review).
+The normative rules are in the [specification](../../spec/NCP-2.md). This record explains why.
+
+## 1. The problem
+
+Research on closed loops couples programs that different people write and run: a neural simulator (NEST, through Engram), a body or world simulator (CREBAIN), monitors (Galadriel), recorders (Prisoma), and, on real machines, an authorization gate (Haldir).
+Each program keeps its own process, language, dependencies, and failures.
+The coupling must:
+
+1. run each step exactly once, also when a response is lost and the request is sent again;
+2. detect damaged, foreign, repeated, reordered, and missing messages;
+3. give a known outcome for every fault and never accept a wrong result;
+4. move bulk data, such as spikes and images, without unbounded memory;
+5. give the same results from Rust and Python and from any binding;
+6. leave a record that proves what crossed the coupling and in which order;
+7. add as little time per step as possible;
+8. stay small enough for a research group to read and check.
+
+## 2. What existed before
+
+NCP 1 had three overlapping families:
+
+| Family | Status | Size |
+| --- | --- | --- |
+| Lockstep local profile `ncp.local-lockstep.v1` | Released as SDK 1.0.0 and 1.0.1 | Rust 2.4k, Python 1.7k lines; 41 kB descriptor |
+| Modular local profile `ncp.modular.request.v1` | In the SDK, development status | Rust 3.6k, Python 2.1k lines |
+| Wire 1.0 candidate (`ncp-core`, `ncp-zenoh`, TypeScript, C++) | Unreleased | Rust 37.7k, C++ 19.5k, TypeScript 5.8k lines |
+
+The lockstep and modular families each implemented admission, kept results, and acknowledgements.
+The v1 descriptor mixed the protocol with one reference experiment's data types.
+Each lockstep call needed two round trips, and results above 64 KiB ended the run.
+The remote family carried most of the code and all of the October RustSec advisories.
+
+## 3. Measured starting point
+
+All values are medians from preregistered campaigns on one Apple M4 Max computer in normal use.
+
+| Measure | NCP 1.0.1 | Source |
+| --- | --- | --- |
+| Rust client and Rust echo owner, one call | 35.6 µs (two round trips) | `benchmarks/pipelined-ack` |
+| Python client and Python echo owner, one call | 466 µs | `benchmarks/pipelined-ack` |
+| NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | `benchmarks/nest-campaign`, protocol 2 |
+| NEST coupling, cost per exchange, Python host | 0.48–0.63 ms | same |
+| MUSIC, cost per tick | indistinguishable from NEST alone | same |
+| MUSIC content with more than one NEST thread | wrong for most channels | `benchmarks/nest-campaign/music-threads` |
+| Faults | 3816 trials, no wrong result accepted | `benchmarks/fault-campaign` |
+
+## 4. Assumptions questioned and decisions
+
+Each row names an assumption of NCP 1, the question, and the decision.
+
+| # | Assumption | Question | Decision |
+| --- | --- | --- | --- |
+| 1 | Programs must run in separate processes. | Is in-process coupling enough? | Keep processes. They give separate languages, dependencies, lifecycles, and failures. Minimize the cost instead. |
+| 2 | A call needs a separate acknowledgement round trip. | Can the acknowledgement travel with the next request? | Yes. The next request carries the identity of the last response. One round trip per call, and the session becomes a hash chain. The model check covers it (section 7). |
+| 3 | Digests need a canonical encoding or a typed projection. | What must the digest identify? | The exact bytes that crossed the coupling. Hash the frame bytes. No canonical encoding, no value walk, and both languages hash in native code. |
+| 4 | JSON numbers and base64 carry bulk data. | What is cheapest for arrays? | Binary attachments, aligned to 8 bytes, referenced from JSON as typed arrays. Receivers read them in place. |
+| 5 | One fixed 64 KiB frame bound fits all. | Who knows the right bound? | The session. The client requests a bound at `open`; the owner can lower it; 64 MiB is the largest. |
+| 6 | A separate buffer system is needed for bulk data. | Do larger frames and attachments cover the uses? | Yes for spikes, readouts, and camera images up to tens of megabytes. Remove the buffer system. Larger objects travel out of band with a digest in the message. |
+| 7 | The protocol defines roles and data types. | Who owns them? | The applications. The core knows only `open`, `close`, and the application's operation names. Contracts are documents identified by their digest. |
+| 8 | Remote use needs its own protocol family. | What does remote use need from the protocol? | The same frames over another binding. One core, two bindings. |
+| 9 | Zenoh is required. | Which uses need a routing fabric? | Live fleets of robots or drones: discovery, many subscribers, lossy links, embedded devices. Keep Zenoh as an optional binding, built with TLS only, without QUIC. Everything else uses pipes, Unix sockets, or TCP. |
+| 10 | Every use is a lockstep call. | Do live sensors need exactly-once? | No. Old sensor values are useless. Streams: sequenced, hash-chained, no retries, loss detected. |
+| 11 | Recording is a separate application role. | Can recording be part of every session? | Yes. Any binding can write a transcript; a verifier checks the chain offline. Prisoma builds on this. |
+| 12 | The SDKs need many dependencies. | What is the minimum? | Python: standard library only. Rust: `serde`, `serde_json`, `sha2`. Zenoh only in the optional binding. |
+| 13 | Two version lines (SDK and wire) are clear. | Do users understand them? | No. One version: NCP 2 for protocol and SDKs. |
+
+## 5. Rejected alternatives
+
+| Alternative | Why it was rejected |
+| --- | --- |
+| Pipeline acknowledgement and next request as two frames | Works and is proved safe, but piggybacking the acknowledgement in the request does the same with fewer frames and no window between them. |
+| CBOR or another binary encoding for the whole message | Needs a library in Python. JSON headers stay small because bulk data is in attachments. |
+| Canonical JSON (RFC 8785) | Number formatting differs between languages. Hashing the exact bytes makes canonical form unnecessary. |
+| Chunked transfer of large results | Adds a second protocol. Per-session bounds and attachments cover the measured uses. |
+| Shared memory for local frames | Fastest for very large data, but adds platform code and lifetime rules. Measure first; add only for a demonstrated need. |
+| gRPC as the transport | At-most-once by default, HTTP/2 stack, no hash chain. NRP-core uses it; we compare against it instead. |
+| ROS 2 as the live binding | Large runtime for every user. A later bridge can map NCP streams and commands to ROS 2 for robots that use it. Zenoh on the same network does not make NCP messages ROS 2 messages. |
+| Removing Zenoh entirely | Leaves live fleets without discovery and fan-out. Kept as an option instead. |
+
+## 6. Red-team review
+
+| Attack or fault | Result |
+| --- | --- |
+| Replay of a frame from another session | `wrong_session` |
+| Replay of an earlier request in the same session | `seq_stale`, or the kept response if it is the last one |
+| A different request with the same sequence number | `seq_conflict` |
+| Acknowledgement of a response that the client did not get | `ack_mismatch`; nothing executes |
+| Damaged frame | Digest mismatch: bad frame |
+| Peer that computes valid digests for false content | Not prevented by NCP. Bindings authenticate peers (operating system, TLS); applications add signed authority. |
+| Memory exhaustion by length fields | Lengths are checked against the bound before allocation |
+| Slow sender | Per-frame time limits in the bindings |
+| Lost framing on a byte stream | Magic check; the connection closes |
+| Parser differences | Duplicate names, large integers, unpaired surrogates, and deep nesting are rejected in both languages |
+| Owner that sends a stale response | The client checks `request` and `seq` |
+| Two owners on one Zenoh key | Each owner has its own key; the client checks the session |
+| A crash during a step | `owner_failure` or a closed connection: the client treats the step as possibly executed and ends the session |
+| Result larger than the bound | `result_too_large` says that the step executed; the client can raise the bound for the next run |
+| Lost stream messages | Reported as a gap with the count |
+| Changed or inserted stream message | Broken chain: not accepted |
+
+## 7. Test strategy
+
+Every level runs in the gate, except the campaigns, which run before a release and after each change that can affect their results.
+
+| Level | What it checks | How |
+| --- | --- | --- |
+| Unit | Each function of each SDK | Standard test runners |
+| Conformance | Every MUST of the specification | Shared vectors in `conformance/`: frames, arrays, owner rules, client rules, streams, transcripts. Both SDKs must give identical results. |
+| Cross-language | Rust and Python together | Rust client with Python owner and the reverse, with attachments, over pipes and TCP |
+| Model | Safety in every reachable state | Exhaustive search with lost, repeated, delayed, and changed frames and crashes; a mutation self-test shows that each property catches a defect; the real owners answer like the model on random traces |
+| Fuzz | Decoders under arbitrary input | Seeded mutation of valid frames in both SDKs; no crash, every bad frame rejected |
+| Modular composition | The ecosystem as a set of optional modules | A host with neural, body, monitor, and recorder modules in every subset of the optional ones; faults injected into each module; Prisoma verifies the transcript of every run; two runs with the same seed give the same message bodies |
+| Faults | Behavior under real faults | Bit flips, truncation, killed processes, stalls, oversized frames, and raising backends, for each binding |
+| Soak | Resources over long runs | Memory and open descriptors over 10^6 calls |
+| Performance | The targets in section 8 | Preregistered protocols, three shuffled blocks |
+| Consumers | Each project's own gates | CI of CREBAIN, Galadriel, Prisoma, Haldir |
+
+## 8. Performance targets and comparisons
+
+Targets for NCP 2 on the same computer as section 3, to be tested by preregistered protocols:
+
+| Measure | NCP 1.0.1 | NCP 2 target |
+| --- | --- | --- |
+| Rust client and Rust echo owner, one call | 35.6 µs | ≤ 15 µs |
+| Python client and Python echo owner, one call | 466 µs | ≤ 150 µs |
+| NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | ≤ 0.10 ms |
+| Spike payloads (D4 of the NEST campaign) | 0.4–1.4 ms, and failure above 64 KiB | ≤ 0.15 ms, no failure |
+
+Comparisons, with the same workloads, shown as figures in this repository and in the thesis:
+
+- Exchange latency and throughput for payloads from 0 bytes to 1 MiB: NCP 2 (Rust, Python), NCP 1.0.1, gRPC (Rust and Python; the transport that NRP-core recommends), HTTP with JSON (NRP-core's JSON engines), ZeroMQ request and reply, and Zenoh query and reply. A raw pipe echo gives the lower bound.
+- NEST coupling: NCP 2, NCP 1.0.1, MUSIC, and a gRPC owner with the same readback, for each network, size, thread count, and interval.
+- Correct-content throughput: the wall time of a run whose delivered spikes are exact. MUSIC is exact only with one NEST thread in this build; NCP is exact with any thread count.
+- Multi-agent scaling: 1 to 256 sessions, Rust and Python hosts.
+- MPI: the rank-0 owner pattern with 1 to 8 MPI ranks on one computer.
+- A feature matrix of NCP 2, MUSIC, NRP-core, FMI 3 co-simulation, gRPC, ROS 2, and Zenoh.
+
+Every figure states the computer, the software versions, the load, and what it does not show.
+
+## 9. Migration
+
+Each step leaves every project working.
+
+1. NCP: the reference SDKs (`python/`, `rust/`), the conformance vectors, the model, the transcript verifier, and the benchmarks, next to the old code.
+2. Local users: CREBAIN native body, Galadriel adapter, Prisoma capture.
+3. Former modular users: CREBAIN integrations, Prisoma Agent Bridge.
+4. The optional Zenoh binding; then the former wire 1.0 users: Galadriel's NCP crate, Prisoma's observer, CREBAIN's application, and Haldir (a new lineage epoch for its NCP pin).
+5. Engram's NEST application, in agreement with its owner.
+6. Removal of the old families from NCP's main branch. Their last state stays reachable through the tag `ncp-1-archive`.
+7. Release of NCP 2.0 after its gates and the owner's approval.
+
+## 10. Risks
+
+| Risk | Control |
+| --- | --- |
+| The migration touches every project | One project at a time, each with its own gates, and the old SDK stays available until the last user moves |
+| Performance targets are not met | Targets are tested, not assumed; a miss is reported with its cause |
+| Engram's owner is another agent | NCP 1.0.1 stays usable; the migration is offered, not forced |
+| Haldir's lineage | Its NCP move needs an owner-signed epoch like epochs 20 and 21 |
+| Hidden users of the TypeScript and C++ code | Checked before removal; a small NCP 2 implementation replaces them where needed |
