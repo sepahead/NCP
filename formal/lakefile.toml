@@ -1,10 +1,19 @@
 # Machine-checked model of the NCP 2 owner (see README.md). Lean 4 core only.
 name = "ncp2_formal"
 version = "0.1.0"
-defaultTargets = ["NCP2", "ncp2-oracle"]
+defaultTargets = ["NCP2", "Statements", "Audit", "ncp2-oracle"]
 
+# The model and its proofs.
 [[lean_lib]]
 name = "NCP2"
+
+# The claims without proofs, for review.
+[[lean_lib]]
+name = "Statements"
+
+# Each claim proved from the library, with its axioms.
+[[lean_lib]]
+name = "Audit"
 
 [[lean_exe]]
 name = "ncp2-oracle"

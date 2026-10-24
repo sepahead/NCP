@@ -9,6 +9,9 @@ and code, and a repeat must return byte-identical frames.
 With --owner COMMAND..., the owner is an external program that prints "port N" or "unix PATH"
 and serves one session per connection, such as the Rust example `model_owner`.
 
+With --self-test, the Python owner runs with each known defect of MUTANTS in turn, and every defect
+must make a trace fail.
+
 With --oracle PATH, the reference is the compiled Lean model of ../formal (the `ncp2-oracle`
 executable), whose step function the Lean proofs cover, instead of the Python model.
 
@@ -48,9 +51,35 @@ class Handler:
         return {"seq": body["seq"]}
 
 
-def python_owner():
+def python_owner(mutant: str | None = None):
     owner = ncp.Owner("model", CONTRACT.identity, Handler(), CONTRACT.operations, max_bound=F.HANDSHAKE_BOUND)
-    return owner.handle, lambda: None
+    if mutant is None:
+        return owner.handle, lambda: None
+
+    def handle(frame: bytes) -> bytes:
+        request = F.decode(frame, F.MAX_BOUND).message
+        if owner.kept is not None and request["seq"] == owner.high + 1:
+            if mutant == "skips_ack_check" and request["ack"] is not None:
+                owner.kept = (owner.kept[0], owner.kept[1], request["ack"])
+        if mutant == "accepts_gaps" and owner.kept is not None and request["seq"] > owner.high + 1:
+            owner.high = request["seq"] - 1
+        if mutant == "forgets_kept_request" and owner.kept is not None:
+            owner.kept = ("0" * 64, owner.kept[1], owner.kept[2])
+        if mutant == "executes_after_end":
+            owner.ended = False
+        response = owner.handle(frame)
+        if mutant == "reports_stale_as_gap":
+            message = F.decode(response, F.MAX_BOUND).message
+            if message["code"] == "seq_stale":
+                message = {k: v for k, v in message.items() if k != "att"}
+                response = F.encode({**message, "code": "seq_gap"})
+        return response
+
+    return handle, lambda: None
+
+
+# Known defects of an owner, each of which the traces must detect (--self-test).
+MUTANTS = ("skips_ack_check", "accepts_gaps", "forgets_kept_request", "executes_after_end", "reports_stale_as_gap")
 
 
 class ExternalOwner:
@@ -191,7 +220,8 @@ def _compare(rng, length, handle, model, session, open_request, open_frame, open
                 seq = max(base, 1) - 1 if base else 0
             elif roll < 0.38:
                 fail = True
-            request = ("q", seq, version, ack)
+            # The failure flag is part of the frame's body, so it is part of the request's identity.
+            request = ("q", seq, "fail" if fail and version == 0 else version, ack)
             op = "step"
             body = {"seq": seq, "version": version if version == "bad" else 0, "fail": fail}
             frame = F.encode(
@@ -221,8 +251,6 @@ def _compare(rng, length, handle, model, session, open_request, open_frame, open
                 accepted.append(identity)
             sent.append((request, frame, real, fail))
         compared += 1
-        if expected[0] == "ended":
-            break
     return compared, repeats
 
 
@@ -231,8 +259,21 @@ def main() -> int:
     parser.add_argument("--traces", type=int, default=20_000)
     parser.add_argument("--seed", type=int, default=20261023)
     parser.add_argument("--oracle", default=None, help="the compiled Lean model (formal/.lake/build/bin/ncp2-oracle)")
+    parser.add_argument("--self-test", action="store_true", help="require the traces to detect each known defect")
     parser.add_argument("--owner", nargs=argparse.REMAINDER, help="an external owner command")
     args = parser.parse_args()
+    if args.self_test:
+        missed = []
+        for mutant in MUTANTS:
+            rng = random.Random(args.seed)
+            try:
+                for _ in range(args.traces):
+                    run_trace(rng, rng.randint(1, 12), lambda m=mutant: python_owner(m), args.oracle)
+                missed.append(mutant)
+                print(f"mutant {mutant:22s} MISSED")
+            except AssertionError as error:
+                print(f"mutant {mutant:22s} caught: {error}")
+        return 1 if missed else 0
     rng = random.Random(args.seed)
     external = ExternalOwner(args.owner) if args.owner else None
     new_owner = external or python_owner

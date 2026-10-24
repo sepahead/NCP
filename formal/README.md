@@ -28,13 +28,17 @@ The theorems hold for every sequence of requests, in any number of steps. A requ
 The client-side theorems hold for every network: a network can lose, repeat, delay, or reorder frames, but a changed frame fails its digest check, so a client only receives responses that the owner sent.
 `seqStale_after_execution` corrected the specification, whose table of codes listed `seq_stale` with the requests that did not execute.
 
-[`Audit.lean`](Audit.lean) prints the axioms of each theorem. The gate requires exactly Lean's standard axioms (`propext`, `Classical.choice`, `Quot.sound`): no `sorry` and no added axiom.
+[`Statements.lean`](Statements.lean) states every claim without its proof: it is the file to review.
+[`Audit.lean`](Audit.lean) proves each statement from the library, so a theorem whose type drifts from its stated claim fails the build, and prints the axioms of each proof.
+The gate requires exactly Lean's standard axioms (`propext`, `Classical.choice`, `Quot.sound`), so no `sorry` and no added axiom, and replays every proof with `leanchecker --fresh`, the Lean kernel run independently of the elaborator.
 
 ## The model as a test oracle
 
 [`Oracle.lean`](Oracle.lean) compiles the same `step` function into the program `ncp2-oracle`.
 `../model/conformance.py --oracle` sends it random traces of correct, repeated, stale, skipped, invalid, and failing requests, and compares its outcomes and codes with those of a real owner.
 The Python owner and the Rust owner agree with it on every trace of the gate.
+`--self-test` measures the strength of the traces: it runs the Python owner with each of five known defects (no acknowledgement check, accepted gaps, a forgotten kept request, execution after the end, a wrong rejection code), and each defect must make a trace fail.
+Continuing traces after an ending response found a fault in the earlier Python reference model, which left the application's failure flag out of a request's identity; the Lean oracle had it right.
 This follows the pattern of AWS Cedar: a proved model, and differential testing of the implementations against it.
 
 ## What is not proved
@@ -51,7 +55,8 @@ With [elan](https://github.com/leanprover/elan) installed, which selects the Lea
 
 ```text
 lake build --wfail          # check every proof, warnings fatal, and build ncp2-oracle
-lake env lean Audit.lean    # print the axioms of each theorem
+lake env lean Audit.lean    # print the axioms of each claim
+lake env leanchecker --fresh Audit   # replay every proof in the kernel
 ```
 
 [`../scripts/check_ncp2.sh`](../scripts/check_ncp2.sh) runs both, the axiom check, and the conformance traces against the oracle.

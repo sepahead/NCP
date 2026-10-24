@@ -39,6 +39,9 @@ examples="$root/rust/target/release/examples"
 echo "== Python client with the Rust owner"
 NCP_RUST_EXAMPLES="$examples" "$python" -I python/tests/test_ncp.py BindingTests.test_python_client_with_the_rust_owner
 
+echo "== Bounded model check of owner, client, and network, with its mutation test"
+"$python" -I model/ncp2_model.py --self-test
+
 echo "== Model conformance of both owners, $traces traces each"
 "$python" -I model/conformance.py --traces "$traces"
 # One connection per trace: a Unix domain socket, because TCP would run out of ephemeral ports.
@@ -47,6 +50,8 @@ echo "== Model conformance of both owners, $traces traces each"
 if [ "${NCP2_SKIP_LEAN:-0}" != "1" ]; then
     echo "== Lean proofs of the owner model, warnings fatal"
     (cd formal && lake build --wfail)
+    echo "== Independent replay of every proof by the Lean kernel"
+    (cd formal && lake env leanchecker --fresh Audit)
     echo "== Axiom audit: only propext, Classical.choice, and Quot.sound"
     (cd formal && lake env lean Audit.lean) > "$work/axioms.txt"
     cat "$work/axioms.txt"
@@ -60,6 +65,8 @@ if [ "${NCP2_SKIP_LEAN:-0}" != "1" ]; then
     echo "== Both owners against the verified Lean model, $traces traces each"
     "$python" -I model/conformance.py --traces "$traces" --oracle "$oracle"
     "$python" -I model/conformance.py --traces "$traces" --oracle "$oracle" --owner "$examples/model_owner" "$work/oracle.sock"
+    echo "== The traces detect each known defect of an owner"
+    "$python" -I model/conformance.py --traces "$traces" --self-test --oracle "$oracle"
 fi
 
 echo "== Differential fuzzing of the decoders, $cases cases"

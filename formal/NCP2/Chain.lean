@@ -108,4 +108,43 @@ theorem Chain.unique {xs ys : List Exchange} {x y : Exchange}
         exact hinj f (by simp [frames_append, hf]) g (by simp [frames_append, hg])
       rw [ih hc' hsub hzw, exchange_eq hq hp]
 
+theorem Chain.getElem_last {xs : List Exchange} {y : Exchange} (hc : Chain H xs y)
+    (h : xs.length - 1 < xs.length) : xs[xs.length - 1] = y := by
+  cases hc <;> simp
+
+/-- Property 3, by position: request `i + 1` acknowledges the identity of response `i`. -/
+theorem Chain.ack_index {xs : List Exchange} {y : Exchange} (hc : Chain H xs y) :
+    ∀ (i : Nat) (h : i + 1 < xs.length), xs[i + 1].request.ack = some (H (.resp xs[i].response)) := by
+  induction hc with
+  | start x _ _ _ _ => intro i h; simp at h
+  | extend xs y x hc _ hack _ _ _ ih =>
+    intro i h
+    simp only [List.length_append, List.length_singleton] at h
+    by_cases hi : i + 1 < xs.length
+    · rw [List.getElem_append_left hi, List.getElem_append_left (by omega)]
+      exact ih i hi
+    · have hi' : i + 1 = xs.length := by omega
+      have hlast : xs[i]'(by omega) = y := by
+        have := hc.getElem_last (by have := hc.ne_nil; cases xs <;> simp_all)
+        simpa [show xs.length - 1 = i by omega] using this
+      have e1 : (xs ++ [x])[i + 1] = x := by simp [hi']
+      have e2 : (xs ++ [x])[i] = y := by rw [List.getElem_append_left (by omega)]; exact hlast
+      rw [e1, e2, hack]
+
+/-- Property 7, by position: no exchange before the last ends the session. -/
+theorem Chain.live_index {xs : List Exchange} {y : Exchange} (hc : Chain H xs y) :
+    ∀ (i : Nat) (h : i + 1 < xs.length), ¬ Ends xs[i] := by
+  induction hc with
+  | start x _ _ _ _ => intro i h; simp at h
+  | extend xs y x hc _ _ _ _ hlive ih =>
+    intro i h
+    simp only [List.length_append, List.length_singleton] at h
+    rw [List.getElem_append_left (by omega)]
+    by_cases hi : i + 1 < xs.length
+    · exact ih i hi
+    · have hlast : xs[i]'(by omega) = y := by
+        have := hc.getElem_last (by have := hc.ne_nil; cases xs <;> simp_all)
+        simpa [show xs.length - 1 = i by omega] using this
+      rw [hlast]; exact hlive
+
 end NCP2
