@@ -4582,7 +4582,7 @@
         "bytes": 2069,
         "sha256": "d919646e868e550f283d23fcff97fc5f4e6ccb1b19ef9cc1391ad7147e188a76",
         "git_blob_oid": "0d4f952acba8d44ccaaa2d3d61d73a7357430739",
-        "indexed": false
+        "indexed": true
       },
       {
         "path": "formal/Oracle.lean",
@@ -9451,9 +9451,9 @@
       },
       {
         "path": "python/tests/test_ncp.py",
-        "bytes": 36153,
-        "sha256": "ca251baf28d3d1db1b7f589496a22ef958c853904900115925504ebfe5e4185c",
-        "git_blob_oid": "7b40615a6e1f9a9e378e53dc9ac44b25f33acad3",
+        "bytes": 36325,
+        "sha256": "ec8f0ce7df7662e7761ce431a524358b5890eb84399508c3db8c1b07371bdeee",
+        "git_blob_oid": "863e725fcf47f29554270aac10ffc0d2872c0963",
         "indexed": true
       },
       {

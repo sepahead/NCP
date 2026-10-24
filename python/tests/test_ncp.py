@@ -617,8 +617,10 @@ class BindingTests(unittest.TestCase):
             damaged = bytearray(F.encode({"a": "x" * 70_000}))
             damaged[40_000] ^= 1
             with socket.create_connection((host, port)) as sock:
-                sock.sendall(damaged)
+                # Wrap before sending, as a client does: once the owner has answered bad_frame and
+                # closed, macOS refuses TCP_NODELAY and the setup fails.
                 channel = ncp.StreamChannel.from_socket(sock)
+                sock.sendall(damaged)
                 response = F.decode(channel.receive(F.MAX_BOUND, 10), F.MAX_BOUND).message
             self.assertEqual(response["code"], "bad_frame")
         finally:
