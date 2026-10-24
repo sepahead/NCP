@@ -109,6 +109,8 @@ Put a Unix domain socket in a directory that only the users of the sessions can 
 To call many sessions at once, for example one for each agent, use `ncp.call_all(clients, op, bodies)`.
 It returns, for each session in its place, the result or the exception; one failed session does not stop the others.
 
+The SDK is tested on Linux and macOS. Windows has no Unix domain sockets in Python, and a receive time limit on a pipe fails there, because `select` accepts only sockets; pipes without a time limit and TCP are not tested on Windows.
+
 ## Streams
 
 A stream sends messages without responses, for example sensor values. Each message names the previous one, so a subscriber detects lost, repeated, and changed messages:

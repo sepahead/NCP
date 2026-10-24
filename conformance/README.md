@@ -1,5 +1,20 @@
 # NCP conformance corpus
 
+This directory holds the conformance material of two protocol generations.
+
+## NCP 2
+
+| File | Content |
+| --- | --- |
+| [`vectors.json`](vectors.json) | 51 frames, 5 session scenarios, and 9 stream cases of [NCP 2](../spec/NCP-2.md), with the expected decision for each; the Python and Rust tests run them |
+| [`generate.py`](generate.py) | Writes `vectors.json`. The vectors are generated, never edited |
+| [`fuzz.py`](fuzz.py) | Differential fuzzing: the Python decoder against another decoder, such as the Rust example `decode_corpus` |
+
+The model owner and its conformance check of both SDK owners are in [`../model`](../model).
+[`../scripts/check_ncp2.sh`](../scripts/check_ncp2.sh) runs all of them, and CI runs that script.
+
+## NCP 1.0 candidate
+
 The generated [`manifest.v1.json`](manifest.v1.json) makes the unreleased NCP
 1.0 candidate corpus mandatory and self-describing. It currently requires 282
 vectors: 275 stable vectors (223 behavior, 8 request-digest, 12 security-state

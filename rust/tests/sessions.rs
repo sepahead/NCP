@@ -483,11 +483,11 @@ fn python_echo_owner() -> Option<std::process::Command> {
     let script = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../python/tests/echo_owner.py");
     let available = std::process::Command::new("python3")
         .arg("-c")
-        .arg("import sys; sys.exit(sys.version_info < (3, 10))")
+        .arg("import sys; sys.exit(sys.version_info < (3, 11))")
         .status()
         .is_ok_and(|s| s.success());
     if !available {
-        eprintln!("python3 >= 3.10 not found: skipping the cross-language test");
+        eprintln!("python3 >= 3.11 not found: skipping the cross-language test");
         return None;
     }
     let mut command = std::process::Command::new("python3");

@@ -117,6 +117,8 @@ A connection carries one session. TCP accepts only loopback addresses unless the
 The binding sets 1 MiB socket buffers and `TCP_NODELAY`.
 To call many sessions at once, use `ncp::call_all(&mut clients, op, bodies)`.
 
+The crate is tested on Linux and macOS. It also builds for Windows, without the Unix domain socket functions, but it is not tested there; the examples and tests use Unix domain sockets.
+
 ## Streams and transcripts
 
 `Publisher` numbers and chains the messages of a stream; `Subscriber` reports each frame as accepted (with the number of lost messages before it), a repeat, a broken chain, an unknown contract, or a bad frame.
