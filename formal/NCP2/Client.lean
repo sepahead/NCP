@@ -125,7 +125,7 @@ theorem step_rejected_not_logged {o : Owner} (hinv : Inv H o) (r : Request) (a :
       have hxy : x = y := mem_eq_of_nodup_map hc.seq_nodup hx hc.last_mem (by simp [heq, hh])
       exact hne (by rw [hxy])
   · rename_i hne
-    rw [if_neg hne] at hcode
+    simp only [hne, ↓reduceIte] at hcode
     unfold checkThenAccept at hcode
     split at hcode
     · simp [reject, reply] at hcode

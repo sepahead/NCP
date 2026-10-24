@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   executes nothing. The specification now says how an owner answers a malformed
   `open` request and that it ignores the body of `close`, as both SDKs and the
   model already did, and property 5 excludes `seq_stale`, as the proofs do.
+- The proofs build with Lean 4.35.0, the current stable release, using only Lean's
+  core library.
 - On one Apple M4 Max ([`benchmarks/comparison`](benchmarks/comparison/README.md),
   H2), a Rust echo call takes a median of 9.1 µs (NCP 1.0.1: 35.6 µs) and a
   Python echo call 38.6 µs (NCP 1.0.1: 466 µs). In protocol 3 of the NEST
