@@ -18,7 +18,7 @@ The client is `LocalClient` with a 2 s time limit, except in the soak trials.
 | `flip-c2o`, `flip-o2c` | A relay flips one random bit of one random frame, including its length prefix, from the client or from the owner | Python, Rust |
 | `truncate-c2o`, `truncate-o2c` | A relay forwards a random proper prefix of one random frame and closes that direction | Python, Rust |
 | `kill-owner` | The client kills the owner with SIGKILL at a random time | Python, Rust |
-| `kill-client` | A supervisor kills the client with SIGKILL at a random time; the owner must retire and exit | Python |
+| `kill-client` | The trial process kills the client with SIGKILL at a random time; the owner must retire and exit | Python |
 | `stall` | One step sleeps three times the client's time limit | Python |
 | `oversize-response` | One step returns a result larger than the 65,536-byte frame | Python |
 | `oversize-request` | The client tries one request larger than the frame | Python, Rust |

@@ -5,6 +5,7 @@ It asks two questions: what happens in each failure, and does any failure make a
 All trials use SDK 1.0.1 with `LocalClient` and a Python or Rust owner on one computer.
 
 [`PROTOCOL.md`](PROTOCOL.md) fixed the trials, design, outcome classes, and hypotheses before the recorded trials (SHA-256 in [`PROTOCOL.sha256`](PROTOCOL.sha256)).
+On 24 October 2026, after the trials, the description of `kill-client` was reworded to the repository's wording rules: it now names the trial process, which kills the client. The text fixed before the trials, whose digest `PROTOCOL.sha256` and the schedule record, is in commit `bbe1d42`; the reworded file has the SHA-256 `c16fc877707f7671f929633ef5ea96c9dfda352982ddd401da91d7511388d863`.
 [`PROTOCOL-SOAK.md`](PROTOCOL-SOAK.md) fixed a follow-up for memory growth before its runs.
 
 ## Computer, software, and times
