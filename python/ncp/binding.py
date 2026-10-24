@@ -66,7 +66,10 @@ class StreamChannel:
     @classmethod
     def from_socket(cls, sock: socket.socket, *, tap: Tap | None = None) -> StreamChannel:
         if sock.family in (socket.AF_INET, socket.AF_INET6):
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            try:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            except OSError:
+                pass  # macOS refuses it after the peer has closed; the next read or write reports that
         for option in (socket.SO_SNDBUF, socket.SO_RCVBUF):
             try:
                 sock.setsockopt(socket.SOL_SOCKET, option, SOCKET_BUFFER)
@@ -230,8 +233,13 @@ class _Server:
                 connection, _ = self._socket.accept()
             except OSError:
                 return
-            channel = StreamChannel.from_socket(connection)
-            threading.Thread(target=serve, args=(self._make_owner(), channel), daemon=True).start()
+            try:
+                channel = StreamChannel.from_socket(connection)
+                owner = self._make_owner()
+            except Exception:  # one connection that cannot be set up must not stop the server
+                connection.close()
+                continue
+            threading.Thread(target=serve, args=(owner, channel), daemon=True).start()
 
     def stop(self) -> None:
         self._stopped = True

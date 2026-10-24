@@ -622,6 +622,30 @@ class BindingTests(unittest.TestCase):
         finally:
             server.stop()
 
+    def test_a_failed_connection_does_not_stop_the_server(self) -> None:
+        original = ncp.StreamChannel.from_socket
+        calls = []
+
+        def fail_once(sock, **options):
+            calls.append(sock)
+            if len(calls) == 1:
+                raise OSError(22, "Invalid argument")
+            return original(sock, **options)
+
+        ncp.StreamChannel.from_socket = staticmethod(fail_once)
+        server = ncp.TcpServer(make_owner).start()
+        try:
+            host, port = server.address[:2]
+            socket.create_connection((host, port)).close()  # set up fails; the server closes it
+            client = ncp.Client(ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity,
+                                timeout=10)
+            client.open()
+            self.assertEqual(client.call("echo", {"x": 1}).body, {"x": 1})
+            client.close()
+        finally:
+            ncp.StreamChannel.from_socket = original
+            server.stop()
+
     def test_remote_addresses_need_an_option(self) -> None:
         with self.assertRaises(ValueError):
             ncp.connect_tcp("192.0.2.1", 1)
