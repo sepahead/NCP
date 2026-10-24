@@ -82,10 +82,13 @@ fn main() {
          json!({"network": network, "n": n, "threads": threads, "delta_ms": delta, "seed": seed, "payload": payload}));
     let steps = (T_BIO_MS / delta).round() as u64;
     let mut spikes = 0u64;
+    let mut calls: Vec<u64> = Vec::with_capacity(steps as usize);
     let started = Instant::now();
     for index in 0..steps {
+        let call_started = Instant::now();
         let response = call(&binding, &mut writer, &mut reader, index + 2, LocalOperation::Step,
                             json!({"stimulus": 0}));
+        calls.push(call_started.elapsed().as_nanos() as u64);
         spikes += if payload == "count" {
             response.body["count"].as_u64().expect("count")
         } else {
@@ -93,6 +96,10 @@ fn main() {
         };
     }
     let wall = started.elapsed().as_secs_f64();
+    // Protocol 4: each call (request and acknowledgement) as the host sees it, in nanoseconds.
+    if let Ok(path) = std::env::var("NCP_CALL_TIMES") {
+        std::fs::write(path, serde_json::to_vec(&calls).expect("times")).expect("write times");
+    }
     let finished = call(&binding, &mut writer, &mut reader, steps + 2, LocalOperation::Finish, json!({}));
     drop(writer);
     let status = child.wait().expect("wait");

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from ncp_local import LocalBinding, LocalClient
 
-from common import T_BIO_MS, emit, load1, now, spec_from
+from common import T_BIO_MS, emit, load1, now, save_times, spec_from, tick
 
 HERE = Path(__file__).resolve().parent
 
@@ -32,9 +32,12 @@ def main() -> None:
     spikes = 0
     collect = os.environ.get("NCP_COLLECT_OUT")
     senders, steps_seen = [], []
+    calls: list[int] = []
     t0 = now()
     for _ in range(steps):
+        start = tick()
         response = client.call("step", {"stimulus": 0})
+        calls.append(tick() - start)
         if response["outcome"] != "committed":
             raise RuntimeError(response["code"])
         body = response["body"]
@@ -43,6 +46,7 @@ def main() -> None:
             senders += body["senders"]
             steps_seen += body["steps"]
     t1 = now()
+    save_times("NCP_CALL_TIMES", calls)
     if collect:
         with open(collect, "w") as handle:
             json.dump({"senders": senders, "steps": steps_seen}, handle)

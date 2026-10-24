@@ -23,7 +23,7 @@ from pathlib import Path
 import nest
 
 import networks
-from common import T_BIO_MS, emit, load1, now, spec_from
+from common import T_BIO_MS, emit, load1, now, save_times, spec_from, tick
 
 HERE = Path(__file__).resolve().parent
 
@@ -52,15 +52,20 @@ def main() -> None:
     nest.Prepare()
     steps = round(T_BIO_MS / spec["delta_ms"])
     spikes = 0
+    work: list[int] = []
+    trips: list[int] = []
     t0 = now()
     for _ in range(steps):
+        start = tick()
         nest.Run(spec["delta_ms"])
         if mode == "chunked-pipe":
             count = reader.count()
+            done = tick()
             message = struct.pack("<Q", count)
         else:
             senders, step_values = reader.take()
             count = len(senders)
+            done = tick()
             message = array.array("I", senders).tobytes() + array.array("q", step_values).tobytes()
         frame = struct.pack(">I", len(message)) + message
         view = memoryview(frame)
@@ -69,8 +74,12 @@ def main() -> None:
         echoed = read_exactly(read_fd, 4 + len(message))
         if echoed != frame:
             raise RuntimeError("wrong echo")
+        trips.append(tick() - done)
+        work.append(done - start)
         spikes += count
     t1 = now()
+    save_times("NCP_WORK_TIMES", work)
+    save_times("NCP_CALL_TIMES", trips)
     recorded = int(recorder.n_events)
     nest.Cleanup()
     peer.stdin.close()

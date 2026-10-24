@@ -28,6 +28,7 @@ import nest  # noqa: E402
 
 import ncp  # noqa: E402
 import networks  # noqa: E402
+from common import save_times, tick  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 CONTRACT = ncp.Contract.load(HERE / "ncp2_contract.json")
@@ -46,6 +47,7 @@ class Nest:
         self.reader = None
         self.spike_files: str | None = None
         self.prepared = False
+        self.work: list[int] = []
 
     def validate(self, op: str, body) -> None:
         if op == "prepare":
@@ -74,10 +76,14 @@ class Nest:
             self.prepared = True
             return {"prepared": True}
         if op == "step":
+            start = tick()
             nest.Run(float(self.spec["delta_ms"]))
             if self.spec["payload"] == "count":
-                return {"count": self.reader.count()}
+                count = self.reader.count()
+                self.work.append(tick() - start)
+                return {"count": count}
             senders, steps = self.reader.take()
+            self.work.append(tick() - start)
             count = len(senders)
             return {
                 "senders": ncp.Array("u32", [count], little_endian(array.array("I", senders))),
@@ -86,6 +92,7 @@ class Nest:
         # finish
         total = int(self.recorder.n_events) if self.recorder is not None else 0
         self.retire()
+        save_times("NCP_WORK_TIMES", self.work)
         return {"recorded": total}
 
     def retire(self) -> None:

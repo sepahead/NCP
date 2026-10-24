@@ -24,3 +24,18 @@ def load1() -> float:
 
 def now() -> float:
     return time.perf_counter()
+
+
+def tick() -> int:
+    return time.perf_counter_ns()
+
+
+def save_times(variable: str, times: list[int]) -> None:
+    """Write durations in nanoseconds, one per step, to the file that an environment variable names (protocol 4).
+
+    NCP_WORK_TIMES receives the NEST work of each step: `nest.Run` and the readback. NCP_CALL_TIMES
+    receives each call as the host sees it, or, in the chunked-pipe arms, each raw round trip."""
+    path = os.environ.get(variable)
+    if path and times:
+        with open(path, "w") as handle:
+            json.dump(times, handle)

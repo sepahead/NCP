@@ -24,6 +24,7 @@ import nest  # noqa: E402
 from ncp_local import LocalBinding, LocalOwner, serve_local  # noqa: E402
 
 import networks  # noqa: E402
+from common import save_times, tick  # noqa: E402
 
 
 # Fault campaign only: raise inside this step number (counted from 1). Unset in every
@@ -39,6 +40,7 @@ class NestBackend:
         self.spike_files = None
         self.prepared = False
         self.steps = 0
+        self.work: list[int] = []
 
     def validate(self, operation: str, body) -> None:
         if operation == "prepare":
@@ -64,14 +66,19 @@ class NestBackend:
             self.steps += 1
             if self.steps == RAISE_STEP:
                 raise RuntimeError("injected failure inside a NEST step")
+            start = tick()
             nest.Run(float(self.spec["delta_ms"]))
             if self.spec["payload"] == "count":
-                return {"count": self.reader.count()}
+                count = self.reader.count()
+                self.work.append(tick() - start)
+                return {"count": count}
             senders, steps = self.reader.take()
+            self.work.append(tick() - start)
             return {"senders": senders, "steps": steps}
         if operation in ("finish", "abort"):
             total = int(self.recorder.n_events) if self.recorder is not None else 0
             self.retire()
+            save_times("NCP_WORK_TIMES", self.work)
             return {"finished": True, "recorded": total}
         raise ValueError(operation)
 

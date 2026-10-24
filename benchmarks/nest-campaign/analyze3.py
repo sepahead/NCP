@@ -4,7 +4,7 @@
 Usage: analyze3.py RESULTS_DIR [PROTOCOL2_RESULTS_DIR]
 
 Writes RESULTS_DIR/analysis.json and RESULTS_DIR/summary.md. With PROTOCOL2_RESULTS_DIR, G5 compares
-the recorder totals with protocol 2. Standard library only.
+the recorder totals with protocol 2. Standard library only. analyze4.py reuses `analyze`.
 """
 
 from __future__ import annotations
@@ -40,10 +40,12 @@ def summary_of(values: list[float]) -> dict | None:
     return {"median": statistics.median(values), "min": min(values), "max": max(values), "blocks": len(values)}
 
 
-def main() -> None:
-    results = Path(sys.argv[1])
-    rows = [json.loads(line) for line in (results / "runs.jsonl").read_text().splitlines() if line.strip()]
-    schedule = json.loads((results / "schedule.json").read_text())
+def read_rows(results: Path) -> list[dict]:
+    return [json.loads(line) for line in (results / "runs.jsonl").read_text().splitlines() if line.strip()]
+
+
+def analyze(rows: list[dict], schedule: dict, earlier: list[dict] | None) -> dict:
+    """The analysis of protocol 3. `earlier` holds the runs of protocol 2 for G5, or None."""
     runs: dict = defaultdict(dict)  # (configuration key, block) -> arm -> row
     invalid = []
     for row in rows:
@@ -134,9 +136,7 @@ def main() -> None:
     hypotheses["G4"] = {"criterion": "every run is valid and the recorded counts agree across arms",
                         "invalid": len(invalid), "disagreements": len(disagreements),
                         "holds": not invalid and not disagreements}
-    if len(sys.argv) > 2:
-        earlier = [json.loads(line) for line in (Path(sys.argv[2]) / "runs.jsonl").read_text().splitlines()
-                   if line.strip()]
+    if earlier is not None:
         totals = {}
         for row in earlier:
             if row.get("returncode") == 0 and row.get("recorded") is not None:
@@ -152,9 +152,17 @@ def main() -> None:
         hypotheses["G5"] = {"criterion": "the recorder totals equal those of protocol 2 for every configuration and "
                             "block that both ran", "compared": compared, "differing": differing,
                             "holds": compared > 0 and not differing}
-    analysis = {"protocol_sha256": schedule["protocol_sha256"], "runs": len(rows),
-                "expected_runs": len(schedule["order"]), "invalid_runs": invalid,
-                "count_disagreements": disagreements, "configurations": configurations, "hypotheses": hypotheses}
+    return {"protocol_sha256": schedule["protocol_sha256"], "runs": len(rows),
+            "expected_runs": len(schedule["order"]), "invalid_runs": invalid,
+            "count_disagreements": disagreements, "configurations": configurations, "hypotheses": hypotheses}
+
+
+def main() -> None:
+    results = Path(sys.argv[1])
+    schedule = json.loads((results / "schedule.json").read_text())
+    earlier = read_rows(Path(sys.argv[2])) if len(sys.argv) > 2 else None
+    analysis = analyze(read_rows(results), schedule, earlier)
+    hypotheses = analysis["hypotheses"]
     (results / "analysis.json").write_text(json.dumps(analysis, indent=1) + "\n")
     (results / "summary.md").write_text(summary(analysis))
     for name, entry in hypotheses.items():
@@ -174,6 +182,17 @@ def summary(analysis: dict) -> str:
              "same interval, to compare it on the same scale.", "",
              f"{analysis['runs']} of {analysis['expected_runs']} runs; {len(analysis['invalid_runs'])} invalid; "
              f"{len(analysis['count_disagreements'])} disagreements of recorded spike counts.", ""]
+    lines += tables(analysis)
+    lines += ["", "## Hypotheses", "", "| # | Criterion | Holds |", "| --- | --- | --- |"]
+    for name, entry in analysis["hypotheses"].items():
+        extra = f" ({entry['value']:.3f} ms)" if entry.get("value") is not None else ""
+        lines.append(f"| {name} | {entry['criterion']} | {'yes' if entry['holds'] else 'no'}{extra} |")
+    return "\n".join(lines) + "\n"
+
+
+def tables(analysis: dict) -> list[str]:
+    """The tables of the cost per exchange (parts D1 to D4) and of where the cost goes."""
+    lines: list[str] = []
     for part, arms, title in (
         ("D1", ("ncp2-rs", "ncp2-py", "ncp-rs-1.0.1", "ncp-py-1.0.1"), "Brunel network"),
         ("D2", ("ncp2-rs", "ncp2-py", "ncp-rs-1.0.1", "ncp-py-1.0.1"), "Alpha and adaptive networks"),
@@ -205,11 +224,7 @@ def summary(analysis: dict) -> str:
                                                                           "ncp-py-1.0.1")]
         lines.append(f"| {entry['part']} | {entry['network']} | {entry['n']} | {entry['threads']} | "
                      f"{entry['delta_ms']:g} | {cell(entry['pause_ms_per_exchange'])} | " + " | ".join(own) + " |")
-    lines += ["", "## Hypotheses", "", "| # | Criterion | Holds |", "| --- | --- | --- |"]
-    for name, entry in analysis["hypotheses"].items():
-        extra = f" ({entry['value']:.3f} ms)" if entry.get("value") is not None else ""
-        lines.append(f"| {name} | {entry['criterion']} | {'yes' if entry['holds'] else 'no'}{extra} |")
-    return "\n".join(lines) + "\n"
+    return lines
 
 
 if __name__ == "__main__":

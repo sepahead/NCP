@@ -10,7 +10,7 @@ import tempfile
 import nest
 
 import networks
-from common import T_BIO_MS, emit, load1, now, spec_from
+from common import T_BIO_MS, emit, load1, now, save_times, spec_from, tick
 
 
 def main() -> None:
@@ -23,19 +23,25 @@ def main() -> None:
     nest.Prepare()
     steps = round(T_BIO_MS / spec["delta_ms"])
     spikes = 0
+    work: list[int] = []
     t0 = now()
     if mode == "mono":
         nest.Run(T_BIO_MS)
         spikes = reader.count()
     elif mode == "chunked":
         for _ in range(steps):
+            start = tick()
             nest.Run(spec["delta_ms"])
             spikes += reader.count()
+            work.append(tick() - start)
     else:
         for _ in range(steps):
+            start = tick()
             nest.Run(spec["delta_ms"])
             spikes += len(reader.take()[0])
+            work.append(tick() - start)
     t1 = now()
+    save_times("NCP_WORK_TIMES", work)
     recorded = int(recorder.n_events)
     nest.Cleanup()
     if spike_files:

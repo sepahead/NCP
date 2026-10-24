@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 import ncp
-from common import T_BIO_MS, emit, load1, now, spec_from
+from common import T_BIO_MS, emit, load1, now, save_times, spec_from, tick
 
 HERE = Path(__file__).resolve().parent
 CONTRACT = ncp.Contract.load(HERE / "ncp2_contract.json")
@@ -25,11 +25,15 @@ def main() -> None:
     steps = round(T_BIO_MS / spec["delta_ms"])
     load = load1()
     spikes = 0
+    calls: list[int] = []
     t0 = now()
     for _ in range(steps):
+        start = tick()
         body = client.call("step", {"stimulus": 0}).body
+        calls.append(tick() - start)
         spikes += body["count"] if payload == "count" else body["senders"].shape[0]
     t1 = now()
+    save_times("NCP_CALL_TIMES", calls)
     finished = client.call("finish", {}).body
     client.close()
     code = process.wait(timeout=120)

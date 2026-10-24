@@ -93,7 +93,8 @@ def build(work: Path, ncp1: Path) -> dict:
             "ncp2_host": work / "target/release/ncp2-nest-host"}
 
 
-def run_config(config: dict, block_seed: int, prefix: Path, paths: dict, work: Path) -> dict:
+def run_config(config: dict, block_seed: int, prefix: Path, paths: dict, work: Path,
+               extra_env: dict | None = None) -> dict:
     py = str(prefix / "bin" / "python")
     spec = [config["network"], str(config["n"]), str(config["threads"]), f"{config['delta_ms']:g}", str(block_seed)]
     arm = config["arm"]
@@ -102,7 +103,7 @@ def run_config(config: dict, block_seed: int, prefix: Path, paths: dict, work: P
     python_dir = paths["ncp2_python"] if sdk == "2" else paths["ncp1_python"]
     env = {"HOME": os.environ["HOME"], "PATH": f"{prefix}/bin:/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR": str(work),
            "PYTHONPATH": f"{HARNESS}{os.pathsep}{python_dir}", "OMP_NUM_THREADS": str(config["threads"]),
-           "PYNEST_QUIET": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+           "PYNEST_QUIET": "1", "PYTHONDONTWRITEBYTECODE": "1", **(extra_env or {})}
     if arm in campaign.LOCAL_ARMS:
         command = [py, "-s", str(HARNESS / "local_arm.py"), arm] + spec
     elif arm in PIPE_ARMS:

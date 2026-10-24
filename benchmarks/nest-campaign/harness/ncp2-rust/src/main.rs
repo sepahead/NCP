@@ -37,11 +37,14 @@ fn main() {
     client.call("prepare", spec, &[]).expect("prepare");
     let steps = (T_BIO_MS / delta).round() as u64;
     let mut spikes = 0u64;
+    let mut calls: Vec<u64> = Vec::with_capacity(steps as usize);
     let started = Instant::now();
     for _ in 0..steps {
+        let call_started = Instant::now();
         let reply = client
             .call("step", json!({"stimulus": 0}), &[])
             .expect("step");
+        calls.push(call_started.elapsed().as_nanos() as u64);
         spikes += if payload == "count" {
             reply.message["body"]["count"].as_u64().expect("count")
         } else {
@@ -49,6 +52,10 @@ fn main() {
         };
     }
     let wall = started.elapsed().as_secs_f64();
+    // Protocol 4: each call as the host sees it, in nanoseconds.
+    if let Ok(path) = std::env::var("NCP_CALL_TIMES") {
+        std::fs::write(path, serde_json::to_vec(&calls).expect("times")).expect("write times");
+    }
     let finished = client.call("finish", json!({}), &[]).expect("finish");
     client.close().expect("close");
     let status = child.wait().expect("wait");
