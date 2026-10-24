@@ -11,10 +11,10 @@ NEST 3.10.0 with MPI, MUSIC, and OpenMP, MUSIC 1.2.1, and Open MPI 5.0.10, built
 Run it with the Python of that environment, whose `bin` directory also holds `mpiexec` and `music`:
 
 ```text
-PREFIX/bin/python compare.py NETWORK N THREADS DELTA_MS SEED
+PREFIX/bin/python compare.py NETWORK N THREADS DELTA_MS SEED [OUT_DIR]
 ```
 
-It takes the networks and the MUSIC configuration template from [`../harness`](../harness), and it writes its launch scripts, its configuration, and the two event files to a temporary directory, which it removes after the comparison.
+It takes the networks and the MUSIC configuration template from [`../harness`](../harness). It writes its launch scripts, its configuration, and the two event files to OUT_DIR, or else to a temporary directory, which it removes after the comparison. The [content part](../PROTOCOL-CONTENT.md) of the campaign runs it with an OUT_DIR and reads the event files.
 
 Set `CONNECT_FORM=list` to connect all neurons in one call with a channel list, the form of NEST's own MUSIC test `test_event_proxies_issue-696`.
 

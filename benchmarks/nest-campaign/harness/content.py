@@ -50,12 +50,8 @@ def main() -> None:
     # MUSIC: NEST recorder events and the peer's received events, through music-threads/compare.py.
     music_dir = out / "music"
     music_dir.mkdir(exist_ok=True)
-    for name in ("music_nest.py", "music_peer.py", "compare.py"):
-        (music_dir / name).write_text((HERE.parent / "music-threads" / name).read_text())
-    for name in ("networks.py", "common.py", "music_config.template"):
-        (music_dir / name).write_text((HERE / name).read_text())
-    run([sys.executable, str(music_dir / "compare.py"), network, str(n), str(threads), f"{delta:g}", str(seed)],
-        dict(env, PYTHONPATH=str(music_dir)), music_dir)
+    run([py, "-s", str(HERE.parent / "music-threads" / "compare.py"), network, str(n), str(threads), f"{delta:g}",
+         str(seed), str(music_dir)], env, music_dir)
     nest_events = json.loads((music_dir / "nest-events.json").read_text())
     peer_events = json.loads((music_dir / "peer-events.json").read_text())
     mfirst = nest_events["first"]
