@@ -51,6 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (specification 9.1, rule 6). The Python TCP and Unix servers close a connection
   whose setup fails and keep serving; before, a client that connected and closed
   at once could stop a Python server (`EINVAL` on macOS).
+- Python servers: `stop()` now closes the listening socket on Linux as well. There,
+  closing a socket does not wake a thread blocked in `accept`, so a stopped server
+  kept accepting connections and could serve one more session. A failed `accept`
+  (a peer that reset first, or no free descriptor) no longer stops a server, and a
+  defect of the owner factory is reported on standard error, as `socketserver`
+  does, while the server keeps serving.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

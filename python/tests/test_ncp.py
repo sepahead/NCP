@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import array
+import contextlib
 import hashlib
+import io
 import os
 import socket
 import struct
@@ -645,6 +647,69 @@ class BindingTests(unittest.TestCase):
         finally:
             ncp.StreamChannel.from_socket = original
             server.stop()
+
+    def test_stop_closes_the_listening_socket(self) -> None:
+        # On Linux, closing a socket does not wake a thread blocked in accept, which then kept the
+        # listening socket open and served one more session.
+        server = ncp.TcpServer(make_owner).start()
+        host, port = server.address[:2]
+        server.stop()
+        server._thread.join(timeout=5)
+        self.assertFalse(server._thread.is_alive())
+        with self.assertRaises(OSError):
+            socket.create_connection((host, port), timeout=2).close()
+
+    def test_a_failed_accept_does_not_stop_the_server(self) -> None:
+        listener = socket.create_server(("127.0.0.1", 0))
+
+        class Aborting:  # the first accept fails, as when a peer resets before the server accepts it
+            failed = False
+
+            def accept(self):
+                if not Aborting.failed:
+                    Aborting.failed = True
+                    raise ConnectionAbortedError(53, "Software caused connection abort")
+                return listener.accept()
+
+            def shutdown(self, how):
+                listener.shutdown(how)
+
+            def close(self):
+                listener.close()
+
+        server = ncp.binding._Server(make_owner, Aborting()).start()
+        try:
+            client = ncp.Client(ncp.connect_tcp(*listener.getsockname()[:2]), application="echo",
+                                contract=CONTRACT.identity, timeout=10)
+            client.open()
+            self.assertEqual(client.call("echo", {"x": 2}).body, {"x": 2})
+            client.close()
+        finally:
+            server.stop()
+
+    def test_a_defect_of_the_owner_factory_is_reported(self) -> None:
+        calls = []
+
+        def factory():
+            calls.append(None)
+            if len(calls) == 1:
+                raise ValueError("defective factory")
+            return make_owner()
+
+        errors = io.StringIO()
+        server = ncp.TcpServer(factory).start()
+        try:
+            host, port = server.address[:2]
+            with contextlib.redirect_stderr(errors):
+                socket.create_connection((host, port)).close()
+                client = ncp.Client(ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity,
+                                    timeout=10)
+                client.open()  # served after the first connection, so the report is written by now
+            self.assertEqual(client.call("echo", {"x": 3}).body, {"x": 3})
+            client.close()
+        finally:
+            server.stop()
+        self.assertIn("ValueError: defective factory", errors.getvalue())
 
     def test_a_tcp_connection_without_nodelay_is_not_used(self) -> None:
         class Refusing:  # a TCP socket on which TCP_NODELAY fails, as on macOS after the peer closed

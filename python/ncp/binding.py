@@ -10,6 +10,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from collections.abc import Callable, Sequence
 from typing import Any
 
@@ -227,21 +228,36 @@ class _Server:
         return self
 
     def _accept(self) -> None:
-        while not self._stopped:
+        while True:
             try:
                 connection, _ = self._socket.accept()
             except OSError:
+                if self._stopped:
+                    return
+                time.sleep(0.01)  # transient: a peer that reset before accept, or no free descriptor
+                continue
+            if self._stopped:
+                connection.close()
                 return
             try:
                 channel = StreamChannel.from_socket(connection)
-                owner = self._make_owner()
-            except Exception:  # one connection that cannot be set up must not stop the server
+            except OSError:  # the peer closed during setup (macOS then refuses TCP_NODELAY)
                 connection.close()
+                continue
+            try:
+                owner = self._make_owner()
+            except Exception:  # a defect of the owner factory: report it, as socketserver does, and go on
+                channel.close()
+                traceback.print_exc()
                 continue
             threading.Thread(target=serve, args=(owner, channel), daemon=True).start()
 
     def stop(self) -> None:
         self._stopped = True
+        try:
+            self._socket.shutdown(socket.SHUT_RDWR)  # wakes a blocked accept on Linux; close alone does not
+        except OSError:
+            pass  # macOS refuses it on a listening socket, and there close wakes accept
         self._socket.close()
 
 
