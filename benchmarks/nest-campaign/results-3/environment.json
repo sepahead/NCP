@@ -1,0 +1,22 @@
+{
+ "computer": {
+  "Model Name": "MacBook Pro",
+  "Model Identifier": "Mac16,5",
+  "Chip": "Apple M4 Max",
+  "Total Number of Cores": "16 (12 Performance and 4 Efficiency)",
+  "Memory": "128 GB"
+ },
+ "os": "26.5.1",
+ "kernel": "25.5.0",
+ "nest": {
+  "python": "3.11.15",
+  "nest": "3.10.0",
+  "mpi": true,
+  "music": true,
+  "threads_model": "openmp"
+ },
+ "music": "MUSIC 1.2.1",
+ "mpi": "mpiexec (Open MPI) 5.0.10",
+ "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+ "power": "Now drawing from 'Battery Power'"
+}
