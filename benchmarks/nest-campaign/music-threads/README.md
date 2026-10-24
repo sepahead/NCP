@@ -8,10 +8,13 @@ NEST 3.10.0 with MPI, MUSIC, and OpenMP, MUSIC 1.2.1, and Open MPI 5.0.10, built
 [`music_nest.py`](music_nest.py) builds a network of the [campaign](../PROTOCOL.md), connects every neuron to one `music_event_out_proxy` on its own channel, runs 2 s, and writes NEST's own spike recorder events.
 [`music_peer.py`](music_peer.py) receives every event on the matching MUSIC input port and writes each (channel, time) pair.
 [`compare.py`](compare.py) starts both under `mpiexec` and compares the two multisets.
+Run it with the Python of that environment, whose `bin` directory also holds `mpiexec` and `music`:
 
 ```text
-python3 compare.py NETWORK N THREADS DELTA_MS SEED
+PREFIX/bin/python compare.py NETWORK N THREADS DELTA_MS SEED
 ```
+
+It takes the networks and the MUSIC configuration template from [`../harness`](../harness), and it writes its launch scripts, its configuration, and the two event files to a temporary directory, which it removes after the comparison.
 
 Set `CONNECT_FORM=list` to connect all neurons in one call with a channel list, the form of NEST's own MUSIC test `test_event_proxies_issue-696`.
 
