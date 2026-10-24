@@ -297,7 +297,8 @@ def bad_frame_response() -> bytes:
 
 
 class Rejected(Exception):
-    """The owner did not execute the request and changed no state."""
+    """The frame executed nothing and changed no state. Except after `seq_stale`, the owner has
+    never executed the request (spec section 7.5)."""
 
     def __init__(self, code: str, body: Any) -> None:
         super().__init__(code)

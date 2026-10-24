@@ -455,7 +455,8 @@ pub fn bad_frame_response() -> Vec<u8> {
 /// A client-side failure.
 #[derive(Debug)]
 pub enum Error {
-    /// The owner did not execute the request and changed no state.
+    /// The frame executed nothing and changed no state. Except after `seq_stale`, the owner has
+    /// never executed the request (spec section 7.5).
     Rejected {
         /// The rejection code.
         code: String,

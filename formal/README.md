@@ -20,6 +20,13 @@ The theorems hold for every sequence of requests, in any number of steps. A requ
 | `step_rejected` | `Owner.lean` | A `rejected` response changes no state | 7.3, 7.4 |
 | `step_retransmit` | `Owner.lean` | The kept request, sent again, gets the kept response again and changes nothing | 7.3.5 |
 | `Chain.unique` | `Chain.lean` | If `H` has no collision among the frames of two histories, equal identities of their last responses imply equal histories | 7.7.6 |
+| `responses_logged`, `step_log_prefix` | [`Client.lean`](NCP2/Client.lean) | Every response that is not `rejected` belongs to an exchange in the history, then and at every later time | 7.4 |
+| `ok_is_own_execution` | `Client.lean` | An `ok` response that names the identity of a request is the response of exactly one execution of that request, if no other request frame shares the identity | 7.7.4 |
+| `step_rejected_not_logged` | `Client.lean` | Every rejection except `seq_stale` means that the owner has never executed the request | 7.5, 7.7.5 |
+| `seqStale_after_execution` | `Client.lean` | A delayed copy of an executed request gets `seq_stale`: the code says that this frame executed nothing, not that the request never executed | 7.5 |
+
+The client-side theorems hold for every network: a network can lose, repeat, delay, or reorder frames, but a changed frame fails its digest check, so a client only receives responses that the owner sent.
+`seqStale_after_execution` corrected the specification, whose table of codes listed `seq_stale` with the requests that did not execute.
 
 [`Audit.lean`](Audit.lean) prints the axioms of each theorem. The gate requires exactly Lean's standard axioms (`propext`, `Classical.choice`, `Quot.sound`): no `sorry` and no added axiom.
 
@@ -34,7 +41,7 @@ This follows the pattern of AWS Cedar: a proved model, and differential testing 
 
 - **The implementations.** The Python and Rust owners are not proved. They are tested against the proved model on random traces, which cover many inputs but not all.
 - **The frame codec.** Decoding, JSON checks, attachments, and digests are tested by the shared vectors and by differential fuzzing (`../conformance`), not proved.
-- **What a correct client learns.** Properties 4 and 5 of section 7.7, and the client side of property 6, depend on the client rules and on the network. `../model/ncp2_model.py` checks them in every reachable state of small bounded runs (3 steps, 2 faults, with loss, repetition, reordering, damage, and crashes). They are not proved for unbounded runs.
+- **The client's own discipline.** That a client which follows section 7.6 never receives `seq_stale` for its current request, and that the requests it accepts form one chain, depend on the client rules. `../model/ncp2_model.py` checks them in every reachable state of small bounded runs (3 steps, 2 faults, with loss, repetition, reordering, damage, and crashes). They are not proved for unbounded runs.
 - **The digest.** `Chain.unique` assumes that `H` has no collision among the frames involved. For SHA-256 this is an assumption about the hash function, not a theorem.
 - **The abstraction.** The model represents bodies, sessions, and identities by numbers. A difference between the specification's text and the model would go unnoticed by the proofs; the conformance traces against the real owners are the check on that step.
 

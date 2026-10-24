@@ -9,3 +9,9 @@ import NCP2
 #print axioms NCP2.run_at_most_once
 #print axioms NCP2.step_rejected
 #print axioms NCP2.step_retransmit
+#print axioms NCP2.step_log_prefix
+#print axioms NCP2.step_response_logged
+#print axioms NCP2.step_rejected_not_logged
+#print axioms NCP2.seqStale_after_execution
+#print axioms NCP2.responses_logged
+#print axioms NCP2.ok_is_own_execution

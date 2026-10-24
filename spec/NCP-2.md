@@ -204,21 +204,22 @@ A `rejected` response changes no state. The owner does not keep it, and the same
 | Outcome | Meaning | The session |
 | --- | --- | --- |
 | `ok` | The owner executed the request once. The body is the result. | Continues, unless the operation was `close`. |
-| `rejected` | The owner did not execute the request and changed no state. | Continues. The client can send a corrected request with the same `seq`. |
+| `rejected` | This frame executed nothing and changed no state. Except after `seq_stale`, the owner has never executed the request (section 7.5). | Continues. The client can send a corrected request with the same `seq`. |
 | `ended` | The session cannot continue. The code tells whether the request executed. | Ends. |
 
 ### 7.5 Codes
 
 | Code | Outcome | The request executed |
 | --- | --- | --- |
-| `wrong_protocol`, `not_open`, `already_open`, `wrong_session`, `seq_stale`, `seq_gap`, `seq_conflict`, `ack_missing`, `ack_mismatch`, `unknown_op`, `body_invalid`, `contract_mismatch`, `bound_unacceptable`, `session_ended` | `rejected` | No |
+| `wrong_protocol`, `not_open`, `already_open`, `wrong_session`, `seq_gap`, `seq_conflict`, `ack_missing`, `ack_mismatch`, `unknown_op`, `body_invalid`, `contract_mismatch`, `bound_unacceptable`, `session_ended` | `rejected` | No |
+| `seq_stale` | `rejected` | Not by this frame. An earlier copy of the request may have executed: a delayed copy of an executed request gets this code. |
 | `result_too_large` | `ended` | Yes |
 | `owner_failure` | `ended` | Unknown |
 | `bad_frame`, `shutdown` | `ended` | No request is named |
 
 For `contract_mismatch` and `bound_unacceptable`, the owner responds to `open` and stays without a session.
 
-Later versions of this specification can add codes. A receiver MUST accept a code that it does not know and use the outcome: after `rejected`, the request did not execute; after `ended`, the request is possibly executed.
+Later versions of this specification can add codes. A receiver MUST accept a code that it does not know and use the outcome: after `rejected`, the frame executed nothing; after `ended`, the request is possibly executed.
 
 ### 7.6 Client rules
 
@@ -232,7 +233,7 @@ Later versions of this specification can add codes. A receiver MUST accept a cod
 
 ### 7.7 Properties
 
-These rules give the following properties. The Lean proofs in `formal/` establish properties 1, 2, and 3, and the owner's side of property 6, for every sequence of requests. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
+These rules give the following properties. The Lean proofs in `formal/` establish properties 1 to 4 and the owner's side of properties 5 and 6 for every sequence of requests, so for any client and network. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
 
 1. The owner executes each request at most once.
 2. The owner executes requests in sequence order, without gaps.

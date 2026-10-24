@@ -12,11 +12,13 @@ variable (H : Frame → Id) (app : App)
 
 /-- The owner invariant. Before `open`, nothing happened. After it, the log is a hash chain whose
 last exchange is the kept one, `high` is its sequence number, `ended` says whether it ended the
-session, and every accepted request belongs to the session and to protocol 2. -/
+session, and every accepted request belongs to the session and to protocol 2 and got a response
+that is not `rejected`. -/
 def Inv (o : Owner) : Prop :=
   (o.session = none ∧ o.log = [] ∧ o.kept = none) ∨
   (∃ s y, o.session = some s ∧ Chain H o.log y ∧ o.kept = some y ∧ o.high = y.request.seq ∧
-    o.ended = decide (Ends y) ∧ ∀ x ∈ o.log, x.request.session = s ∧ x.request.protocol = 2)
+    o.ended = decide (Ends y) ∧
+    ∀ x ∈ o.log, x.request.session = s ∧ x.request.protocol = 2 ∧ x.response.outcome ≠ .rejected)
 
 variable {H app}
 
@@ -43,7 +45,7 @@ theorem execute_not_rejected (bound : Nat) (r : Request) (a : AppResult) :
 theorem inv_accept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {a : AppResult}
     (hs : o.session = some s) (hc : Chain H o.log y)
     (hh : o.high = y.request.seq) (he : o.ended = decide (Ends y))
-    (hl : ∀ x ∈ o.log, x.request.session = s ∧ x.request.protocol = 2)
+    (hl : ∀ x ∈ o.log, x.request.session = s ∧ x.request.protocol = 2 ∧ x.response.outcome ≠ .rejected)
     (hseq : r.seq = o.high + 1) (hack : r.ack = some (H (.resp y.response)))
     (hop : r.op ≠ .openSession) (hlive : o.ended = false)
     (hsess : r.session = s) (hprot : r.protocol = 2) :
@@ -56,13 +58,13 @@ theorem inv_accept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {a : AppRe
     simp only [accept, List.mem_append, List.mem_singleton] at hx
     rcases hx with hx | rfl
     · exact hl x hx
-    · exact ⟨hsess, hprot⟩
+    · exact ⟨hsess, hprot, execute_not_rejected _ _ _⟩
 
 /-- The checks of rules 7.3.6 to 7.3.11 keep the invariant. -/
 theorem inv_checkThenAccept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {a : AppResult}
     (hs : o.session = some s) (hc : Chain H o.log y)
     (hh : o.high = y.request.seq) (he : o.ended = decide (Ends y))
-    (hl : ∀ x ∈ o.log, x.request.session = s ∧ x.request.protocol = 2)
+    (hl : ∀ x ∈ o.log, x.request.session = s ∧ x.request.protocol = 2 ∧ x.response.outcome ≠ .rejected)
     (hne : r.seq ≠ o.high) (hsess : r.session = s) (hprot : r.protocol = 2) (hinv : Inv H o) :
     Inv H (checkThenAccept H app o (some (H (.resp y.response))) r a).1 := by
   unfold checkThenAccept
@@ -116,7 +118,7 @@ theorem inv_step {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResult) :
         · exact Chain.start _ hopen.1 (by simpa using hack) hopen.2 rfl
         · simp [hopen.2]
         · simp [Ends, reply, hopen.1]
-        · intro x hx; simp at hx; subst hx; exact ⟨rfl, hprot⟩
+        · intro x hx; simp at hx; subst hx; exact ⟨rfl, hprot, by simp [reply]⟩
       all_goals exact hinv
     · exact hinv
   · rename_i s hs
@@ -198,7 +200,7 @@ theorem step_retransmit {o : Owner} {k : Exchange} (hinv : Inv H o) (hk : o.kept
   rcases hinv with ⟨_, _, hn⟩ | ⟨s, y, hs, hc, hk', hh, _, hl⟩
   · rw [hn] at hk; cases hk
   rw [hk] at hk'; cases hk'
-  have ⟨hsess, hprot⟩ := hl k hc.last_mem
+  have ⟨hsess, hprot, _⟩ := hl k hc.last_mem
   unfold step
   simp [hprot, hs, hsess, hk, hh]
 
