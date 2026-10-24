@@ -47,3 +47,5 @@ REVIEW_AND_PLAN.md
 .ruff_cache/
 /formal/.lake/
 /rust/target/
+/python/build/
+/python/*.egg-info/

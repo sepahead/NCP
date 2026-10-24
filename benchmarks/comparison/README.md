@@ -85,6 +85,8 @@ env/bin/python analyze.py RESULTS
 
 `run.py` builds the Rust programs with `cargo`, runs the validity checks, writes the schedule, and records every run in `RESULTS/runs.jsonl` as soon as it ends; it continues where it stopped if you start it again. `analyze.py` writes `analysis.json`, `summary.md`, and the figures.
 
+The Rust harness keeps the measured Zenoh 1.10.1, whose transport requires `lz4_flex` 0.10. The advisory GHSA-vvp9-7p8x-rfvv concerns that crate's decompression, which Zenoh compiles only with its `transport_compression` feature; the harness builds Zenoh without it (`default-features = false`, `transport_tcp` only), so the affected function is not in the program.
+
 ## Files
 
 | Path | Content |
