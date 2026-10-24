@@ -61,8 +61,8 @@ The timing of the run is disturbed:
 
 - The computer ran on battery for the first 30 minutes.
 - During block 1, its lid was closed for 7.5 minutes. The computer then slept for 5 to 8 s in each minute, and its thermal pressure rose to level 4 several times.
-- The one-minute load average before a run had a median of 6.6 and reached 125.
-- From then on, the processor ran at about 3.1 GHz on one core and 2.9 GHz on all cores, against up to 4.5 GHz before, with High Power selected and the power adapter connected. `mono` of Brunel with 1000 neurons and 1 thread took 0.675 s in block 0 and in protocol 2, and 0.877 s on 24 October.
+- The one-minute load average before a run had a median of 6.6. Its six highest values, 38 to 125, fell between 19:34 and 19:36 UTC, while the computer slept and woke; their cause is not established.
+- The reference became slower and stayed slower. `mono` of Brunel with 1000 neurons and 1 thread took 0.675 s in block 0 and in protocol 2, 0.934 s in block 2, and 0.877 s on 24 October. On 24 October the processor ran at about 3.1 GHz on one core and 2.9 GHz on all cores (an M4 Max performance core is rated at up to 4.5 GHz), with High Power selected and the power adapter connected.
 
 The `chunked` reference took as long as in protocol 2 in block 0 (median ratio 1.00), and 26 % and 37 % longer in the medians of blocks 1 and 2, with single runs up to 14 times longer. Single block values of the cost per exchange therefore lie between −172 and +272 ms.
 
@@ -81,6 +81,14 @@ The records stay in [`results-3/`](results-3) as they were written.
 Protocol 4 repeats protocol 3 and adds the time of every step. Before each run, `run4.py` waits for the power adapter, nominal thermal pressure, a core at 4.0 GHz or more, and a load average below 8. It repeats a run during which the computer slept or the conditions failed. A block whose `chunked` reference drifts more than 10 % from protocol 2 leaves the timing hypotheses unadjudicated.
 It has not run yet, because the processor has stayed limited to about 3.1 GHz since 23 October.
 Its smoke runs, under that limit, gave median overheads per exchange of 29 and 35 µs for NCP 2 with the Rust host, against 13 and 14 µs for the raw round trip and 299 and 313 µs for NCP 1.0.1; [`profiling/`](profiling) explains why the owner's protocol code is slower inside the NEST process than without NEST. These numbers are not results.
+
+Corrections to the background text of [`PROTOCOL-4.md`](PROTOCOL-4.md), found on 24 October 2026 before any run; the rules of the protocol are not affected:
+
+- It says that other programs raised the load average up to 125. The highest values fell while the computer slept and woke with its lid closed; their cause is not established.
+- It says that the processor ran at up to 4.5 GHz before. That is the rating of the chip; no clock was measured before 24 October. The measured evidence is the slower `mono` reference.
+- It says that the owner's protocol code runs two to four times slower inside the NEST process. Against the owner without NEST, the profile gives 1.6 times with a count and 2.3 to 3.2 times with spikes.
+
+The gate's clock threshold of 4.0 GHz has not yet been observed at full speed. Before the first run, the clock probe must be read with the processor at full speed; if it reads less than 4.0 GHz, a deviation is recorded here before the run starts.
 
 ## Why run 1 is superseded
 

@@ -65,7 +65,7 @@ theorem rejectionMeansNeverExecuted : RejectionMeansNeverExecuted :=
   fun _ _ inputs r a hrej hcode => step_rejected_not_logged (inv_run inputs) r a hrej hcode
 
 theorem staleMayHaveExecuted : StaleMayHaveExecuted :=
-  ⟨_, _, _, _, _, seqStale_after_execution⟩
+  fun H => ⟨_, _, _, _, seqStale_after_execution H⟩
 
 end NCP2.Audit
 

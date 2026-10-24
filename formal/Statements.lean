@@ -80,9 +80,9 @@ def RejectionMeansNeverExecuted : Prop :=
     (step H app (run H app {} inputs) r a).2.code ≠ some .seqStale →
     r ∉ (history H app inputs).map (·.request)
 
-/-- 7.5: `seq_stale` can answer a request that executed earlier. -/
+/-- 7.5: for every digest, `seq_stale` can answer a request that executed earlier. -/
 def StaleMayHaveExecuted : Prop :=
-  ∃ (H : Frame → Id) (app : App) (inputs : List (Request × AppResult)) (r : Request) (a : AppResult),
+  ∀ H : Frame → Id, ∃ (app : App) (inputs : List (Request × AppResult)) (r : Request) (a : AppResult),
     (step H app (run H app {} inputs) r a).2.code = some .seqStale ∧
     r ∈ (history H app inputs).map (·.request)
 

@@ -212,7 +212,7 @@ A `rejected` response changes no state. The owner does not keep it, and the same
 | Code | Outcome | The request executed |
 | --- | --- | --- |
 | `wrong_protocol`, `not_open`, `already_open`, `wrong_session`, `seq_gap`, `seq_conflict`, `ack_missing`, `ack_mismatch`, `unknown_op`, `body_invalid`, `contract_mismatch`, `bound_unacceptable`, `session_ended` | `rejected` | No |
-| `seq_stale` | `rejected` | Not by this frame. An earlier copy of the request may have executed: a delayed copy of an executed request gets this code. |
+| `seq_stale` | `rejected` | Not by this frame. An earlier copy of the request may have executed: a delayed copy of an executed request gets this code once a later request has executed. |
 | `result_too_large` | `ended` | Yes |
 | `owner_failure` | `ended` | Unknown |
 | `bad_frame`, `shutdown` | `ended` | No request is named |
@@ -233,7 +233,7 @@ Later versions of this specification can add codes. A receiver MUST accept a cod
 
 ### 7.7 Properties
 
-These rules give the following properties. The Lean proofs in `formal/` establish properties 1 to 4 and the owner's side of properties 5 and 6 for every sequence of requests, so for any client and network. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
+These rules give the following properties. The Lean proofs in `formal/` establish properties 1 to 3 and the owner's side of properties 5 and 6 for every sequence of requests, so for any client and network. They establish property 4 for every network that loses, repeats, delays, or reorders frames, if changed frames are detected, no third party sends frames with valid digests, and no other request frame has the client's request identity. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
 
 1. The owner executes each request at most once.
 2. The owner executes requests in sequence order, without gaps.

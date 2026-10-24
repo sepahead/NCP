@@ -62,5 +62,5 @@ Warm and without NEST, in the NEST environment's Python 3.11 with OpenSSL 3.6.5 
 ## Consequence
 
 The design keeps the optional Rust accelerator for the Python SDK unbuilt (design record, section 8).
-Warm, a Rust codec could save at most the codec time that is not hashing: about 3 µs of decoding a request and 7 µs of encoding a spike response.
-How much of the cold penalty it would remove is not measured.
+Warm, a Rust codec could save the codec time that is not hashing, about 3 µs of decoding a request and 7 µs of encoding a spike response, and about 2 µs of hashing, because Rust's `sha2` (2968 MB/s) is faster than the NEST environment's OpenSSL (about 2300 MB/s for this frame).
+These are estimates from the warm times, not measurements of a Rust codec; how much of the cold penalty it would remove is not measured.

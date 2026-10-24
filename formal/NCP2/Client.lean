@@ -2,8 +2,10 @@
 What a client can conclude from a response (spec 7.4, 7.5, and 7.7, properties 4 and 5).
 
 The argument is compositional. A network can lose, repeat, delay, or reorder frames, but it cannot
-make a response that the owner did not send: a changed frame fails its digest check. So it is
-enough to know what each response that the owner sends says about the owner's history.
+make a response that the owner did not send, under two assumptions: changed frames are detected
+(by the digest check, or because the binding is a reliable stream), and no third party sends frames
+with valid digests (a digest is not an authentication code; the binding authenticates the peer).
+Under them it is enough to know what each response that the owner sends says about its history.
 -/
 import NCP2.Owner
 
@@ -129,17 +131,22 @@ theorem step_rejected_not_logged {o : Owner} (hinv : Inv H o) (r : Request) (a :
     · simp [reject, reply] at hcode
     · rename_i hlt; omega
 
-/-- A delayed copy of an executed request is rejected with `seq_stale`. So `seq_stale` says that
-this frame did not execute the request, not that the request never executed. -/
-theorem seqStale_after_execution :
-    let H : Frame → Id := fun _ => 0
+/-- For every digest `H`, a delayed copy of an executed request is rejected with `seq_stale` once a
+later request has executed. So `seq_stale` says that this frame executed nothing, not that the
+request never executed. The requests acknowledge the real identities `H (.resp p0)` and
+`H (.resp p1)`, so the run is a correct one for any digest. -/
+theorem seqStale_after_execution (H : Frame → Id) :
     let app : App := { known := fun _ => true, valid := fun _ _ => true, opening := fun _ => .accept 65536 }
     let r0 : Request := { protocol := 2, session := 1, seq := 0, op := .openSession, ack := none, body := 0 }
-    let r1 : Request := { protocol := 2, session := 1, seq := 1, op := .call 0, ack := some 0, body := 0 }
-    let r2 : Request := { protocol := 2, session := 1, seq := 2, op := .call 0, ack := some 0, body := 1 }
+    let p0 := reply H r0 .ok none (.opened 65536)
+    let r1 : Request :=
+      { protocol := 2, session := 1, seq := 1, op := .call 0, ack := some (H (.resp p0)), body := 0 }
+    let p1 := reply H r1 .ok none (.result 1)
+    let r2 : Request :=
+      { protocol := 2, session := 1, seq := 2, op := .call 0, ack := some (H (.resp p1)), body := 1 }
     let o := run H app {} [(r0, .result 0), (r1, .result 1), (r2, .result 2)]
     (step H app o r1 (.result 1)).2.code = some .seqStale ∧ r1 ∈ o.log.map (·.request) := by
-  decide
+  simp [run, step, openStep, checkThenAccept, accept, execute, reply, reject, Ends]
 
 /-- The responses that the owner sends during a sequence of requests. -/
 def responses (H : Frame → Id) (app : App) (o : Owner) : List (Request × AppResult) → List Response
@@ -171,9 +178,9 @@ theorem responses_logged {o : Owner} (hinv : Inv H o) (inputs : List (Request ×
       exact ⟨z, (run_log_prefix (inv_step hinv x.1 x.2) rest).subset hz, hzp⟩
     · exact ih (inv_step hinv x.1 x.2) hp'
 
-/-- Property 4: an `ok` response that names the identity of the client's request `r` is the
-response of exactly one execution of `r`, if no other request frame shares `r`'s identity. It
-holds for every network, because the client only receives responses that the owner sent. -/
+/-- Property 4: an `ok` response that the owner sent and that names the identity of the client's
+request `r` is the response of exactly one execution of `r`, if no other request frame shares
+`r`'s identity. Under the assumptions in the header, this covers every network. -/
 theorem ok_is_own_execution {o : Owner} (hinv : Inv H o) (inputs : List (Request × AppResult))
     {p : Response} {r : Request} (hp : p ∈ responses H app o inputs) (hok : p.outcome = .ok)
     (hreq : p.request = H (.req r)) (hinj : ∀ q, H (.req q) = H (.req r) → q = r) :

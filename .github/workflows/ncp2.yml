@@ -72,8 +72,10 @@ jobs:
       - name: Install elan, which installs the Lean version in formal/lean-toolchain
         if: matrix.lean
         run: |
-          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/e9268f8b213e09a99768befe548049c046074225/elan-init.sh \
-            | sh -s -- -y --default-toolchain none
+          # elan v4.2.4 (commit 227caca); downloaded to a file so that a failed download stops the step
+          curl -sSfL -o "$RUNNER_TEMP/elan-init.sh" \
+            https://raw.githubusercontent.com/leanprover/elan/227caca133724d5516bee25c2aeb3e609478f2d8/elan-init.sh
+          sh "$RUNNER_TEMP/elan-init.sh" -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
       - name: NCP 2 gate

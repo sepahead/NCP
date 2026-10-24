@@ -23,14 +23,14 @@ The theorems hold for every sequence of requests, in any number of steps. A requ
 | `responses_logged`, `step_log_prefix` | [`Client.lean`](NCP2/Client.lean) | Every response that is not `rejected` belongs to an exchange in the history, then and at every later time | 7.4 |
 | `ok_is_own_execution` | `Client.lean` | An `ok` response that names the identity of a request is the response of exactly one execution of that request, if no other request frame shares the identity | 7.7.4 |
 | `step_rejected_not_logged` | `Client.lean` | Every rejection except `seq_stale` means that the owner has never executed the request | 7.5, 7.7.5 |
-| `seqStale_after_execution` | `Client.lean` | A delayed copy of an executed request gets `seq_stale`: the code says that this frame executed nothing, not that the request never executed | 7.5 |
+| `seqStale_after_execution` | `Client.lean` | For every digest, a delayed copy of an executed request gets `seq_stale` once a later request has executed: the code says that this frame executed nothing, not that the request never executed | 7.5 |
 
-The client-side theorems hold for every network: a network can lose, repeat, delay, or reorder frames, but a changed frame fails its digest check, so a client only receives responses that the owner sent.
+The client-side theorems are about responses that the owner sent. They cover every network that loses, repeats, delays, or reorders frames, under two assumptions: changed frames are detected (by the digest check, or because the binding is a reliable stream), and no third party sends frames with valid digests. A digest is not an authentication code; the binding authenticates the peer.
 `seqStale_after_execution` corrected the specification, whose table of codes listed `seq_stale` with the requests that did not execute.
 
 [`Statements.lean`](Statements.lean) states every claim without its proof: it is the file to review.
 [`Audit.lean`](Audit.lean) proves each statement from the library, so a theorem whose type drifts from its stated claim fails the build, and prints the axioms of each proof.
-The gate requires exactly Lean's standard axioms (`propext`, `Classical.choice`, `Quot.sound`), so no `sorry` and no added axiom, and replays every proof with `leanchecker --fresh`, the Lean kernel run independently of the elaborator.
+The gate allows only Lean's standard axioms (`propext`, `Classical.choice`, `Quot.sound`), so no `sorry` and no added axiom, and replays every proof with `leanchecker --fresh`: the Lean kernel checks the compiled proofs again, outside the elaborator that produced them. It is the same kernel; a second, independent kernel is not used.
 
 ## The model as a test oracle
 
@@ -38,7 +38,7 @@ The gate requires exactly Lean's standard axioms (`propext`, `Classical.choice`,
 `../model/conformance.py --oracle` sends it random traces of correct, repeated, stale, skipped, invalid, and failing requests, and compares its outcomes and codes with those of a real owner.
 The Python owner and the Rust owner agree with it on every trace of the gate.
 `--self-test` measures the strength of the traces: it runs the Python owner with each of five known defects (no acknowledgement check, accepted gaps, a forgotten kept request, execution after the end, a wrong rejection code), and each defect must make a trace fail.
-Continuing traces after an ending response found a fault in the earlier Python reference model, which left the application's failure flag out of a request's identity; the Lean oracle had it right.
+Continuing traces after an ending response found a fault in the harness: its mapping of requests to the Python reference model left the application's failure flag out of a request's identity, so two different frames looked like one. The Lean oracle is not affected, because its requests carry the flag in their body.
 This follows the pattern of AWS Cedar: a proved model, and differential testing of the implementations against it.
 
 ## What is not proved
@@ -46,7 +46,9 @@ This follows the pattern of AWS Cedar: a proved model, and differential testing 
 - **The implementations.** The Python and Rust owners are not proved. They are tested against the proved model on random traces, which cover many inputs but not all.
 - **The frame codec.** Decoding, JSON checks, attachments, and digests are tested by the shared vectors and by differential fuzzing (`../conformance`), not proved.
 - **The client's own discipline.** That a client which follows section 7.6 never receives `seq_stale` for its current request, and that the requests it accepts form one chain, depend on the client rules. `../model/ncp2_model.py` checks them in every reachable state of small bounded runs (3 steps, 2 faults, with loss, repetition, reordering, damage, and crashes). They are not proved for unbounded runs.
-- **The digest.** `Chain.unique` assumes that `H` has no collision among the frames involved. For SHA-256 this is an assumption about the hash function, not a theorem.
+- **The digest and the peer.** `Chain.unique` and `ok_is_own_execution` assume that `H` has no collision among the frames involved; for SHA-256 this is an assumption about the hash function, not a theorem. The client-side theorems also assume that no third party forges frames.
+- **Liveness.** No theorem says that a retransmitted request eventually gets a response.
+- **Size checks.** Whether a result is too large for the session is an input of the model; the model does not compute frame sizes.
 - **The abstraction.** The model represents bodies, sessions, and identities by numbers. A difference between the specification's text and the model would go unnoticed by the proofs; the conformance traces against the real owners are the check on that step.
 
 ## Commands

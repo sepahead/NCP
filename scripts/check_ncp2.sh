@@ -50,12 +50,12 @@ echo "== Model conformance of both owners, $traces traces each"
 if [ "${NCP2_SKIP_LEAN:-0}" != "1" ]; then
     echo "== Lean proofs of the owner model, warnings fatal"
     (cd formal && lake build --wfail)
-    echo "== Independent replay of every proof by the Lean kernel"
+    echo "== Replay of every proof by the Lean kernel, outside the elaborator"
     (cd formal && lake env leanchecker --fresh Audit)
     echo "== Axiom audit: only propext, Classical.choice, and Quot.sound"
     (cd formal && lake env lean Audit.lean) > "$work/axioms.txt"
     cat "$work/axioms.txt"
-    if grep -v "depends on axioms: \[" "$work/axioms.txt" | grep -q . ||
+    if grep -v -e "depends on axioms: \[" -e "does not depend on any axioms" "$work/axioms.txt" | grep -q . ||
         sed -n 's/.*depends on axioms: \[\(.*\)\]/\1/p' "$work/axioms.txt" | tr ',' '\n' |
         sed 's/ //g' | grep -qvxE 'propext|Classical.choice|Quot.sound'; then
         echo "axiom audit failed" >&2
