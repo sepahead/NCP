@@ -79,6 +79,7 @@ Each row names an assumption of NCP 1, the question, and the decision.
 | Canonical JSON (RFC 8785) | Number formatting differs between languages. Hashing the exact bytes makes canonical form unnecessary. |
 | Chunked transfer of large results | Adds a second protocol. Per-session bounds and attachments cover the measured uses. |
 | Shared memory for local frames | Fastest for very large data, but adds platform code and lifetime rules. Measure first; add only for a demonstrated need. |
+| A Rust accelerator for the Python SDK (a PyO3 module) | Measured warm: decoding a step request takes 4.4 µs, and encoding a 21.8 kB spike response 16.1 µs, of which 9.4 µs is the SHA-256 digest that a Rust codec also computes. A Rust codec could save about 10 µs of a NEST exchange that costs 30 to 150 µs. Inside the NEST process the owner's code runs two to three times slower than warm; how much of that a Rust codec would remove is not measured ([profile](../../benchmarks/nest-campaign/profiling/README.md)). It would add a compiled extension to every Python installation. Reconsider when a profile on a target platform shows the Python codec as most of the coupling cost. |
 | gRPC as the transport | At-most-once by default, HTTP/2 stack, no hash chain. NRP-core uses it; we compare against it instead. |
 | ROS 2 as the live binding | Large runtime for every user. A later bridge can map NCP streams and commands to ROS 2 for robots that use it. Zenoh on the same network does not make NCP messages ROS 2 messages. |
 | Removing Zenoh entirely | Leaves live fleets without discovery and fan-out. Kept as an option instead. |
@@ -134,15 +135,15 @@ Targets for NCP 2 on the same computer as section 3, tested by preregistered pro
 | --- | --- | --- | --- |
 | Rust client and Rust echo owner, one call | 35.6 µs | ≤ 15 µs | 9.1 µs ([comparison benchmark](../../benchmarks/comparison/README.md), H2) |
 | Python client and Python echo owner, one call | 466 µs | ≤ 150 µs | 38.6 µs (H2) |
-| NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | ≤ 0.10 ms | not yet measured |
-| Spike payloads (D4 of the NEST campaign) | 0.4–1.4 ms, and failure above 64 KiB | ≤ 0.15 ms, no failure | not yet measured; 1788 spikes in one call take 32.8 µs (Rust) and 67.8 µs (Python) without NEST |
+| NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | ≤ 0.10 ms | 0.036 ms in run 1 of [NEST protocol 3](../../benchmarks/nest-campaign/README.md) (G2), whose timing was disturbed; protocol 4 repeats it |
+| Spike payloads (D4 of the NEST campaign) | 0.4–1.4 ms, and failure above 64 KiB | ≤ 0.15 ms, no failure | No failure: every D4 run delivered the exact spikes, also with 10,000 neurons at 5 ms. The cost is not established, because the timing of run 1 was disturbed; protocol 4 repeats it. 1788 spikes in one call take 32.8 µs (Rust) and 67.8 µs (Python) without NEST |
 
 In the comparison benchmark, all five preregistered hypotheses held: NCP 2 is 4.2 to 165 times faster than NCP 1.0.1, adds 4.6 µs to a raw pipe, and is faster than gRPC and Zenoh in Rust and than gRPC and HTTP/1.1 in Python up to 1788 spikes. At 1 MiB, systems without an integrity check are faster, by about the time of one SHA-256 digest.
 
 Comparisons, with the same workloads, shown as figures in this repository and in the thesis:
 
 - Exchange latency and throughput for payloads from 0 bytes to 1 MiB: NCP 2 (Rust, Python), NCP 1.0.1, gRPC (Rust and Python; the transport that NRP-core recommends), HTTP with JSON (NRP-core's JSON engines), ZeroMQ request and reply, and Zenoh query and reply. A raw pipe echo gives the lower bound.
-- NEST coupling: NCP 2, NCP 1.0.1, MUSIC, and a gRPC owner with the same readback, for each network, size, thread count, and interval.
+- NEST coupling: NCP 2, NCP 1.0.1, MUSIC, and a raw round trip to an echo process after each interval, for each network, size, thread count, and interval. The raw round trip is the lower bound of every coupling that stops NEST for a reply, gRPC included, so a gRPC owner of NEST would add no information to the comparison benchmark's gRPC results.
 - Correct-content throughput: the wall time of a run whose delivered spikes are exact. MUSIC is exact only with one NEST thread in this build; NCP is exact with any thread count.
 - Multi-agent scaling: 1 to 256 sessions, Rust and Python hosts.
 - MPI: the rank-0 owner pattern with 1 to 8 MPI ranks on one computer.
