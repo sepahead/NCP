@@ -61,7 +61,7 @@ theorem inv_accept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {a : AppRe
     · exact ⟨hsess, hprot, execute_not_rejected _ _ _⟩
 
 /-- The checks of rules 7.3.6 to 7.3.11 keep the invariant. -/
-theorem inv_checkThenAccept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {a : AppResult}
+theorem inv_checkThenAccept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {a : Behavior}
     (hs : o.session = some s) (hc : Chain H o.log y)
     (hh : o.high = y.request.seq) (he : o.ended = decide (Ends y))
     (hl : ∀ x ∈ o.log, x.request.session = s ∧ x.request.protocol = 2 ∧ x.response.outcome ≠ .rejected)
@@ -97,7 +97,7 @@ theorem inv_checkThenAccept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {
     · exact inv_accept hs hc hh he hl hseq h_ack' (by simp [hop]) hlive hsess hprot
 
 /-- Every step keeps the invariant. -/
-theorem inv_step {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResult) :
+theorem inv_step {o : Owner} (hinv : Inv H o) (r : Request) (a : Behavior) :
     Inv H (step H app o r a).1 := by
   unfold step
   split
@@ -140,7 +140,7 @@ theorem inv_step {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResult) :
     · rename_i hk'; rw [hk] at hk'; cases hk'
 
 /-- The invariant holds after every sequence of requests from the initial owner. -/
-theorem inv_run (inputs : List (Request × AppResult)) : Inv H (run H app {} inputs) := by
+theorem inv_run (inputs : List (Request × Behavior)) : Inv H (run H app {} inputs) := by
   suffices ∀ o, Inv H o → Inv H (run H app o inputs) from this _ inv_init
   induction inputs with
   | nil => intro o h; exact h
@@ -148,21 +148,21 @@ theorem inv_run (inputs : List (Request × AppResult)) : Inv H (run H app {} inp
 
 /-- Properties 1, 2, 3, and 7 for every sequence of requests: the accepted history is empty
 before `open` and a hash chain after it. -/
-theorem run_chain (inputs : List (Request × AppResult)) :
+theorem run_chain (inputs : List (Request × Behavior)) :
     (run H app {} inputs).log = [] ∨ ∃ y, Chain H (run H app {} inputs).log y := by
   rcases inv_run (H := H) (app := app) inputs with ⟨_, hl, _⟩ | ⟨_, y, _, hc, _⟩
   · exact Or.inl hl
   · exact Or.inr ⟨y, hc⟩
 
 /-- Property 1: no request is executed twice, for every sequence of requests. -/
-theorem run_at_most_once (inputs : List (Request × AppResult)) :
+theorem run_at_most_once (inputs : List (Request × Behavior)) :
     ((run H app {} inputs).log.map (·.request)).Nodup := by
   rcases run_chain (H := H) (app := app) inputs with hl | ⟨y, hc⟩
   · simp [hl]
   · exact hc.requests_nodup
 
 /-- A `rejected` response changes no state (rule 7.3, last paragraph). -/
-theorem step_rejected {o : Owner} {r : Request} {a : AppResult}
+theorem step_rejected {o : Owner} {r : Request} {a : Behavior}
     (h : (step H app o r a).2.outcome = .rejected) :
     (step H app o r a).1 = o := by
   revert h
@@ -196,7 +196,7 @@ theorem step_rejected {o : Owner} {r : Request} {a : AppResult}
 
 /-- Rule 7.3.5: the kept request, sent again, gets the kept response again and changes nothing. -/
 theorem step_retransmit {o : Owner} {k : Exchange} (hinv : Inv H o) (hk : o.kept = some k)
-    (a : AppResult) : step H app o k.request a = (o, k.response) := by
+    (a : Behavior) : step H app o k.request a = (o, k.response) := by
   rcases hinv with ⟨_, _, hn⟩ | ⟨s, y, hs, hc, hk', hh, _, hl⟩
   · rw [hn] at hk; cases hk
   rw [hk] at hk'; cases hk'

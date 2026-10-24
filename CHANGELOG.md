@@ -37,6 +37,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The proofs corrected the specification: `seq_stale` can answer a delayed copy
   of a request that did execute, so the code says only that this frame executed
   nothing.
+- A soundness review of the proofs changed four things. `OkIsOwnExecution`
+  assumed that no request at all shares the identity of the client's request. No
+  function from all frames to 256-bit digests satisfies that, so the theorem said
+  nothing about SHA-256; it now assumes it only for the requests that reached the
+  owner. The application's verdict on a body is now an input of each step, like
+  its result, so the proofs also cover an application whose verdict depends on its
+  state. Two claims are new: the owner executes only requests that it received,
+  and a client that follows section 7.6 over a network without faults gets every
+  call executed, in order, which rules out a model that is safe because it
+  executes nothing. The specification now says how an owner answers a malformed
+  `open` request and that it ignores the body of `close`, as both SDKs and the
+  model already did, and property 5 excludes `seq_stale`, as the proofs do.
 - On one Apple M4 Max ([`benchmarks/comparison`](benchmarks/comparison/README.md),
   H2), a Rust echo call takes a median of 9.1 µs (NCP 1.0.1: 35.6 µs) and a
   Python echo call 38.6 µs (NCP 1.0.1: 466 µs). In protocol 3 of the NEST

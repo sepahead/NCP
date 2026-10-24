@@ -34,13 +34,14 @@ def outcomeName : Outcome → String
 
 def digest (f : Frame) : Id := (hash f).toNat
 
-/-- The harness's application: one operation, `step` (name 0). Body bit 1: invalid; bit 0: raise. -/
+/-- The harness's application: one operation, `step` (name 0). -/
 def harnessApp : App where
   known name := name == 0
-  valid _ body := body / 2 % 2 == 0
   opening _ := .accept 65536
 
-def parseLine (line : String) : Option (Request × AppResult) := do
+/-- The body records the BAD and FAIL flags (bits 1 and 0), so that requests that differ in them
+are different frames with different identities, as in the harness. -/
+def parseLine (line : String) : Option (Request × Behavior) := do
   let parts := (line.splitOn " ").filter (· ≠ "")
   let [seqS, opS, ackS, badS, failS] := parts | none
   let seq ← seqS.toNat?
@@ -52,7 +53,7 @@ def parseLine (line : String) : Option (Request × AppResult) := do
   let fail := failS == "1"
   let body := (if bad then 2 else 0) + (if fail then 1 else 0)
   let request : Request := { protocol := 2, session := 1, seq, op, ack, body }
-  some (request, if fail then .error else .result seq)
+  some (request, { valid := !bad, result := if fail then .error else .result seq })
 
 partial def loop (stdin : IO.FS.Stream) (stdout : IO.FS.Stream) (o : Owner)
     (seen : List (Id × Frame)) : IO Unit := do

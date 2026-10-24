@@ -72,19 +72,25 @@ inductive OpenVerdict where
   | boundUnacceptable
   deriving DecidableEq, Repr
 
-/-- What the application does when the owner executes a call (rule 7.3.13). It is an input of
-each step, so the model covers every behavior of the application. -/
+/-- What the application does when the owner executes a call (rule 7.3.13). -/
 inductive AppResult where
   | result (value : Nat)
   | error
   | tooLarge (size : Nat)
   deriving DecidableEq, Repr
 
-/-- The parts of the application that the owner consults before it changes any state. They are
-functions of the request, as rule 7.3.11 requires. -/
+/-- What the application does at one step: its verdict on the body of a call (rule 7.3.11) and,
+if the owner executes the call, its result (rule 7.3.13). Both are inputs of each step, so the
+model covers every behavior of the application, also one that depends on its own state. -/
+structure Behavior where
+  valid : Bool
+  result : AppResult
+  deriving DecidableEq, Repr
+
+/-- The parts of the application that stay fixed: the operations of its contract (rule 7.3.11)
+and its verdict on the body of an `open` request (section 7.1). -/
 structure App where
   known : Nat → Bool
-  valid : Nat → Nat → Bool
   opening : Nat → OpenVerdict
 
 /-- One exchange that the owner accepted: the request and the response that it sent. -/
@@ -148,7 +154,7 @@ def openStep (o : Owner) (r : Request) : Owner × Response :=
   else (o, reject H r .notOpen)
 
 /-- Rules 7.3.6 to 7.3.11, with the identity of the kept response, if any. -/
-def checkThenAccept (o : Owner) (keptId : Option Id) (r : Request) (a : AppResult) :
+def checkThenAccept (o : Owner) (keptId : Option Id) (r : Request) (b : Behavior) :
     Owner × Response :=
   if r.seq < o.high then (o, reject H r .seqStale)
   else if r.seq > o.high + 1 then (o, reject H r .seqGap)
@@ -159,14 +165,14 @@ def checkThenAccept (o : Owner) (keptId : Option Id) (r : Request) (a : AppResul
       if keptId ≠ some ack then (o, reject H r .ackMismatch)
       else match r.op with
         | .openSession => (o, reject H r .alreadyOpen)
-        | .close => accept H o r a
+        | .close => accept H o r b.result
         | .call name =>
           if app.known name = false then (o, reject H r .unknownOp)
-          else if app.valid name r.body = false then (o, reject H r .bodyInvalid)
-          else accept H o r a
+          else if b.valid = false then (o, reject H r .bodyInvalid)
+          else accept H o r b.result
 
 /-- One step of the owner: rules 7.3.2 to 7.3.14 for one decoded request. -/
-def step (o : Owner) (r : Request) (a : AppResult) : Owner × Response :=
+def step (o : Owner) (r : Request) (b : Behavior) : Owner × Response :=
   if r.protocol ≠ 2 then (o, reject H r .wrongProtocol) else
   match o.session with
   | none => openStep H app o r
@@ -177,13 +183,13 @@ def step (o : Owner) (r : Request) (a : AppResult) : Owner × Response :=
       if r.seq = o.high then
         if H (.req r) = H (.req k.request) then (o, k.response)
         else (o, reject H r .seqConflict)
-      else checkThenAccept H app o (some (H (.resp k.response))) r a
-    | none => checkThenAccept H app o none r a
+      else checkThenAccept H app o (some (H (.resp k.response))) r b
+    | none => checkThenAccept H app o none r b
 
 /-- The owner after a sequence of requests, each with the application's behavior. -/
-def run (o : Owner) : List (Request × AppResult) → Owner
+def run (o : Owner) : List (Request × Behavior) → Owner
   | [] => o
-  | (r, a) :: rest => run (step H app o r a).1 rest
+  | (r, b) :: rest => run (step H app o r b).1 rest
 
 end Step
 

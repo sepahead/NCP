@@ -61,6 +61,21 @@ if [ "${NCP2_SKIP_LEAN:-0}" != "1" ]; then
         echo "axiom audit failed" >&2
         exit 1
     fi
+    # Every claim of Statements.lean needs a theorem of exactly its type and an axiom report.
+    claims=$(sed -n 's/^def \([A-Z][A-Za-z]*\) : Prop :=$/\1/p' formal/Statements.lean)
+    for claim in $claims; do
+        name="$(printf '%s' "${claim%"${claim#?}"}" | tr '[:upper:]' '[:lower:]')${claim#?}"
+        if ! grep -qE "^theorem $name : $claim :=" formal/Audit.lean ||
+            ! grep -qE "^'NCP2\.Audit\.$name' (depends on axioms|does not depend on any axioms)" "$work/axioms.txt"; then
+            echo "claim $claim has no proof or no axiom report in Audit.lean" >&2
+            exit 1
+        fi
+    done
+    if [ "$(printf '%s\n' $claims | grep -c .)" -ne "$(grep -cE 'depends on axioms|does not depend on any axioms' "$work/axioms.txt")" ]; then
+        echo "Audit.lean reports axioms for a theorem that is not a claim, or misses one" >&2
+        exit 1
+    fi
+    echo "every claim of Statements.lean is proved and audited: $(printf '%s\n' $claims | grep -c .) claims"
     oracle="$root/formal/.lake/build/bin/ncp2-oracle"
     echo "== Both owners against the verified Lean model, $traces traces each"
     "$python" -I model/conformance.py --traces "$traces" --oracle "$oracle"

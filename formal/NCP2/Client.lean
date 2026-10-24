@@ -40,7 +40,7 @@ theorem Chain.seq_nodup {xs : List Exchange} {y : Exchange} (hc : Chain H xs y) 
   rw [hc.seqs]; exact List.nodup_range
 
 /-- The accepted history only grows: every step keeps it as a prefix. -/
-theorem step_log_prefix {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResult) :
+theorem step_log_prefix {o : Owner} (hinv : Inv H o) (r : Request) (a : Behavior) :
     o.log <+: (step H app o r a).1.log := by
   unfold step
   split
@@ -65,7 +65,7 @@ theorem step_log_prefix {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResul
       all_goals first | exact List.prefix_refl _ | simp [accept]
 
 /-- Every response that is not `rejected` is the response of an exchange in the history. -/
-theorem step_response_logged {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResult)
+theorem step_response_logged {o : Owner} (hinv : Inv H o) (r : Request) (a : Behavior)
     (h : (step H app o r a).2.outcome ≠ .rejected) :
     ∃ x ∈ (step H app o r a).1.log, x.response = (step H app o r a).2 := by
   revert h
@@ -96,7 +96,7 @@ theorem step_response_logged {o : Owner} (hinv : Inv H o) (r : Request) (a : App
       all_goals first | (intro _; exact ⟨_, List.mem_append_right _ (List.mem_singleton_self _), rfl⟩) | (intro h; exact (h (by simp [reject, reply])).elim)
 
 /-- Every rejection except `seq_stale` means that the owner has never executed the request. -/
-theorem step_rejected_not_logged {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResult)
+theorem step_rejected_not_logged {o : Owner} (hinv : Inv H o) (r : Request) (a : Behavior)
     (hrej : (step H app o r a).2.outcome = .rejected)
     (hcode : (step H app o r a).2.code ≠ some .seqStale) :
     r ∉ o.log.map (·.request) := by
@@ -136,7 +136,7 @@ later request has executed. So `seq_stale` says that this frame executed nothing
 request never executed. The requests acknowledge the real identities `H (.resp p0)` and
 `H (.resp p1)`, so the run is a correct one for any digest. -/
 theorem seqStale_after_execution (H : Frame → Id) :
-    let app : App := { known := fun _ => true, valid := fun _ _ => true, opening := fun _ => .accept 65536 }
+    let app : App := { known := fun _ => true, opening := fun _ => .accept 65536 }
     let r0 : Request := { protocol := 2, session := 1, seq := 0, op := .openSession, ack := none, body := 0 }
     let p0 := reply H r0 .ok none (.opened 65536)
     let r1 : Request :=
@@ -144,22 +144,22 @@ theorem seqStale_after_execution (H : Frame → Id) :
     let p1 := reply H r1 .ok none (.result 1)
     let r2 : Request :=
       { protocol := 2, session := 1, seq := 2, op := .call 0, ack := some (H (.resp p1)), body := 1 }
-    let o := run H app {} [(r0, .result 0), (r1, .result 1), (r2, .result 2)]
-    (step H app o r1 (.result 1)).2.code = some .seqStale ∧ r1 ∈ o.log.map (·.request) := by
+    let o := run H app {} [(r0, ⟨true, .result 0⟩), (r1, ⟨true, .result 1⟩), (r2, ⟨true, .result 2⟩)]
+    (step H app o r1 ⟨true, .result 1⟩).2.code = some .seqStale ∧ r1 ∈ o.log.map (·.request) := by
   simp [run, step, openStep, checkThenAccept, accept, execute, reply, reject, Ends]
 
 /-- The responses that the owner sends during a sequence of requests. -/
-def responses (H : Frame → Id) (app : App) (o : Owner) : List (Request × AppResult) → List Response
+def responses (H : Frame → Id) (app : App) (o : Owner) : List (Request × Behavior) → List Response
   | [] => []
   | (r, a) :: rest => (step H app o r a).2 :: responses H app (step H app o r a).1 rest
 
-theorem inv_run_from {o : Owner} (hinv : Inv H o) (inputs : List (Request × AppResult)) :
+theorem inv_run_from {o : Owner} (hinv : Inv H o) (inputs : List (Request × Behavior)) :
     Inv H (run H app o inputs) := by
   induction inputs generalizing o with
   | nil => exact hinv
   | cons x rest ih => exact ih (inv_step hinv x.1 x.2)
 
-theorem run_log_prefix {o : Owner} (hinv : Inv H o) (inputs : List (Request × AppResult)) :
+theorem run_log_prefix {o : Owner} (hinv : Inv H o) (inputs : List (Request × Behavior)) :
     o.log <+: (run H app o inputs).log := by
   induction inputs generalizing o with
   | nil => exact List.prefix_refl _
@@ -167,7 +167,7 @@ theorem run_log_prefix {o : Owner} (hinv : Inv H o) (inputs : List (Request × A
 
 /-- Every response that the owner sends and that is not `rejected` belongs to an exchange in the
 history at every later time. -/
-theorem responses_logged {o : Owner} (hinv : Inv H o) (inputs : List (Request × AppResult))
+theorem responses_logged {o : Owner} (hinv : Inv H o) (inputs : List (Request × Behavior))
     {p : Response} (hp : p ∈ responses H app o inputs) (hnr : p.outcome ≠ .rejected) :
     ∃ x ∈ (run H app o inputs).log, x.response = p := by
   induction inputs generalizing o with
@@ -178,18 +178,73 @@ theorem responses_logged {o : Owner} (hinv : Inv H o) (inputs : List (Request ×
       exact ⟨z, (run_log_prefix (inv_step hinv x.1 x.2) rest).subset hz, hzp⟩
     · exact ih (inv_step hinv x.1 x.2) hp'
 
+/-- A step adds to the history only the request that it handles. -/
+theorem step_log_sub {o : Owner} (r : Request) (a : Behavior) :
+    ∀ x ∈ (step H app o r a).1.log, x ∈ o.log ∨ x.request = r := by
+  unfold step
+  split
+  · intro x hx; exact Or.inl hx
+  split
+  · unfold openStep
+    repeat' split
+    all_goals first
+      | (intro x hx; exact Or.inl hx)
+      | (intro x hx; simp at hx; subst hx; exact Or.inr rfl)
+  · split
+    · intro x hx; exact Or.inl hx
+    split
+    · split
+      · split <;> (intro x hx; exact Or.inl hx)
+      · unfold checkThenAccept
+        repeat' split
+        all_goals first
+          | (intro x hx; exact Or.inl hx)
+          | (intro x hx
+             simp only [accept, List.mem_append, List.mem_singleton] at hx
+             rcases hx with hx | rfl
+             · exact Or.inl hx
+             · exact Or.inr rfl)
+    · unfold checkThenAccept
+      repeat' split
+      all_goals first
+        | (intro x hx; exact Or.inl hx)
+        | (intro x hx
+           simp only [accept, List.mem_append, List.mem_singleton] at hx
+           rcases hx with hx | rfl
+           · exact Or.inl hx
+           · exact Or.inr rfl)
+
+/-- The history contains only requests that the owner received. -/
+theorem run_log_sub {o : Owner} (inputs : List (Request × Behavior)) :
+    ∀ x ∈ (run H app o inputs).log, x ∈ o.log ∨ x.request ∈ inputs.map (·.1) := by
+  induction inputs generalizing o with
+  | nil => intro x hx; exact Or.inl hx
+  | cons i rest ih =>
+    obtain ⟨r, b⟩ := i
+    intro x hx
+    simp only [run] at hx
+    rcases ih x hx with h | h
+    · rcases step_log_sub r b x h with h' | h'
+      · exact Or.inl h'
+      · exact Or.inr (by simp [h'])
+    · exact Or.inr (by simp [h])
+
 /-- Property 4: an `ok` response that the owner sent and that names the identity of the client's
-request `r` is the response of exactly one execution of `r`, if no other request frame shares
-`r`'s identity. Under the assumptions in the header, this covers every network. -/
-theorem ok_is_own_execution {o : Owner} (hinv : Inv H o) (inputs : List (Request × AppResult))
+request `r` is the response of exactly one execution of `r`, if no other request in the history
+shares `r`'s identity. The assumption concerns only frames of the run, so a collision-resistant
+digest such as SHA-256 can satisfy it. Under the assumptions in the header, this covers every
+network. -/
+theorem ok_is_own_execution {o : Owner} (hinv : Inv H o) (inputs : List (Request × Behavior))
     {p : Response} {r : Request} (hp : p ∈ responses H app o inputs) (hok : p.outcome = .ok)
-    (hreq : p.request = H (.req r)) (hinj : ∀ q, H (.req q) = H (.req r) → q = r) :
+    (hreq : p.request = H (.req r))
+    (hinj : ∀ q ∈ (run H app o inputs).log.map (·.request), H (.req q) = H (.req r) → q = r) :
     ∃ x ∈ (run H app o inputs).log, x.request = r ∧ x.response = p ∧
       ∀ x' ∈ (run H app o inputs).log, x'.request = r → x' = x := by
   obtain ⟨x, hx, hxp⟩ := responses_logged hinv inputs hp (by simp [hok])
   rcases inv_run_from (app := app) hinv inputs with ⟨_, hl, _⟩ | ⟨s, y, _, hc, _⟩
   · rw [hl] at hx; cases hx
-  have hxr : x.request = r := hinj _ (by rw [← hc.resp_req x hx, hxp, hreq])
+  have hxr : x.request = r :=
+    hinj _ (List.mem_map_of_mem hx) (by rw [← hc.resp_req x hx, hxp, hreq])
   refine ⟨x, hx, hxr, hxp, fun x' hx' hx'r => ?_⟩
   have hnodup := hc.requests_nodup
   exact mem_eq_of_nodup_map hnodup hx' hx (by simp [hx'r, hxr])

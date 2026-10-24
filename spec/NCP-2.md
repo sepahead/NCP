@@ -153,7 +153,8 @@ A receiver MUST treat a message with a missing member, an extra member, or a mem
    | `run` | Optional. A string of up to 256 characters that names the run. |
 
 3. Until the owner sends the `open` response, both sides use the bound 65,536.
-4. The owner accepts the session if the application and the contract match its own. Its `ok` response has this body:
+4. The owner checks the request in this order. If `ack` is not `null`, or the body is not an object with the members above and their types, it rejects with `body_invalid`. If the application or the contract differs from its own, it rejects with `contract_mismatch`. If `bound` is outside the range, it rejects with `bound_unacceptable`. After a rejection it stays without a session.
+5. Otherwise the owner accepts the session. Its `ok` response has this body:
 
    | Member | Value |
    | --- | --- |
@@ -163,7 +164,7 @@ A receiver MUST treat a message with a missing member, an extra member, or a mem
    | `implementation` | The name and version of the owner's NCP implementation. |
 
    A client MUST ignore members of this body that it does not know. Later versions can add members.
-5. After the `open` response, both sides use the session bound for all frames of the session.
+6. After the `open` response, both sides use the session bound for all frames of the session.
 
 ### 7.2 Owner state
 
@@ -192,7 +193,7 @@ The owner handles one frame at a time, in arrival order, with these steps in thi
 11. If `op` is not `close` and the contract has no such operation, reject with `unknown_op`. If the application finds the body invalid before it changes any state, reject with `body_invalid`. Stop.
 12. Release `kept`. Set `high` to `seq`.
 13. Execute the request:
-    - For `close`, end the session and respond `ok` with an empty object as body.
+    - For `close`, end the session and respond `ok` with an empty object as body. The owner ignores the body of `close`.
     - Otherwise call the application. If it returns a result, respond `ok` with the result. If it raises an error, respond `ended` with `owner_failure`.
     - If the `ok` response would exceed the session bound, respond `ended` with `result_too_large` and the body `{"size": S, "bound": B}`, where `S` is the frame size that the response would need.
 14. Keep the response as `kept`. If the outcome is `ended`, or the operation is `close`, set `ended` to true.
@@ -233,13 +234,13 @@ Later versions of this specification can add codes. A receiver MUST accept a cod
 
 ### 7.7 Properties
 
-These rules give the following properties. The Lean proofs in `formal/` establish properties 1 to 3 and the owner's side of properties 5 and 6 for every sequence of requests, so for any client and network. They establish property 4 for every network that loses, repeats, delays, or reorders frames, if changed frames are detected, no third party sends frames with valid digests, and no other request frame has the client's request identity. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
+These rules give the following properties. The Lean proofs in `formal/` establish, for every sequence of requests and so for any client and network, properties 1 to 3, the owner's side of property 5, and property 6 if no two frames of the session share an identity. They establish property 4 for every network that loses, repeats, delays, or reorders frames, if changed frames are detected, no third party sends frames with valid digests, and no other request that reaches the owner has the identity of the client's request. They also show that the owner executes every request of a client that follows section 7.6 when no frame is lost or changed, so the other properties do not hold merely because nothing executes. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
 
 1. The owner executes each request at most once.
 2. The owner executes requests in sequence order, without gaps.
 3. The owner executes request `n + 1` only after the client acknowledged response `n` by its identity.
 4. A response that the client accepts as `ok` is the response to its own request, from one execution.
-5. A request that the client learns was `rejected` did not execute.
+5. A request that the client learns was `rejected`, with any code except `seq_stale`, did not execute. A client that follows section 7.6 never receives `seq_stale` for its current request: that would need a later request to have executed.
 6. In a complete transcript, each request names the identity of the response before it, and each response names the identity of its request. The session is one hash chain, so the identity of the last response commits to every accepted request and response of the session.
 
 ## 8. Streams

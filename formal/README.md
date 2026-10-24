@@ -7,7 +7,7 @@ It uses only Lean's core library. The proofs run before release and add nothing 
 
 [`NCP2/Model.lean`](NCP2/Model.lean) states owner rules 7.3.2 to 7.3.14 as one function, `step`, from the owner state and one decoded request to the new state and the response.
 The digest function `H` is a parameter, and `step` compares identities where the rules do.
-The behavior of the application (a result, an error, or a result that is too large) is an input of each step, so the proofs cover every application.
+The application's behavior at each step, its verdict on the body of a call and its result (a value, an error, or a result too large for the session), is an input of that step, so the proofs cover every application, also one whose verdict depends on its own state.
 
 The theorems hold for every sequence of requests, in any number of steps. A request can come from any client, through any network, after any fault, so the owner's properties do not depend on the client or on the network.
 
@@ -21,14 +21,17 @@ The theorems hold for every sequence of requests, in any number of steps. A requ
 | `step_retransmit` | `Owner.lean` | The kept request, sent again, gets the kept response again and changes nothing | 7.3.5 |
 | `Chain.unique` | `Chain.lean` | If `H` has no collision among the frames of two histories, equal identities of their last responses imply equal histories | 7.7.6 |
 | `responses_logged`, `step_log_prefix` | [`Client.lean`](NCP2/Client.lean) | Every response that is not `rejected` belongs to an exchange in the history, then and at every later time | 7.4 |
-| `ok_is_own_execution` | `Client.lean` | An `ok` response that names the identity of a request is the response of exactly one execution of that request, if no other request frame shares the identity | 7.7.4 |
+| `ok_is_own_execution` | `Client.lean` | An `ok` response that names the identity of a request is the response of exactly one execution of that request, if no other request in the history shares the identity | 7.7.4 |
+| `run_log_sub` | `Client.lean` | The history contains only requests that the owner received | 7.3 |
 | `step_rejected_not_logged` | `Client.lean` | Every rejection except `seq_stale` means that the owner has never executed the request | 7.5, 7.7.5 |
 | `seqStale_after_execution` | `Client.lean` | For every digest, a delayed copy of an executed request gets `seq_stale` once a later request has executed: the code says that this frame executed nothing, not that the request never executed | 7.5 |
+| `step_open`, `step_call` | [`Progress.lean`](NCP2/Progress.lean) | A correct `open`, and a correct call whose body the application finds valid and that returns a result, are executed and kept. With them, `FaultFreeProgress` in `Audit.lean` shows that a client that follows section 7.6 over a network without faults gets `open` and every call executed, in order | 7.3, 7.6 |
 
 The client-side theorems are about responses that the owner sent. They cover every network that loses, repeats, delays, or reorders frames, under two assumptions: changed frames are detected (by the digest check, or because the binding is a reliable stream), and no third party sends frames with valid digests. A digest is not an authentication code; the binding authenticates the peer.
 `seqStale_after_execution` corrected the specification, whose table of codes listed `seq_stale` with the requests that did not execute.
 
 [`Statements.lean`](Statements.lean) states every claim without its proof: it is the file to review.
+The safety claims would also hold for an owner that executes nothing; `FaultFreeProgress` rules that out.
 [`Audit.lean`](Audit.lean) proves each statement from the library, so a theorem whose type drifts from its stated claim fails the build, and prints the axioms of each proof.
 The gate allows only Lean's standard axioms (`propext`, `Classical.choice`, `Quot.sound`), so no `sorry` and no added axiom, and replays every proof with `leanchecker --fresh`: the Lean kernel checks the compiled proofs again, outside the elaborator that produced them. It is the same kernel; a second, independent kernel is not used.
 
@@ -47,7 +50,7 @@ This follows the pattern of AWS Cedar: a proved model, and differential testing 
 - **The frame codec.** Decoding, JSON checks, attachments, and digests are tested by the shared vectors and by differential fuzzing (`../conformance`), not proved.
 - **The client's own discipline.** That a client which follows section 7.6 never receives `seq_stale` for its current request, and that the requests it accepts form one chain, depend on the client rules. `../model/ncp2_model.py` checks them in every reachable state of small bounded runs (3 steps, 2 faults, with loss, repetition, reordering, damage, and crashes). They are not proved for unbounded runs.
 - **The digest and the peer.** `Chain.unique` and `ok_is_own_execution` assume that `H` has no collision among the frames involved; for SHA-256 this is an assumption about the hash function, not a theorem. The client-side theorems also assume that no third party forges frames.
-- **Liveness.** No theorem says that a retransmitted request eventually gets a response.
+- **Liveness under faults.** No theorem says that a retransmitted request eventually gets a response. `FaultFreeProgress` covers only a network that delivers every frame once, in order, and unchanged.
 - **Size checks.** Whether a result is too large for the session is an input of the model; the model does not compute frame sizes.
 - **The abstraction.** The model represents bodies, sessions, and identities by numbers. A difference between the specification's text and the model would go unnoticed by the proofs; the conformance traces against the real owners are the check on that step.
 
