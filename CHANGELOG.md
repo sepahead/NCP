@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security: dependency updates in the root lockfile (no wire change)
 
+- RUSTSEC-2026-0386: the safe `AsyncFd` constructors of `tokio` violate I/O
+  safety and can lead to a use-after-free. The root lockfile moves `tokio` from
+  1.52.3 to the patched 1.54.1; no crate of the workspace uses `AsyncFd`. The
+  local SDK and ADR-semantics lockfiles contain no `tokio`. The two quarantined
+  authenticated-ingress prototypes pin `tokio` 1.52.3 exactly as part of their
+  retained evidence; they belong to no package, do not use `AsyncFd`, and stay as
+  recorded.
 - The current RustSec database (`640bf5a9`) reported vulnerabilities in the Zenoh
   transport stack of the root `Cargo.lock`. The lockfile now resolves
   `quinn-proto` 0.11.19 (RUSTSEC-2026-0338 to -0342), `rustls` 0.23.46
@@ -20,10 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unmaintained `unsafe-libyaml` 0.2.11 (RUSTSEC-2024-0449), which reaches the
   lockfile only through `serde_yaml` in `zenoh-config` 1.9.0 and has no fix. It is
   a maintenance notice without a vulnerability, like the two recorded before it.
-- The supply-chain evidence is regenerated at the advisory revision `640bf5a9`.
-  `cargo deny` passes for the root, the local SDK, and the ADR-semantics lockfiles,
-  and the `ncp-zenoh` and `ncp-gateway` tests pass. The local SDK lockfile has none
-  of these crates.
+- The supply-chain evidence is regenerated at the advisory revision `640bf5a9`,
+  and again at `21d909e4` for `tokio`. `cargo deny` passes for the root, the local
+  SDK, and the ADR-semantics lockfiles, and the `ncp-zenoh` and `ncp-gateway` tests
+  pass. The local SDK lockfile has none of these crates.
 
 ### Local SDK 1.0.1 (no wire change)
 

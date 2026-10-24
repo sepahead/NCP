@@ -17,12 +17,12 @@ response before it; each response names the identity of its request; and nothing
 exchange that ends the session. -/
 inductive Chain : List Exchange → Exchange → Prop
   | start (x : Exchange)
-      (hop : x.request.op = .openSession) (hack : x.request.ack = none)
+      (hop : x.request.op = .openSession) (h_ack : x.request.ack = none)
       (hseq : x.request.seq = 0) (hreq : x.response.request = H (.req x.request)) :
       Chain [x] x
   | extend (xs : List Exchange) (y x : Exchange) (hc : Chain xs y)
       (hseq : x.request.seq = xs.length)
-      (hack : x.request.ack = some (H (.resp y.response)))
+      (h_ack : x.request.ack = some (H (.resp y.response)))
       (hreq : x.response.request = H (.req x.request))
       (hop : x.request.op ≠ .openSession)
       (hlive : ¬ Ends y) :
@@ -75,7 +75,7 @@ theorem Chain.unique {xs ys : List Exchange} {x y : Exchange}
     (hinj : ∀ f ∈ frames xs, ∀ g ∈ frames ys, H f = H g → f = g)
     (h : H (.resp x.response) = H (.resp y.response)) : xs = ys := by
   induction hx generalizing ys y with
-  | start x hop hack hseq hreq =>
+  | start x hop h_ack hseq hreq =>
     have hp : x.response = y.response := by
       have := hinj _ (by simp [frames]) _ hy.last_frames.2 h
       injection this
@@ -86,8 +86,8 @@ theorem Chain.unique {xs ys : List Exchange} {x y : Exchange}
       injection this
     cases hy with
     | start => simp [exchange_eq hq hp]
-    | extend ys' w y' _ _ hack' _ _ _ => rw [← hq, hack] at hack'; cases hack'
-  | extend xs z x hc hseq hack hreq hop hlive ih =>
+    | extend ys' w y' _ _ h_ack' _ _ _ => rw [← hq, h_ack] at h_ack'; cases h_ack'
+  | extend xs z x hc hseq h_ack hreq hop hlive ih =>
     have hxmem : Frame.req x.request ∈ frames (xs ++ [x]) ∧
         Frame.resp x.response ∈ frames (xs ++ [x]) := by simp [frames]
     have hp : x.response = y.response := by
@@ -99,10 +99,10 @@ theorem Chain.unique {xs ys : List Exchange} {x y : Exchange}
       have := hinj _ hxmem.1 _ hy.last_frames.1 hrid
       injection this
     cases hy with
-    | start _ _ hack' _ _ => rw [← hq, hack] at hack'; cases hack'
-    | extend ys' w y' hc' _ hack' _ _ _ =>
-      rw [← hq, hack] at hack'
-      injection hack' with hzw
+    | start _ _ h_ack' _ _ => rw [← hq, h_ack] at h_ack'; cases h_ack'
+    | extend ys' w y' hc' _ h_ack' _ _ _ =>
+      rw [← hq, h_ack] at h_ack'
+      injection h_ack' with hzw
       have hsub : ∀ f ∈ frames xs, ∀ g ∈ frames ys', H f = H g → f = g := by
         intro f hf g hg
         exact hinj f (by simp [frames_append, hf]) g (by simp [frames_append, hg])
@@ -117,7 +117,7 @@ theorem Chain.ack_index {xs : List Exchange} {y : Exchange} (hc : Chain H xs y) 
     ∀ (i : Nat) (h : i + 1 < xs.length), xs[i + 1].request.ack = some (H (.resp xs[i].response)) := by
   induction hc with
   | start x _ _ _ _ => intro i h; simp at h
-  | extend xs y x hc _ hack _ _ _ ih =>
+  | extend xs y x hc _ h_ack _ _ _ ih =>
     intro i h
     simp only [List.length_append, List.length_singleton] at h
     by_cases hi : i + 1 < xs.length
@@ -129,7 +129,7 @@ theorem Chain.ack_index {xs : List Exchange} {y : Exchange} (hc : Chain H xs y) 
         simpa [show xs.length - 1 = i by omega] using this
       have e1 : (xs ++ [x])[i + 1] = x := by simp [hi']
       have e2 : (xs ++ [x])[i] = y := by rw [List.getElem_append_left (by omega)]; exact hlast
-      rw [e1, e2, hack]
+      rw [e1, e2, h_ack]
 
 /-- Property 7, by position: no exchange before the last ends the session. -/
 theorem Chain.live_index {xs : List Exchange} {y : Exchange} (hc : Chain H xs y) :

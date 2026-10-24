@@ -397,8 +397,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/README.md",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "e030e692b070aa8799331c5f5aa14d5a9019503d25d01e9b62b7c7a58f740819",
-      "size_bytes": 4123
+      "sha256": "e54dcee58c55e62d62a5fd064954a1c7338f793b2c61ecae5ea39af0ab66ffe5",
+      "size_bytes": 4976
     },
     {
       "classification": "frozen-release-baseline",
@@ -1635,6 +1635,22 @@
     {
       "classification": "conformance-fixture",
       "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "conformance/fuzz.py",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "1167804340b731f078183accddc5a259d237efcf96e75b8d85576e4a99dea8bb",
+      "size_bytes": 11748
+    },
+    {
+      "classification": "conformance-fixture",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "conformance/generate.py",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "d7c72b921599ec4c10d1187293f212841130edcfc1dc0b3ae36d7252c6e6109c",
+      "size_bytes": 17263
+    },
+    {
+      "classification": "conformance-fixture",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/manifest.v1.json",
       "provenance": "tracked repository source or reproducible generated output",
       "sha256": "9c098a43e99b38714ed1b3eff4dad6ce4a2e792302e53dc8a9ee1cb905c55d1e",
@@ -1679,6 +1695,14 @@
       "provenance": "tracked repository source or reproducible generated output",
       "sha256": "a9d3319ae4113575d725b037fda93ddedcd469ddf2ef1850fc7d4ee60f8828c0",
       "size_bytes": 8187
+    },
+    {
+      "classification": "conformance-fixture",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "conformance/vectors.json",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "fafbfd7949bda6e7c7fe162821ac7874adb6e7ce98be31d0f457b3709c8dd6c0",
+      "size_bytes": 181420
     },
     {
       "classification": "conformance-fixture",
@@ -2600,7 +2624,7 @@
         "evidence/audit/*.json"
       ],
       "path": "scripts/generate_audit_artifacts.py",
-      "sha256": "77eb08e72b4757e7be0f1a4eb6b35c47b70af2216074ca0e549b885687012096"
+      "sha256": "e7f9954bb77a18f78ab218daec6a3a842401ab6f9f88a4c814645bfcd683556d"
     },
     {
       "outputs": [
@@ -2751,7 +2775,7 @@
     }
   ],
   "locked_inputs": {
-    "Cargo.lock": "ffc339d18c1b91c9a1a93b70dae5cb82f8a16750b42705e488ce78062077b40c",
+    "Cargo.lock": "36e7cd20cc1e7c5d81f07903f3cb788cda1225947ec764f225784f5d38a9a2bb",
     "Cargo.toml": "7c7da37433f9f39bc277bc45580db5c0fb932cd3332d77c86bc1ef7130f5e273",
     "buf.gen.yaml": "7f690ea2319ceabab73f56a1a131c27a1d839ccbef10c601c77589b8990066ac",
     "buf.yaml": "62f7a56b96555a24f90ec0f258d17e480600e484a04481aa2c21d9d64d2f9ea3",
@@ -3019,6 +3043,21 @@
         "action": "oven-sh/setup-bun",
         "revision": "0c5077e51419868618aeaa5fe8019c62421857d6",
         "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/checkout",
+        "revision": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+        "workflow": ".github/workflows/ncp2.yml"
+      },
+      {
+        "action": "actions/setup-python",
+        "revision": "ece7cb06caefa5fff74198d8649806c4678c61a1",
+        "workflow": ".github/workflows/ncp2.yml"
+      },
+      {
+        "action": "dtolnay/rust-toolchain",
+        "revision": "4be7066ada62dd38de10e7b70166bc74ed198c30",
+        "workflow": ".github/workflows/ncp2.yml"
       },
       {
         "action": "Swatinem/rust-cache",

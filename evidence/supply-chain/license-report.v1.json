@@ -1655,7 +1655,7 @@
       "license_file_declared": false
     },
     {
-      "bom_ref": "pkg:cargo/tokio@1.52.3",
+      "bom_ref": "pkg:cargo/tokio@1.54.1",
       "license_expression_normalized": "MIT",
       "license_expression_raw": "MIT",
       "license_file_declared": false

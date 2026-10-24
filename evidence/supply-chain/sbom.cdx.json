@@ -6507,11 +6507,11 @@
       "version": "0.7.18"
     },
     {
-      "bom-ref": "pkg:cargo/tokio@1.52.3",
+      "bom-ref": "pkg:cargo/tokio@1.54.1",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "8fc7f01b389ac15039e4dc9531aa973a135d7a4135281b12d7c1bc79fd57fffe"
+          "content": "b52fd3255258d26fac7264ab5a76b53c13367136dc011d3d6ad4f8ed070396a3"
         }
       ],
       "licenses": [
@@ -6526,9 +6526,9 @@
           "value": "registry+https://github.com/rust-lang/crates.io-index"
         }
       ],
-      "purl": "pkg:cargo/tokio@1.52.3",
+      "purl": "pkg:cargo/tokio@1.54.1",
       "type": "library",
-      "version": "1.52.3"
+      "version": "1.54.1"
     },
     {
       "bom-ref": "pkg:cargo/toml_datetime@1.1.1%2Bspec-1.1.0",
@@ -9369,7 +9369,7 @@
     {
       "dependsOn": [
         "pkg:cargo/libc@0.2.186",
-        "pkg:cargo/windows-sys@0.61.2"
+        "pkg:cargo/windows-sys@0.52.0"
       ],
       "ref": "pkg:cargo/errno@0.3.14"
     },
@@ -10135,7 +10135,7 @@
         "pkg:cargo/cfg_aliases@0.2.1",
         "pkg:cargo/libc@0.2.186",
         "pkg:cargo/once_cell@1.21.4",
-        "pkg:cargo/socket2@0.6.4",
+        "pkg:cargo/socket2@0.5.10",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/windows-sys@0.52.0"
       ],
@@ -10150,9 +10150,9 @@
         "pkg:cargo/quinn-udp@0.5.14",
         "pkg:cargo/rustc-hash@2.1.2",
         "pkg:cargo/rustls@0.23.46",
-        "pkg:cargo/socket2@0.6.4",
+        "pkg:cargo/socket2@0.5.10",
         "pkg:cargo/thiserror@2.0.18",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/web-time@1.1.0"
       ],
@@ -10347,7 +10347,7 @@
         "pkg:cargo/security-framework-sys@2.17.0",
         "pkg:cargo/security-framework@3.7.0",
         "pkg:cargo/webpki-root-certs@1.0.10",
-        "pkg:cargo/windows-sys@0.61.2"
+        "pkg:cargo/windows-sys@0.52.0"
       ],
       "ref": "pkg:cargo/rustls-platform-verifier@0.7.1"
     },
@@ -10786,7 +10786,7 @@
         "pkg:cargo/pin-project-lite@0.2.17",
         "pkg:cargo/thiserror@2.0.18",
         "pkg:cargo/tokio-rustls@0.26.4",
-        "pkg:cargo/tokio@1.52.3"
+        "pkg:cargo/tokio@1.54.1"
       ],
       "ref": "pkg:cargo/tls-listener@0.11.2"
     },
@@ -10809,7 +10809,7 @@
     {
       "dependsOn": [
         "pkg:cargo/rustls@0.23.46",
-        "pkg:cargo/tokio@1.52.3"
+        "pkg:cargo/tokio@1.54.1"
       ],
       "ref": "pkg:cargo/tokio-rustls@0.26.4"
     },
@@ -10820,7 +10820,7 @@
         "pkg:cargo/futures-sink@0.3.32",
         "pkg:cargo/futures-util@0.3.32",
         "pkg:cargo/pin-project-lite@0.2.17",
-        "pkg:cargo/tokio@1.52.3"
+        "pkg:cargo/tokio@1.54.1"
       ],
       "ref": "pkg:cargo/tokio-util@0.7.18"
     },
@@ -10835,7 +10835,7 @@
         "pkg:cargo/tokio-macros@2.7.0",
         "pkg:cargo/windows-sys@0.61.2"
       ],
-      "ref": "pkg:cargo/tokio@1.52.3"
+      "ref": "pkg:cargo/tokio@1.54.1"
     },
     {
       "dependsOn": [
@@ -11093,7 +11093,7 @@
     },
     {
       "dependsOn": [
-        "pkg:cargo/windows-sys@0.61.2"
+        "pkg:cargo/windows-sys@0.52.0"
       ],
       "ref": "pkg:cargo/winapi-util@0.1.11"
     },
@@ -11316,7 +11316,7 @@
     {
       "dependsOn": [
         "pkg:cargo/lazy_static@1.5.0",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/zenoh-result@1.9.0",
         "pkg:cargo/zenoh-runtime@1.9.0"
       ],
@@ -11365,7 +11365,7 @@
         "pkg:cargo/socket2@0.5.10",
         "pkg:cargo/time@0.3.49",
         "pkg:cargo/tokio-util@0.7.18",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/webpki-roots@1.0.10",
         "pkg:cargo/x509-parser@0.18.1",
@@ -11399,7 +11399,7 @@
         "pkg:cargo/async-trait@0.1.89",
         "pkg:cargo/socket2@0.5.10",
         "pkg:cargo/tokio-util@0.7.18",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/zenoh-config@1.9.0",
         "pkg:cargo/zenoh-core@1.9.0",
@@ -11423,7 +11423,7 @@
         "pkg:cargo/tls-listener@0.11.2",
         "pkg:cargo/tokio-rustls@0.26.4",
         "pkg:cargo/tokio-util@0.7.18",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/webpki-roots@1.0.10",
         "pkg:cargo/x509-parser@0.18.1",
@@ -11442,7 +11442,7 @@
         "pkg:cargo/libc@0.2.186",
         "pkg:cargo/socket2@0.5.10",
         "pkg:cargo/tokio-util@0.7.18",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/windows-sys@0.61.2",
         "pkg:cargo/zenoh-buffers@1.9.0",
@@ -11516,7 +11516,7 @@
         "pkg:cargo/lazy_static@1.5.0",
         "pkg:cargo/ron@0.12.1",
         "pkg:cargo/serde@1.0.228",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/zenoh-macros@1.9.0",
         "pkg:cargo/zenoh-result@1.9.0"
@@ -11539,7 +11539,7 @@
         "pkg:cargo/static_init@1.0.4",
         "pkg:cargo/talc@4.4.3",
         "pkg:cargo/thread-priority@1.2.0",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/win-sys@0.3.1",
         "pkg:cargo/winapi@0.3.9",
@@ -11566,7 +11566,7 @@
         "pkg:cargo/arc-swap@1.9.1",
         "pkg:cargo/event-listener@5.4.2",
         "pkg:cargo/futures@0.3.32",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/zenoh-buffers@1.9.0",
         "pkg:cargo/zenoh-collections@1.9.0",
         "pkg:cargo/zenoh-core@1.9.0"
@@ -11577,7 +11577,7 @@
       "dependsOn": [
         "pkg:cargo/futures@0.3.32",
         "pkg:cargo/tokio-util@0.7.18",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/zenoh-core@1.9.0",
         "pkg:cargo/zenoh-runtime@1.9.0"
@@ -11597,7 +11597,7 @@
         "pkg:cargo/serde@1.0.228",
         "pkg:cargo/sha3@0.10.9",
         "pkg:cargo/tokio-util@0.7.18",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/zenoh-buffers@1.9.0",
         "pkg:cargo/zenoh-codec@1.9.0",
@@ -11632,7 +11632,7 @@
         "pkg:cargo/serde@1.0.228",
         "pkg:cargo/serde_json@1.0.150",
         "pkg:cargo/shellexpand@3.1.2",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing-subscriber@0.3.23",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/winapi@0.3.9",
@@ -11665,7 +11665,7 @@
         "pkg:cargo/serde_json@1.0.150",
         "pkg:cargo/socket2@0.5.10",
         "pkg:cargo/tokio-util@0.7.18",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/uhlc@0.8.2",
         "pkg:cargo/vec_map@0.8.2",
@@ -11737,7 +11737,7 @@
     {
       "dependsOn": [
         "pkg:cargo/serde_json@1.0.150",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "urn:ncp:workspace:cargo:ncp-core@1.0.0-rc.1",
         "urn:ncp:workspace:cargo:ncp-zenoh@1.0.0-rc.1"
       ],
@@ -11756,7 +11756,7 @@
       "dependsOn": [
         "pkg:cargo/serde@1.0.228",
         "pkg:cargo/serde_json@1.0.150",
-        "pkg:cargo/tokio@1.52.3",
+        "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/zenoh@1.9.0",
         "urn:ncp:workspace:cargo:ncp-core@1.0.0-rc.1"
       ],
@@ -11815,7 +11815,7 @@
       "version": "1.0.0-rc.1"
     }
   },
-  "serialNumber": "urn:uuid:d9c9d1a4-ec27-52a3-943d-6489f64ed5e5",
+  "serialNumber": "urn:uuid:e159f2a9-b153-558b-a303-527c3f842e7a",
   "specVersion": "1.6",
   "version": 1
 }

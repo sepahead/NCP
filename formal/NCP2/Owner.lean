@@ -46,12 +46,12 @@ theorem inv_accept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {a : AppRe
     (hs : o.session = some s) (hc : Chain H o.log y)
     (hh : o.high = y.request.seq) (he : o.ended = decide (Ends y))
     (hl : ∀ x ∈ o.log, x.request.session = s ∧ x.request.protocol = 2 ∧ x.response.outcome ≠ .rejected)
-    (hseq : r.seq = o.high + 1) (hack : r.ack = some (H (.resp y.response)))
+    (hseq : r.seq = o.high + 1) (h_ack : r.ack = some (H (.resp y.response)))
     (hop : r.op ≠ .openSession) (hlive : o.ended = false)
     (hsess : r.session = s) (hprot : r.protocol = 2) :
     Inv H (accept H o r a).1 := by
   refine Or.inr ⟨s, ⟨r, execute H o.bound r a⟩, hs, ?_, rfl, rfl, rfl, ?_⟩
-  · refine Chain.extend _ y _ hc ?_ hack (execute_request _ _ _) hop ?_
+  · refine Chain.extend _ y _ hc ?_ h_ack (execute_request _ _ _) hop ?_
     · have := hc.last_seq; show r.seq = o.log.length; omega
     · rw [he] at hlive; simpa using hlive
   · intro x hx
@@ -77,24 +77,24 @@ theorem inv_checkThenAccept {o : Owner} {s : Nat} {y : Exchange} {r : Request} {
   rename_i hlt hgt hend
   split
   · exact hinv
-  rename_i ack hack
+  rename_i ack h_ack
   split
   · exact hinv
   rename_i hmatch
-  have hack' : r.ack = some (H (.resp y.response)) := by
-    rw [hack]; simp at hmatch; rw [hmatch]
+  have h_ack' : r.ack = some (H (.resp y.response)) := by
+    rw [h_ack]; simp at hmatch; rw [hmatch]
   have hseq : r.seq = o.high + 1 := by omega
   have hlive : o.ended = false := by simpa using hend
   split
   · exact hinv
   · rename_i hop
-    exact inv_accept hs hc hh he hl hseq hack' (by simp [hop]) hlive hsess hprot
+    exact inv_accept hs hc hh he hl hseq h_ack' (by simp [hop]) hlive hsess hprot
   · rename_i name hop
     split
     · exact hinv
     split
     · exact hinv
-    · exact inv_accept hs hc hh he hl hseq hack' (by simp [hop]) hlive hsess hprot
+    · exact inv_accept hs hc hh he hl hseq h_ack' (by simp [hop]) hlive hsess hprot
 
 /-- Every step keeps the invariant. -/
 theorem inv_step {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResult) :
@@ -112,10 +112,10 @@ theorem inv_step {o : Owner} (hinv : Inv H o) (r : Request) (a : AppResult) :
     · rename_i hopen
       split
       · exact hinv
-      rename_i hack
+      rename_i h_ack
       split
       · refine Or.inr ⟨r.session, _, rfl, ?_, rfl, ?_, ?_, ?_⟩
-        · exact Chain.start _ hopen.1 (by simpa using hack) hopen.2 rfl
+        · exact Chain.start _ hopen.1 (by simpa using h_ack) hopen.2 rfl
         · simp [hopen.2]
         · simp [Ends, reply, hopen.1]
         · intro x hx; simp at hx; subst hx; exact ⟨rfl, hprot, by simp [reply]⟩
