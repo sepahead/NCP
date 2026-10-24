@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NCP 2 (in development; not released)
+
+- [`spec/NCP-2.md`](spec/NCP-2.md) defines NCP 2: one request/response protocol
+  over pipes, Unix domain sockets, and TCP. An optional Zenoh binding is specified
+  but not yet implemented. A frame is a JSON header and binary attachments,
+  followed by the SHA-256 digest of its bytes; the digest is the frame's identity.
+  Each request carries the identity of the previous response, so a call takes one
+  round trip and the accepted exchanges form a hash chain. Streams and transcripts
+  that a verifier checks offline are part of the core.
+  [`docs/design/NCP-2-DESIGN.md`](docs/design/NCP-2-DESIGN.md) records the
+  decisions, the rejected alternatives, and the measurements behind them.
+- [`python/`](python/README.md) (standard library only) and
+  [`rust/`](rust/README.md) (`serde`, `serde_json`, `sha2`, `socket2`) implement
+  frames, owners, clients, streams, and transcripts. Both pass the shared vectors
+  in `conformance/`, and their decoders agree on 200,000 random, edited, and
+  damaged frames in each gate run.
+- [`formal/`](formal/README.md) holds a Lean 4 model of the owner rules
+  (specification 7.3) and proofs that hold for every sequence of requests: no
+  request executes twice; accepted requests carry the sequence numbers 0, 1, 2,
+  ... and each acknowledges the response before it; a rejection changes nothing;
+  and nothing is accepted after an ending response. The client-side theorems
+  assume that changed frames are detected and that no third party forges frames.
+  `Statements.lean` lists every claim for review. The gate allows only Lean's
+  three standard axioms and replays the proofs with `leanchecker`. The compiled
+  model is a test oracle: both SDK owners match it on 20,000 random traces, and
+  each of five defects put into the Python owner makes a trace fail. The SDKs and
+  the codec are tested, not proved.
+- The proofs corrected the specification: `seq_stale` can answer a delayed copy
+  of a request that did execute, so the code says only that this frame executed
+  nothing.
+- On one Apple M4 Max ([`benchmarks/comparison`](benchmarks/comparison/README.md),
+  H2), a Rust echo call takes a median of 9.1 µs (NCP 1.0.1: 35.6 µs) and a
+  Python echo call 38.6 µs (NCP 1.0.1: 466 µs). In protocol 3 of the NEST
+  campaign ([`benchmarks/nest-campaign`](benchmarks/nest-campaign/README.md)), all
+  774 runs delivered exactly the spikes that NEST recorded, including steps of a
+  10,000-neuron network whose results exceed the 65,536-byte frame of NCP 1.0.x.
+  The timing of that run was disturbed; protocol 4, which adds clock and power
+  checks, repeats it.
+- [`scripts/check_ncp2.sh`](scripts/check_ncp2.sh) is the gate. The `NCP 2`
+  workflow runs it on Linux and macOS, with the Lean proofs on Linux.
+- A TCP endpoint does not use a connection on which `TCP_NODELAY` cannot be set
+  (specification 9.1, rule 6). The Python TCP and Unix servers close a connection
+  whose setup fails and keep serving; before, a client that connected and closed
+  at once could stop a Python server (`EINVAL` on macOS).
+
 ### Security: dependency updates in the root lockfile (no wire change)
 
 - RUSTSEC-2026-0386: the safe `AsyncFd` constructors of `tokio` violate I/O

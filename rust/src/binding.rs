@@ -215,11 +215,11 @@ pub fn connect_tcp(address: impl ToSocketAddrs, allow_remote: bool) -> io::Resul
     tcp_channel(stream)
 }
 
-/// Wrap an accepted or connected TCP stream: sets TCP_NODELAY and [`SOCKET_BUFFER`].
+/// Wrap an accepted or connected TCP stream: sets TCP_NODELAY, which specification 9.1 requires
+/// (an error if it fails, for example on macOS after the peer has closed), and tries to set
+/// [`SOCKET_BUFFER`].
 pub fn tcp_channel(stream: TcpStream) -> io::Result<TcpChannel> {
-    // Best effort, as for the buffer sizes: macOS refuses it after the peer has closed, and the
-    // next read or write reports that.
-    let _ = stream.set_nodelay(true);
+    stream.set_nodelay(true)?;
     enlarge_buffers(socket2::SockRef::from(&stream));
     let writer = stream.try_clone()?;
     let closer = stream.try_clone()?;

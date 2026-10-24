@@ -646,6 +646,20 @@ class BindingTests(unittest.TestCase):
             ncp.StreamChannel.from_socket = original
             server.stop()
 
+    def test_a_tcp_connection_without_nodelay_is_not_used(self) -> None:
+        class Refusing:  # a TCP socket on which TCP_NODELAY fails, as on macOS after the peer closed
+            family = socket.AF_INET
+
+            def setsockopt(self, level, option, value):
+                if option == socket.TCP_NODELAY:
+                    raise OSError(22, "Invalid argument")
+
+            recv = sendall = close = staticmethod(lambda *arguments: None)
+            fileno = staticmethod(lambda: -1)
+
+        with self.assertRaises(OSError):
+            ncp.StreamChannel.from_socket(Refusing())
+
     def test_remote_addresses_need_an_option(self) -> None:
         with self.assertRaises(ValueError):
             ncp.connect_tcp("192.0.2.1", 1)

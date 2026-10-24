@@ -66,10 +66,9 @@ class StreamChannel:
     @classmethod
     def from_socket(cls, sock: socket.socket, *, tap: Tap | None = None) -> StreamChannel:
         if sock.family in (socket.AF_INET, socket.AF_INET6):
-            try:
-                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            except OSError:
-                pass  # macOS refuses it after the peer has closed; the next read or write reports that
+            # A MUST (specification 9.1, rule 6): without it, delayed acknowledgements can stall each
+            # exchange. A connection on which it fails is not used; a server closes it and goes on.
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         for option in (socket.SO_SNDBUF, socket.SO_RCVBUF):
             try:
                 sock.setsockopt(socket.SOL_SOCKET, option, SOCKET_BUFFER)
