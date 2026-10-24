@@ -140,7 +140,7 @@ Targets for NCP 2 on the same computer as section 3, tested by preregistered pro
 
 In the comparison benchmark, all five preregistered hypotheses held: NCP 2 is 4.2 to 165 times faster than NCP 1.0.1, adds 4.6 µs to a raw pipe, and is faster than gRPC and Zenoh in Rust and than gRPC and HTTP/1.1 in Python up to 1788 spikes. At 1 MiB, systems without an integrity check are faster, by about the time of one SHA-256 digest.
 
-Comparisons, with the same workloads, shown as figures in this repository and in the thesis:
+Comparisons, with the same workloads, shown as figures in this repository:
 
 - Exchange latency and throughput for payloads from 0 bytes to 1 MiB: NCP 2 (Rust, Python), NCP 1.0.1, gRPC (Rust and Python; the transport that NRP-core recommends), HTTP with JSON (NRP-core's JSON engines), ZeroMQ request and reply, and Zenoh query and reply. A raw pipe echo gives the lower bound.
 - NEST coupling: NCP 2, NCP 1.0.1, MUSIC, and a raw round trip to an echo process after each interval, for each network, size, thread count, and interval. The raw round trip is the lower bound of every coupling that stops NEST for a reply, gRPC included, so a gRPC owner of NEST would add no information to the comparison benchmark's gRPC results.
