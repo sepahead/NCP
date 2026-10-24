@@ -8,7 +8,7 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "3939e85663538280fadec03072ce75dcaaf1adef2e53bc420a66f47c0e512b1a",
+      "sha256": "a667219c3064ecfc044e9ec0bbd507e545fcaf1daebdfb0f59c68bd2ad662210",
       "bytes": 631567,
       "records": 377
     },
@@ -53,8 +53,8 @@
     },
     {
       "path": "Cargo.lock",
-      "sha256": "36e7cd20cc1e7c5d81f07903f3cb788cda1225947ec764f225784f5d38a9a2bb",
-      "bytes": 93052
+      "sha256": "c948bdff761b81a6b83ba10807478eb6b032f76aa275989179797b494e94a398",
+      "bytes": 93050
     },
     {
       "path": "bun.lock",
@@ -63,7 +63,7 @@
     },
     {
       "path": "evidence/supply-chain/vulnerability-report.v1.json",
-      "sha256": "254a8d8f14312ace6141b4e00c89e249c25e0e394d555b4c70f691722f3b6047",
+      "sha256": "20a9a6310f5bd74951949c6617163390e97e93714ea4081de5b2ba8cf5def1a9",
       "bytes": 2575
     }
   ],

@@ -113,9 +113,9 @@
       },
       {
         "path": ".gitignore",
-        "bytes": 744,
-        "sha256": "185565ce063858ae6eb89f5d152fab025ac851eb456b3bfb4090b822685b0e21",
-        "git_blob_oid": "a96259e3e426bdc755f388804087242b3a238d5a",
+        "bytes": 767,
+        "sha256": "22eae74cb09e2959ed1c909c5953a39d49733f2e80d50c916bbdec056ddac303",
+        "git_blob_oid": "2fcb282016808d068c974500498ed64b8d92c182",
         "indexed": true
       },
       {
@@ -176,9 +176,9 @@
       },
       {
         "path": "Cargo.lock",
-        "bytes": 93052,
-        "sha256": "36e7cd20cc1e7c5d81f07903f3cb788cda1225947ec764f225784f5d38a9a2bb",
-        "git_blob_oid": "4d938ebc877c02bb420cbfab544ec38295dd091a",
+        "bytes": 93050,
+        "sha256": "c948bdff761b81a6b83ba10807478eb6b032f76aa275989179797b494e94a398",
+        "git_blob_oid": "b47486d0779eadc8ff410179200474993808eb8f",
         "indexed": true
       },
       {
@@ -4503,8 +4503,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 152899,
-        "sha256": "071106e857944ddf451eac0c4c980b5c2d54b4fe91fa147eaef0aebcd1bdc08b",
-        "git_blob_oid": "4cb26830865b7b9388ee782a5b3191683057580a",
+        "sha256": "8469560189a7879cbb6c1f824287b8729542bc913112ca34c6397e3ec915c504",
+        "git_blob_oid": "4cfe230f3a34f85635dd01a93c60eeda6131902c",
         "indexed": true
       },
       {
@@ -4517,22 +4517,22 @@
       {
         "path": "evidence/supply-chain/provenance-policy.v1.json",
         "bytes": 1698,
-        "sha256": "aa1c79e06df671c4cb7c3b76027f99c2660bdc1b6e7ee44dcc4a22dda9dc0188",
-        "git_blob_oid": "54987a8710693982d6003c571675fb4a9db85fc2",
+        "sha256": "edbb2d32da07e179dfc7a0bd236519b6b7e2735ee642482dd2e1e95a9239696e",
+        "git_blob_oid": "a09b68d425bf0f70f820024d3dc950b7d66029d6",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/sbom.cdx.json",
-        "bytes": 298837,
-        "sha256": "5b274eac7af644d3e0af23581ee5bed34eb9c97ac0c2159facf8f814243c7c64",
-        "git_blob_oid": "71e34d5985bb4c7f0d8f1e56c07a3299d168e0c7",
+        "bytes": 298835,
+        "sha256": "0505703827168700cc633013c881b9db3ed3b4d9072d98d845b0bc8845c15c4b",
+        "git_blob_oid": "20a89ea41aeee4585ef6f6627140cc545e371cf2",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/vulnerability-report.v1.json",
         "bytes": 2575,
-        "sha256": "254a8d8f14312ace6141b4e00c89e249c25e0e394d555b4c70f691722f3b6047",
-        "git_blob_oid": "756afd09bcb0726f14613e84873056e0734c4462",
+        "sha256": "20a9a6310f5bd74951949c6617163390e97e93714ea4081de5b2ba8cf5def1a9",
+        "git_blob_oid": "20fefca1d785eaeaf5f372a22d8ba76e99779255",
         "indexed": true
       },
       {

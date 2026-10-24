@@ -9369,7 +9369,7 @@
     {
       "dependsOn": [
         "pkg:cargo/libc@0.2.186",
-        "pkg:cargo/windows-sys@0.52.0"
+        "pkg:cargo/windows-sys@0.61.2"
       ],
       "ref": "pkg:cargo/errno@0.3.14"
     },
@@ -10135,7 +10135,7 @@
         "pkg:cargo/cfg_aliases@0.2.1",
         "pkg:cargo/libc@0.2.186",
         "pkg:cargo/once_cell@1.21.4",
-        "pkg:cargo/socket2@0.5.10",
+        "pkg:cargo/socket2@0.6.4",
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/windows-sys@0.52.0"
       ],
@@ -10150,7 +10150,7 @@
         "pkg:cargo/quinn-udp@0.5.14",
         "pkg:cargo/rustc-hash@2.1.2",
         "pkg:cargo/rustls@0.23.46",
-        "pkg:cargo/socket2@0.5.10",
+        "pkg:cargo/socket2@0.6.4",
         "pkg:cargo/thiserror@2.0.18",
         "pkg:cargo/tokio@1.54.1",
         "pkg:cargo/tracing@0.1.44",
@@ -10347,7 +10347,7 @@
         "pkg:cargo/security-framework-sys@2.17.0",
         "pkg:cargo/security-framework@3.7.0",
         "pkg:cargo/webpki-root-certs@1.0.10",
-        "pkg:cargo/windows-sys@0.52.0"
+        "pkg:cargo/windows-sys@0.61.2"
       ],
       "ref": "pkg:cargo/rustls-platform-verifier@0.7.1"
     },
@@ -11093,7 +11093,7 @@
     },
     {
       "dependsOn": [
-        "pkg:cargo/windows-sys@0.52.0"
+        "pkg:cargo/windows-sys@0.61.2"
       ],
       "ref": "pkg:cargo/winapi-util@0.1.11"
     },
@@ -11815,7 +11815,7 @@
       "version": "1.0.0-rc.1"
     }
   },
-  "serialNumber": "urn:uuid:e159f2a9-b153-558b-a303-527c3f842e7a",
+  "serialNumber": "urn:uuid:cb368578-1a40-5eb1-b170-a2801899aaa9",
   "specVersion": "1.6",
   "version": 1
 }
