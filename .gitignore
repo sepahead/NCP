@@ -45,3 +45,5 @@ REVIEW_AND_PLAN.md
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+/formal/.lake/
+/rust/target/

@@ -10,7 +10,7 @@ This directory holds the conformance material of two protocol generations.
 | [`generate.py`](generate.py) | Writes `vectors.json`. The vectors are generated, never edited |
 | [`fuzz.py`](fuzz.py) | Differential fuzzing: the Python decoder against another decoder, such as the Rust example `decode_corpus` |
 
-The model owner and its conformance check of both SDK owners are in [`../model`](../model).
+The model owner and its conformance check of both SDK owners are in [`../model`](../model); the Lean proofs of the owner, and the oracle compiled from them, are in [`../formal`](../formal).
 [`../scripts/check_ncp2.sh`](../scripts/check_ncp2.sh) runs all of them, and CI runs that script.
 
 ## NCP 1.0 candidate

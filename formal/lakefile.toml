@@ -1,0 +1,11 @@
+# Machine-checked model of the NCP 2 owner (see README.md). Lean 4 core only.
+name = "ncp2_formal"
+version = "0.1.0"
+defaultTargets = ["NCP2", "ncp2-oracle"]
+
+[[lean_lib]]
+name = "NCP2"
+
+[[lean_exe]]
+name = "ncp2-oracle"
+root = "Oracle"

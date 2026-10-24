@@ -1,7 +1,8 @@
 name: NCP 2
 
 # The gate of NCP 2 (scripts/check_ncp2.sh): the Python and Rust SDKs, the shared vectors, the
-# model conformance of both owners, and differential fuzzing of the decoders.
+# model conformance of both owners, the Lean proofs of the owner model with their axiom audit, the
+# owners against the compiled Lean model, and differential fuzzing of the decoders.
 on:
   push:
     paths:
@@ -12,6 +13,7 @@ on:
       - "conformance/generate.py"
       - "conformance/fuzz.py"
       - "spec/NCP-2.md"
+      - "formal/**"
       - "scripts/check_ncp2.sh"
       - ".github/workflows/ncp2.yml"
   pull_request:
@@ -23,6 +25,7 @@ on:
       - "conformance/generate.py"
       - "conformance/fuzz.py"
       - "spec/NCP-2.md"
+      - "formal/**"
       - "scripts/check_ncp2.sh"
       - ".github/workflows/ncp2.yml"
 
@@ -42,9 +45,9 @@ jobs:
       matrix:
         include:
           # The oldest supported versions: Python 3.11 and the crate's rust-version.
-          - { os: ubuntu-latest, python: "3.11", rust: "1.88.0", numpy: false }
-          - { os: ubuntu-latest, python: "3.15", rust: stable, numpy: true }
-          - { os: macos-latest, python: "3.15", rust: stable, numpy: false }
+          - { os: ubuntu-latest, python: "3.11", rust: "1.88.0", numpy: false, lean: false }
+          - { os: ubuntu-latest, python: "3.15", rust: stable, numpy: true, lean: true }
+          - { os: macos-latest, python: "3.15", rust: stable, numpy: false, lean: false }
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
@@ -66,7 +69,15 @@ jobs:
         if: matrix.numpy
         run: python -m pip install --disable-pip-version-check numpy==2.5.4
 
+      - name: Install elan, which installs the Lean version in formal/lean-toolchain
+        if: matrix.lean
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/e9268f8b213e09a99768befe548049c046074225/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
       - name: NCP 2 gate
         env:
           PYTHON: python
+          NCP2_SKIP_LEAN: ${{ matrix.lean && '0' || '1' }}
         run: scripts/check_ncp2.sh

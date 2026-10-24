@@ -9,7 +9,10 @@ and code, and a repeat must return byte-identical frames.
 With --owner COMMAND..., the owner is an external program that prints "port N" or "unix PATH"
 and serves one session per connection, such as the Rust example `model_owner`.
 
-Usage: conformance.py [--traces 20000] [--seed 20261023] [--owner COMMAND...]
+With --oracle PATH, the reference is the compiled Lean model of ../formal (the `ncp2-oracle`
+executable), whose step function the Lean proofs cover, instead of the Python model.
+
+Usage: conformance.py [--traces 20000] [--seed 20261023] [--oracle PATH] [--owner COMMAND...]
 """
 
 from __future__ import annotations
@@ -79,16 +82,66 @@ class ExternalOwner:
         self.process.stdout.close()
 
 
-def run_trace(rng: random.Random, length: int, new_owner=python_owner) -> tuple[int, int]:
+class PythonModel:
+    """The reference owner of ncp2_model.py, started after `open`."""
+
+    def __init__(self, open_request: tuple) -> None:
+        self.state = (True, 0, (open_request, ("p", 0, open_request, "ok", None, M.OPEN)), False, 0)
+        self.ghost = ((), None, True)
+        self.open_id = M.OPEN
+
+    def step(self, request: tuple, fail: bool) -> tuple[str, str | None, object]:
+        steps = M.owner_step(self.state, request, self.ghost, may_fail=fail)
+        new_state, response, self.ghost, _ = steps[-1] if fail and len(steps) > 1 else steps[0]
+        self.repeat = response == self.state[2][1]
+        self.state = new_state
+        return response[3], response[4], response[5]
+
+
+class LeanModel:
+    """The compiled Lean model (formal/Oracle.lean): one process per trace."""
+
+    def __init__(self, path: str) -> None:
+        self.process = subprocess.Popen([path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        self.kept: object = None
+        outcome, _, self.open_id = self._send("0 open - 0 0")
+        assert outcome == "ok", "the oracle refused the open request"
+        self.kept = self.open_id
+
+    def _send(self, line: str) -> tuple[str, str | None, object]:
+        self.process.stdin.write(line + "\n")
+        self.process.stdin.flush()
+        reply = self.process.stdout.readline().split()
+        if len(reply) != 3:
+            raise RuntimeError(f"the oracle answered {reply!r}")
+        outcome, code, identity = reply
+        return outcome, None if code == "-" else code, None if identity == "-" else identity
+
+    def step(self, request: tuple, fail: bool) -> tuple[str, str | None, object]:
+        _, seq, version, ack = request
+        op = "open" if version == "open" else "step"
+        result = self._send(f"{seq} {op} {'-' if ack is None else ack} {int(version == 'bad')} {int(fail)}")
+        self.repeat = result[2] is not None and result[2] == self.kept
+        if result[2] is not None:
+            self.kept = result[2]
+        return result
+
+    def close(self) -> None:
+        self.process.stdin.close()
+        self.process.wait(timeout=10)
+        self.process.stdout.close()
+
+
+def run_trace(rng: random.Random, length: int, new_owner=python_owner, oracle: str | None = None) -> tuple[int, int]:
     """Return (requests compared, repeats compared). Raise AssertionError on a difference."""
     handle, close = new_owner()
     try:
-        return _run_trace(rng, length, handle)
+        return _run_trace(rng, length, handle, oracle)
     finally:
         close()
 
 
-def _run_trace(rng: random.Random, length: int, handle) -> tuple[int, int]:
+def _run_trace(rng: random.Random, length: int, handle, oracle: str | None = None) -> tuple[int, int]:
     session = str(uuid.uuid4())
     open_frame = F.encode(
         {
@@ -102,17 +155,23 @@ def _run_trace(rng: random.Random, length: int, handle) -> tuple[int, int]:
     )
     open_response = handle(open_frame)
     open_request = ("q", 0, "open", None)  # distinct from any step request, as the real frames are
-    model = (True, 0, (open_request, ("p", 0, open_request, "ok", None, M.OPEN)), False, 0)
-    ghost = ((), None, True)
-    real_id = {M.OPEN: F.identity(open_response)}  # model response identity -> real identity
-    sent: list[tuple[tuple, bytes, bytes]] = [(open_request, open_frame, open_response)]
-    accepted = [M.OPEN]
+    model = LeanModel(oracle) if oracle else PythonModel(open_request)
+    try:
+        return _compare(rng, length, handle, model, session, open_request, open_frame, open_response)
+    finally:
+        if oracle:
+            model.close()
+
+
+def _compare(rng, length, handle, model, session, open_request, open_frame, open_response) -> tuple[int, int]:
+    real_id = {model.open_id: F.identity(open_response)}  # model response identity -> real identity
+    sent: list[tuple[tuple, bytes, bytes, bool]] = [(open_request, open_frame, open_response, False)]
+    accepted = [model.open_id]
     compared = repeats = 0
     for _ in range(length):
         choice = rng.random()
         if choice < 0.2 and sent:
-            request, frame, first = rng.choice(sent)
-            fail = False
+            request, frame, first, fail = rng.choice(sent)
         else:
             base = len([item for item in accepted]) - 1
             seq = base + 1
@@ -146,23 +205,21 @@ def _run_trace(rng: random.Random, length: int, handle) -> tuple[int, int]:
                 }
             )
             first = None
-        steps = M.owner_step(model, request, ghost, may_fail=fail)
-        new_model, model_response, ghost, _ = steps[-1] if fail and len(steps) > 1 else steps[0]
+        outcome, code, identity = model.step(request, fail)
         real = handle(frame)
         message = F.decode(real, F.MAX_BOUND).message
-        expected = (model_response[3], model_response[4])
+        expected = (outcome, code)
         observed = (message["outcome"], message["code"])
         assert observed == expected, f"{request}: model {expected}, real {observed}"
         if first is not None:
-            if expected[0] != "rejected" and real != first and model_response == model[2][1]:
+            if expected[0] != "rejected" and real != first and model.repeat:
                 raise AssertionError(f"{request}: a repeat returned different bytes")
             repeats += 1
-        model = new_model
-        if expected[0] in ("ok", "ended") and model_response[5] is not None:
-            real_id[model_response[5]] = F.identity(real)
-            if expected[0] == "ok" and model_response[5] not in accepted:
-                accepted.append(model_response[5])
-            sent.append((request, frame, real))
+        if expected[0] in ("ok", "ended") and identity is not None:
+            real_id[identity] = F.identity(real)
+            if expected[0] == "ok" and identity not in accepted:
+                accepted.append(identity)
+            sent.append((request, frame, real, fail))
         compared += 1
         if expected[0] == "ended":
             break
@@ -173,6 +230,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--traces", type=int, default=20_000)
     parser.add_argument("--seed", type=int, default=20261023)
+    parser.add_argument("--oracle", default=None, help="the compiled Lean model (formal/.lake/build/bin/ncp2-oracle)")
     parser.add_argument("--owner", nargs=argparse.REMAINDER, help="an external owner command")
     args = parser.parse_args()
     rng = random.Random(args.seed)
@@ -181,16 +239,15 @@ def main() -> int:
     total = repeats = 0
     try:
         for _ in range(args.traces):
-            compared, repeated = run_trace(rng, rng.randint(1, 12), new_owner)
+            compared, repeated = run_trace(rng, rng.randint(1, 12), new_owner, args.oracle)
             total += compared
             repeats += repeated
     finally:
         if external:
             external.stop()
     name = " ".join(os.path.basename(part) for part in args.owner[:2]) if args.owner else "the Python owner"
-    print(
-        f"conformance: {args.traces} traces, {total} requests, {repeats} repeats; {name} answers like the model owner"
-    )
+    reference = "the verified Lean model" if args.oracle else "the model owner"
+    print(f"conformance: {args.traces} traces, {total} requests, {repeats} repeats; {name} answers like {reference}")
     return 0
 
 

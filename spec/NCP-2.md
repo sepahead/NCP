@@ -232,7 +232,7 @@ Later versions of this specification can add codes. A receiver MUST accept a cod
 
 ### 7.7 Properties
 
-These rules give the following properties, which the model check in `model/` tests in every reachable state with lost, repeated, delayed, and changed frames, and with crashes of either side:
+These rules give the following properties. The Lean proofs in `formal/` establish properties 1, 2, and 3, and the owner's side of property 6, for every sequence of requests. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
 
 1. The owner executes each request at most once.
 2. The owner executes requests in sequence order, without gaps.

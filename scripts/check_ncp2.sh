@@ -4,6 +4,7 @@
 # Usage: scripts/check_ncp2.sh [--quick]
 # PYTHON names the interpreter to test (default python3; NCP 2 needs Python 3.11 or later).
 # --quick runs 2,000 model traces and 20,000 fuzzing cases instead of 20,000 and 200,000.
+# NCP2_SKIP_LEAN=1 leaves out the Lean proofs and the Lean oracle (they need elan and lake).
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 python=${PYTHON:-python3}
@@ -42,6 +43,24 @@ echo "== Model conformance of both owners, $traces traces each"
 "$python" -I model/conformance.py --traces "$traces"
 # One connection per trace: a Unix domain socket, because TCP would run out of ephemeral ports.
 "$python" -I model/conformance.py --traces "$traces" --owner "$examples/model_owner" "$work/owner.sock"
+
+if [ "${NCP2_SKIP_LEAN:-0}" != "1" ]; then
+    echo "== Lean proofs of the owner model, warnings fatal"
+    (cd formal && lake build --wfail)
+    echo "== Axiom audit: only propext, Classical.choice, and Quot.sound"
+    (cd formal && lake env lean Audit.lean) > "$work/axioms.txt"
+    cat "$work/axioms.txt"
+    if grep -v "depends on axioms: \[" "$work/axioms.txt" | grep -q . ||
+        sed -n 's/.*depends on axioms: \[\(.*\)\]/\1/p' "$work/axioms.txt" | tr ',' '\n' |
+        sed 's/ //g' | grep -qvxE 'propext|Classical.choice|Quot.sound'; then
+        echo "axiom audit failed" >&2
+        exit 1
+    fi
+    oracle="$root/formal/.lake/build/bin/ncp2-oracle"
+    echo "== Both owners against the verified Lean model, $traces traces each"
+    "$python" -I model/conformance.py --traces "$traces" --oracle "$oracle"
+    "$python" -I model/conformance.py --traces "$traces" --oracle "$oracle" --owner "$examples/model_owner" "$work/oracle.sock"
+fi
 
 echo "== Differential fuzzing of the decoders, $cases cases"
 "$python" -I conformance/fuzz.py --decoder "$examples/decode_corpus" --cases "$cases"
