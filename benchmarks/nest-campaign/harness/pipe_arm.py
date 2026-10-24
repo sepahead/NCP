@@ -41,8 +41,9 @@ def read_exactly(fd: int, size: int) -> bytes:
 
 def main() -> None:
     mode, spec = sys.argv[1], spec_from(sys.argv[2:])
-    peer = subprocess.Popen([sys.executable, "-s", str(HERE / "pipe_echo.py")], stdin=subprocess.PIPE,
-                            stdout=subprocess.PIPE)
+    peer = subprocess.Popen(
+        [sys.executable, "-s", str(HERE / "pipe_echo.py")], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+    )
     write_fd, read_fd = peer.stdin.fileno(), peer.stdout.fileno()
     networks.configure(nest, spec["threads"], spec["seed"])
     spike_files = tempfile.mkdtemp(prefix="ncp-nest-spikes-") if mode == "chunked-pipe-spikes" else None
@@ -70,7 +71,7 @@ def main() -> None:
         frame = struct.pack(">I", len(message)) + message
         view = memoryview(frame)
         while view:
-            view = view[os.write(write_fd, view):]
+            view = view[os.write(write_fd, view) :]
         echoed = read_exactly(read_fd, 4 + len(message))
         if echoed != frame:
             raise RuntimeError("wrong echo")
@@ -87,8 +88,17 @@ def main() -> None:
     peer.stdout.close()
     if spike_files:
         shutil.rmtree(spike_files, ignore_errors=True)
-    emit({"arm": mode, **spec, "wall_s": t1 - t0, "spikes": spikes, "recorded": recorded, "exchanges": steps,
-          "load1": load})
+    emit(
+        {
+            "arm": mode,
+            **spec,
+            "wall_s": t1 - t0,
+            "spikes": spikes,
+            "recorded": recorded,
+            "exchanges": steps,
+            "load1": load,
+        }
+    )
 
 
 if __name__ == "__main__":

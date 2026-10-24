@@ -84,26 +84,51 @@ def build(work: Path, ncp1: Path) -> dict:
     )
     env = dict(os.environ, CARGO_TARGET_DIR=str(work / "target"))
     # As in protocols 1 and 2: the released SDK's own dependencies, from the local cache.
-    subprocess.run(["cargo", "build", "--release", "--offline", "--quiet", "--manifest-path",
-                    str(project / "Cargo.toml")], check=True, env=env)
-    subprocess.run(["cargo", "build", "--release", "--locked", "--quiet", "--manifest-path",
-                    str(HARNESS / "ncp2-rust" / "Cargo.toml")], check=True, env=env)
-    return {"ncp1_python": ncp1 / "local" / "python", "ncp2_python": ROOT / "python",
-            "ncp1_host": work / "target/release/ncp-nest-campaign-host",
-            "ncp2_host": work / "target/release/ncp2-nest-host"}
+    subprocess.run(
+        ["cargo", "build", "--release", "--offline", "--quiet", "--manifest-path", str(project / "Cargo.toml")],
+        check=True,
+        env=env,
+    )
+    subprocess.run(
+        [
+            "cargo",
+            "build",
+            "--release",
+            "--locked",
+            "--quiet",
+            "--manifest-path",
+            str(HARNESS / "ncp2-rust" / "Cargo.toml"),
+        ],
+        check=True,
+        env=env,
+    )
+    return {
+        "ncp1_python": ncp1 / "local" / "python",
+        "ncp2_python": ROOT / "python",
+        "ncp1_host": work / "target/release/ncp-nest-campaign-host",
+        "ncp2_host": work / "target/release/ncp2-nest-host",
+    }
 
 
-def run_config(config: dict, block_seed: int, prefix: Path, paths: dict, work: Path,
-               extra_env: dict | None = None) -> dict:
+def run_config(
+    config: dict, block_seed: int, prefix: Path, paths: dict, work: Path, extra_env: dict | None = None
+) -> dict:
     py = str(prefix / "bin" / "python")
     spec = [config["network"], str(config["n"]), str(config["threads"]), f"{config['delta_ms']:g}", str(block_seed)]
     arm = config["arm"]
     payload = "spikes" if arm.endswith("-spikes") else "count"
     sdk = "2" if arm.startswith("ncp2") else "1.0.1" if arm.startswith("ncp") else None
     python_dir = paths["ncp2_python"] if sdk == "2" else paths["ncp1_python"]
-    env = {"HOME": os.environ["HOME"], "PATH": f"{prefix}/bin:/usr/bin:/bin:/usr/sbin:/sbin", "TMPDIR": str(work),
-           "PYTHONPATH": f"{HARNESS}{os.pathsep}{python_dir}", "OMP_NUM_THREADS": str(config["threads"]),
-           "PYNEST_QUIET": "1", "PYTHONDONTWRITEBYTECODE": "1", **(extra_env or {})}
+    env = {
+        "HOME": os.environ["HOME"],
+        "PATH": f"{prefix}/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+        "TMPDIR": str(work),
+        "PYTHONPATH": f"{HARNESS}{os.pathsep}{python_dir}",
+        "OMP_NUM_THREADS": str(config["threads"]),
+        "PYNEST_QUIET": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        **(extra_env or {}),
+    }
     if arm in campaign.LOCAL_ARMS:
         command = [py, "-s", str(HARNESS / "local_arm.py"), arm] + spec
     elif arm in PIPE_ARMS:
@@ -111,8 +136,11 @@ def run_config(config: dict, block_seed: int, prefix: Path, paths: dict, work: P
     elif arm.startswith("ncp2-py"):
         command = [py, "-s", str(HARNESS / "ncp2_host.py"), payload] + spec
     elif arm.startswith("ncp2-rs"):
-        command = ([str(paths["ncp2_host"]), payload] + spec
-                   + [str(HARNESS / "ncp2_contract.json"), py, "-s", str(HARNESS / "ncp2_owner.py")])
+        command = (
+            [str(paths["ncp2_host"]), payload]
+            + spec
+            + [str(HARNESS / "ncp2_contract.json"), py, "-s", str(HARNESS / "ncp2_owner.py")]
+        )
     elif arm.startswith("ncp-py"):
         command = [py, "-s", str(HARNESS / "py_host.py"), payload] + spec
     elif arm.startswith("ncp-rs"):
@@ -120,8 +148,9 @@ def run_config(config: dict, block_seed: int, prefix: Path, paths: dict, work: P
     else:
         return campaign.run_music(config, block_seed, prefix, env, work)
     try:
-        process = subprocess.run(command, capture_output=True, text=True, env=env, cwd=HARNESS,
-                                 timeout=campaign.RUN_LIMIT_S)
+        process = subprocess.run(
+            command, capture_output=True, text=True, env=env, cwd=HARNESS, timeout=campaign.RUN_LIMIT_S
+        )
     except subprocess.TimeoutExpired:
         return {"returncode": "timeout", "sdk": sdk}
     result = json.loads(process.stdout.strip().splitlines()[-1]) if process.returncode == 0 else {}
@@ -155,12 +184,19 @@ def main() -> None:
             rng.shuffle(names)
             order += [{"block": block, "config": name, "seed": SEED + block} for name in names]
         schedule = {
-            "protocol": PROTOCOL, "protocol_sha256": hashlib.sha256((HERE / PROTOCOL).read_bytes()).hexdigest(),
-            "seed": SEED, "order_seed": ORDER_SEED, "blocks": blocks, "smoke": args.smoke, "only": args.only,
+            "protocol": PROTOCOL,
+            "protocol_sha256": hashlib.sha256((HERE / PROTOCOL).read_bytes()).hexdigest(),
+            "seed": SEED,
+            "order_seed": ORDER_SEED,
+            "blocks": blocks,
+            "smoke": args.smoke,
+            "only": args.only,
             "commit": campaign.out(["git", "-C", str(ROOT), "rev-parse", "HEAD"]),
             "worktree_clean": campaign.out(["git", "-C", str(ROOT), "status", "--porcelain"]) == "",
             "ncp1_commit": campaign.out(["git", "-C", str(args.ncp1), "rev-parse", "HEAD"]),
-            "created_utc": campaign.now(), "configurations": len(configs), "order": order,
+            "created_utc": campaign.now(),
+            "configurations": len(configs),
+            "order": order,
         }
         schedule_path.write_text(json.dumps(schedule, indent=1) + "\n")
         (args.results / "environment.json").write_text(json.dumps(campaign.environment(args.prefix), indent=1) + "\n")
@@ -182,15 +218,25 @@ def main() -> None:
         result = run_config(config, entry["seed"], args.prefix, paths, work)
         # The configuration's fields come last: a host reports its own arm name (for example
         # ncp2-rs-count), and the protocol's arm name must win.
-        row = {"block": entry["block"], "config": entry["config"], "seed": entry["seed"],
-               "load1_before": round(load, 2), "started_utc": started, "finished_utc": campaign.now(),
-               **result, **{k: config[k] for k in ("part", "arm", "network", "n", "threads", "delta_ms")}}
+        row = {
+            "block": entry["block"],
+            "config": entry["config"],
+            "seed": entry["seed"],
+            "load1_before": round(load, 2),
+            "started_utc": started,
+            "finished_utc": campaign.now(),
+            **result,
+            **{k: config[k] for k in ("part", "arm", "network", "n", "threads", "delta_ms")},
+        }
         with runs_path.open("a") as handle:
             handle.write(json.dumps(row) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
-        print(f"[{index + 1}/{total}] block {entry['block']} {entry['config']}: "
-              f"rc={row['returncode']} wall={row.get('wall_s')}", flush=True)
+        print(
+            f"[{index + 1}/{total}] block {entry['block']} {entry['config']}: "
+            f"rc={row['returncode']} wall={row.get('wall_s')}",
+            flush=True,
+        )
     print("complete", flush=True)
 
 

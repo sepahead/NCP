@@ -28,7 +28,7 @@ def main() -> None:
         message = header + read_exactly(read_fd, struct.unpack(">I", header)[0])
         view = memoryview(message)
         while view:
-            view = view[os.write(write_fd, view):]
+            view = view[os.write(write_fd, view) :]
 
 
 if __name__ == "__main__":

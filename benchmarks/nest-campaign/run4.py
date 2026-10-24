@@ -49,8 +49,12 @@ def conditions(probe: Path) -> dict:
     power = campaign.out(["pmset", "-g", "batt"]).splitlines()[0]
     thermal = campaign.out(["notifyutil", "-g", "com.apple.system.thermalpressurelevel"]).split()[-1]
     clock = max(float(campaign.out([str(probe)])) for _ in range(2))
-    return {"ac_power": "AC Power" in power, "thermal_pressure": int(thermal), "clock_ghz": clock,
-            "load1": round(os.getloadavg()[0], 2)}
+    return {
+        "ac_power": "AC Power" in power,
+        "thermal_pressure": int(thermal),
+        "clock_ghz": clock,
+        "load1": round(os.getloadavg()[0], 2),
+    }
 
 
 def steady(now: dict) -> bool:
@@ -81,9 +85,14 @@ def distribution(values: list[int]) -> dict:
     def rank(p: float) -> float:
         return ordered[max(0, math.ceil(p * len(ordered)) - 1)] / 1000
 
-    return {"n": len(ordered), "mean_us": statistics.fmean(ordered) / 1000,
-            "median_us": statistics.median(ordered) / 1000, "p90_us": rank(0.90), "p99_us": rank(0.99),
-            "max_us": ordered[-1] / 1000}
+    return {
+        "n": len(ordered),
+        "mean_us": statistics.fmean(ordered) / 1000,
+        "median_us": statistics.median(ordered) / 1000,
+        "p90_us": rank(0.90),
+        "p99_us": rank(0.99),
+        "max_us": ordered[-1] / 1000,
+    }
 
 
 def step_times(work_file: Path, call_file: Path, arm: str) -> dict:
@@ -134,13 +143,21 @@ def main() -> None:
         schedule = {
             "protocol": PROTOCOL,
             "protocol_sha256": hashlib.sha256(protocol.read_bytes()).hexdigest() if protocol.exists() else None,
-            "seed": run3.SEED, "order_seed": ORDER_SEED, "blocks": blocks, "smoke": args.smoke, "only": args.only,
-            "load_limit": LOAD_LIMIT, "clock_min_ghz": CLOCK_MIN_GHZ, "max_attempts": MAX_ATTEMPTS,
+            "seed": run3.SEED,
+            "order_seed": ORDER_SEED,
+            "blocks": blocks,
+            "smoke": args.smoke,
+            "only": args.only,
+            "load_limit": LOAD_LIMIT,
+            "clock_min_ghz": CLOCK_MIN_GHZ,
+            "max_attempts": MAX_ATTEMPTS,
             "sleep_limit_s": SLEEP_LIMIT_S,
             "commit": campaign.out(["git", "-C", str(ROOT), "rev-parse", "HEAD"]),
             "worktree_clean": campaign.out(["git", "-C", str(ROOT), "status", "--porcelain"]) == "",
             "ncp1_commit": campaign.out(["git", "-C", str(args.ncp1), "rev-parse", "HEAD"]),
-            "created_utc": campaign.now(), "configurations": len(configs), "order": order,
+            "created_utc": campaign.now(),
+            "configurations": len(configs),
+            "order": order,
         }
         schedule_path.write_text(json.dumps(schedule, indent=1) + "\n")
         (args.results / "environment.json").write_text(json.dumps(campaign.environment(args.prefix), indent=1) + "\n")
@@ -177,18 +194,32 @@ def main() -> None:
             attempts[key] = attempts.get(key, 0) + 1
             # The configuration's fields come last: a host reports its own arm name (for example
             # ncp2-rs-count), and the protocol's arm name must win.
-            row = {"block": entry["block"], "config": entry["config"], "seed": entry["seed"],
-                   "attempt": attempts[key], "disturbed": disturbed, "slept_s": round(slept, 3),
-                   "waited_s": round(waited, 1), "before": before, "after": after,
-                   "load1_before": before["load1"], "started_utc": started, "finished_utc": finished,
-                   **result, **step_times(work_file, call_file, config["arm"]),
-                   **{k: config[k] for k in ("part", "arm", "network", "n", "threads", "delta_ms")}}
+            row = {
+                "block": entry["block"],
+                "config": entry["config"],
+                "seed": entry["seed"],
+                "attempt": attempts[key],
+                "disturbed": disturbed,
+                "slept_s": round(slept, 3),
+                "waited_s": round(waited, 1),
+                "before": before,
+                "after": after,
+                "load1_before": before["load1"],
+                "started_utc": started,
+                "finished_utc": finished,
+                **result,
+                **step_times(work_file, call_file, config["arm"]),
+                **{k: config[k] for k in ("part", "arm", "network", "n", "threads", "delta_ms")},
+            }
             with runs_path.open("a") as handle:
                 handle.write(json.dumps(row) + "\n")
                 handle.flush()
                 os.fsync(handle.fileno())
-            print(f"[{index + 1}/{total}] block {entry['block']} {entry['config']}: rc={row['returncode']} "
-                  f"wall={row.get('wall_s')}" + (" disturbed" if disturbed else ""), flush=True)
+            print(
+                f"[{index + 1}/{total}] block {entry['block']} {entry['config']}: rc={row['returncode']} "
+                f"wall={row.get('wall_s')}" + (" disturbed" if disturbed else ""),
+                flush=True,
+            )
             if not disturbed or attempts[key] >= MAX_ATTEMPTS:
                 done.add(key)
     work_file.unlink(missing_ok=True)
