@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   model already did, and property 5 excludes `seq_stale`, as the proofs do.
 - The proofs build with Lean 4.35.0, the current stable release, using only Lean's
   core library.
+- `formal/mutants.py` measures what the claims constrain. Six defects injected into the
+  owner model each make a proof fail; an owner that rejects every call breaks only the
+  proofs that need execution, so every safety claim holds for it and the progress claim is
+  what rules it out. The gate runs the mutants after the Lean proofs.
 - On one Apple M4 Max ([`benchmarks/comparison`](benchmarks/comparison/README.md),
   H2), a Rust echo call takes a median of 9.1 µs (NCP 1.0.1: 35.6 µs) and a
   Python echo call 38.6 µs (NCP 1.0.1: 466 µs). In protocol 3 of the NEST

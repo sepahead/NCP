@@ -35,6 +35,17 @@ The safety claims would also hold for an owner that executes nothing; `FaultFree
 [`Audit.lean`](Audit.lean) proves each statement from the library, so a theorem whose type drifts from its stated claim fails the build, and prints the axioms of each proof.
 The gate allows only Lean's standard axioms (`propext`, `Classical.choice`, `Quot.sound`), so no `sorry` and no added axiom, and replays every proof with `leanchecker --fresh`: the Lean kernel checks the compiled proofs again, outside the elaborator that produced them. It is the same kernel; a second, independent kernel is not used.
 
+## How strong the claims are
+
+A proof shows only what its statement says, and a weak statement can be proved about a bad model.
+[`mutants.py`](mutants.py) measures what the claims constrain: it injects six defects into the
+model, each into a temporary copy, checks that the mutated model still compiles, and requires the
+proofs to fail. A missing acknowledgement check, accepted gaps, execution after the end, a
+re-executed retransmission, and a rejection that changes state each break a safety proof. An owner
+that rejects every call breaks only the progress lemma and the `seq_stale` witness, which both
+need requests to execute: every safety proof still holds for it. That is why the progress claim
+is needed. Six mutants are a sample of defects, not a measure of every possible one.
+
 ## The model as a test oracle
 
 [`Oracle.lean`](Oracle.lean) compiles the same `step` function into the program `ncp2-oracle`.
