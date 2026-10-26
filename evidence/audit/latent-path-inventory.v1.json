@@ -3683,9 +3683,9 @@
       },
       {
         "path": "docs/design/NCP-2-MIGRATION.md",
-        "bytes": 5247,
-        "sha256": "c772fcd1b68f151419c435b70de32a78031031506802de62c2586b6a4ad07c90",
-        "git_blob_oid": "a37ade87ce9bf7ce81b8080bc2dab5f7f611e0b2",
+        "bytes": 5953,
+        "sha256": "bd60ff145b7346d03928bbaf69d2750179f99b212151e711dba322e6711eb0d9",
+        "git_blob_oid": "5c011d291f091bb27a6add71b7d0b93d7c9bf331",
         "indexed": true
       },
       {
