@@ -202,6 +202,11 @@ or a preferred word.
 Do not rewrite generated files, immutable evidence, frozen release history,
 licenses, or quoted text only to match the style profile.
 
+Do not cite social-media posts. A post can be deleted or edited, and it can state an
+opinion as a fact; that biases readers and agents and weakens scientific rigour.
+State the substance in your own words with its date, cite the primary source, and
+neither link the post nor name its author.
+
 ## Verification
 
 Run focused tests while you edit. Run [`scripts/check.sh`](scripts/check.sh) before
