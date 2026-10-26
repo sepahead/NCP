@@ -10,7 +10,7 @@ The counts are source references on `main`, without vendored copies; they size t
 
 | Consumer (main) | Wire-1.0 candidate | Local SDK | Other | Change rules |
 | --- | --- | --- | --- | --- |
-| CREBAIN (`61a2884`) | `src-tauri` and `crates/ncp-headless` behind the `ncp` feature: 136 `ncp_core::`, 4 `ncp_zenoh::`; frontend `@sepahead/ncp`: 30 references | native body adapter on 1.0.1; 60 `ncp_local::` | the force-city and ground-sensor integrations keep `ncp-local` 1.0.0 at `c0465d4` on purpose | unsigned commits; agents may merge |
+| CREBAIN (`61a2884`) | `src-tauri` and `crates/ncp-headless` behind the `ncp` feature: 136 `ncp_core::`, 4 `ncp_zenoh::`; frontend `@sepahead/ncp`: 30 references | `src-tauri/crates/ncp-simulation`, the native responder that owns the simulation kernel, on 1.0.1: 5 `ncp_local::` | the force-city and ground-sensor integrations keep `ncp-local` 1.0.0 at `c0465d4` on purpose (55 `ncp_local::`) | unsigned commits; agents may merge |
 | Galadriel (`9514ca1`) | `crates/galadriel-ncp` (features `ncp`, `ncp-live`): 21 `ncp_core::`, 8 `ncp_zenoh::` | `crates/galadriel-local-adapter` on 1.0.1: 8 `ncp_local::` | release records bind the lockfiles | signed branch, pull request, squash merge |
 | Prisoma (`f2c507e`) | `crates/ncp-observer`: 12 `ncp_core::`, 1 `ncp_zenoh::` | `crates/ncp-local-capture` on 1.0.1: 12 `ncp_local::`; `integrations/ncp-transcript` (Python, `c0465d4`) | capability matrix and release candidate bind sources | agents may push to `main` |
 | Haldir (`49c03ac`) | `crates/haldir-ncp10` (feature `real-ncp`) and `crates/haldir-transport-zenoh`: 26 `ncp_core::` | none | epoch records; pinned RustSec snapshot | owner-approved, signed fast-forward only |
@@ -31,7 +31,7 @@ The counts are source references on `main`, without vendored copies; they size t
 
 1. **Prisoma `ncp-local-capture` and `integrations/ncp-transcript`.** Local lockstep use that maps directly to the byte-stream binding; Prisoma can push to `main`, and its transcript work builds on NCP 2 transcripts.
 2. **Galadriel `galadriel-local-adapter`.** The same mapping; the adapter is independent of the rest of Galadriel. A signed pull request with a new license record for the changed lock.
-3. **CREBAIN native body adapter.** Local use; the frozen integrations at `c0465d4` stay as they are, and a new NCP 2 integration is added next to them if needed.
+3. **CREBAIN `ncp-simulation`.** Local use with five references; the frozen integrations at `c0465d4` stay as they are, and a new NCP 2 integration is added next to them if needed.
 4. **The NCP 2 Zenoh binding**, as an optional package that is not part of the core SDKs. It unblocks Galadriel `ncp-live`, Prisoma `ncp-observer`, CREBAIN `src-tauri` and Haldir `haldir-transport-zenoh`. It is built with TLS only and without QUIC (design record, decision 9).
 5. **Galadriel `galadriel-ncp`, Prisoma `ncp-observer`, CREBAIN `src-tauri`.** After step 4.
 6. **Haldir.** Last, because each change needs an owner-approved signed fast-forward and an epoch record; NCP is optional for Haldir.
