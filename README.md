@@ -39,7 +39,7 @@ No package-registry upload has taken place.
 **NCP 2 is in development and unreleased.** It replaces the protocol families above with one lean request/response protocol: [specification](spec/NCP-2.md), [design record](docs/design/NCP-2-DESIGN.md), a pure-Python SDK ([`python/`](python/README.md)), and a Rust SDK ([`rust/`](rust/README.md)).
 Lean 4 proofs in [`formal/`](formal/README.md) cover the owner's rules for every sequence of requests; the SDKs are tested against the proved model, not proved themselves.
 [`benchmarks/comparison`](benchmarks/comparison/README.md) compares NCP 2 with NCP 1.0.1, gRPC, Zenoh, HTTP, and ZeroMQ.
-The projects that use NCP move to NCP 2 one at a time; NCP 1 stays available until the last one has moved.
+The projects that use NCP move to NCP 2 one at a time, in the order of the [migration plan](docs/design/NCP-2-MIGRATION.md); NCP 1 stays available until the last one has moved.
 
 In the intended paper-driven workflow, Engram extracts candidate evidence from a PDF for review.
 After evidence review, Engram constructs a supported network and experiment, configures CREBAIN, and coordinates execution and reporting.

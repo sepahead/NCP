@@ -295,9 +295,9 @@
       },
       {
         "path": "README.md",
-        "bytes": 18540,
-        "sha256": "dfaead5e51a31734fea973238b3cb18c3c1e50b2a774914baf2f81662fb050d9",
-        "git_blob_oid": "3232a725bff168ee733654abb9063aa2f5fdea32",
+        "bytes": 18610,
+        "sha256": "de866b76998b6926798e298560869a5da52fe25bc46d2e75c5e79838d2342cf0",
+        "git_blob_oid": "e46871ff78cb1c23c422e5467dc577c1b9f1f70e",
         "indexed": true
       },
       {
@@ -3679,6 +3679,13 @@
         "bytes": 22912,
         "sha256": "4d2e568a2c85ac88cc19fba28b5ab02daea5deba2124bd607ef71af4bb74dbe6",
         "git_blob_oid": "262457bc8e86551b72a4c70b3c6367fb10feba17",
+        "indexed": true
+      },
+      {
+        "path": "docs/design/NCP-2-MIGRATION.md",
+        "bytes": 5142,
+        "sha256": "976498a33ffdceb328387e447124b85deb51a7583076c88380bb94e248b70234",
+        "git_blob_oid": "6bc747be9883fa3259b69dfea77669faa1962219",
         "indexed": true
       },
       {
@@ -10589,7 +10596,7 @@
     ]
   },
   "counts": {
-    "text_files": 1473,
+    "text_files": 1474,
     "binary_or_non_utf8_files": 29,
     "occurrences": 377,
     "by_token_id": {
@@ -10622,7 +10629,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "27d4689f1980d300ffa6b66a89356e9ab06d62d8107aacb60bab88b24d4d49f8",
+  "scanned_path_set_sha256": "2c508db54b9fed38fb8eaf5f4b6f2ecb540e7194fa5caf9fa2b19583710d14a4",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
