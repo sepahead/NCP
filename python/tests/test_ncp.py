@@ -628,11 +628,14 @@ class BindingTests(unittest.TestCase):
 
     def test_a_failed_connection_does_not_stop_the_server(self) -> None:
         original = ncp.StreamChannel.from_socket
-        calls = []
+        lock = threading.Lock()
+        failed = threading.Event()
 
         def fail_once(sock, **options):
-            calls.append(sock)
-            if len(calls) == 1:
+            with lock:
+                first = not failed.is_set()
+                failed.set()
+            if first:
                 raise OSError(22, "Invalid argument")
             return original(sock, **options)
 
@@ -641,6 +644,9 @@ class BindingTests(unittest.TestCase):
         try:
             host, port = server.address[:2]
             socket.create_connection((host, port)).close()  # set up fails; the server closes it
+            # connect_tcp below also calls from_socket. Wait until the server's call has failed, or
+            # a slow server thread lets the client take the one injected failure.
+            self.assertTrue(failed.wait(10))
             client = ncp.Client(ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity,
                                 timeout=10)
             client.open()
