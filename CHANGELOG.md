@@ -61,7 +61,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it checks which claims lost their proofs instead of assuming it. For an owner that rejects
   every call, exactly the progress claim and the `seq_stale` example lose theirs; the other
   ten claims, every safety claim among them, still prove. The gate runs the mutants after
-  the Lean proofs.
+  the Lean proofs. The formal README publishes the resulting table of claims against
+  defects, and the gate fails if the published table differs from the run: a blank cell is
+  a proof that the claim still holds without that rule, and an `x` only a failed proof.
 - On one Apple M4 Max ([`benchmarks/comparison`](benchmarks/comparison/README.md),
   H2), a Rust echo call takes a median of 9.1 µs (NCP 1.0.1: 35.6 µs) and a
   Python echo call 38.6 µs (NCP 1.0.1: 466 µs). In protocol 3 of the NEST

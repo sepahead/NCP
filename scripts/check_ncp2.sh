@@ -83,7 +83,7 @@ if [ "${NCP2_SKIP_LEAN:-0}" != "1" ]; then
     echo "== The traces detect each known defect of an owner"
     "$python" -I model/conformance.py --traces "$traces" --self-test --oracle "$oracle"
     echo "== The claims break under each defect of the owner model"
-    (cd formal && "$python" -I mutants.py)
+    (cd formal && "$python" -I mutants.py --check README.md)
 fi
 
 echo "== Differential fuzzing of the decoders, $cases cases"

@@ -53,6 +53,31 @@ progress claim rules it out. A lost proof shows that the proof depends on the ru
 claim is false for the mutated model. Six mutants are a sample of defects, not a measure of every
 possible one.
 
+The table shows, for each defect, which claims lose their proofs. Read it in two ways. A blank
+cell is a proof: the claim still holds for the broken model, with the standard axioms only, so the
+claim does not constrain that rule. An `x` means that the proof as written fails; many proofs share
+the owner invariant, so one broken rule breaks many of them, and an `x` alone does not show that
+the claim is false for that model. The column of the owner that rejects every call shows that ten
+claims hold for an owner that executes nothing. `mutants.py --table` prints the table, and the gate
+fails if this copy differs from the run.
+
+<!-- mutant-table:begin -->
+| Claim | no ack check | gaps accepted | runs after end | re-executes copy | rejection changes state | rejects every call |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| `AtMostOnce` | x | x | x | x | x |  |
+| `InOrder` | x | x | x | x | x |  |
+| `Acknowledged` | x | x | x | x | x |  |
+| `NothingAfterEnd` | x | x | x | x | x |  |
+| `RejectedChangesNothing` |  |  |  | x | x |  |
+| `RetransmissionIdentical` | x | x | x | x | x |  |
+| `Commitment` | x | x | x | x | x |  |
+| `OkIsOwnExecution` | x | x | x | x | x |  |
+| `RejectionMeansNeverExecuted` | x | x | x | x | x |  |
+| `StaleMayHaveExecuted` |  |  |  |  |  | x |
+| `HistoryFromInputs` |  |  |  | x |  |  |
+| `FaultFreeProgress` |  |  |  |  |  | x |
+<!-- mutant-table:end -->
+
 ## The model as a test oracle
 
 [`Oracle.lean`](Oracle.lean) compiles the same `step` function into the program `ncp2-oracle`.

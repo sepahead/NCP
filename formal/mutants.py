@@ -15,6 +15,10 @@ The last mutant rejects every call. Every other claim must still prove for it, w
 axioms only, and exactly the two claims that need an executed call must lose their proofs: the
 progress claim, and the example in which `seq_stale` answers a request that executed. So the
 safety claims alone allow an owner that executes nothing, and the progress claim rules it out.
+
+`--table` prints, after the run, a Markdown table of which claims each defect breaks.
+`--check README.md` also requires that table to appear in the README between the markers
+`<!-- mutant-table:begin -->` and `<!-- mutant-table:end -->`, so the published table cannot drift.
 """
 
 from __future__ import annotations
@@ -55,6 +59,17 @@ MUTANTS = (
      "          else if True then (o, reject H r .bodyInvalid)",
      "FaultFreeProgress"),
 )
+# Column headings of the published table, in the order of MUTANTS.
+LABELS = {
+    "skips_ack_check": "no ack check",
+    "accepts_gaps": "gaps accepted",
+    "executes_after_end": "runs after end",
+    "reexecutes_retransmission": "re-executes copy",
+    "rejection_changes_state": "rejection changes state",
+    "rejects_every_call": "rejects every call",
+}
+TABLE_BEGIN = "<!-- mutant-table:begin -->"
+TABLE_END = "<!-- mutant-table:end -->"
 EXECUTES_NOTHING = "rejects_every_call"
 # The claims that need an executed call: for an owner that executes nothing, exactly these fail.
 NEEDS_EXECUTION = {"FaultFreeProgress", "StaleMayHaveExecuted"}
@@ -129,9 +144,30 @@ def claim_axioms(work: Path) -> dict[str, set[str]] | None:
             for name, axioms in AXIOMS.findall(audit.stdout)}
 
 
+def table(claims: list[str], lost_by_mutant: dict[str, list[str]]) -> str:
+    """Rows are claims, columns are defects; x marks a claim whose proof the defect breaks."""
+    names = [name for name, *_ in MUTANTS]
+    lines = ["| Claim | " + " | ".join(LABELS[name] for name in names) + " |",
+             "| --- |" + " :---: |" * len(names)]
+    for claim in claims:
+        marks = ["x" if claim in lost_by_mutant[name] else "" for name in names]
+        lines.append(f"| `{claim}` | " + " | ".join(marks) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
+    arguments = sys.argv[1:]
+    readme = None
+    if arguments == ["--table"]:
+        pass
+    elif len(arguments) == 2 and arguments[0] == "--check":
+        readme = FORMAL / arguments[1]
+    elif arguments:
+        print("usage: mutants.py [--table | --check README.md]", file=sys.stderr)
+        return 2
     model = (FORMAL / "NCP2" / "Model.lean").read_text(encoding="utf-8")
     claims = CLAIM.findall((FORMAL / "Statements.lean").read_text(encoding="utf-8"))
+    lost_by_mutant: dict[str, list[str]] = {}
     failures = 0
     with tempfile.TemporaryDirectory(prefix="ncp2-mutants-") as temporary:
         for name, old, new, target in MUTANTS:
@@ -176,6 +212,7 @@ def main() -> int:
                 failures += 1
                 continue
             lost = [claim for claim in claims if "sorryAx" in axioms[claim[0].lower() + claim[1:]]]
+            lost_by_mutant[name] = lost
             kept = [claim for claim in claims if claim not in lost]
             nonstandard = [claim for claim in kept
                            if not axioms[claim[0].lower() + claim[1:]] <= STANDARD_AXIOMS]
@@ -197,6 +234,20 @@ def main() -> int:
         print(f"{failures} mutant(s) were not caught", file=sys.stderr)
         return 1
     print(f"all {len(MUTANTS)} model mutants break the proof of the claim that they target")
+    generated = table(claims, lost_by_mutant)
+    if arguments == ["--table"]:
+        print(generated, end="")
+    if readme is not None:
+        text = readme.read_text(encoding="utf-8")
+        if text.count(TABLE_BEGIN) != 1 or text.count(TABLE_END) != 1:
+            print(f"{readme.name}: the mutant-table markers must appear exactly once", file=sys.stderr)
+            return 1
+        published = text.split(TABLE_BEGIN, 1)[1].split(TABLE_END, 1)[0].strip("\n") + "\n"
+        if published != generated:
+            print(f"{readme.name}: the published mutant table differs from the run:\n{generated}",
+                  file=sys.stderr)
+            return 1
+        print(f"{readme.name}: the published mutant table matches the run")
     return 0
 
 
