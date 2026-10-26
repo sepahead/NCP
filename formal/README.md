@@ -40,11 +40,18 @@ The gate allows only Lean's standard axioms (`propext`, `Classical.choice`, `Quo
 A proof shows only what its statement says, and a weak statement can be proved about a bad model.
 [`mutants.py`](mutants.py) measures what the claims constrain: it injects six defects into the
 model, each into a temporary copy, checks that the mutated model still compiles, and requires the
-proofs to fail. A missing acknowledgement check, accepted gaps, execution after the end, a
-re-executed retransmission, and a rejection that changes state each break a safety proof. An owner
-that rejects every call breaks only the progress lemma and the `seq_stale` witness, which both
-need requests to execute: every safety proof still holds for it. That is why the progress claim
-is needed. Six mutants are a sample of defects, not a measure of every possible one.
+proofs to fail. Lake stops at the first module that fails, so the script then replaces each failing
+proof with `sorry`, builds again until the build succeeds, and reads the axioms of every claim: a
+claim whose proof now uses `sorryAx` is a claim whose proof the defect broke. A missing
+acknowledgement check, accepted gaps, execution after the end, a re-executed retransmission, and a
+rejection that changes state each break the proof of the safety claim that forbids them, and the
+proofs of the other claims that rely on the same owner invariant. An owner that rejects every call
+breaks exactly two proofs: the progress claim, and the example in which `seq_stale` answers a
+request that executed. The other ten claims, every safety claim among them, still prove for it
+with the standard axioms. So the safety claims alone allow an owner that executes nothing, and the
+progress claim rules it out. A lost proof shows that the proof depends on the rule, not that the
+claim is false for the mutated model. Six mutants are a sample of defects, not a measure of every
+possible one.
 
 ## The model as a test oracle
 

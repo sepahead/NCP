@@ -38,10 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of a request that did execute, so the code says only that this frame executed
   nothing.
 - A soundness review of the proofs changed four things. `OkIsOwnExecution`
-  assumed that no request at all shares the identity of the client's request. No
-  function from all frames to 256-bit digests satisfies that, so the theorem said
-  nothing about SHA-256; it now assumes it only for the requests that reached the
-  owner. The application's verdict on a body is now an input of each step, like
+  assumed that no possible request, sent or not, shares the identity of the
+  client's request. A 256-bit digest maps far more possible requests to each
+  identity, so for SHA-256 such requests almost certainly exist, although nobody
+  can find one, and the theorem said nothing about the real digest. Collision
+  resistance supports the assumption only for the requests that reached the owner,
+  and the theorem now assumes exactly that. (An earlier description argued from
+  counting alone; counting rules out only a digest without any collision, not this
+  assumption about one request.) The application's verdict on a body is now an input of each step, like
   its result, so the proofs also cover an application whose verdict depends on its
   state. Two claims are new: the owner executes only requests that it received,
   and a client that follows section 7.6 over a network without faults gets every
@@ -52,9 +56,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The proofs build with Lean 4.35.0, the current stable release, using only Lean's
   core library.
 - `formal/mutants.py` measures what the claims constrain. Six defects injected into the
-  owner model each make a proof fail; an owner that rejects every call breaks only the
-  proofs that need execution, so every safety claim holds for it and the progress claim is
-  what rules it out. The gate runs the mutants after the Lean proofs.
+  owner model each break the proof of the claim that forbids them. The script replaces the
+  failing proofs with `sorry` until the build succeeds and reads the axioms of each claim, so
+  it checks which claims lost their proofs instead of assuming it. For an owner that rejects
+  every call, exactly the progress claim and the `seq_stale` example lose theirs; the other
+  ten claims, every safety claim among them, still prove. The gate runs the mutants after
+  the Lean proofs.
 - On one Apple M4 Max ([`benchmarks/comparison`](benchmarks/comparison/README.md),
   H2), a Rust echo call takes a median of 9.1 µs (NCP 1.0.1: 35.6 µs) and a
   Python echo call 38.6 µs (NCP 1.0.1: 466 µs). In protocol 3 of the NEST
