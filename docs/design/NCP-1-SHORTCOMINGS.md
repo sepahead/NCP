@@ -75,7 +75,7 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 | 25 | No fuzz target for the local SDK | Differential fuzzing of both decoders: 200,000 cases in each gate run | Fixed | `conformance/fuzz.py` |
 | 26 | Only the report arithmetic was checked in Lean | The owner rules are a Lean model. Twelve claims are proved with Lean's standard axioms only, and six model defects show what each claim constrains | Fixed | [`formal/`](../../formal) |
 | 27 | The complete gate took about 65 minutes | The NCP 2 gate takes about 17 seconds | Fixed | `scripts/check_ncp2.sh` |
-| 28 | Fault and soak campaigns covered only NCP 1.0.1 | The model check covers lost, repeated, delayed, and changed frames and crashes. Campaigns with real processes for NCP 2 have not run yet | Open | Section 8 |
+| 28 | Fault and soak campaigns covered only NCP 1.0.1 | The model check covers lost, repeated, delayed, and changed frames and crashes. With real processes over pipes, 4,170 fault trials with the Python client and both owners found no wrong result, no step run twice, and no false report of a step, and nine soaks of up to 1,000,000 calls kept memory and descriptors constant. Unix sockets, TCP, and fault trials with the Rust client are not covered | Fixed for pipes | [Fault campaign](../../benchmarks/fault-campaign/README.md#results-of-protocol-3), protocol 3; section 8 |
 | 29 | No independent second implementation | Two SDKs share the conformance vectors, but one author wrote both | Open | Section 8 |
 | 30 | No modular-composition test of the ecosystem | The design record plans one; it does not exist yet | Open | Section 8 |
 | 31 | Installed packages and supply-chain records were missing for a release | The NCP 2 packages have not been built as release artifacts yet | Open | Section 8 |
@@ -102,7 +102,7 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 These items follow from the open rows above and from the [design record](NCP-2-DESIGN.md).
 They are the remaining work before the release of NCP 2.0.
 
-1. Real-process fault and soak campaigns for both SDKs and every binding (row 28).
+1. Fault trials over Unix domain sockets and TCP, and with the Rust client (row 28).
 2. A modular-composition test: a host with neural, body, monitor, and recorder modules in every subset of the optional ones, with faults, and a check of every transcript (row 30).
 3. The multi-agent and MPI benchmarks, with the rounds helper (design record, sections 8 and 11.4).
 4. The Zenoh binding with mutual TLS and access control (row 32).

@@ -105,6 +105,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one soak fell while the owner exited. Afterwards, the records showed that the relay
   drew its bit or cut from the same seed as the frame index, so that the positions of
   the flips depended on the frame; protocol 3 repeats the trials with independent draws.
+- Fault-campaign protocol 3 ran on 2 November 2026 with independent draws: in 4,170
+  trials, every hypothesis held, E1 to E9. Every one of 3,120 damaged frames ended its
+  session, the 100 header flips reached every frame position, and the 24 flips that made
+  a length larger ended with the client's time limit. Nine soaks of 200,000 to
+  1,000,000 calls grew in memory by at most 0.69 %, with constant open descriptors.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

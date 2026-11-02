@@ -166,4 +166,48 @@ The criterion did not exclude samples taken while the processes exit; this proto
 [`PROTOCOL-3.md`](PROTOCOL-3.md) was fixed on 2 November 2026 (SHA-256 in [`PROTOCOL-3.sha256`](PROTOCOL-3.sha256)).
 It repeats protocol 2 after the fix of the defect above: the relay draws its bit or cut from a seed of its own.
 It also leaves the last sample of each soak out of the check of the open descriptors, because that sample can fall while the processes exit.
-`run2.py --protocol 3` runs it. It has not run yet.
+`run2.py --protocol 3` runs it.
+
+### Results of protocol 3
+
+The 4,170 trials and 9 soaks ran on 2 November 2026 from 20:24 to 20:44 UTC, from the clean commit `27914c6`, with Python 3.15.0 and Rust 1.99.1, on the computer above.
+Every scheduled trial ran. Other programs were running, with one-minute load averages of 2.6 to 30.7 before a trial, and the computer ran on battery.
+[`results-3/trials.jsonl`](results-3/trials.jsonl) holds every trial, and [`results-3/analysis.json`](results-3/analysis.json) the analysis.
+All nine hypotheses hold.
+
+| Scenario | Owner | Trials | Completed | Ended early | Wrong results |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Bit flip, client to owner | Python, Rust | 600 each | 0 | 600 each | 0 |
+| Bit flip, owner to client | Python, Rust | 600 each | 0 | 600 each | 0 |
+| Truncated frame, client to owner | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Truncated frame, owner to client | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Repeated frame, client to owner | Python / Rust | 90 each | 10 / 12 | 80 / 78 | 0 |
+| Repeated frame, owner to client | Python / Rust | 90 each | 7 / 15 | 83 / 75 | 0 |
+| Owner killed at a random time | Python / Rust | 120 each | 13 / 76 | 107 / 44 | 0 |
+| Client killed at a random time | Python, Rust | 60 each | The owner exited in all 120, after at most 0.064 s | | |
+| Step stalls three times the time limit | Python | 30 | 0 | 30 | 0 |
+| Result larger than the session bound | Python | 60 | 0 | 60 | 0 |
+| Request larger than the session bound | Python, Rust | 60 each | 60 each | 0 | 0 |
+| Handler raises | Python, Rust | 60 each | 0 | 60 each | 0 |
+
+| # | Hypothesis | Holds |
+| --- | --- | --- |
+| E1 | No trial accepts a wrong result. | yes |
+| E2 | In every trial, the owner executes each step at most once, in order. | yes |
+| E3 | In every trial, what the client learned is true. | yes |
+| E4 | Every failure reaches the application as a documented exception. | yes |
+| E5 | Every flipped or truncated frame ends the session before it completes. | yes: 3,120 of 3,120 |
+| E6 | Every killed client leaves its owner exited within 10 s. | yes: 120 of 120 |
+| E7 | Every stall ends with `timeout`, executed `unknown`, within 3 s of the start of the session. | yes: after 2.03 to 2.05 s |
+| E8 | Oversized results, raising handlers, and oversized requests end as stated. | yes |
+| E9 | In each soak, every call returns the right result, memory grows by less than 10 % after the first tenth, and open descriptors stay constant after the first tenth, except in the last sample. | yes |
+
+- **Damaged frames.** Of the 2,400 flipped bits, 1,661 were in the JSON region, 402 in the attachments, 237 in the digest, and 100 in the header, and every frame position of both directions received header flips (7 to 21 each). A damaged request ended its session with `bad_frame`, executed `no`. When a flip made a length larger (24 frames), the receiver waited for bytes that never came, and the client ended the session after its 2 s time limit with the request possibly executed; the logs show that the 11 such step requests did not execute and the 8 such responses answered steps that did. A damaged response otherwise ended the session with a protocol error, and its step had executed.
+- **Repeated frames, killed owners, and the other scenarios** behaved as in protocol 2: no step ran twice, and at most the last step that the client sent was uncertain.
+- **Soaks.** The median call times vary with the load of the other programs (for example 20.0 µs in the second Rust soak against 8.7 and 9.4 µs in the others); they are not timing results.
+
+| Soak | Calls | Median call (µs) | Client memory growth | Owner memory growth | Open descriptors, client / owner |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Python client, Python owner, blocks 0 to 2 | 200,000 | 38.9, 52.9, 34.3 | 0.06 %, 0 %, 0.06 % | 0 %, 0 %, 0.19 % | 30 / 24 |
+| Python client, Rust owner, blocks 0 to 2 | 1,000,000 | 20.7, 20.0, 20.5 | 0.06 % each | 0 % | 30 / 6 |
+| Rust client, Rust owner, blocks 0 to 2 | 1,000,000 | 9.4, 20.0, 8.7 | 0.69 %, 0 %, 0.67 % | 0 % | 8 / 6 |

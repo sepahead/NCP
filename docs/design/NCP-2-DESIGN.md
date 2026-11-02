@@ -123,8 +123,8 @@ Every level runs in the gate, except the campaigns, which run before a release a
 | Proof | Owner safety for every sequence of requests, and progress without faults | Lean 4 model of rules 7.3.2 to 7.3.14 and proofs in `formal/`; only Lean's standard axioms; every proof replayed by the kernel. The compiled model is the oracle of the model conformance traces. The SDKs and the codec are tested, not proved. |
 | Fuzz | Decoders under arbitrary input | Differential: `conformance/fuzz.py` sends random, edited, and damaged frames with valid digests, and structured array references, to both decoders. Acceptance, messages, identities, and array bytes must be equal, and no decoder may crash. |
 | Modular composition | The ecosystem as a set of optional modules | A host with neural, body, monitor, and recorder modules in every subset of the optional ones; faults injected into each module; Prisoma verifies the transcript of every run; two runs with the same seed give the same message bodies |
-| Faults | Behavior under real faults | Bit flips, truncation, killed processes, stalls, oversized frames, and raising backends, for each binding |
-| Soak | Resources over long runs | Memory and open descriptors over 10^6 calls |
+| Faults | Behavior under real faults | Bit flips, truncation, killed processes, stalls, oversized frames, and raising backends, for each binding. Over pipes, with the Python client and both owners, [fault-campaign protocol 3](../../benchmarks/fault-campaign/README.md#results-of-protocol-3) found in 4,170 trials no wrong result, no step run twice, and no false report of a step |
+| Soak | Resources over long runs | Memory and open descriptors over 10^6 calls. Protocol 3: nine soaks of 200,000 to 1,000,000 calls, memory growth at most 0.69 %, constant descriptors |
 | Performance | The targets in section 8 | Preregistered protocols, three shuffled blocks |
 | Consumers | Each project's own gates | CI of CREBAIN, Galadriel, Prisoma, Haldir |
 
