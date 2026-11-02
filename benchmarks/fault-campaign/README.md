@@ -1,6 +1,7 @@
 # Fault campaign
 
-This directory holds a campaign of 22 October 2026 that drives local NCP sessions into the failures that the profile names.
+This directory holds two protocols. [Protocol 2](#protocol-2-ncp-2), at the end, tests NCP 2.
+Protocol 1, from here on, is a campaign of 22 October 2026 that drives local NCP 1.0.1 sessions into the failures that the profile names.
 It asks two questions: what happens in each failure, and does any failure make a client accept a wrong result.
 All trials use SDK 1.0.1 with `LocalClient` and a Python or Rust owner on one computer.
 
@@ -91,3 +92,21 @@ After the first tenth, the Rust processes grew by at most 0.6 percent, and in bl
 - A bit flip that SHA-256 cannot detect is possible in principle; no trial found one, and none is expected.
 - The time limit decides how fast a lost length prefix is detected.
 - The soak call times of the third block are slower because the machine was busy; they are not a property of NCP.
+
+## Protocol 2: NCP 2
+
+[`PROTOCOL-2.md`](PROTOCOL-2.md) was fixed on 2 November 2026 (SHA-256 in [`PROTOCOL-2.sha256`](PROTOCOL-2.sha256)).
+It drives NCP 2 sessions between the NCP 2 Python client and a Python or a Rust owner into damaged, truncated, and repeated frames, killed owners and clients, stalls, oversized results and requests, and raising handlers, and it adds three soaks.
+Each owner logs every execution before it runs, and each trial compares that log with what the client learned: no step may run twice or out of order, and no step may be reported as executed or not executed against the log.
+
+Before this protocol was fixed, a review of the client against specification 7.6, rule 7 found that both SDKs let a closed connection escape as an input/output error and left the client usable; commit `c24ff2f` fixed this.
+
+| Path | Content |
+| --- | --- |
+| [`run2.py`](run2.py), [`analyze2.py`](analyze2.py) | The runner and the analysis of protocol 2 |
+| [`harness/relay2.py`](harness/relay2.py) | The relay that flips, truncates, or repeats one NCP 2 frame |
+| [`harness/fault_owner2.py`](harness/fault_owner2.py) | The Python owner with injectable faults and an execution log |
+| [`harness/fault_client2.py`](harness/fault_client2.py) | One trial: the session, its classification, and the invariants |
+| [`harness/soak2.py`](harness/soak2.py) | The soaks, with memory and descriptor samples |
+
+It has not run yet.

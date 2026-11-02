@@ -92,6 +92,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Python a response with a bad header escaped as `FrameError` instead of
   `ProtocolError`. New tests in both SDKs fail on the old code. The SDK READMEs
   list the errors that a call reports and when nothing was sent.
+- [`benchmarks/fault-campaign`](benchmarks/fault-campaign/README.md) has a second
+  protocol, for NCP 2, fixed before its trials: damaged, truncated, and repeated
+  frames, killed owners and clients, stalls, oversized results and requests, raising
+  handlers, and soaks of up to 1,000,000 calls. Each owner logs every execution
+  before it runs, and each trial compares the log with what the client learned. For
+  it, the Rust echo owner example writes that log when `NCP_EXECUTION_LOG` is set, and
+  the Rust bench client keeps one call time in K with `--keep-every K`.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

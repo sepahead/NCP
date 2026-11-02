@@ -5,6 +5,8 @@
 //! echo_owner tcp                             one session per connection; prints "ready tcp:127.0.0.1:PORT"
 //!
 //! --no-digest-check turns off the comparison of request digests (spec section 3, rule 4).
+//! With NCP_EXECUTION_LOG set, each execution first appends its request body as one JSON line to
+//! that file; benchmarks/fault-campaign compares these lines with what the client learned.
 use ncp::{binding, Array, Contract, Decoded, Handler, Owner, Reply};
 use serde_json::json;
 use std::collections::HashMap;
@@ -27,9 +29,25 @@ fn spikes(n: usize) -> (Array, Array) {
 }
 
 /// echo returns the request body; spikes returns N cached spikes; fail fails.
-#[derive(Default)]
 struct Echo {
     cache: HashMap<usize, (Array, Array)>,
+    log: Option<std::fs::File>,
+}
+
+impl Default for Echo {
+    fn default() -> Self {
+        let log = std::env::var_os("NCP_EXECUTION_LOG").map(|path| {
+            std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .expect("execution log")
+        });
+        Echo {
+            cache: HashMap::new(),
+            log,
+        }
+    }
 }
 
 impl Handler for Echo {
@@ -48,6 +66,10 @@ impl Handler for Echo {
         op: &str,
         request: &Decoded,
     ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(log) = self.log.as_mut() {
+            // One write for the whole line, so that a killed owner leaves whole lines.
+            log.write_all(format!("{}\n", request.message["body"]).as_bytes())?;
+        }
         match op {
             "fail" => Err("requested failure".into()),
             "spikes" => {
