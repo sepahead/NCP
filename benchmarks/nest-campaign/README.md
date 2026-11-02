@@ -13,7 +13,7 @@ Seven protocols were fixed before their runs:
 | [`PROTOCOL-3.md`](PROTOCOL-3.md) | Cost of the coupling with NCP 2, against NCP 1.0.1 and MUSIC | 774 in run 1 | Content valid; timing disturbed (see below) |
 | [`PROTOCOL-4.md`](PROTOCOL-4.md) | Protocol 3 under controlled conditions, with the time of every step | 43 attempts, then stopped | A pilot: its clock check at the end of a run marked normal readings as disturbed (see below) |
 | [`PROTOCOL-5.md`](PROTOCOL-5.md) | Protocol 4 with a clock limit of 3.8 GHz at the end of a run | 774 | The timing results for NCP 2 against NCP 1.0.1 |
-| [`PROTOCOL-CONTENT-2.md`](PROTOCOL-CONTENT-2.md) | Exact delivery of every spike with NCP 2, also with 10,000 neurons | not yet run | Fixed on 2 November 2026 |
+| [`PROTOCOL-CONTENT-2.md`](PROTOCOL-CONTENT-2.md) | Exact delivery of every spike with NCP 2, also with 10,000 neurons | 96 trials | The content results for NCP 2 |
 
 [`summary.md`](summary.md) holds the tables of protocols 1, 2, and the content part; `summary.py` writes it from the analysis files. [`results-3/summary.md`](results-3/summary.md) holds those of protocol 3, and [`results-5/summary.md`](results-5/summary.md) those of protocol 5.
 
@@ -23,8 +23,8 @@ In protocol 5, an NCP 2 exchange added 23 to 32 µs to each 1 ms step of the Bru
 NCP 1.0.1 added 228 to 248 µs and 492 to 524 µs, 8 to 10 times as much.
 A round trip to an echo process without a protocol took 8 to 11 µs.
 When each step returned its spikes, NCP 2 added 36 to 119 µs with a Rust host. NCP 1.0.1 added 434 to 1,365 µs, and it cannot carry the largest steps.
-NCP 1.0.1 delivered exactly the spikes that NEST recorded, with every thread count; MUSIC did so only with one NEST thread.
-For NCP 2, protocols 3 and 5 check the number of spikes in every run; content protocol 2 compares every spike.
+Every NCP host received exactly the spikes that NEST recorded, with every thread count: NCP 1.0.1 in the content protocol, and NCP 2, with its Python and its Rust host, in all 96 trials of content protocol 2, also with 10,000 neurons.
+MUSIC did so only with one NEST thread.
 
 These times are measured inside the processes. They leave out one effect: a coupled NEST can do its own work more slowly than NEST alone.
 At 10,000 neurons, that effect varied between runs by more than the time of an exchange, so the campaign does not give the whole cost of a coupling there (protocol 5, G1 and G3).
@@ -77,9 +77,35 @@ NCP 1.0.1 delivered exactly the spikes of the reference in every trial, with eve
 MUSIC delivered exactly the recorded spikes with one NEST thread; with T threads, only n/T of the n channels carried the exact train of their neuron, while NEST's own recorder was correct.
 [`music-threads/`](music-threads) reproduces this with the per-neuron and the channel-list forms of the MUSIC connection.
 
+## Results of content protocol 2
+
+The 96 trials ran on 2 November 2026 from 15:15 to 15:51 UTC, from the clean commit `e7f18e1`. None failed.
+Each trial compared every spike that a host received, its neuron and its time, with NEST's recorder in a separate run: 42,026,126 spikes in all, for the two hosts together.
+Timing was not measured, so the trials did not need the controlled conditions of protocol 5; other programs were running, and the computer ran on battery for part of the time.
+
+| Neurons | NEST threads | Trials | NCP 2 Python host exact | NCP 2 Rust host exact | Spikes per trial |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1000 | 1 | 18 | 18 | 18 | 18,217 to 116,892 |
+| 1000 | 2 | 18 | 18 | 18 | 18,165 to 116,962 |
+| 1000 | 4 | 18 | 18 | 18 | 18,167 to 116,858 |
+| 1000 | 8 | 18 | 18 | 18 | 18,173 to 116,878 |
+| 10,000 | 1 | 6 | 6 | 6 | 713,096 to 716,538 |
+| 10,000 | 2 | 6 | 6 | 6 | 713,746 to 716,976 |
+| 10,000 | 4 | 6 | 6 | 6 | 712,176 to 716,893 |
+| 10,000 | 8 | 6 | 6 | 6 | 712,786 to 715,696 |
+
+| # | Hypothesis | Holds |
+| --- | --- | --- |
+| K1 | In every trial, the NCP 2 Python host receives exactly the reference multiset. | yes |
+| K2 | In every trial, the NCP 2 Rust host receives exactly the reference multiset. | yes |
+| K3 | For the 24 configurations of the content protocol, the reference total of each trial equals that of the same configuration and block in the content protocol. | yes: 72 of 72 |
+
+This also checks the readback of protocols 2 to 5, which reads the recorder's ASCII files after each interval: it gave exactly NEST's spikes in every trial.
+The records are in [`results-content-2/`](results-content-2).
+
 ## Protocol 3, run 1
 
-All 774 runs of 23 October 2026 (19:00 to 20:48 UTC) were valid. At every NCP host, the number of received spikes equalled NEST's recorder total, the recorded counts agreed across arms within each configuration and block (G4), and they equal protocol 2's totals (G5). NCP 2 delivered steps of Brunel with 10,000 neurons at Δ = 5 ms, which NCP 1.0.x refuses. Protocol 3 compares numbers of spikes, not the spikes themselves; [content protocol 2](PROTOCOL-CONTENT-2.md) compares every spike.
+All 774 runs of 23 October 2026 (19:00 to 20:48 UTC) were valid. At every NCP host, the number of received spikes equalled NEST's recorder total, the recorded counts agreed across arms within each configuration and block (G4), and they equal protocol 2's totals (G5). NCP 2 delivered steps of Brunel with 10,000 neurons at Δ = 5 ms, which NCP 1.0.x refuses. Protocol 3 compares numbers of spikes, not the spikes themselves; [content protocol 2](PROTOCOL-CONTENT-2.md) compares every spike and found them exact.
 
 The timing of the run is disturbed:
 
@@ -161,7 +187,7 @@ Run 1's results stay in [`results/`](results) as a record; its differences are u
 | `run.py`, `content_run.py`, `run3.py`, `run4.py` | The runners; each resumes after an interruption; `run4.py --protocol 5` runs protocol 5, and `content_run.py --protocol 2` the content protocol 2 |
 | `analyze.py`, `analyze_content.py`, `analyze_content2.py`, `summary.py`, `analyze3.py`, `analyze4.py`, `figures.py` | The analyses, the tables, and the figures of protocol 5 |
 | `harness/` | The networks, the NEST owners, the Python and Rust hosts of NCP 1.0.1 and NCP 2, the raw round trip, the MUSIC peer, the content checks (`content.py`, `content2.py`), and the clock probe |
-| `results/`, `results-2/`, `results-content/`, `results-3/`, `results-5/` | Schedules, environments, every run, and the analyses; `results-5/figures/` holds the figures |
+| `results/`, `results-2/`, `results-content/`, `results-3/`, `results-5/`, `results-content-2/` | Schedules, environments, every run, and the analyses; `results-5/figures/` holds the figures |
 | `results-4-pilot/` | The 43 attempts of protocol 4 that led to protocol 5; a pilot record, not results |
 | `music-threads/` | The reproduction of the MUSIC result with more than one thread |
 | `profiling/` | Where the time of an NCP 2 exchange goes inside the NEST process |

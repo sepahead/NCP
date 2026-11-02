@@ -1,0 +1,83 @@
+{
+ "protocol": "PROTOCOL-CONTENT-2.md",
+ "protocol_sha256": "6c3a98ad5ae4fddfee075bc1b9ce9f2dd18500d45cd71dd42ac73fbc8bf015fb",
+ "trials": 96,
+ "expected_trials": 96,
+ "failed": [],
+ "count_equals_recorded": true,
+ "spikes_compared": 42026126,
+ "by_size_and_threads": {
+  "n1000/t1": {
+   "trials": 18,
+   "ncp2_py_exact": 18,
+   "ncp2_rs_exact": 18,
+   "reference_spikes_min": 18217,
+   "reference_spikes_max": 116892
+  },
+  "n1000/t2": {
+   "trials": 18,
+   "ncp2_py_exact": 18,
+   "ncp2_rs_exact": 18,
+   "reference_spikes_min": 18165,
+   "reference_spikes_max": 116962
+  },
+  "n1000/t4": {
+   "trials": 18,
+   "ncp2_py_exact": 18,
+   "ncp2_rs_exact": 18,
+   "reference_spikes_min": 18167,
+   "reference_spikes_max": 116858
+  },
+  "n1000/t8": {
+   "trials": 18,
+   "ncp2_py_exact": 18,
+   "ncp2_rs_exact": 18,
+   "reference_spikes_min": 18173,
+   "reference_spikes_max": 116878
+  },
+  "n10000/t1": {
+   "trials": 6,
+   "ncp2_py_exact": 6,
+   "ncp2_rs_exact": 6,
+   "reference_spikes_min": 713096,
+   "reference_spikes_max": 716538
+  },
+  "n10000/t2": {
+   "trials": 6,
+   "ncp2_py_exact": 6,
+   "ncp2_rs_exact": 6,
+   "reference_spikes_min": 713746,
+   "reference_spikes_max": 716976
+  },
+  "n10000/t4": {
+   "trials": 6,
+   "ncp2_py_exact": 6,
+   "ncp2_rs_exact": 6,
+   "reference_spikes_min": 712176,
+   "reference_spikes_max": 716893
+  },
+  "n10000/t8": {
+   "trials": 6,
+   "ncp2_py_exact": 6,
+   "ncp2_rs_exact": 6,
+   "reference_spikes_min": 712786,
+   "reference_spikes_max": 715696
+  }
+ },
+ "hypotheses": {
+  "K1": {
+   "criterion": "in every trial, the NCP 2 Python host receives exactly the reference multiset",
+   "holds": true
+  },
+  "K2": {
+   "criterion": "in every trial, the NCP 2 Rust host receives exactly the reference multiset",
+   "holds": true
+  },
+  "K3": {
+   "criterion": "the reference totals of the 24 configurations of the content protocol equal its totals",
+   "compared": 72,
+   "differing": [],
+   "holds": true
+  }
+ }
+}

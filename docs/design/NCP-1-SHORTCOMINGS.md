@@ -34,7 +34,7 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 | 4 | The 41 kB descriptor mixed the protocol with one reference experiment's data types | Applications describe their operations and streams in their own contract documents, identified by their digest | Fixed | Specification, section 11 |
 | 5 | Two version lines, for the SDK and for the wire | One version, NCP 2, for the protocol and both SDKs | Fixed | Design record, decision 13 |
 | 6 | The names "local", "modular", and "wire 1.0" did not explain themselves | Exchange, stream, byte-stream binding, Zenoh binding | Fixed | Specification, section 2 |
-| 7 | The remote family carried the Zenoh dependency tree and every RustSec advisory of October 2026 | The Python SDK uses only the standard library; the Rust SDK uses `serde`, `serde_json`, `sha2`, and `socket2`. Zenoh is only in the optional binding | Fixed for the core | `python/pyproject.toml`, `rust/Cargo.toml` |
+| 7 | The remote family carried the Zenoh dependency tree and every RustSec advisory of October 2026 | The Python SDK uses only the standard library; the Rust SDK uses `serde`, `serde_json`, `sha2`, and `socket2`. Zenoh is only in the optional binding | Fixed for the core | `python/pyproject.toml`, `rust/Cargo.toml`; on 2 November 2026, none of the repository's 131 open Dependabot alerts concerned them |
 
 ## 2. Exchange semantics and speed
 
@@ -57,7 +57,7 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 | 17 | One fixed frame bound of 64 KiB for every application | The client requests a bound at `open`, from 64 KiB to 64 MiB; the reference SDKs use 1 MiB | Fixed | Specification, sections 7.1 and 12 |
 | 18 | Bulk data needed the modular family's separate buffer system | Every frame can carry binary attachments, aligned to 8 bytes and read in place | Fixed | Specification, section 5 |
 | 19 | Spikes travelled as lists of JSON numbers, and digests needed a canonical form | Arrays travel as attachments, and the digest covers the exact bytes | Fixed | Comparison benchmark: the speed-up grows with the number of spikes |
-| 20 | At 10,000 neurons and 5 ms, the spike result exceeded 64 KiB and the run failed | In every run of that kind, NCP 2 carried each step, and the number of spikes at the host equalled the recorder's total. Measured inside the processes, an exchange adds 119 µs; from the wall times, 0.200 ms, above the target of 0.15 ms | Fixed | NEST campaign, protocols 3 and 5 (G3, G7); content protocol 2 compares every spike |
+| 20 | At 10,000 neurons and 5 ms, the spike result exceeded 64 KiB and the run failed | NCP 2 carried every step of that kind, and both hosts received exactly NEST's spikes. Measured inside the processes, an exchange adds 119 µs; from the wall times, 0.200 ms, above the target of 0.15 ms | Fixed | NEST campaign, protocols 3 and 5 (G3, G7), and content protocol 2 (96 trials) |
 | 21 | The lockstep run plan allowed at most three entities | NCP limits only frames: the bound, 1024 attachments, and the limits of section 12 | Fixed | Specification, section 12 |
 
 ## 4. Change over time
@@ -102,15 +102,15 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 These items follow from the open rows above and from the [design record](NCP-2-DESIGN.md).
 They are the remaining work before the release of NCP 2.0.
 
-1. The NEST content protocol 2: a comparison of every spike that the NCP 2 hosts receive with NEST's recorder (row 20).
-2. Real-process fault and soak campaigns for both SDKs and every binding (row 28).
-3. A modular-composition test: a host with neural, body, monitor, and recorder modules in every subset of the optional ones, with faults, and a check of every transcript (row 30).
-4. The multi-agent and MPI benchmarks, with the rounds helper (design record, sections 8 and 11.4).
-5. The Zenoh binding with mutual TLS and access control (row 32).
-6. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
-7. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
-8. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
-9. A guide for readers without a background in protocols, with figures (row 35).
+1. Real-process fault and soak campaigns for both SDKs and every binding (row 28).
+2. A modular-composition test: a host with neural, body, monitor, and recorder modules in every subset of the optional ones, with faults, and a check of every transcript (row 30).
+3. The multi-agent and MPI benchmarks, with the rounds helper (design record, sections 8 and 11.4).
+4. The Zenoh binding with mutual TLS and access control (row 32).
+5. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
+6. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
+7. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
+8. A guide for readers without a background in protocols, with figures (row 35).
+9. Comparison protocol 2: the comparison with other systems on the power adapter, and with the same integrity check in every arm.
 
 Protocol 5 also left one question open that is not a shortcoming of NCP 1: whether a coupling slows NEST's own work. At 10,000 neurons, that work varied between runs by more than the time of an exchange (hypotheses G1 and G3).
 
