@@ -2,7 +2,9 @@
 //!
 //! Usage: ncp2-nest-host PAYLOAD NETWORK N THREADS DELTA_MS SEED CONTRACT OWNER [ARG...]
 //! Starts the NEST owner, prepares the network, advances 2 s of simulated time in steps of
-//! DELTA_MS, and finishes. Prints one JSON line.
+//! DELTA_MS, and finishes. Prints one JSON line. With NCP_COLLECT_OUT set and the payload
+//! `spikes`, it also writes every received sender and step to that file (the content protocol 2,
+//! ../../../PROTOCOL-CONTENT-2.md).
 use ncp::{Client, Contract, Decoded};
 use serde_json::json;
 use std::process::Command;
@@ -10,12 +12,19 @@ use std::time::Instant;
 
 const T_BIO_MS: f64 = 2000.0;
 
+/// The attachment index of the array that a body member refers to.
+fn array_index(reply: &Decoded, member: &str) -> usize {
+    reply.message["body"][member]["ncp.array"]["att"]
+        .as_u64()
+        .expect("array reference") as usize
+}
+
 /// The number of elements of the array that a body member refers to.
 fn array_length(reply: &Decoded, member: &str) -> u64 {
-    let index = reply.message["body"][member]["ncp.array"]["att"]
-        .as_u64()
-        .expect("array reference") as usize;
-    reply.arrays[index].shape.iter().product()
+    reply.arrays[array_index(reply, member)]
+        .shape
+        .iter()
+        .product()
 }
 
 fn main() {
@@ -38,6 +47,11 @@ fn main() {
     let steps = (T_BIO_MS / delta).round() as u64;
     let mut spikes = 0u64;
     let mut calls: Vec<u64> = Vec::with_capacity(steps as usize);
+    let collect = std::env::var("NCP_COLLECT_OUT")
+        .ok()
+        .filter(|_| payload == "spikes");
+    let mut senders: Vec<u32> = Vec::new();
+    let mut times: Vec<i64> = Vec::new();
     let started = Instant::now();
     for _ in 0..steps {
         let call_started = Instant::now();
@@ -50,11 +64,28 @@ fn main() {
         } else {
             array_length(&reply, "senders")
         };
+        if collect.is_some() {
+            senders.extend(
+                reply
+                    .array_u32(array_index(&reply, "senders"))
+                    .expect("u32 senders"),
+            );
+            times.extend(
+                reply
+                    .array_i64(array_index(&reply, "steps"))
+                    .expect("i64 steps"),
+            );
+        }
     }
     let wall = started.elapsed().as_secs_f64();
     // Protocol 4: each call as the host sees it, in nanoseconds.
     if let Ok(path) = std::env::var("NCP_CALL_TIMES") {
         std::fs::write(path, serde_json::to_vec(&calls).expect("times")).expect("write times");
+    }
+    if let Some(path) = &collect {
+        let collected = json!({"senders": senders, "steps": times});
+        std::fs::write(path, serde_json::to_vec(&collected).expect("collected"))
+            .expect("write collected");
     }
     let finished = client.call("finish", json!({}), &[]).expect("finish");
     client.close().expect("close");

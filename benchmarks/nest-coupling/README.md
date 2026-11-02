@@ -86,7 +86,7 @@ MUSIC exchanges events inside the NEST update loop, so its baseline is `mono`.
 ## Results
 
 All 120 timed runs were valid.
-In each run the peer or host received exactly the spikes that NEST recorded.
+In each run, the number of spikes that the peer received, or that the host counted, equalled the number that NEST recorded. The runs compared numbers, not the spikes themselves; [`../nest-campaign`](../nest-campaign) compares every spike.
 Each arm gave the same count as `chunked` for the same Δ: 25448, 25448, 25419, and 25356 spikes.
 
 | Δ (ms) | `mono` | `music` | `chunked` | `chunked-spikes` | `ncp` | `ncp-spikes` |

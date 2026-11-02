@@ -2,10 +2,14 @@
 
 Usage: ncp2_host.py {count|spikes} NETWORK N THREADS DELTA_MS SEED
 The NCP 2 Python SDK is the `ncp` package on PYTHONPATH; the owner uses the same one.
+With NCP_COLLECT_OUT set and the payload `spikes`, the host also writes every received sender and
+step to that file (the content protocol 2, PROTOCOL-CONTENT-2.md).
 """
 
 from __future__ import annotations
 
+import json
+import os
 import sys
 from pathlib import Path
 
@@ -26,14 +30,23 @@ def main() -> None:
     load = load1()
     spikes = 0
     calls: list[int] = []
+    collect = os.environ.get("NCP_COLLECT_OUT") if payload == "spikes" else None
+    senders: list[int] = []
+    times: list[int] = []
     t0 = now()
     for _ in range(steps):
         start = tick()
         body = client.call("step", {"stimulus": 0}).body
         calls.append(tick() - start)
         spikes += body["count"] if payload == "count" else body["senders"].shape[0]
+        if collect:
+            senders += body["senders"].tolist()
+            times += body["steps"].tolist()
     t1 = now()
     save_times("NCP_CALL_TIMES", calls)
+    if collect:
+        with open(collect, "w") as handle:
+            json.dump({"senders": senders, "steps": times}, handle)
     finished = client.call("finish", {}).body
     client.close()
     code = process.wait(timeout=120)

@@ -136,16 +136,18 @@ Targets for NCP 2 on the same computer as section 3, tested by preregistered pro
 | --- | --- | --- | --- |
 | Rust client and Rust echo owner, one call | 35.6 µs | ≤ 15 µs | 9.1 µs ([comparison benchmark](../../benchmarks/comparison/README.md), H2) |
 | Python client and Python echo owner, one call | 466 µs | ≤ 150 µs | 38.6 µs (H2) |
-| NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | ≤ 0.10 ms | 0.036 ms in run 1 of [NEST protocol 3](../../benchmarks/nest-campaign/README.md) (G2), whose timing was disturbed; protocol 4 repeats it |
-| Spike payloads (D4 of the NEST campaign) | 0.4–1.4 ms, and failure above 64 KiB | ≤ 0.15 ms, no failure | No failure: every D4 run delivered the exact spikes, also with 10,000 neurons at 5 ms. The cost is not established, because the timing of run 1 was disturbed; protocol 4 repeats it. 1788 spikes in one call take 32.8 µs (Rust) and 67.8 µs (Python) without NEST |
+| NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | ≤ 0.10 ms | 0.032 ms, the median of six configurations at Δ = 1 ms ([NEST protocol 5](../../benchmarks/nest-campaign/README.md#results-of-protocol-5), G2). Measured inside the processes, an exchange adds 23 to 32 µs, against 228 to 248 µs for NCP 1.0.1 (G6) |
+| Spike payloads (D4 of the NEST campaign) | 0.4–1.4 ms, and failure above 64 KiB | ≤ 0.15 ms, no failure | No failure: NCP 2 carried every step, also with 10,000 neurons at 5 ms, and the number of spikes at the host equalled the recorder's total in every run (protocols 3 and 5); [content protocol 2](../../benchmarks/nest-campaign/PROTOCOL-CONTENT-2.md) compares every spike. Measured inside the processes, an exchange adds 36 to 119 µs (protocol 5, G7). From the wall times: 0.044 to 0.054 ms in three configurations, and 0.200 ms with 10,000 neurons at 5 ms, above the target (G3), where NEST's own work varied between runs by more than the time of an exchange. 1788 spikes in one call take 32.8 µs (Rust) and 67.8 µs (Python) without NEST |
 
 In the comparison benchmark, all five preregistered hypotheses held: NCP 2 is 4.2 to 165 times faster than NCP 1.0.1, adds 4.6 µs to a raw pipe, and is faster than gRPC and Zenoh in Rust and than gRPC and HTTP/1.1 in Python up to 1788 spikes. At 1 MiB, systems without an integrity check are faster, by about the time of one SHA-256 digest.
+
+In NEST protocol 5, NCP 2 met the targets for the time measured inside the processes (G6, G7) and for the median cost per exchange (G2). The two hypotheses that compare the wall times of separate runs failed in one configuration each (G1, G3). There, NEST's own work varied between runs by more than the time of an exchange, so whether a coupling slows NEST's own work is open.
 
 Comparisons, with the same workloads, shown as figures in this repository:
 
 - Exchange latency and throughput for payloads from 0 bytes to 1 MiB: NCP 2 (Rust, Python), NCP 1.0.1, gRPC (Rust and Python; the transport that NRP-core recommends), HTTP with JSON (NRP-core's JSON engines), ZeroMQ request and reply, and Zenoh query and reply. A raw pipe echo gives the lower bound.
 - NEST coupling: NCP 2, NCP 1.0.1, MUSIC, and a raw round trip to an echo process after each interval, for each network, size, thread count, and interval. The raw round trip is the cost that every coupling through a pipe or a socket pays after each interval, gRPC included; the comparison benchmark measures gRPC on the same payloads, so a gRPC owner of NEST would add little.
-- Correct-content throughput: the wall time of a run whose delivered spikes are exact. MUSIC is exact only with one NEST thread in this build; NCP is exact with any thread count.
+- Correct-content throughput: the wall time of a run whose delivered spikes are exact. MUSIC is exact only with one NEST thread in this build; NCP 1.0.1 is exact with any thread count (content protocol), and content protocol 2 checks NCP 2.
 - Multi-agent scaling: 1 to 256 sessions, Rust and Python hosts.
 - MPI: the rank-0 owner pattern with 1 to 8 MPI ranks on one computer.
 - A feature matrix of NCP 2, MUSIC, NRP-core, FMI 3 co-simulation, gRPC, ROS 2, and Zenoh.
