@@ -1,0 +1,1717 @@
+{
+ "protocol": "PROTOCOL-2.md",
+ "protocol_sha256": "1d7a7451760f1dcf42ef321cddd1c9baaee97a56c2d9123a44c0de43ebab7921",
+ "seed": 20261102,
+ "blocks": 3,
+ "smoke": false,
+ "calls": {
+  "0": [
+   5000,
+   500
+  ],
+  "127": [
+   5000,
+   500
+  ],
+  "1788": [
+   5000,
+   500
+  ],
+  "87381": [
+   300,
+   30
+  ]
+ },
+ "created_utc": "2026-11-02T23:05:55.217922Z",
+ "commit": "c701f568cdaf5fd9f97d36bd13108eb9f0e573d2",
+ "worktree_clean": true,
+ "order": [
+  {
+   "block": 0,
+   "config": "ncp2-python-python-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-rust-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-rust-python-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-tcp-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "http-python-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-python-python-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-unix-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-unix-n1788"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-tcp-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-rust-tcp-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "http-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-ipc-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-tcp-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-unix-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-rust-python-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-unix-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-python-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-rust-rust-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-rust-tcp-n0"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-tcp-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-ipc-n1788"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-python-tcp-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-rust-pipe-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-nocheck-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "http-python-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-python-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-unix-n0"
+  },
+  {
+   "block": 0,
+   "config": "raw-python-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-unix-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-tcp-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-unix-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-unix-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-ipc-n0"
+  },
+  {
+   "block": 0,
+   "config": "http-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "raw-python-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-tcp-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-ipc-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "http-python-tcp-n0"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-tcp-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "raw-python-pipe-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-ipc-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-ipc-n87381"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-pipe-nocheck-n87381"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-unix-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-tcp-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-tcp-n0"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-python-tcp-n0"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-tcp-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-pipe-nocheck-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-unix-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-pipe-nocheck-n0"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-unix-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-rust-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-rust-tcp-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-python-rust-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-python-rust-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-tcp-n1788"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "raw-python-pipe-n87381"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-ipc-n127"
+  },
+  {
+   "block": 0,
+   "config": "http-python-tcp-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-tcp-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-unix-n0"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-nocheck-n1788"
+  },
+  {
+   "block": 0,
+   "config": "http-python-tcp-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-rust-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-unix-n1788"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-ipc-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "http-python-tcp-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-unix-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-python-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-rust-tcp-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-tcp-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-unix-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-tcp-n0"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-unix-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "raw-python-pipe-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "raw-python-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-nocheck-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-pipe-n87381"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-unix-n0"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-python-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-python-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-python-rust-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-pipe-nocheck-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-tcp-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-tcp-n0"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-rust-tcp-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "raw-python-pipe-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-unix-n87381"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-unix-n127"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-rust-tcp-n1788"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-python-tcp-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-unix-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "zmq-python-tcp-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-nocheck-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-python-unix-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-python-rust-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-unix-n127"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-python-python-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-python-pipe-n87381"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-python-tcp-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-rust-python-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-rust-rust-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "zenoh-rust-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-python-unix-n87381"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-unix-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp1-python-python-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "raw-python-pipe-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "grpc-rust-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-unix-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-rust-tcp-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "http-python-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-unix-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "http-python-tcp-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-unix-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-python-python-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-rust-rust-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-python-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-unix-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-pipe-nocheck-n1788"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-unix-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-unix-n87381"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-unix-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-unix-n1788"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-python-pipe-n87381"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-ipc-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-tcp-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "raw-python-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "http-python-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-python-tcp-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-rust-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-python-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-unix-n87381"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-python-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-rust-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-nocheck-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-unix-n87381"
+  },
+  {
+   "block": 1,
+   "config": "raw-python-pipe-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-rust-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-tcp-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-rust-pipe-n87381"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-tcp-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-rust-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-unix-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-rust-tcp-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-rust-python-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-nocheck-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-unix-n0"
+  },
+  {
+   "block": 1,
+   "config": "raw-python-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-rust-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-tcp-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-ipc-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-ipc-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-unix-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-tcp-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-python-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-python-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-python-python-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-python-tcp-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "raw-python-pipe-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-rust-python-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-python-rust-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-pipe-nocheck-n0"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-tcp-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-pipe-nocheck-n87381"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-python-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-unix-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-python-python-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "raw-python-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "http-python-tcp-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-unix-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "http-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-rust-tcp-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-ipc-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-rust-python-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "http-python-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-unix-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-unix-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-ipc-n1788"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-unix-n127"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-rust-tcp-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "http-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "raw-python-pipe-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-rust-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-pipe-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-unix-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-python-rust-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-ipc-n0"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-ipc-n87381"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-unix-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-unix-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-rust-rust-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "http-python-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "zenoh-rust-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-ipc-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-nocheck-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-unix-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-python-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-unix-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-nocheck-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp1-python-rust-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-tcp-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-python-python-pipe-nocheck-n127"
+  },
+  {
+   "block": 1,
+   "config": "raw-python-pipe-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "zmq-python-tcp-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "grpc-rust-unix-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "raw-python-pipe-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-unix-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-tcp-n0"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-ipc-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-nocheck-n0"
+  },
+  {
+   "block": 2,
+   "config": "http-python-tcp-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-python-python-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-rust-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "http-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-python-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-rust-python-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-tcp-n0"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-python-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "http-python-tcp-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-unix-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-rust-rust-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-rust-python-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-python-tcp-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-python-tcp-n0"
+  },
+  {
+   "block": 2,
+   "config": "raw-python-pipe-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-python-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-ipc-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-unix-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-python-rust-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-unix-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-unix-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-unix-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "http-python-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-python-python-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-unix-n127"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-rust-tcp-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "http-python-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-rust-tcp-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-unix-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-unix-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-nocheck-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-rust-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-rust-tcp-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-python-rust-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-ipc-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-unix-n1788"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-tcp-n0"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-rust-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-python-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-pipe-nocheck-n127"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-ipc-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-rust-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-pipe-nocheck-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-nocheck-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-unix-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-python-python-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-rust-python-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-python-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-unix-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-tcp-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-python-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-rust-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-python-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-ipc-n87381"
+  },
+  {
+   "block": 2,
+   "config": "http-python-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-python-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-unix-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-tcp-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-tcp-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-tcp-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-unix-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-python-tcp-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-unix-n127"
+  },
+  {
+   "block": 2,
+   "config": "raw-python-pipe-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-tcp-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-python-rust-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-ipc-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-ipc-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "raw-python-pipe-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "http-python-tcp-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-tcp-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-python-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-pipe-nocheck-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-unix-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-python-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-unix-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-unix-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-unix-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-nocheck-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp1-rust-rust-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-tcp-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-ipc-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-unix-n0"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-rust-tcp-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-rust-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-unix-n87381"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-tcp-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-rust-tcp-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-python-pipe-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-rust-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-unix-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "http-python-tcp-n0"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-unix-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-unix-n0"
+  },
+  {
+   "block": 2,
+   "config": "zmq-python-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-pipe-nocheck-n0"
+  },
+  {
+   "block": 2,
+   "config": "zenoh-python-tcp-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "grpc-python-tcp-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-python-python-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "grpc-rust-tcp-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "raw-python-pipe-n1788"
+  }
+ ],
+ "conditions": {
+  "load_limit": 8.0,
+  "clock_min_ghz": 4.0,
+  "end_clock_min_ghz": 3.8,
+  "max_attempts": 3,
+  "sleep_limit_s": 0.5
+ }
+}

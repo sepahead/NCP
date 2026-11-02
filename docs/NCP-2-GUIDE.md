@@ -108,7 +108,12 @@ In both, the protocol of each measurement was fixed, with its fingerprint, befor
 | MUSIC | Spikes and other data between simulators that run in one MPI job | In this NEST build, exact spikes only with one NEST thread; with T threads, only one channel in T carried its exact spike train | Exact spikes with any number of threads, between separate processes |
 
 These numbers come from one laptop. With 1 MiB of data in each call, the tools without a fingerprint check were faster than NCP 2, by about the time that the check takes.
-A second protocol of the comparison benchmark gives every other tool the same fingerprint check as NCP 2; it has not run yet.
+A second run gave every other tool the same fingerprint check as NCP 2, added by the benchmark. Then NCP 2 was the fastest in every case, from an empty result to 1 MiB, in Rust and in Python.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/comparison/results-2/figures/integrity_dark.svg">
+  <img src="../benchmarks/comparison/results-2/figures/integrity_light.svg" alt="Call time of NCP 2 against gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe that each add a SHA-256 fingerprint to every message, for Rust and Python and four message sizes, on log scales. In every panel, the fastest NCP 2 arm is the fastest system.">
+</picture>
 
 ## How we know that it works
 

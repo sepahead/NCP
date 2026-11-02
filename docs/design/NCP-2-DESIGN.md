@@ -141,6 +141,8 @@ Targets for NCP 2 on the same computer as section 3, tested by preregistered pro
 
 In the comparison benchmark, all five preregistered hypotheses held: NCP 2 is 4.2 to 165 times faster than NCP 1.0.1, adds 4.6 µs to a raw pipe, and is faster than gRPC and Zenoh in Rust and than gRPC and HTTP/1.1 in Python up to 1788 spikes. At 1 MiB, systems without an integrity check are faster, by about the time of one SHA-256 digest.
 
+Comparison protocol 2 repeated the benchmark on the power adapter under controlled conditions: H1 to H5 held again, and when gRPC, ZeroMQ, HTTP/1.1, and Zenoh made the same SHA-256 check of each message as NCP 2, the fastest NCP 2 arm was faster than all of them in both languages at every size, 1 MiB included ([results](../../benchmarks/comparison/README.md#results-of-protocol-2)).
+
 In NEST protocol 5, NCP 2 met the targets for the time measured inside the processes (G6, G7) and for the median cost per exchange (G2). The two hypotheses that compare the wall times of separate runs failed in one configuration each (G1, G3). There, NEST's own work varied between runs by more than the time of an exchange, so whether a coupling slows NEST's own work is open.
 
 Comparisons, with the same workloads, shown as figures in this repository:

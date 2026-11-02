@@ -653,7 +653,7 @@ def summary(stats: dict, result: dict, parts: list[dict], context: dict, integri
             f"{len(context['still_disturbed'])}{' (' + ', '.join(context['still_disturbed']) + ')' if context['still_disturbed'] else ''}. "
             f"Clock of a core before each run: {context['clock_before'][0]} to {context['clock_before'][1]} GHz; "
             f"after it: {context['clock_after'][0]} to {context['clock_after'][1]} GHz. "
-            f"Waiting for the conditions: {context['waited_minutes']} minutes in all.",
+            f"Waiting for the conditions: {context['waited_minutes']} minute{'' if context['waited_minutes'] == 1 else 's'} in all.",
         ]
     lines += [
         "",

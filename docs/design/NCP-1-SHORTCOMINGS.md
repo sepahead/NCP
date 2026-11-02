@@ -9,7 +9,7 @@ The sources of the shortcomings are NCP 1's [known limitations](../../KNOWN_LIMI
 NCP 1 grew into three overlapping protocols with about 59,000 lines of code.
 A call needed two round trips, a result above 64 KiB ended the run, and the remote family brought most of the dependencies and every security advisory of October 2026.
 NCP 2 replaces the three with one protocol: a specification of 362 lines and 3,876 lines of code in Rust and Python.
-A call is 4 to 165 times faster than with NCP 1.0.1, and coupled to NEST, an exchange adds 23 to 32 µs instead of 228 to 248 µs. A frame can carry up to 64 MiB, and the owner's rules are proved in Lean.
+A call is 4 to 165 times faster than with NCP 1.0.1, and coupled to NEST, an exchange adds 23 to 32 µs instead of 228 to 248 µs. When gRPC, ZeroMQ, HTTP/1.1, and Zenoh make the same integrity check, NCP 2 is faster than each of them at every message size. A frame can carry up to 64 MiB, and the owner's rules are proved in Lean.
 
 Some work is still open. Section 8 lists it.
 
@@ -92,7 +92,7 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 
 | # | Shortcoming of NCP 1 | What NCP 2 does | Status | Check |
 | --- | --- | --- | --- | --- |
-| 35 | The README led with evidence boundaries instead of the purpose | The specification and the SDK READMEs start with the purpose. [NCP 2 in plain words](../NCP-2-GUIDE.md) explains NCP 2 with figures for readers without a background in protocols. The README leads with NCP 1 until the release of NCP 2 | Fixed for NCP 2; the README at the release | [Guide](../NCP-2-GUIDE.md); section 8 |
+| 35 | The README led with evidence boundaries instead of the purpose | The README, the specification, and the SDK READMEs start with the purpose, and the README leads with NCP 2. [NCP 2 in plain words](../NCP-2-GUIDE.md) explains NCP 2 with figures for readers without a background in protocols | Fixed | [README](../../README.md), [guide](../NCP-2-GUIDE.md) |
 | 36 | Legacy files sat next to current documents | The NCP 1 code and documents stay on the main branch until the last consumer has moved; then they leave it | Open | [Migration plan](NCP-2-MIGRATION.md) |
 | 37 | The reasons for the design were spread over many files | The design record collects them, and the comparison benchmark measures the alternatives | Fixed | Design record |
 | 38 | Wire 1.0 had TypeScript and C++ packages | NCP 2 has no TypeScript or C++ package. A frame is plain bytes that any language can make; CREBAIN's web interface needs a TypeScript client or a bridge | Open | Section 8 |
@@ -108,8 +108,7 @@ They are the remaining work before the release of NCP 2.0.
 4. The Zenoh binding with mutual TLS and access control (row 32).
 5. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
 6. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
-7. Release artifacts and supply-chain records for both packages (row 31), and a README that leads with NCP 2 (row 35); the tag and the publication are owner actions.
-8. Comparison protocol 2: the comparison with other systems on the power adapter, and with the same integrity check in every arm.
+7. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
 
 Protocol 5 also left one question open that is not a shortcoming of NCP 1: whether a coupling slows NEST's own work. At 10,000 neurons, that work varied between runs by more than the time of an exchange (hypotheses G1 and G3).
 

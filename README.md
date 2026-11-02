@@ -10,6 +10,40 @@
 
 <p align="center"><a href="assets/archive/logos/README.md">Logo design archive</a></p>
 
+NCP couples programs that different people write and run, such as a simulated brain and a simulated body, so that they can work together in steps.
+One program, the client, asks another, the owner, to do a step.
+NCP makes sure that no step runs twice, that the client learns whether each step ran, that damaged messages are detected, and that a record can show exactly what was sent and in which order.
+Each application describes its own steps and data in a contract.
+
+## NCP 2
+
+**NCP 2 is the protocol in development; it is not released yet.** It replaces the three protocol families of NCP 1, below, with one protocol.
+[NCP 2 in plain words](docs/NCP-2-GUIDE.md) explains it with figures for readers without a background in protocols.
+The [specification](spec/NCP-2.md) is the exact definition, and the [design record](docs/design/NCP-2-DESIGN.md) gives the reason for each decision and the alternatives that were measured.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/ncp2-call-dark.svg">
+  <img alt="A client and an owner exchange four requests and four responses: open, two steps, and close. Each request after open carries the identity of the last response as its acknowledgement, so each step needs one round trip and the session forms one hash chain. After a failure, at most one call of the session is uncertain." src="docs/diagrams/ncp2-call-light.svg" width="860">
+</picture>
+
+| Measured on one laptop | NCP 2 | NCP 1.0.1 | Record |
+| --- | --- | --- | --- |
+| One call with a small result, Rust to Rust | 9.1 µs | 37.9 µs | [Comparison benchmark](benchmarks/comparison/README.md) |
+| One call with a small result, Python to Python | 38.6 µs | 457.8 µs | [Comparison benchmark](benchmarks/comparison/README.md) |
+| Time added to each 1 ms step of a NEST network, Rust client | 23 to 32 µs | 228 to 248 µs | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-protocol-5) |
+| Spikes compared with NEST's recorder | All 42,026,126 exact, in 96 trials with up to 10,000 neurons | All exact in 72 trials with 1000 neurons | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-content-protocol-2) |
+| Fault trials with real programs | 4,170 trials: no wrong result, no step run twice, no false report of a step | 3,816 trials: no wrong result | [Fault campaign](benchmarks/fault-campaign/README.md#results-of-protocol-3) |
+
+Up to 1,788 spikes per call, NCP 2 was also faster than gRPC and Zenoh in Rust, and than gRPC and HTTP in Python; with 1 MiB per call, the systems without an integrity check were faster, by about the time of NCP 2's SHA-256 check.
+When every other system made the same SHA-256 check as NCP 2, NCP 2 was the fastest at every size, 1 MiB included, in both languages ([comparison protocol 2](benchmarks/comparison/README.md#results-of-protocol-2)).
+
+- The SDKs: [Python](python/README.md), which uses only the standard library, and [Rust](rust/README.md).
+- Twelve claims about the owner are proved in Lean for every sequence of requests ([`formal/`](formal/README.md)); the SDKs are tested against the proved model, not proved themselves.
+- [What NCP 2 changes from NCP 1](docs/design/NCP-1-SHORTCOMINGS.md) maps each known shortcoming of NCP 1 to its fix and its check, and lists the work that is still open.
+- The projects that use NCP move to NCP 2 one at a time, in the order of the [migration plan](docs/design/NCP-2-MIGRATION.md). NCP 1 stays available until the last one has moved.
+
+## NCP 1: the released local SDK
+
 NCP connects independently owned simulations and tools through exact, bounded data contracts.
 The [modular local SDK](local/modular/README.md) lets a host select installed applications without requiring a fixed project bundle.
 NCP owns message identity, retained outcomes, acknowledgements, and byte-buffer lifetime.
@@ -35,12 +69,6 @@ Complete qualification of their declared installed combinations and final produc
 Read the [architecture, interface mathematics, evidence, and remaining work](local/modular/STATUS.md) for the current modular scope.
 The [v1 preparation notes and checklist](local/modular/PREPARATION.md) collect the supported evidence and outstanding prerequisites.
 No package-registry upload has taken place.
-
-**NCP 2 is in development and unreleased.** It replaces the protocol families above with one lean request/response protocol: [specification](spec/NCP-2.md), [design record](docs/design/NCP-2-DESIGN.md), a pure-Python SDK ([`python/`](python/README.md)), and a Rust SDK ([`rust/`](rust/README.md)).
-[NCP 2 in plain words](docs/NCP-2-GUIDE.md) explains it, with figures, for readers without a background in protocols, and [what NCP 2 changes from NCP 1](docs/design/NCP-1-SHORTCOMINGS.md) maps each known shortcoming of NCP 1 to its fix and its check.
-Lean 4 proofs in [`formal/`](formal/README.md) cover the owner's rules for every sequence of requests; the SDKs are tested against the proved model, not proved themselves.
-[`benchmarks/comparison`](benchmarks/comparison/README.md) compares NCP 2 with NCP 1.0.1, gRPC, Zenoh, HTTP, and ZeroMQ.
-The projects that use NCP move to NCP 2 one at a time, in the order of the [migration plan](docs/design/NCP-2-MIGRATION.md); NCP 1 stays available until the last one has moved.
 
 In the intended paper-driven workflow, Engram extracts candidate evidence from a PDF for review.
 After evidence review, Engram constructs a supported network and experiment, configures CREBAIN, and coordinates execution and reporting.

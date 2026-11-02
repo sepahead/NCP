@@ -110,6 +110,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   session, the 100 header flips reached every frame position, and the 24 flips that made
   a length larger ended with the client's time limit. Nine soaks of 200,000 to
   1,000,000 calls grew in memory by at most 0.69 %, with constant open descriptors.
+- Comparison protocol 2 ran on 2 November 2026 on the power adapter, with no disturbed
+  run: H1 to H5 held again (R1), and with the same SHA-256 check of each message and the
+  same kind of connection, NCP 2 was faster than gRPC and Zenoh in Rust (R2, 9 of 9) and
+  than gRPC in Python (R3, 6 of 6). In an exploratory comparison, the fastest NCP 2 arm
+  was faster than every other system with the same check in both languages at every
+  size, 1 MiB included. The README leads with NCP 2, with a table of these results.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

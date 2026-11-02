@@ -70,7 +70,33 @@ Section 10 of the [protocol](PROTOCOL.md) lists the limits: one computer, lockst
 It repeats this benchmark on the power adapter at full speed, with the controlled conditions of NEST protocol 5 ([`../conditions.py`](../conditions.py)).
 It adds gRPC over a Unix domain socket in Rust, and versions of the other arms that make the integrity check of NCP 2: each sender appends the SHA-256 digest of its message, and each receiver checks it (`BENCH_SHA256=1`).
 Its hypotheses are that the results above hold again (R1) and that, with the same check and the same kind of connection, NCP 2 is faster than gRPC and Zenoh in Rust (R2) and than gRPC in Python (R3), at N of 0, 127, and 1788.
-It has not run yet.
+
+### Results of protocol 2
+
+The 420 timed runs ran on 2 November 2026 from 23:05 to 23:18 UTC, from the clean commit `c701f56`, on the power adapter.
+Before every run, a core ran at 4.03 to 4.51 GHz, and the one-minute load average was 2.25 to 4.01; no run was disturbed, and no run failed.
+Other programs were running. The validity checks of section 6 of protocol 1 passed.
+All values are in [`results-2/summary.md`](results-2/summary.md).
+
+| # | Hypothesis | Result |
+| --- | --- | --- |
+| R1 | The results of protocol 1 hold again. | H1 to H5 all hold. NCP 2 is 4.0 to 167 times faster than NCP 1.0.1; 9.0 µs in Rust and 38.8 µs in Python at N = 0; 4.5 µs more than the raw pipe at N = 0. |
+| R2 | In Rust, with the same integrity check and the same kind of connection, NCP 2 is faster than gRPC and Zenoh. | 9 of 9 comparisons. At N = 1788: 33.0 µs over a Unix socket against 77.1 µs for gRPC; 51.1 µs over TCP against 75.3 µs for gRPC and 84.8 µs for Zenoh. |
+| R3 | In Python, with the same integrity check and the same kind of connection, NCP 2 is faster than gRPC. | 6 of 6 comparisons. At N = 1788: 70.2 µs over a Unix socket against 185.3 µs; 85.4 µs over TCP against 149.2 µs. |
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results-2/figures/integrity_dark.svg">
+  <img src="results-2/figures/integrity_light.svg" alt="Call time of NCP 2 over a pipe, a Unix socket, and TCP against gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe that each add a SHA-256 digest to every message, for Rust and Python at N of 0, 127, 1788, and 87381 spikes, on log scales. In every panel, the fastest NCP 2 arm is faster than every other system.">
+</picture>
+
+Exploratory results:
+
+- **The same integrity check at every size.** In each language and at each N, the fastest NCP 2 arm was faster than every other system that made the same check, with block ranges that do not overlap. At 1 MiB: 871.5 µs over a Unix socket in Rust, against 1104.1 µs for Zenoh and 1136.8 µs for gRPC over TCP; 759.2 µs over a Unix socket in Python, against 801.2 µs for Zenoh, 829.9 µs for HTTP/1.1, and 954.1 µs for gRPC over TCP. Without the check, those systems stay faster at 1 MiB (section above).
+- **The cost of the check alone.** The raw pipe with the check at both ends took 722.5 µs more than the raw pipe at 1 MiB in Rust, and 616.2 µs more in Python. Beyond the raw pipe with the check, NCP 2 over a pipe added 4.1 to 9.5 µs in Rust and 27.4 to 36.6 µs in Python up to N = 1788, and 44.8 and 107.1 µs at 1 MiB: the rest of its rules and encoding.
+- **gRPC over a Unix socket in Rust.** Without the check, it took 35.9 µs at N = 0, against 47.9 µs over TCP, but 1199.9 µs at 1 MiB, against 258.7 µs over TCP: the 8 KiB socket buffers of macOS, which NCP 2 raises to 1 MiB (specification 9.1, rule 8).
+- **Against protocol 1, on battery.** Of the 92 configurations that both protocols measured, 68 agree within 5 % and 82 within 10 %; the median ratio is 1.013. The largest differences are Zenoh over TCP in Rust at 1 MiB (370.5 against 286.5 µs) and NCP 2 in Python over a pipe at N = 127 (49.2 against 56.9 µs, whose blocks ranged from 48.0 to 64.6 µs in protocol 1).
+
+The arms with the check give the other systems the integrity check of NCP 2, added by the benchmark outside each system, but not its other guarantees (section 8 of [protocol 2](PROTOCOL-2.md)).
 
 ## Correction to the protocol
 
@@ -108,4 +134,4 @@ The Rust harness keeps the measured Zenoh 1.10.1, whose transport requires `lz4_
 | [`harness/python/`](harness/python) | The Python clients and servers of the NCP 2, raw pipe, gRPC, ZeroMQ, HTTP/1.1, and Zenoh arms, with the optional integrity check |
 | [`harness/rust/`](harness/rust) | The Rust raw pipe, gRPC (tonic, over TCP or a Unix domain socket), and Zenoh arms, with the optional integrity check |
 | [`harness/ncp1/`](harness/ncp1) | The NCP 1.0.1 harness of `benchmarks/pipelined-ack`, with the spike body built once |
-| [`results/`](results) | `schedule.json`, `validity.json`, `runs.jsonl`, `analysis.json`, `summary.md`, and `figures/` |
+| [`results/`](results), [`results-2/`](results-2) | Protocols 1 and 2: `schedule.json`, `validity.json`, `runs.jsonl`, `analysis.json`, `summary.md`, and `figures/` |
