@@ -202,7 +202,7 @@ This section states the limits, what NCP gives, the patterns that work with NCP 
 
 | Pattern | How |
 | --- | --- |
-| One host, many owners (1 → N) | One session for each owner. The SDKs send one request to each session and wait for all responses (`call_all`). Sessions are independent: a failure ends only its own session. |
+| One host, many owners (1 → N) | One session for each owner. The SDKs send one request to each session and wait for all responses (`call_all`): every request goes out before the first response is read, so the owners work at the same time without a thread for each session. Sessions are independent: a failure ends only its own session. |
 | Many clients, one owner (N → 1) | One owner process serves one session for each connection. The application decides how requests from different sessions combine. |
 | Many to many (N → N) | Sessions for commands, streams for sensors and telemetry. Across computers, the Zenoh binding routes and discovers. |
 | Order across sessions | An owner that serves many sessions executes their requests in an order that its application controls. For a replayable order, the application makes the order deterministic (rounds, section 11.4) instead of recording an arrival order. |

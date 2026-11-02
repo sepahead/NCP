@@ -108,6 +108,7 @@ TCP accepts only loopback addresses unless you pass `allow_remote=True`; use it 
 Put a Unix domain socket in a directory that only the users of the sessions can access.
 
 To call many sessions at once, for example one for each agent, use `ncp.call_all(clients, op, bodies)`.
+It sends every request before it reads the first response, so the owners work at the same time without a thread for each session.
 It returns, for each session in its place, the result or the exception; one failed session does not stop the others.
 
 The SDK is tested on Linux and macOS. Windows has no Unix domain sockets in Python, and a receive time limit on a pipe fails there, because `select` accepts only sockets; pipes without a time limit and TCP are not tested on Windows.

@@ -116,6 +116,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   than gRPC in Python (R3, 6 of 6). In an exploratory comparison, the fastest NCP 2 arm
   was faster than every other system with the same check in both languages at every
   size, 1 MiB included. The README leads with NCP 2, with a table of these results.
+- `call_all` in both SDKs sends every request before it reads the first response,
+  instead of one thread for each session (Rust) or a thread pool (Python). Each session
+  still has one request outstanding. In a pilot with Rust echo owners, a round over
+  64 sessions took 240 µs with a Rust host instead of 641 µs, and 758 µs with a
+  Python host instead of 2,401 µs; with one session, the threads had made a call about
+  three times slower in Rust and nearly four times slower in Python. An error of one session, including a request above the bound, is returned
+  in its place and leaves the other sessions in step; Python refuses a client that
+  appears twice. Python's `executor` argument is removed. New tests in both SDKs check
+  the order of sends and receives and fail on the previous order.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

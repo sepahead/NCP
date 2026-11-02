@@ -451,6 +451,111 @@ fn remote_addresses_need_permission() {
     assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
 }
 
+/// A lossless in-memory channel that records, in a log shared by several sessions, when the
+/// client sends and when it receives.
+struct Logged {
+    inner: Memory,
+    name: usize,
+    log: Arc<Mutex<Vec<(&'static str, usize)>>>,
+}
+
+impl Channel for Logged {
+    fn lossy(&self) -> bool {
+        false
+    }
+    fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
+        self.log.lock().expect("log").push(("send", self.name));
+        self.inner.send(frame_bytes)
+    }
+    fn receive(&mut self, bound: usize) -> Result<Vec<u8>, Error> {
+        self.log.lock().expect("log").push(("receive", self.name));
+        self.inner.receive(bound)
+    }
+}
+
+#[test]
+fn call_all_sends_every_request_before_it_reads_a_response() {
+    // Spec section 16: the owners work at the same time, and each session still has one request
+    // outstanding (rule 7.6.1).
+    let contract = contract();
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let mut clients: Vec<_> = (0..4)
+        .map(|name| {
+            let inner = Memory {
+                owner: owner(Echo::default(), MAX_BOUND),
+                inbox: VecDeque::new(),
+                drop_responses: 0,
+                lossy: false,
+            };
+            let channel = Logged {
+                inner,
+                name,
+                log: log.clone(),
+            };
+            let mut client = Client::new(channel, &contract.application, &contract.identity);
+            client.open().expect("open");
+            client
+        })
+        .collect();
+    log.lock().expect("log").clear();
+    let bodies = (0..4).map(|agent| json!({"agent": agent})).collect();
+    for (agent, result) in ncp::call_all(&mut clients, "echo", bodies)
+        .into_iter()
+        .enumerate()
+    {
+        assert_eq!(
+            result.expect("call").message["body"],
+            json!({"agent": agent})
+        );
+    }
+    let expected: Vec<_> = (0..4)
+        .map(|name| ("send", name))
+        .chain((0..4).map(|name| ("receive", name)))
+        .collect();
+    assert_eq!(*log.lock().expect("log"), expected);
+}
+
+#[test]
+fn call_all_returns_the_error_of_one_session_in_its_place() {
+    let mut clients: Vec<_> = (0..4)
+        .map(|_| {
+            let mut client = memory(Echo::default(), false, 0).with_bound(HANDSHAKE_BOUND);
+            client.open().expect("open");
+            client
+        })
+        .collect();
+    assert!(matches!(
+        clients[1].call("fail", json!({}), &[]),
+        Err(Error::Ended { .. })
+    ));
+    let bodies = vec![
+        json!({"n": 0}),
+        json!({"n": 1}),
+        json!({"blob": "x".repeat(HANDSHAKE_BOUND)}),
+        json!({"n": 3}),
+    ];
+    let results = ncp::call_all(&mut clients, "echo", bodies);
+    assert!(matches!(&results[1], Err(Error::Protocol(text)) if text == "session ended"));
+    assert!(
+        matches!(&results[2], Err(Error::Protocol(text)) if text.contains("exceeds the bound"))
+    );
+    for n in [0, 3] {
+        assert_eq!(
+            results[n].as_ref().expect("call").message["body"],
+            json!({ "n": n })
+        );
+    }
+    // The other sessions stay in step: each read the response to its own request.
+    let bodies = (0..4).map(|m| json!({ "m": m })).collect();
+    let again = ncp::call_all(&mut clients, "echo", bodies);
+    for m in [0, 2, 3] {
+        assert_eq!(
+            again[m].as_ref().expect("call").message["body"],
+            json!({ "m": m })
+        );
+    }
+}
+
 #[test]
 fn many_sessions_with_call_all() {
     let contract = contract();

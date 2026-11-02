@@ -114,24 +114,24 @@ pub fn random_session() -> String {
 
 /// Send one request to each session and wait for all responses (spec section 16). Sessions are
 /// independent: each result is returned in its place.
-pub fn call_all<C: Channel + Send>(
+///
+/// The requests go out first, one to each session, and the responses are read afterwards, in
+/// order. The owners therefore work at the same time, without a thread for each session, and
+/// each session still has one request outstanding at a time (rule 7.6.1).
+pub fn call_all<C: Channel>(
     clients: &mut [Client<C>],
     op: &str,
     bodies: Vec<serde_json::Value>,
 ) -> Vec<Result<Decoded, Error>> {
     assert_eq!(clients.len(), bodies.len(), "one body for each client");
-    std::thread::scope(|scope| {
-        let handles: Vec<_> = clients
-            .iter_mut()
-            .zip(bodies)
-            .map(|(client, body)| scope.spawn(move || client.call(op, body, &[])))
-            .collect();
-        handles
-            .into_iter()
-            .map(|h| {
-                h.join()
-                    .unwrap_or_else(|_| Err(Error::Protocol("session thread panicked".into())))
-            })
-            .collect()
-    })
+    let started: Vec<_> = clients
+        .iter_mut()
+        .zip(bodies)
+        .map(|(client, body)| client.start_call(op, body))
+        .collect();
+    clients
+        .iter_mut()
+        .zip(started)
+        .map(|(client, started)| started.and_then(|pending| client.finish_call(pending)))
+        .collect()
 }

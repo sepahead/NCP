@@ -117,6 +117,7 @@ A received frame keeps its bytes once: `array_bytes(i)` returns a slice of the f
 A connection carries one session. TCP accepts only loopback addresses unless the second argument is `true`; use that only on a trusted cluster network.
 The binding sets 1 MiB socket buffers and `TCP_NODELAY`.
 To call many sessions at once, use `ncp::call_all(&mut clients, op, bodies)`.
+It sends every request before it reads the first response, so the owners work at the same time without a thread for each session, and it returns each session's result in its place.
 
 The crate is tested on Linux and macOS. It also builds for Windows, without the Unix domain socket functions, but it is not tested there; the examples and tests use Unix domain sockets.
 

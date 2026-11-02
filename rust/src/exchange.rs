@@ -652,6 +652,44 @@ impl<C: Channel> Client<C> {
         body: Value,
         arrays: &[Array],
     ) -> Result<Decoded, Error> {
+        let (request, request_id) = self.send_request(seq, op, body, arrays)?;
+        self.await_response(seq, op, &request, &request_id)
+    }
+
+    /// Send request `seq` of operation `op` for `call_all`: the first half of `call`. The
+    /// session has one request outstanding until `finish_call` reads its response.
+    pub(crate) fn start_call(
+        &mut self,
+        op: &str,
+        body: Value,
+    ) -> Result<(u64, String, Vec<u8>, String), Error> {
+        if !self.opened {
+            return Err(Error::Protocol("call before open".into()));
+        }
+        if op == "open" || op == "close" {
+            return Err(Error::Protocol("use open() and close()".into()));
+        }
+        let seq = self.seq + 1;
+        let (request, request_id) = self.send_request(seq, op, body, &[])?;
+        Ok((seq, op.to_owned(), request, request_id))
+    }
+
+    /// Read the response to a request that `start_call` sent: the second half of `call`.
+    pub(crate) fn finish_call(
+        &mut self,
+        (seq, op, request, request_id): (u64, String, Vec<u8>, String),
+    ) -> Result<Decoded, Error> {
+        self.await_response(seq, &op, &request, &request_id)
+    }
+
+    /// Encode and send request `seq`. Returns its bytes and identity.
+    fn send_request(
+        &mut self,
+        seq: u64,
+        op: &str,
+        body: Value,
+        arrays: &[Array],
+    ) -> Result<(Vec<u8>, String), Error> {
         if self.ended {
             return Err(Error::Protocol("session ended".into()));
         }
@@ -665,21 +703,38 @@ impl<C: Channel> Client<C> {
             )));
         }
         let request_id = frame::identity(&request);
+        if self.channel.send(&request).is_err() {
+            return Err(self.closed());
+        }
+        Ok((request, request_id))
+    }
+
+    /// Wait for the response to request `seq` and apply its outcome. On a lossy channel, a
+    /// request without a response in time is sent again, at most `retries` times (rule 7.6.6).
+    fn await_response(
+        &mut self,
+        seq: u64,
+        op: &str,
+        request: &[u8],
+        request_id: &str,
+    ) -> Result<Decoded, Error> {
         let attempts = if self.channel.lossy() {
             self.retries + 1
         } else {
             1
         };
-        for attempt in 0..attempts {
-            if self.channel.send(&request).is_err() {
-                return Err(self.closed());
-            }
-            let decoded = match self.receive_match(seq, &request_id) {
+        let mut attempt = 1;
+        let decoded = loop {
+            match self.receive_match(seq, request_id) {
                 Err(Error::Io(error))
                     if error.kind() == std::io::ErrorKind::TimedOut
                         || error.kind() == std::io::ErrorKind::WouldBlock =>
                 {
-                    if attempt + 1 < attempts {
+                    if attempt < attempts {
+                        attempt += 1;
+                        if self.channel.send(request).is_err() {
+                            return Err(self.closed());
+                        }
                         continue;
                     }
                     self.ended = true;
@@ -689,37 +744,36 @@ impl<C: Channel> Client<C> {
                     });
                 }
                 Err(Error::Io(_)) => return Err(self.closed()),
-                other => other?,
-            };
-            let outcome = decoded.message["outcome"]
-                .as_str()
-                .unwrap_or_default()
-                .to_owned();
-            let code = decoded.message["code"]
-                .as_str()
-                .unwrap_or_default()
-                .to_owned();
-            return match outcome.as_str() {
-                "ok" => {
-                    self.seq = seq;
-                    self.ack = Some(decoded.identity.clone());
-                    if op == "close" {
-                        self.ended = true;
-                    }
-                    Ok(decoded)
-                }
-                "rejected" => Err(Error::Rejected {
-                    code,
-                    body: decoded.message["body"].clone(),
-                }),
-                _ => {
+                other => break other?,
+            }
+        };
+        let outcome = decoded.message["outcome"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned();
+        let code = decoded.message["code"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned();
+        match outcome.as_str() {
+            "ok" => {
+                self.seq = seq;
+                self.ack = Some(decoded.identity.clone());
+                if op == "close" {
                     self.ended = true;
-                    let executed = executed_for(&code);
-                    Err(Error::Ended { code, executed })
                 }
-            };
+                Ok(decoded)
+            }
+            "rejected" => Err(Error::Rejected {
+                code,
+                body: decoded.message["body"].clone(),
+            }),
+            _ => {
+                self.ended = true;
+                let executed = executed_for(&code);
+                Err(Error::Ended { code, executed })
+            }
         }
-        Err(Error::Protocol("unreachable".into()))
     }
 
     /// End the session after the channel closed or failed: no response can arrive, and the

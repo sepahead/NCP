@@ -412,6 +412,26 @@ class Client:
                 self.channel.close()
 
     def _exchange(self, seq: int, op: str, body: Any) -> Result:
+        request, request_id = self._send_request(seq, op, body)
+        return self._await_response(seq, op, request, request_id)
+
+    def _start(self, op: str, body: Any) -> tuple[int, str, bytes, str]:
+        """Send the next request without waiting for its response: the first half of call(),
+        for call_all. The session has one request outstanding until _finish reads its response."""
+        if self.owner is None:
+            raise ProtocolError("call before open")
+        if op in ("open", "close"):
+            raise ValueError("use open() and close()")
+        seq = self.seq + 1
+        request, request_id = self._send_request(seq, op, body)
+        return seq, op, request, request_id
+
+    def _finish(self, pending: tuple[int, str, bytes, str]) -> Result:
+        """Read the response to a request that _start sent: the second half of call()."""
+        seq, op, request, request_id = pending
+        return self._await_response(seq, op, request, request_id)
+
+    def _send_request(self, seq: int, op: str, body: Any) -> tuple[bytes, str]:
         if self.ended:
             raise ProtocolError("session ended")
         request = F.encode(
@@ -420,33 +440,52 @@ class Client:
         if len(request) > self.bound:
             raise ValueError(f"request of {len(request)} bytes exceeds the bound {self.bound}")
         request_id = F.identity(request)
+        self._send(request)
+        return request, request_id
+
+    def _send(self, request: bytes) -> None:
+        try:
+            self.channel.send(request)
+        except TimeoutError:
+            self.ended = True
+            raise Ended("timeout", "unknown") from None
+        except (EOFError, OSError) as error:
+            # The byte stream closed or failed: no response can arrive, and the request is
+            # possibly executed (spec section 7.6, rule 7).
+            self.ended = True
+            raise Ended("closed", "unknown") from error
+
+    def _await_response(self, seq: int, op: str, request: bytes, request_id: str) -> Result:
+        """Wait for the response to request seq and apply its outcome. On a lossy channel, a
+        request without a response in time is sent again, at most `retries` times (rule 7.6.6)."""
         attempts = self.retries + 1 if self.channel.lossy else 1
-        for attempt in range(attempts):
+        attempt = 1
+        while True:
             try:
-                self.channel.send(request)
                 decoded = self._receive_match(seq, request_id)
+                break
             except TimeoutError:
-                if attempt + 1 < attempts:
+                if attempt < attempts:
+                    attempt += 1
+                    self._send(request)
                     continue
                 self.ended = True
                 raise Ended("timeout", "unknown") from None
             except (EOFError, OSError) as error:
-                # The byte stream closed or failed: no response can arrive, and the request is
-                # possibly executed (spec section 7.6, rule 7). TimeoutError, an OSError, is above.
+                # As in _send. TimeoutError, an OSError, is above.
                 self.ended = True
                 raise Ended("closed", "unknown") from error
-            message = decoded.message
-            outcome = message["outcome"]
-            if outcome == "ok":
-                self.seq, self.ack = seq, decoded.identity
-                if op == "close":
-                    self.ended = True
-                return Result(message["body"], decoded.identity, decoded.arrays)
-            if outcome == "rejected":
-                raise Rejected(message["code"], message["body"])
-            self.ended = True
-            raise Ended(message["code"], executed(message["code"]), message["body"])
-        raise AssertionError("unreachable")
+        message = decoded.message
+        outcome = message["outcome"]
+        if outcome == "ok":
+            self.seq, self.ack = seq, decoded.identity
+            if op == "close":
+                self.ended = True
+            return Result(message["body"], decoded.identity, decoded.arrays)
+        if outcome == "rejected":
+            raise Rejected(message["code"], message["body"])
+        self.ended = True
+        raise Ended(message["code"], executed(message["code"]), message["body"])
 
     def _receive_match(self, seq: int, request_id: str) -> F.Decoded:
         while True:

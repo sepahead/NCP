@@ -429,6 +429,58 @@ class ClientTests(unittest.TestCase):
         self.assertTrue(client.ended)
 
 
+    def test_call_all_sends_every_request_before_it_reads_a_response(self) -> None:
+        # Spec section 16: the owners work at the same time, and each session still has one
+        # request outstanding (rule 7.6.1).
+        log: list[tuple[str, int]] = []
+
+        class Logged(_MemoryChannel):
+            lossy = False
+
+            def __init__(self, name: int) -> None:
+                super().__init__(make_owner())
+                self.name = name
+
+            def send(self, frame: bytes) -> None:
+                log.append(("send", self.name))
+                super().send(frame)
+
+            def receive(self, bound: int, timeout):
+                log.append(("receive", self.name))
+                return super().receive(bound, timeout)
+
+        clients = [ncp.Client(Logged(name), application="echo", contract=CONTRACT.identity) for name in range(4)]
+        for client in clients:
+            client.open()
+        log.clear()
+        results = ncp.call_all(clients, "echo", [{"agent": name} for name in range(4)])
+        self.assertEqual([result.body for result in results], [{"agent": name} for name in range(4)])
+        self.assertEqual(log, [("send", name) for name in range(4)] + [("receive", name) for name in range(4)])
+
+    def test_call_all_returns_the_error_of_one_session_in_its_place(self) -> None:
+        class Lossless(_MemoryChannel):
+            lossy = False
+
+        clients = [
+            ncp.Client(Lossless(make_owner()), application="echo", contract=CONTRACT.identity, bound=ncp.HANDSHAKE_BOUND)
+            for _ in range(4)
+        ]
+        for client in clients:
+            client.open()
+        with self.assertRaises(ncp.Ended):
+            clients[1].call("fail", {})
+        bodies = [{"n": 0}, {"n": 1}, {"blob": "x" * ncp.HANDSHAKE_BOUND}, {"n": 3}]
+        results = ncp.call_all(clients, "echo", bodies)
+        self.assertIsInstance(results[1], ncp.ProtocolError)  # the session had ended
+        self.assertIsInstance(results[2], ValueError)  # above the bound: refused before sending
+        self.assertEqual([results[0].body, results[3].body], [{"n": 0}, {"n": 3}])
+        # The other sessions stay in step: each read the response to its own request.
+        again = ncp.call_all([clients[0], clients[2], clients[3]], "echo", [{"m": 0}, {"m": 2}, {"m": 3}])
+        self.assertEqual([result.body for result in again], [{"m": 0}, {"m": 2}, {"m": 3}])
+        with self.assertRaises(ValueError):
+            ncp.call_all([clients[0], clients[0]], "echo", [{}, {}])
+
+
 class _ScriptedChannel:
     """Answers each request with the next scripted (outcome, code, body)."""
 

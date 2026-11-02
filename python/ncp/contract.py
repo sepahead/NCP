@@ -6,11 +6,10 @@ import hashlib
 import json
 import os
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any
 
-from .exchange import Client, Ended, Rejected, Result
+from .exchange import Client, Result
 
 
 @dataclass(frozen=True)
@@ -52,24 +51,32 @@ class Contract:
             return cls.from_bytes(handle.read())
 
 
-def call_all(
-    clients: Sequence[Client], op: str, bodies: Sequence[Any], *, executor: ThreadPoolExecutor | None = None
-) -> list[Result | Exception]:
+def call_all(clients: Sequence[Client], op: str, bodies: Sequence[Any]) -> list[Result | Exception]:
     """Send one request to each session and wait for all responses (spec section 16).
 
-    Sessions are independent: an exception of one session is returned in its place and does
-    not stop the others.
+    The requests go out first, one to each session, and the responses are read afterwards, in
+    order. The owners therefore work at the same time, without a thread for each session, and
+    each session still has one request outstanding at a time (rule 7.6.1). Sessions are
+    independent: an exception of one session is returned in its place and does not stop the
+    others.
     """
     if len(clients) != len(bodies):
         raise ValueError("one body for each client")
-
-    def one(index: int) -> Result | Exception:
+    if len({id(client) for client in clients}) != len(clients):
+        raise ValueError("each client at most once")
+    started: list[tuple[int, str, bytes, str] | Exception] = []
+    for client, body in zip(clients, bodies):
         try:
-            return clients[index].call(op, bodies[index])
-        except (Rejected, Ended, OSError, EOFError) as error:
-            return error
-
-    if executor is None:
-        with ThreadPoolExecutor(max_workers=min(64, len(clients)) or 1) as pool:
-            return list(pool.map(one, range(len(clients))))
-    return list(executor.map(one, range(len(clients))))
+            started.append(client._start(op, body))
+        except Exception as error:
+            started.append(error)
+    results: list[Result | Exception] = []
+    for client, pending in zip(clients, started):
+        if isinstance(pending, Exception):
+            results.append(pending)
+            continue
+        try:
+            results.append(client._finish(pending))
+        except Exception as error:
+            results.append(error)
+    return results
