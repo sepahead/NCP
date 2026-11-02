@@ -465,16 +465,21 @@ pub enum Error {
     },
     /// The session ended. `executed` is "yes", "no", or "unknown" for the last request.
     Ended {
-        /// The ending code, or "timeout" or "closed" for a local end.
+        /// The owner's code, or a local code: "timeout" when no response arrived in time, and
+        /// "closed" when the channel closed or failed before a response arrived. Both leave the
+        /// last request possibly executed (spec section 7.6, rule 7).
         code: String,
         /// Whether the last request executed.
         executed: &'static str,
     },
-    /// The peer broke the protocol, or the session is not usable.
+    /// The peer broke the protocol, or the session is not usable. If a request was sent, it is
+    /// possibly executed.
     Protocol(String),
-    /// A bad frame from the peer.
+    /// A frame that cannot be encoded, or a bad frame from the peer. A channel returns the
+    /// second kind; `Client` reports it as `Protocol` and ends the session.
     Frame(FrameError),
-    /// An input or output error of the binding.
+    /// An input or output error of the binding. A channel returns it; `Client` reports it as
+    /// `Ended` with the code "closed".
     Io(std::io::Error),
 }
 
@@ -666,7 +671,9 @@ impl<C: Channel> Client<C> {
             1
         };
         for attempt in 0..attempts {
-            self.channel.send(&request)?;
+            if self.channel.send(&request).is_err() {
+                return Err(self.closed());
+            }
             let decoded = match self.receive_match(seq, &request_id) {
                 Err(Error::Io(error))
                     if error.kind() == std::io::ErrorKind::TimedOut
@@ -681,6 +688,7 @@ impl<C: Channel> Client<C> {
                         executed: "unknown",
                     });
                 }
+                Err(Error::Io(_)) => return Err(self.closed()),
                 other => other?,
             };
             let outcome = decoded.message["outcome"]
@@ -712,6 +720,16 @@ impl<C: Channel> Client<C> {
             };
         }
         Err(Error::Protocol("unreachable".into()))
+    }
+
+    /// End the session after the channel closed or failed: no response can arrive, and the
+    /// request is possibly executed (spec section 7.6, rule 7).
+    fn closed(&mut self) -> Error {
+        self.ended = true;
+        Error::Ended {
+            code: "closed".into(),
+            executed: "unknown",
+        }
     }
 
     fn receive_match(&mut self, seq: u64, request_id: &str) -> Result<Decoded, Error> {

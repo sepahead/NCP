@@ -90,8 +90,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 | Error | Meaning |
 | --- | --- |
 | `Error::Rejected { code, body }` | The owner did not execute the request and changed no state. The session continues. |
-| `Error::Ended { code, executed }` | The session is over. `executed` is `"yes"`, `"no"`, or `"unknown"` for the last request. |
-| `Error::Protocol`, `Error::Frame`, `Error::Io` | The peer broke the protocol, or the connection failed. The session is over. |
+| `Error::Ended { code, executed }` | The session is over. `executed` is `"yes"`, `"no"`, or `"unknown"` for the last request. `code` is the owner's code, or `"timeout"` or `"closed"` when no response arrived in time or the channel closed or failed; then the request is possibly executed. |
+| `Error::Protocol` | The peer broke the protocol, and the session is over: a request that was sent is possibly executed. The same variant reports wrong use, such as a call before `open` or a request above the session bound; then nothing was sent. |
+| `Error::Frame` | The request cannot be encoded. Nothing was sent, and the session continues. |
 
 ## Arrays
 

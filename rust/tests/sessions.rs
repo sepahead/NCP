@@ -240,6 +240,73 @@ fn set_drops(client: &mut Client<Memory>, drops: usize) {
     client.channel_mut().drop_responses = drops;
 }
 
+/// A channel to an owner that can be closed: then it fails as a closed pipe does, on send or
+/// on receive.
+struct Closing {
+    inner: Memory,
+    closed: bool,
+    fail_on_send: bool,
+}
+
+impl Channel for Closing {
+    fn lossy(&self) -> bool {
+        false
+    }
+    fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
+        match (self.closed, self.fail_on_send) {
+            (true, true) => Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "closed",
+            )),
+            (true, false) => Ok(()),
+            _ => self.inner.send(frame_bytes),
+        }
+    }
+    fn receive(&mut self, bound: usize) -> Result<Vec<u8>, Error> {
+        if self.closed {
+            return Err(Error::Io(std::io::Error::new(
+                std::io::ErrorKind::UnexpectedEof,
+                "closed",
+            )));
+        }
+        self.inner.receive(bound)
+    }
+}
+
+#[test]
+fn a_closed_channel_ends_the_session_with_the_request_possibly_executed() {
+    // Spec section 7.6, rule 7: without a response, the request is possibly executed, and the
+    // session ends, whether the send or the receive notices the closed channel.
+    for fail_on_send in [false, true] {
+        let contract = contract();
+        let inner = Memory {
+            owner: owner(Echo::default(), MAX_BOUND),
+            inbox: VecDeque::new(),
+            drop_responses: 0,
+            lossy: false,
+        };
+        let channel = Closing {
+            inner,
+            closed: false,
+            fail_on_send,
+        };
+        let mut client = Client::new(channel, &contract.application, &contract.identity);
+        client.open().expect("open");
+        client.call("echo", json!({"n": 1}), &[]).expect("call");
+        client.channel_mut().closed = true;
+        match client.call("echo", json!({"n": 2}), &[]) {
+            Err(Error::Ended { code, executed }) => {
+                assert_eq!((code.as_str(), executed), ("closed", "unknown"))
+            }
+            other => panic!("expected a closed session, got {other:?}"),
+        }
+        assert!(matches!(
+            client.call("echo", json!({}), &[]),
+            Err(Error::Protocol(_))
+        ));
+    }
+}
+
 #[test]
 fn tcp_session_with_transcripts() {
     let directory = scratch("tcp");

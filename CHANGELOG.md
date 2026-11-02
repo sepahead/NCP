@@ -84,6 +84,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (a peer that reset first, or no free descriptor) no longer stops a server, and a
   defect of the owner factory is reported on standard error, as `socketserver`
   does, while the server keeps serving.
+- Clients in both SDKs: when the connection closes or fails before a response
+  arrives, the session now ends and the request is reported as possibly executed
+  (specification 7.6, rule 7): Python raises `Ended` and Rust returns `Error::Ended`,
+  each with the code `closed` and `executed` set to `unknown`. Before, a closed pipe
+  or socket escaped as an input/output error and left the client usable, and in
+  Python a response with a bad header escaped as `FrameError` instead of
+  `ProtocolError`. New tests in both SDKs fail on the old code. The SDK READMEs
+  list the errors that a call reports and when nothing was sent.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

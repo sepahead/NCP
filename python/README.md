@@ -77,8 +77,9 @@ process.wait()
 | Exception | Meaning |
 | --- | --- |
 | `ncp.Rejected` | The owner did not execute the request and changed no state. `code` says why. The session continues. |
-| `ncp.Ended` | The session is over. `executed` is `"yes"`, `"no"`, or `"unknown"` for the last request. |
-| `ncp.ProtocolError` | The peer broke the protocol, for example with a bad frame. The session is over. |
+| `ncp.Ended` | The session is over. `executed` is `"yes"`, `"no"`, or `"unknown"` for the last request. `code` is the owner's code, or `"timeout"` or `"closed"` when no response arrived in time or the connection closed or failed; then the request is possibly executed. |
+| `ncp.ProtocolError` | The peer broke the protocol, for example with a bad frame, and the session is over: a request that was sent is possibly executed. The same exception reports wrong use, such as a call after the session ended. |
+| `ValueError`, `ncp.FrameError` | The request is larger than the session bound, or it cannot be encoded. Nothing was sent, and the session continues. |
 
 ## Arrays
 

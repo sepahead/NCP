@@ -395,6 +395,39 @@ class ClientTests(unittest.TestCase):
         with self.assertRaises(ncp.ProtocolError):
             client.call("echo", {})
 
+    def test_a_closed_stream_ends_the_session_with_the_request_possibly_executed(self) -> None:
+        # Spec section 7.6, rule 7: without a response, the request is possibly executed, and the
+        # session ends. A killed owner closes the pipes; the next call must not escape as an
+        # input/output error that leaves the client usable.
+        channel, process = ncp.spawn([sys.executable, "-I", os.path.join(HERE, "echo_owner.py")])
+        client = ncp.Client(channel, application="echo", contract=CONTRACT.identity, timeout=10)
+        client.open()
+        self.assertEqual(client.call("echo", {"n": 1}).body, {"n": 1})
+        process.kill()
+        process.wait(timeout=10)
+        with self.assertRaises(ncp.Ended) as caught:
+            client.call("echo", {"n": 2})
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("closed", "unknown"))
+        self.assertTrue(client.ended)
+        with self.assertRaises(ncp.ProtocolError):
+            client.call("echo", {"n": 3})
+        client.close()
+
+    def test_a_bad_response_header_ends_the_session(self) -> None:
+        class BadHeaderAfterOpen(_MemoryChannel):
+            lossy = False
+
+            def receive(self, bound: int, timeout):
+                if self.sent > 1:  # a byte stream reports a bad header before it reads the rest
+                    raise F.FrameError("frame magic")
+                return super().receive(bound, timeout)
+
+        client = ncp.Client(BadHeaderAfterOpen(make_owner()), application="echo", contract=CONTRACT.identity)
+        client.open()
+        with self.assertRaises(ncp.ProtocolError):
+            client.call("echo", {})
+        self.assertTrue(client.ended)
+
 
 class _ScriptedChannel:
     """Answers each request with the next scripted (outcome, code, body)."""

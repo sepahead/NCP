@@ -306,7 +306,11 @@ class Rejected(Exception):
 
 
 class Ended(Exception):
-    """The session ended. `executed` is "yes", "no", or "unknown" for the last request."""
+    """The session ended. `executed` is "yes", "no", or "unknown" for the last request.
+
+    `code` is the owner's code, or one of two local codes: "timeout" when no response arrived in
+    time, and "closed" when the byte stream closed or failed before a response arrived. Both leave
+    the last request possibly executed (spec section 7.6, rule 7)."""
 
     def __init__(self, code: str, executed: str, body: Any = None) -> None:
         super().__init__(f"{code} (executed: {executed})")
@@ -314,7 +318,8 @@ class Ended(Exception):
 
 
 class ProtocolError(Exception):
-    """The peer broke the protocol. The session cannot continue."""
+    """The peer broke the protocol, or the client was used wrongly. The session cannot continue.
+    If a request was sent, it is possibly executed."""
 
 
 class Channel(Protocol):
@@ -417,14 +422,19 @@ class Client:
         request_id = F.identity(request)
         attempts = self.retries + 1 if self.channel.lossy else 1
         for attempt in range(attempts):
-            self.channel.send(request)
             try:
+                self.channel.send(request)
                 decoded = self._receive_match(seq, request_id)
             except TimeoutError:
                 if attempt + 1 < attempts:
                     continue
                 self.ended = True
                 raise Ended("timeout", "unknown") from None
+            except (EOFError, OSError) as error:
+                # The byte stream closed or failed: no response can arrive, and the request is
+                # possibly executed (spec section 7.6, rule 7). TimeoutError, an OSError, is above.
+                self.ended = True
+                raise Ended("closed", "unknown") from error
             message = decoded.message
             outcome = message["outcome"]
             if outcome == "ok":
@@ -440,7 +450,13 @@ class Client:
 
     def _receive_match(self, seq: int, request_id: str) -> F.Decoded:
         while True:
-            frame = self.channel.receive(self.bound, self.timeout)
+            try:
+                frame = self.channel.receive(self.bound, self.timeout)
+            except FrameError as error:  # a bad header: wrong magic, or a length above the bound
+                if self.channel.lossy:
+                    continue
+                self.ended = True
+                raise ProtocolError(f"bad frame from the owner: {error}") from error
             try:
                 decoded = F.decode(frame, self.bound, check_digest=self.check_digests)
                 check_response(decoded.message)
