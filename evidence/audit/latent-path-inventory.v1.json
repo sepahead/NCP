@@ -1281,6 +1281,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/PROTOCOL-5.md",
+        "bytes": 2420,
+        "sha256": "a47a497c7a992974e6acf96f39a39084608c1b02afaf96fc5eb10ec0f2c430a8",
+        "git_blob_oid": "b53deb3eafae6d63b79f948b6262bd7fc86b5c11",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/PROTOCOL-5.sha256",
+        "bytes": 65,
+        "sha256": "3376a35afae98c4caeae1b313094678c18d9dddce7a196d89c9f0e1b22422a33",
+        "git_blob_oid": "236826e5ec24b6e73c53a3bf3cd689a5663e9989",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/PROTOCOL-CONTENT.md",
         "bytes": 2146,
         "sha256": "f2920fc12c144d18b2b0f948723807fa1ef8f2127ed95a8f8375ed0a60d9c0ff",
@@ -1310,9 +1324,9 @@
       },
       {
         "path": "benchmarks/nest-campaign/README.md",
-        "bytes": 10961,
-        "sha256": "11f859b3331d808128563ae4fbe5dc2213173bc0c4af667d28d4cc0abac2a86d",
-        "git_blob_oid": "cbe260b6097426bd1cedc4d1cfa1e09b0c6a83ac",
+        "bytes": 12067,
+        "sha256": "3a1f206e230f785b014d5cdf1a98856ff0740edd5a5d4151dce4692214428e02",
+        "git_blob_oid": "bf52249255a351f6e4644e6888464440921defee",
         "indexed": true
       },
       {
@@ -1631,6 +1645,27 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/results-4-pilot/environment.json",
+        "bytes": 508,
+        "sha256": "550f63ab2f0282db29e224220a54d221cf7a6969ed956b868eec65b65a379454",
+        "git_blob_oid": "aa3dfdb1258b05dae197d0f4d065af2bb6e55323",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/results-4-pilot/runs.jsonl",
+        "bytes": 41103,
+        "sha256": "0be03fd497263c11048b40e40a6395111a4aa6779cf4ce93fc172763dc768600",
+        "git_blob_oid": "c039935487dfea1b46f31efbddcd3aaa5b19ed26",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/results-4-pilot/schedule.json",
+        "bytes": 71845,
+        "sha256": "97b7fc2b761652b12b9e2fb72c258b6d8305399abbebf0089ed5cb161a44907f",
+        "git_blob_oid": "e8df5d5abb3ac76c28f8b834f4742149609882b8",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/results-content/analysis.json",
         "bytes": 998,
         "sha256": "7c58e151bd8e0e53ced40035761f89206dae5d19f85a905204d8f90012317ae8",
@@ -1702,9 +1737,9 @@
       },
       {
         "path": "benchmarks/nest-campaign/run4.py",
-        "bytes": 9935,
-        "sha256": "c65e49d4eacf95dca97a943d32eb20d5f63bf6a5a9da3708f0a1ece60683d9f3",
-        "git_blob_oid": "091d10294d683d635c1a1a576cec5ae3692ea6dc",
+        "bytes": 10852,
+        "sha256": "6170016cf7e4e25648dcfb273d8fe830ddcbd1fcdf8d563337e19fa89bff7867",
+        "git_blob_oid": "a809b876b40cd12d02caeec7e482003c88df5aed",
         "indexed": true
       },
       {
@@ -10596,7 +10631,7 @@
     ]
   },
   "counts": {
-    "text_files": 1474,
+    "text_files": 1479,
     "binary_or_non_utf8_files": 29,
     "occurrences": 377,
     "by_token_id": {
@@ -10629,7 +10664,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "2c508db54b9fed38fb8eaf5f4b6f2ecb540e7194fa5caf9fa2b19583710d14a4",
+  "scanned_path_set_sha256": "e404cc2ba21fbe13b18fcf25da5f96dd19c18c6db6c2173da9cd39c28bf2851f",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

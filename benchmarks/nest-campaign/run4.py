@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Run protocol 4 of the NEST campaign: protocol 3's design, controlled conditions, and the time of
-every step (see PROTOCOL-4.md).
+"""Run protocol 4 or 5 of the NEST campaign: protocol 3's design, controlled conditions, and the time
+of every step (see PROTOCOL-4.md and PROTOCOL-5.md).
 
-Usage: run4.py RESULTS_DIR --prefix CONDA_PREFIX --ncp1 NCP1_CHECKOUT [--smoke] [--only REGEX]
+Usage: run4.py RESULTS_DIR --prefix CONDA_PREFIX --ncp1 NCP1_CHECKOUT [--protocol 4|5] [--smoke]
+               [--only REGEX]
 
 Before each run, the runner waits until the computer draws power from its adapter, its thermal
 pressure is nominal, a core runs at CLOCK_MIN_GHZ or more (harness/ncp2-rust/src/bin/clock-probe.rs),
 and the one-minute load average is below LOAD_LIMIT. After the run, it checks that the computer did
-not sleep and that the other conditions still hold, the load average excepted; if not, it marks the
-record as disturbed and repeats the run, at most MAX_ATTEMPTS times in all.
+not sleep and that the other conditions still hold, the load average excepted, with the clock limit
+of END_CLOCK_MIN_GHZ for the selected protocol; if not, it marks the record as disturbed and repeats
+the run, at most MAX_ATTEMPTS times in all. Protocol 5 differs from protocol 4 only in that limit.
 
 Each arm writes the duration of every step to the files that NCP_WORK_TIMES and NCP_CALL_TIMES
 name (harness/common.py). The runner stores their summaries in the record and deletes the files.
@@ -36,9 +38,13 @@ import run3  # noqa: E402
 
 ROOT = HERE.parents[1]
 PROTOCOL = "PROTOCOL-4.md"
+PROTOCOLS = {"4": "PROTOCOL-4.md", "5": "PROTOCOL-5.md"}
+# The clock limit at the end of a run: protocol 5 lowered it after protocol 4's pilot (PROTOCOL-5.md).
+END_CLOCK_LIMITS_GHZ = {"4": 4.0, "5": 3.8}
 ORDER_SEED = 20261027
 LOAD_LIMIT = 8.0  # half of the 16 cores of the computer
 CLOCK_MIN_GHZ = 4.0  # an M4 Max performance core runs at up to 4.5 GHz, and at about 3.1 GHz in Low Power Mode
+END_CLOCK_MIN_GHZ = 4.0
 MAX_ATTEMPTS = 3
 SLEEP_LIMIT_S = 0.5
 
@@ -57,8 +63,9 @@ def conditions(probe: Path) -> dict:
     }
 
 
-def steady(now: dict) -> bool:
-    return now["ac_power"] and now["thermal_pressure"] == 0 and now["clock_ghz"] >= CLOCK_MIN_GHZ
+def steady(now: dict, clock_min_ghz: float | None = None) -> bool:
+    limit = CLOCK_MIN_GHZ if clock_min_ghz is None else clock_min_ghz
+    return now["ac_power"] and now["thermal_pressure"] == 0 and now["clock_ghz"] >= limit
 
 
 def wait_for_conditions(probe: Path) -> tuple[dict, float]:
@@ -120,9 +127,12 @@ def main() -> None:
     parser.add_argument("results", type=Path)
     parser.add_argument("--prefix", type=Path, required=True)
     parser.add_argument("--ncp1", type=Path, required=True)
+    parser.add_argument("--protocol", choices=sorted(PROTOCOLS), default="4")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--only", default=None, help="regular expression on configuration names (smoke only)")
     args = parser.parse_args()
+    global PROTOCOL, END_CLOCK_MIN_GHZ
+    PROTOCOL, END_CLOCK_MIN_GHZ = PROTOCOLS[args.protocol], END_CLOCK_LIMITS_GHZ[args.protocol]
     args.results.mkdir(parents=True, exist_ok=True)
     work = args.results / ".work"
     paths = run3.build(work, args.ncp1)
@@ -150,6 +160,7 @@ def main() -> None:
             "only": args.only,
             "load_limit": LOAD_LIMIT,
             "clock_min_ghz": CLOCK_MIN_GHZ,
+            "end_clock_min_ghz": END_CLOCK_MIN_GHZ,
             "max_attempts": MAX_ATTEMPTS,
             "sleep_limit_s": SLEEP_LIMIT_S,
             "commit": campaign.out(["git", "-C", str(ROOT), "rev-parse", "HEAD"]),
@@ -162,6 +173,8 @@ def main() -> None:
         schedule_path.write_text(json.dumps(schedule, indent=1) + "\n")
         (args.results / "environment.json").write_text(json.dumps(campaign.environment(args.prefix), indent=1) + "\n")
     schedule = json.loads(schedule_path.read_text())
+    if schedule["protocol"] != PROTOCOL:
+        sys.exit(f"{schedule_path} belongs to {schedule['protocol']}, not {PROTOCOL}")
     runs_path = args.results / "runs.jsonl"
     attempts: dict = {}
     done = set()
@@ -190,7 +203,7 @@ def main() -> None:
             continuous_after, uptime_after = clocks()
             after = conditions(probe)
             slept = (continuous_after - continuous) - (uptime_after - uptime)
-            disturbed = slept > SLEEP_LIMIT_S or not steady(after)
+            disturbed = slept > SLEEP_LIMIT_S or not steady(after, END_CLOCK_MIN_GHZ)
             attempts[key] = attempts.get(key, 0) + 1
             # The configuration's fields come last: a host reports its own arm name (for example
             # ncp2-rs-count), and the protocol's arm name must win.

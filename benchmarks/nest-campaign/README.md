@@ -11,7 +11,8 @@ Five protocols were fixed before their runs:
 | [`PROTOCOL-2.md`](PROTOCOL-2.md) | The same, with a readback of constant cost | 558 | The timing results for NCP 1.0.x and MUSIC |
 | [`PROTOCOL-CONTENT.md`](PROTOCOL-CONTENT.md) | Exact delivery of every spike | 72 trials | The content results |
 | [`PROTOCOL-3.md`](PROTOCOL-3.md) | Cost of the coupling with NCP 2, against NCP 1.0.1 and MUSIC | 774 in run 1 | Content valid; timing disturbed (see below) |
-| [`PROTOCOL-4.md`](PROTOCOL-4.md) | Protocol 3 under controlled conditions, with the time of every step | not yet run | Waits for the processor to run at full clock again |
+| [`PROTOCOL-4.md`](PROTOCOL-4.md) | Protocol 3 under controlled conditions, with the time of every step | 43 attempts, then stopped | A pilot: its clock check at the end of a run marked normal readings as disturbed (see below) |
+| [`PROTOCOL-5.md`](PROTOCOL-5.md) | Protocol 4 with a clock limit of 3.8 GHz at the end of a run | not yet run | Fixed on 2 November 2026 |
 
 [`summary.md`](summary.md) holds the tables of protocols 1, 2, and the content part; `summary.py` writes it from the analysis files. [`results-3/summary.md`](results-3/summary.md) holds those of protocol 3.
 
@@ -82,6 +83,12 @@ Protocol 4 repeats protocol 3 and adds the time of every step. Before each run, 
 It has not run yet, because the processor has stayed limited to about 3.1 GHz since 23 October.
 Its smoke runs, under that limit, gave median overheads per exchange of 29 and 35 µs for NCP 2 with the Rust host, against 13 and 14 µs for the raw round trip and 299 and 313 µs for NCP 1.0.1; [`profiling/`](profiling) explains why the owner's protocol code is slower inside the NEST process than without NEST. These numbers are not results.
 
+## Protocol 5
+
+Protocol 4 started on 2 November 2026, after a restart had removed the limit of about 3.1 GHz, and was stopped after 43 attempts of block 0.
+11 attempts were marked as disturbed only because a core ran at 3.962 to 3.999 GHz just after a long run, below the limit of 4.0 GHz that protocol 4 set to detect the limit of about 3.1 GHz. Seven of them were attempts of the NCP 1.0.1 Rust host, so the check would have removed the slower arms' long runs more often than the others.
+[Protocol 5](PROTOCOL-5.md) is protocol 4 with one change: a run is disturbed when a core runs below 3.8 GHz at its end. The conditions before a run do not change. The 43 attempts are kept in [`results-4-pilot/`](results-4-pilot) as a pilot record; they are not results.
+
 Corrections to the background text of [`PROTOCOL-4.md`](PROTOCOL-4.md), found on 24 October 2026 before any run; the rules of the protocol are not affected:
 
 - It says that other programs raised the load average up to 125. The highest values fell while the computer slept and woke with its lid closed; their cause is not established.
@@ -102,9 +109,10 @@ Run 1's results stay in [`results/`](results) as a record; its differences are u
 | Path | Content |
 | --- | --- |
 | `PROTOCOL*.md`, `PROTOCOL*.sha256` | The fixed protocols and their digests |
-| `run.py`, `content_run.py`, `run3.py`, `run4.py` | The runners; each resumes after an interruption |
+| `run.py`, `content_run.py`, `run3.py`, `run4.py` | The runners; each resumes after an interruption; `run4.py --protocol 5` runs protocol 5 |
 | `analyze.py`, `analyze_content.py`, `summary.py`, `analyze3.py`, `analyze4.py` | The analyses and the tables |
 | `harness/` | The networks, the NEST owners, the Python and Rust hosts of NCP 1.0.1 and NCP 2, the raw round trip, the MUSIC peer, the content checks, and the clock probe |
 | `results/`, `results-2/`, `results-content/`, `results-3/` | Schedules, environments, every run, and the analyses |
+| `results-4-pilot/` | The 43 attempts of protocol 4 that led to protocol 5; a pilot record, not results |
 | `music-threads/` | The reproduction of the MUSIC result with more than one thread |
 | `profiling/` | Where the time of an NCP 2 exchange goes inside the NEST process |
