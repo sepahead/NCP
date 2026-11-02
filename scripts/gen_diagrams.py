@@ -3302,6 +3302,95 @@ def fsm() -> Canvas:
     return c
 
 
+def ncp2_call() -> Canvas:
+    """NCP 2 for readers without a background in protocols: one session, three calls."""
+    c = Canvas(
+        "ncp2-call",
+        WIDTH,
+        1500,
+        "An NCP 2 session: one round trip for each step",
+        "A client opens a session, sends two steps and a close, and gets one response for each. "
+        "Each request carries the identity of the last response as its receipt, so the session "
+        f"forms one hash chain. NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "NCP 2 EXCHANGE", "One request and one response for each step")
+    notes_x = 900
+    notes_w = WIDTH - MARGIN - notes_x
+    client_head = card(c, "client", MARGIN, y + 6, 300, "Client", subtitle="Runs the experiment").box
+    owner_head = card(
+        c, "owner", 560, y + 6, 300, "Owner", subtitle="Runs one program", accent="turquoise"
+    ).box
+    explanations = [
+        (
+            "1",
+            "Open the session",
+            "The client names the application and its contract by identity. The owner answers "
+            "with the largest frame size of the session.",
+        ),
+        (
+            "2",
+            "The receipt rides along",
+            "Each later request carries the identity of the last response: the SHA-256 fingerprint "
+            "of its bytes. That is the acknowledgement, so a step needs one round trip, not two.",
+        ),
+        (
+            "3",
+            "A response is lost",
+            "On a link that can lose messages, the client sends the same request again. The owner "
+            "sends its kept response again and does not execute the step a second time.",
+        ),
+        (
+            "4",
+            "One hash chain",
+            "Each response names its request, and each request names the response before it. The "
+            "identity of the last response commits to the whole session.",
+        ),
+    ]
+    boxes = []
+    cursor = owner_head.bottom + 30
+    for number, title, body in explanations:
+        layout = card(
+            c,
+            f"step-{number}",
+            notes_x,
+            cursor,
+            notes_w,
+            title,
+            body,
+            number=number,
+            accent="lapis" if number == "2" else "turquoise",
+        )
+        boxes.append(layout.box)
+        cursor = layout.box.bottom + 14
+    bottom = cursor + 10
+    client_line = lifeline(c, "client-line", client_head.cx, client_head.bottom, bottom)
+    owner_line = lifeline(c, "owner-line", owner_head.cx, owner_head.bottom, bottom)
+    calls = [
+        ("open", "open, seq 0, contract identity", "opened", "ok, session frame size"),
+        ("step-a", "step, seq 1, receipt of response 0", "result-a", "ok, result of step 1"),
+        ("step-b", "step, seq 2, receipt of response 1", "result-b", "ok, result of step 2"),
+        ("close", "close, seq 3, receipt of response 2", "closed", "ok, session closed"),
+    ]
+    for (request, request_label, response, response_label), box in zip(calls, boxes, strict=True):
+        middle = box.y + box.h / 2
+        message(c, request, client_line, owner_line, middle - 30, request_label, "client-line", "owner-line", "lapis")
+        message(c, response, owner_line, client_line, middle + 50, response_label, "owner-line", "client-line")
+    c.height = (
+        note(
+            c,
+            "boundary",
+            bottom + 26,
+            "AFTER A FAILURE",
+            "If the owner fails while it executes a step, the response says so, and the step is possibly "
+            "executed. If the connection breaks, the request without a response is possibly executed. "
+            "In either case, at most one call of the session is uncertain, and the session ends.",
+        ).bottom
+        + 40
+    )
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
 DIAGRAMS = {
     "system-map": system_map,
     "exchange": exchange,
@@ -3318,6 +3407,7 @@ DIAGRAMS = {
     "ecosystem": ecosystem,
     "versioning": versioning,
     "fsm": fsm,
+    "ncp2-call": ncp2_call,
 }
 
 
@@ -3360,6 +3450,7 @@ DIAGRAM_OWNERS: dict[str, Path] = {
     / "implementation"
     / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
     "fsm": ROOT / "RESILIENCE.md",
+    "ncp2-call": ROOT / "docs" / "NCP-2-GUIDE.md",
 }
 
 # Exact labels that must survive editorial changes, and retired labels that
@@ -3390,6 +3481,7 @@ REQUIRED_TEXT: dict[str, tuple[str, ...]] = {
     "evidence-ladder": ("NOT RUN",),
     "exchange": ("retained",),
     "payload-transfer": ("32,768", "8,388,608"),
+    "ncp2-call": ("receipt of response 0", "possibly executed"),
 }
 FORBIDDEN_TEXT: dict[str, tuple[str, ...]] = {
     "ecosystem": ("nine role receipts", "Host API 2"),

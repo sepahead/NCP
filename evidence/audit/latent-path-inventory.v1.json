@@ -295,9 +295,9 @@
       },
       {
         "path": "README.md",
-        "bytes": 18610,
-        "sha256": "de866b76998b6926798e298560869a5da52fe25bc46d2e75c5e79838d2342cf0",
-        "git_blob_oid": "e46871ff78cb1c23c422e5467dc577c1b9f1f70e",
+        "bytes": 18862,
+        "sha256": "633d9087d1826de7e9d32130fe1fd71c5bb8528218160a61e1271749bc274c59",
+        "git_blob_oid": "65d74ef5c19f7b6629b2151483d0ab6a9aa1847b",
         "indexed": true
       },
       {
@@ -3619,6 +3619,13 @@
         "indexed": true
       },
       {
+        "path": "docs/NCP-2-GUIDE.md",
+        "bytes": 11475,
+        "sha256": "4f75456e466c568d2f1064391bc5020ba6809550dbc412576bd8b395527f90c8",
+        "git_blob_oid": "743147653272993775dce0a5a7e402ed226d91a5",
+        "indexed": true
+      },
+      {
         "path": "docs/adr/0001-separate-simulation-and-plant-sessions.md",
         "bytes": 163669,
         "sha256": "126daf508c8bc2123ccaf705f0209dd2d341e8598e5ba943c663dcf34d2e9325",
@@ -3851,9 +3858,9 @@
       },
       {
         "path": "docs/design/NCP-1-SHORTCOMINGS.md",
-        "bytes": 12790,
-        "sha256": "83abd04a34e7e66a4246e340436173dd24d5029b7af1f3fbd2c80215cf403528",
-        "git_blob_oid": "7ac9b9f899d6a1ec259d78c2994c70584b2c64f9",
+        "bytes": 12927,
+        "sha256": "ebebaa4fd3098983eef49fb45ce82faf26d4403268229d70f2209496beca119e",
+        "git_blob_oid": "aa3d0c8ced8c3c05c8730027c2cb23203198d325",
         "indexed": true
       },
       {
@@ -3980,6 +3987,20 @@
         "bytes": 10021,
         "sha256": "d7c28f1c0a5027b43d4fc800d139f58b66d41a414227ef32f1113a29cf370136",
         "git_blob_oid": "cfbc621962d28846ef4a5ec32915616212083c3a",
+        "indexed": true
+      },
+      {
+        "path": "docs/diagrams/ncp2-call-dark.svg",
+        "bytes": 9853,
+        "sha256": "eddae4f3fe70666db60675433f7869830d11428ed94fd13fa3cf9865b0c53cf6",
+        "git_blob_oid": "8f51fcfee3ad55747e9a6dc09664632acb67f69f",
+        "indexed": true
+      },
+      {
+        "path": "docs/diagrams/ncp2-call-light.svg",
+        "bytes": 9853,
+        "sha256": "ad67633d929078bd19873b69e89e233696c724996a92b2f01cf1d54c68e53c33",
+        "git_blob_oid": "0f31bcbebb487d8425a555bfad359fd1797b351d",
         "indexed": true
       },
       {
@@ -4706,8 +4727,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 152899,
-        "sha256": "8469560189a7879cbb6c1f824287b8729542bc913112ca34c6397e3ec915c504",
-        "git_blob_oid": "4cfe230f3a34f85635dd01a93c60eeda6131902c",
+        "sha256": "e743c672bae7ec3cf04234c31ce5db2697c76d9c14da4438fb016e61d4dec129",
+        "git_blob_oid": "b53ae703a3547cc0b1eb2cf0be6babe4c47e72bc",
         "indexed": true
       },
       {
@@ -10207,9 +10228,9 @@
       },
       {
         "path": "scripts/gen_diagrams.py",
-        "bytes": 122668,
-        "sha256": "463d0c1e4d84bb32740e698c1f462a617384f456519ebf868170131657c18d1b",
-        "git_blob_oid": "d3341a4cf7ebe6288a63bb51e727e9bd04e7c2a2",
+        "bytes": 126658,
+        "sha256": "e15a045ae9fb9b9fbf2387ea0f7f4fce647a3cfcc5484cfca89e8eab65b4e521",
+        "git_blob_oid": "16c30dff2cf3833eb14a0f83617c42d4663972f9",
         "indexed": true
       },
       {
@@ -10792,7 +10813,7 @@
     ]
   },
   "counts": {
-    "text_files": 1502,
+    "text_files": 1505,
     "binary_or_non_utf8_files": 29,
     "occurrences": 377,
     "by_token_id": {
@@ -10825,7 +10846,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "2b896f891d01a6855836db693594ddc7b27ae0c785839ebf52f4afe9e51f48ac",
+  "scanned_path_set_sha256": "231beedb8370f81bfe633b0c76b7413ef9327dfb7145cc2588f237216a9b0d3f",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
