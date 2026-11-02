@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate protocol 2 of the fault campaign (see PROTOCOL-2.md).
+"""Evaluate protocol 2 or 3 of the fault campaign (see PROTOCOL-2.md and PROTOCOL-3.md).
 
 Usage: analyze2.py RESULTS_DIR. Writes RESULTS_DIR/analysis.json and prints the tables.
 Standard library only.
@@ -16,7 +16,9 @@ TIMEOUT_S = 2.0
 SOAK_FIELDS = ("client_rss_kb", "owner_rss_kb", "client_fds", "owner_fds")
 
 
-def soak(row: dict) -> dict:
+def soak(row: dict, drop_last: bool) -> dict:
+    """The memory and descriptor measures of one soak. Protocol 3 leaves out the last sample of the
+    descriptor check: it can fall while the processes exit."""
     run = row.get("result") or {}
     samples = [s for s in run.get("samples", []) if all(s[f] is not None for f in SOAK_FIELDS)]
     if row["returncode"] != 0 or not run.get("result") or len(samples) < 10:
@@ -35,7 +37,9 @@ def soak(row: dict) -> dict:
         "samples": len(samples),
         "rss_kb_at_first_tenth": {side: base[f"{side}_rss_kb"] for side in ("client", "owner")},
         "rss_growth_after_first_tenth": growth,
-        "descriptors": {side: sorted({s[f"{side}_fds"] for s in later}) for side in ("client", "owner")},
+        "descriptors": {
+            side: sorted({s[f"{side}_fds"] for s in (later[:-1] if drop_last else later)}) for side in ("client", "owner")
+        },
     }
 
 
@@ -44,11 +48,13 @@ def main() -> None:
     schedule = json.loads((results / "schedule.json").read_text())
     rows = [json.loads(line) for line in (results / "trials.jsonl").read_text().splitlines() if line.strip()]
     trials = [row for row in rows if row["scenario"] != "soak"]
-    soaks = [soak(row) for row in rows if row["scenario"] == "soak"]
+    three = schedule["protocol"] == "PROTOCOL-3.md"
+    soaks = [soak(row, three) for row in rows if row["scenario"] == "soak"]
     failed_to_run = [f"{r['scenario']} {r['owner']} block {r['block']} #{r['index']}" for r in trials if r["returncode"] != 0]
     ran = [r for r in trials if r["returncode"] == 0]
     table: dict = defaultdict(lambda: defaultdict(int))
     regions: dict = defaultdict(int)
+    by_index: dict = defaultdict(lambda: defaultdict(int))  # flips by frame index and region
     violations: dict = defaultdict(list)
     for row in ran:
         result = row["result"]
@@ -82,6 +88,7 @@ def main() -> None:
                     violations["E5"].append(label)
                 if relay.get("region"):
                     regions[relay["region"]] += 1
+                    by_index[str(relay["index"])][relay["region"]] += 1
             else:
                 entry["not_changed"] += 1
         views, plan = result["views"], result["plan"]
@@ -121,8 +128,9 @@ def main() -> None:
         for name, text in hypotheses.items()
     }
     decided["E9"] = {
-        "criterion": "In each soak, the memory of client and owner grows by less than 10 % after the first tenth, "
-        "and their open descriptors stay constant.",
+        "criterion": "In each soak, every call returns the right result, the memory of client and owner grows by "
+        "less than 10 % after the first tenth, and their open descriptors stay constant after the first tenth"
+        + (", except in the last sample." if three else "."),
         "holds": all_ran and soak_ok and len(soaks) == 3 * (1 if schedule.get("smoke") else 3),
     }
     analysis = {
@@ -135,6 +143,7 @@ def main() -> None:
         "failed_to_run": failed_to_run,
         "by_scenario": {key: dict(value) for key, value in sorted(table.items())},
         "flip_regions": dict(sorted(regions.items())),
+        "flip_regions_by_frame_index": {k: dict(sorted(v.items())) for k, v in sorted(by_index.items())},
         "soaks": soaks,
         "hypotheses": decided,
     }

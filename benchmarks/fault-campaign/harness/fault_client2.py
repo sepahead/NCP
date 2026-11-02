@@ -193,9 +193,12 @@ def main() -> None:
     if scenario.startswith(("flip", "truncate", "duplicate")):
         mode, direction = scenario.split("-")
         index = rng.randrange(STEPS + 2)  # open, six steps, and close, in each direction
+        # The relay draws its bit or cut from a seed of its own. With the trial seed itself, its
+        # first draw repeated the draw of the index above (protocol 2, README).
+        plan["relay_seed"] = rng.randrange(2**31)
         read_fd, write_fd = os.pipe()
         env["RELAY_REPORT_FD"] = str(write_fd)
-        command = [sys.executable, "-s", str(HERE / "relay2.py"), direction, str(index), mode, str(seed)] + command
+        command = [sys.executable, "-s", str(HERE / "relay2.py"), direction, str(index), mode, str(plan["relay_seed"])] + command
     elif scenario == "stall":
         plan["stall_k"] = rng.randrange(1, STEPS + 1)
         env.update(FAULT_STALL_K=str(plan["stall_k"]), FAULT_STALL_S=str(3 * TIMEOUT_S))

@@ -99,6 +99,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   before it runs, and each trial compares the log with what the client learned. For
   it, the Rust echo owner example writes that log when `NCP_EXECUTION_LOG` is set, and
   the Rust bench client keeps one call time in K with `--keep-every K`.
+- Fault-campaign protocol 2 ran on 2 November 2026: in 4,170 trials, no client accepted
+  a wrong result, no owner executed a step twice or out of order, and no client learned
+  anything false about a step (E1 to E8). E9 failed in one sample: the last sample of
+  one soak fell while the owner exited. Afterwards, the records showed that the relay
+  drew its bit or cut from the same seed as the frame index, so that the positions of
+  the flips depended on the frame; protocol 3 repeats the trials with independent draws.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

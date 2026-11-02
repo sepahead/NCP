@@ -1,0 +1,466 @@
+{
+ "protocol": "PROTOCOL-2.md",
+ "protocol_sha256": "4880b2fa1b39c16b28c4cad9b887a15fae36d5a9171364b66fafd6e4b00aed82",
+ "commit": "6e8944add4d0f355fec8393bd87cff3de30bfad2",
+ "worktree_clean": true,
+ "rows": 4179,
+ "scheduled": 4179,
+ "failed_to_run": [],
+ "by_scenario": {
+  "backend-raise python": {
+   "trials": 60,
+   "completed": 0,
+   "detected": 60,
+   "wrong_accepted": 0
+  },
+  "backend-raise rust": {
+   "trials": 60,
+   "completed": 0,
+   "detected": 60,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o python": {
+   "trials": 90,
+   "completed": 9,
+   "detected": 81,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o rust": {
+   "trials": 90,
+   "completed": 13,
+   "detected": 77,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c python": {
+   "trials": 90,
+   "completed": 12,
+   "detected": 78,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c rust": {
+   "trials": 90,
+   "completed": 10,
+   "detected": 80,
+   "wrong_accepted": 0
+  },
+  "flip-c2o python": {
+   "trials": 600,
+   "completed": 0,
+   "detected": 600,
+   "wrong_accepted": 0,
+   "changed": 600
+  },
+  "flip-c2o rust": {
+   "trials": 600,
+   "completed": 0,
+   "detected": 600,
+   "wrong_accepted": 0,
+   "changed": 600
+  },
+  "flip-o2c python": {
+   "trials": 600,
+   "completed": 0,
+   "detected": 600,
+   "wrong_accepted": 0,
+   "changed": 600
+  },
+  "flip-o2c rust": {
+   "trials": 600,
+   "completed": 0,
+   "detected": 600,
+   "wrong_accepted": 0,
+   "changed": 600
+  },
+  "kill-client python": {
+   "trials": 60,
+   "owner_exited": 60
+  },
+  "kill-client rust": {
+   "trials": 60,
+   "owner_exited": 60
+  },
+  "kill-owner python": {
+   "trials": 120,
+   "completed": 14,
+   "detected": 106,
+   "wrong_accepted": 0
+  },
+  "kill-owner rust": {
+   "trials": 120,
+   "completed": 88,
+   "detected": 32,
+   "wrong_accepted": 0
+  },
+  "oversize-request python": {
+   "trials": 60,
+   "completed": 60,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-request rust": {
+   "trials": 60,
+   "completed": 60,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-response python": {
+   "trials": 60,
+   "completed": 0,
+   "detected": 60,
+   "wrong_accepted": 0
+  },
+  "stall python": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0,
+   "max_seconds": 2.0404
+  },
+  "truncate-c2o python": {
+   "trials": 180,
+   "completed": 0,
+   "detected": 180,
+   "wrong_accepted": 0,
+   "changed": 180
+  },
+  "truncate-c2o rust": {
+   "trials": 180,
+   "completed": 0,
+   "detected": 180,
+   "wrong_accepted": 0,
+   "changed": 180
+  },
+  "truncate-o2c python": {
+   "trials": 180,
+   "completed": 0,
+   "detected": 180,
+   "wrong_accepted": 0,
+   "changed": 180
+  },
+  "truncate-o2c rust": {
+   "trials": 180,
+   "completed": 0,
+   "detected": 180,
+   "wrong_accepted": 0,
+   "changed": 180
+  }
+ },
+ "flip_regions": {
+  "attachments": 396,
+  "digest": 212,
+  "header": 80,
+  "json": 1712
+ },
+ "flip_regions_by_frame_index": {
+  "0": {
+   "digest": 11,
+   "header": 80,
+   "json": 181
+  },
+  "1": {
+   "digest": 21,
+   "json": 271
+  },
+  "2": {
+   "attachments": 102,
+   "digest": 28,
+   "json": 190
+  },
+  "3": {
+   "digest": 27,
+   "json": 294
+  },
+  "4": {
+   "attachments": 149,
+   "digest": 29,
+   "json": 123
+  },
+  "5": {
+   "digest": 19,
+   "json": 283
+  },
+  "6": {
+   "attachments": 145,
+   "digest": 26,
+   "json": 127
+  },
+  "7": {
+   "digest": 51,
+   "json": 243
+  }
+ },
+ "soaks": [
+  {
+   "kind": "python-rust",
+   "block": 0,
+   "calls": 1000000,
+   "seconds": 21.44,
+   "valid": true,
+   "median_us": 20.5,
+   "samples": 34,
+   "rss_kb_at_first_tenth": {
+    "client": 25872,
+    "owner": 2400
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.000618429189857661,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     6
+    ]
+   }
+  },
+  {
+   "kind": "rust-rust",
+   "block": 0,
+   "calls": 1000000,
+   "seconds": 9.86,
+   "valid": true,
+   "median_us": 9.167,
+   "samples": 16,
+   "rss_kb_at_first_tenth": {
+    "client": 2368,
+    "owner": 2368
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.0,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     8
+    ],
+    "owner": [
+     6
+    ]
+   }
+  },
+  {
+   "kind": "python-python",
+   "block": 0,
+   "calls": 200000,
+   "seconds": 7.28,
+   "valid": true,
+   "median_us": 35.229,
+   "samples": 11,
+   "rss_kb_at_first_tenth": {
+    "client": 25728,
+    "owner": 24736
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.0006218905472636926,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     24
+    ]
+   }
+  },
+  {
+   "kind": "rust-rust",
+   "block": 1,
+   "calls": 1000000,
+   "seconds": 9.91,
+   "valid": true,
+   "median_us": 8.75,
+   "samples": 16,
+   "rss_kb_at_first_tenth": {
+    "client": 2368,
+    "owner": 2368
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.006756756756756799,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     8
+    ],
+    "owner": [
+     1,
+     6
+    ]
+   }
+  },
+  {
+   "kind": "python-python",
+   "block": 1,
+   "calls": 200000,
+   "seconds": 8.45,
+   "valid": true,
+   "median_us": 40.2085,
+   "samples": 13,
+   "rss_kb_at_first_tenth": {
+    "client": 25824,
+    "owner": 24768
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.0,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     24
+    ]
+   }
+  },
+  {
+   "kind": "python-rust",
+   "block": 1,
+   "calls": 1000000,
+   "seconds": 21.35,
+   "valid": true,
+   "median_us": 20.583,
+   "samples": 34,
+   "rss_kb_at_first_tenth": {
+    "client": 25856,
+    "owner": 2384
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.0006188118811880639,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     6
+    ]
+   }
+  },
+  {
+   "kind": "python-rust",
+   "block": 2,
+   "calls": 1000000,
+   "seconds": 20.85,
+   "valid": true,
+   "median_us": 20.125,
+   "samples": 33,
+   "rss_kb_at_first_tenth": {
+    "client": 25776,
+    "owner": 2336
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.0018621973929235924,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     6
+    ]
+   }
+  },
+  {
+   "kind": "rust-rust",
+   "block": 2,
+   "calls": 1000000,
+   "seconds": 9.9,
+   "valid": true,
+   "median_us": 9.0,
+   "samples": 16,
+   "rss_kb_at_first_tenth": {
+    "client": 2320,
+    "owner": 2288
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.006896551724137945,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     8
+    ],
+    "owner": [
+     6
+    ]
+   }
+  },
+  {
+   "kind": "python-python",
+   "block": 2,
+   "calls": 200000,
+   "seconds": 8.48,
+   "valid": true,
+   "median_us": 40.209,
+   "samples": 13,
+   "rss_kb_at_first_tenth": {
+    "client": 25776,
+    "owner": 24736
+   },
+   "rss_growth_after_first_tenth": {
+    "client": 0.0,
+    "owner": 0.0
+   },
+   "descriptors": {
+    "client": [
+     30
+    ],
+    "owner": [
+     24
+    ]
+   }
+  }
+ ],
+ "hypotheses": {
+  "E1": {
+   "criterion": "No trial accepts a wrong result.",
+   "violations": [],
+   "holds": true
+  },
+  "E2": {
+   "criterion": "In every trial, the owner executes each step at most once, in order.",
+   "violations": [],
+   "holds": true
+  },
+  "E3": {
+   "criterion": "In every trial, what the client learned about each step is true, and at most one step is uncertain.",
+   "violations": [],
+   "holds": true
+  },
+  "E4": {
+   "criterion": "Every failure reaches the application as a documented exception.",
+   "violations": [],
+   "holds": true
+  },
+  "E5": {
+   "criterion": "Every flipped or truncated frame ends the session early.",
+   "violations": [],
+   "holds": true
+  },
+  "E6": {
+   "criterion": "Every killed client leaves its owner exited within 10 s.",
+   "violations": [],
+   "holds": true
+  },
+  "E7": {
+   "criterion": "Every stall ends with a timeout, possibly executed, within the time limit plus 1 s.",
+   "violations": [],
+   "holds": true
+  },
+  "E8": {
+   "criterion": "Oversized results end with result_too_large (executed), raising handlers with owner_failure (unknown), and oversized requests are refused before sending, after which the session completes.",
+   "violations": [],
+   "holds": true
+  },
+  "E9": {
+   "criterion": "In each soak, every call returns the right result, the memory of client and owner grows by less than 10 % after the first tenth, and their open descriptors stay constant after the first tenth.",
+   "holds": false
+  }
+ }
+}

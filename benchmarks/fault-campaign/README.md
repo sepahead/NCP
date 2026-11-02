@@ -1,6 +1,6 @@
 # Fault campaign
 
-This directory holds two protocols. [Protocol 2](#protocol-2-ncp-2), at the end, tests NCP 2.
+This directory holds three protocols. [Protocols 2 and 3](#protocol-2-ncp-2), at the end, test NCP 2.
 Protocol 1, from here on, is a campaign of 22 October 2026 that drives local NCP 1.0.1 sessions into the failures that the profile names.
 It asks two questions: what happens in each failure, and does any failure make a client accept a wrong result.
 All trials use SDK 1.0.1 with `LocalClient` and a Python or Rust owner on one computer.
@@ -109,4 +109,61 @@ Before this protocol was fixed, a review of the client against specification 7.6
 | [`harness/fault_client2.py`](harness/fault_client2.py) | One trial: the session, its classification, and the invariants |
 | [`harness/soak2.py`](harness/soak2.py) | The soaks, with memory and descriptor samples |
 
-It has not run yet.
+### Results of protocol 2
+
+The 4,170 trials and 9 soaks ran on 2 November 2026 from 20:04 to 20:17 UTC, from the clean commit `6e8944a`, with Python 3.15.0 and Rust 1.99.1, on the computer above.
+Every scheduled trial ran. Other programs were running, with one-minute load averages of 3.0 to 14.6 before a trial, and the computer ran on battery; only the detection time of a stall is a time measure.
+[`results-2/trials.jsonl`](results-2/trials.jsonl) holds every trial, and [`results-2/analysis.json`](results-2/analysis.json) the analysis.
+
+| Scenario | Owner | Trials | Completed | Ended early | Wrong results |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Bit flip, client to owner | Python, Rust | 600 each | 0 | 600 each | 0 |
+| Bit flip, owner to client | Python, Rust | 600 each | 0 | 600 each | 0 |
+| Truncated frame, client to owner | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Truncated frame, owner to client | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Repeated frame, client to owner | Python / Rust | 90 each | 9 / 13 | 81 / 77 | 0 |
+| Repeated frame, owner to client | Python / Rust | 90 each | 12 / 10 | 78 / 80 | 0 |
+| Owner killed at a random time | Python / Rust | 120 each | 14 / 88 | 106 / 32 | 0 |
+| Client killed at a random time | Python, Rust | 60 each | The owner exited in all 120, after at most 0.037 s | | |
+| Step stalls three times the time limit | Python | 30 | 0 | 30 | 0 |
+| Result larger than the session bound | Python | 60 | 0 | 60 | 0 |
+| Request larger than the session bound | Python, Rust | 60 each | 60 each | 0 | 0 |
+| Handler raises | Python, Rust | 60 each | 0 | 60 each | 0 |
+
+| # | Hypothesis | Holds |
+| --- | --- | --- |
+| E1 | No trial accepts a wrong result. | yes |
+| E2 | In every trial, the owner executes each step at most once, in order. | yes |
+| E3 | In every trial, what the client learned is true. | yes |
+| E4 | Every failure reaches the application as a documented exception. | yes |
+| E5 | Every flipped or truncated frame ends the session before it completes. | yes: 3,120 of 3,120 |
+| E6 | Every killed client leaves its owner exited within 10 s. | yes: 120 of 120 |
+| E7 | Every stall ends with `timeout`, executed `unknown`, within 3 s of the start of the session. | yes: after 2.03 to 2.04 s |
+| E8 | Oversized results, raising handlers, and oversized requests end as stated. | yes |
+| E9 | In each soak, every call returns the right result, memory grows by less than 10 % after the first tenth, and open descriptors stay constant after the first tenth. | no: see below |
+
+- **Damaged frames.** Of the 2,400 flipped bits, 1,712 were in the JSON region, 396 in the attachments, 212 in the digest, and 80 in the header. Every damaged request ended its session with `bad_frame`, executed `no`. Every damaged response ended the session with a protocol error, or, when a flip enlarged a length, with a timeout; in both cases the last request was reported as possibly executed, and the log showed that it had executed.
+- **Repeated frames.** A byte stream does not repeat frames, so these trials test only safety. No step ran twice. When the repeated frame was the last one of the session, the session completed (44 trials). Otherwise the client met a response that did not answer its next request and ended the session with a protocol error; the step that it had just sent was the uncertain one.
+- **Killed owners.** A session with the Rust owner takes a few milliseconds, so the kill often came after the session had ended (88 of 120). In every other trial, the last request was reported as possibly executed, and no other step was uncertain.
+
+**A defect of the harness, found after the runs.** The client chose the frame with `random.Random(seed)`, and the relay drew the bit or the cut with a new `random.Random(seed)` from the same seed.
+Both first draws come from the same random number, so a flipped bit or a cut fell into the part of the frame's range that the frame's index selected, unless the relay's first draw fell beyond the end of the frame.
+All 80 flips in a header hit the first frame of a direction, the `open` request or response, and 25 of them made a length larger, so that the session ended with a timeout after 2 s; no flip hit the header of a step.
+The protocol says that one random bit anywhere in the frame is flipped. Every damaged frame was still detected (E5), but these trials did not cover flips in the header of a step, and the positions were not independent of the frame.
+[Protocol 3](PROTOCOL-3.md) repeats the trials with independent draws.
+
+E9 does not hold by its criterion, for one sample. In the second soak of the Rust client, the last sample, at 9.30 s of a 9.91 s soak, read 1 open descriptor of the owner instead of 6: the client had finished its 1,000,000 calls, and the owner was exiting. Every other sample of all nine soaks had constant descriptors, every call returned the right result, and memory grew by at most 0.69 % (client) and 0 % (owner) after the first tenth.
+The criterion did not exclude samples taken while the processes exit; this protocol is not changed after its runs.
+
+| Soak | Calls | Median call (µs) | Client memory growth | Owner memory growth | Open descriptors, client / owner |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Python client, Python owner, blocks 0 to 2 | 200,000 | 35.2, 40.2, 40.2 | 0.06 %, 0 %, 0 % | 0 % | 30 / 24 |
+| Python client, Rust owner, blocks 0 to 2 | 1,000,000 | 20.5, 20.6, 20.1 | 0.06 %, 0.06 %, 0.19 % | 0 % | 30 / 6 |
+| Rust client, Rust owner, blocks 0 to 2 | 1,000,000 | 9.2, 8.8, 9.0 | 0 %, 0.68 %, 0.69 % | 0 % | 8 / 6, and 1 in the last sample of block 1 |
+
+## Protocol 3: NCP 2, with independent draws
+
+[`PROTOCOL-3.md`](PROTOCOL-3.md) was fixed on 2 November 2026 (SHA-256 in [`PROTOCOL-3.sha256`](PROTOCOL-3.sha256)).
+It repeats protocol 2 after the fix of the defect above: the relay draws its bit or cut from a seed of its own.
+It also leaves the last sample of each soak out of the check of the open descriptors, because that sample can fall while the processes exit.
+`run2.py --protocol 3` runs it. It has not run yet.

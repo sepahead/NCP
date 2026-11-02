@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Run protocol 2 of the fault campaign, for NCP 2 (see PROTOCOL-2.md). Resumable and safe to interrupt.
+"""Run protocol 2 or 3 of the fault campaign, for NCP 2 (see PROTOCOL-2.md and PROTOCOL-3.md).
+Resumable and safe to interrupt.
 
-Usage: run2.py RESULTS_DIR [--smoke]
+Usage: run2.py RESULTS_DIR [--protocol 2|3] [--smoke]
 Writes RESULTS_DIR/schedule.json once: three blocks; each block holds every trial of the plan
 in an order shuffled with a fixed seed. Each finished trial is appended to
 RESULTS_DIR/trials.jsonl and synced to disk; a later call skips finished trials. The NCP 2 Rust
@@ -22,8 +23,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-PROTOCOL = "PROTOCOL-2.md"
-SEED = 20261103
+# Protocol: its file and the seed of the order of its blocks. Protocol 3 differs from protocol 2
+# in the harness (the relay's own seed) and in the analysis of the soaks.
+PROTOCOLS = {"2": ("PROTOCOL-2.md", 20261103), "3": ("PROTOCOL-3.md", 20261104)}
 BLOCKS = 3
 # (scenario, owner, trials per block)
 PLAN = [
@@ -65,13 +67,15 @@ def build(work: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("results", type=Path)
+    parser.add_argument("--protocol", choices=sorted(PROTOCOLS), default="2")
     parser.add_argument("--smoke", action="store_true", help="one trial of each scenario and owner, short soaks")
     args = parser.parse_args()
+    protocol, seed = PROTOCOLS[args.protocol]
     args.results.mkdir(parents=True, exist_ok=True)
     examples = build(args.results / ".work")
     schedule_path = args.results / "schedule.json"
     if not schedule_path.exists():
-        rng = random.Random(SEED)
+        rng = random.Random(seed)
         order = []
         for block in range(1 if args.smoke else BLOCKS):
             entries = [
@@ -82,9 +86,9 @@ def main() -> None:
             rng.shuffle(entries)
             order += [dict(entry, block=block, index=i, seed=rng.randrange(2**31)) for i, entry in enumerate(entries)]
         schedule = {
-            "protocol": PROTOCOL,
-            "protocol_sha256": hashlib.sha256((HERE / PROTOCOL).read_bytes()).hexdigest(),
-            "seed": SEED,
+            "protocol": protocol,
+            "protocol_sha256": hashlib.sha256((HERE / protocol).read_bytes()).hexdigest(),
+            "seed": seed,
             "smoke": args.smoke,
             "commit": out(["git", "-C", str(ROOT), "rev-parse", "HEAD"]),
             "worktree_clean": out(["git", "-C", str(ROOT), "status", "--porcelain"]) == "",
@@ -95,7 +99,7 @@ def main() -> None:
         }
         schedule_path.write_text(json.dumps(schedule, indent=1) + "\n")
     schedule = json.loads(schedule_path.read_text())
-    if schedule["protocol"] != PROTOCOL:
+    if schedule["protocol"] != protocol:
         sys.exit(f"{schedule_path} belongs to {schedule['protocol']}")
     trials_path = args.results / "trials.jsonl"
     done = set()
