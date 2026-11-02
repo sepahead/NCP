@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 import zmq
-from common import Responder, check, measure, report, request, start_server, stop_server
+from common import Responder, check, incoming, measure, outgoing, report, request, start_server, stop_server
 
 
 def server(kind: str) -> None:
@@ -40,8 +40,8 @@ def client(kind: str) -> None:
 
         def call(index: int) -> None:
             data = request(index, spikes)
-            socket.send(data)
-            check(data, socket.recv(), spikes)
+            socket.send(outgoing(data))
+            check(data, incoming(socket.recv()), spikes)
 
         times = measure(call, calls, warmup)
     finally:

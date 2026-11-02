@@ -11,7 +11,7 @@ import struct
 import subprocess
 import sys
 
-from common import Responder, check, measure, report, request
+from common import Responder, check, incoming, measure, outgoing, report, request
 
 
 def read_exactly(fd: int, size: int) -> bytes:
@@ -51,9 +51,10 @@ def client() -> None:
 
     def call(index: int) -> None:
         data = request(index, spikes)
-        write_all(write_fd, struct.pack(">I", len(data)) + data)
+        sent = outgoing(data)
+        write_all(write_fd, struct.pack(">I", len(sent)) + sent)
         length = struct.unpack(">I", read_exactly(read_fd, 4))[0]
-        check(data, read_exactly(read_fd, length), spikes)
+        check(data, incoming(read_exactly(read_fd, length)), spikes)
 
     times = measure(call, calls, warmup)
     process.stdin.close()

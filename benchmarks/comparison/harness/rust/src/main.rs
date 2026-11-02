@@ -1,18 +1,54 @@
-//! Rust comparison arms (see ../../PROTOCOL.md). One binary, one arm per subcommand:
+//! Rust comparison arms (see ../../PROTOCOL.md and ../../PROTOCOL-2.md). One binary, one arm per
+//! subcommand:
 //!
 //! bench raw-server                          answers on stdin and stdout
 //! bench raw-client CALLS WARMUP SPIKES -- SERVER...
-//! bench grpc-server                         prints "ready 127.0.0.1:PORT"
+//! bench grpc-server [unix PATH]             prints "ready 127.0.0.1:PORT" or "ready unix:PATH"
 //! bench grpc-client CALLS WARMUP SPIKES ADDRESS
 //! bench zenoh-server                        prints "ready tcp/127.0.0.1:PORT"
 //! bench zenoh-client CALLS WARMUP SPIKES ENDPOINT
 //!
 //! Every arm sends a 16-byte request (call index, spike count) and gets the request header and
 //! N spikes back: senders as little-endian u32, then times as little-endian f64.
+//! With BENCH_SHA256=1 in the environment of both ends, each sender appends the SHA-256 digest of
+//! its message, and each receiver computes it again and compares: the integrity check of NCP 2.
 use serde_json::json;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::time::Instant;
+
+/// The integrity check of protocol 2: the digest of the NCP 2 Rust SDK, at both ends.
+mod integrity {
+    use sha2::{Digest, Sha256};
+
+    /// Whether this process appends and checks digests (BENCH_SHA256=1).
+    pub fn on() -> bool {
+        std::env::var("BENCH_SHA256").as_deref() == Ok("1")
+    }
+
+    /// Append the SHA-256 digest of the message.
+    pub fn seal(mut data: Vec<u8>) -> Vec<u8> {
+        let digest = Sha256::digest(&data);
+        data.extend_from_slice(&digest);
+        data
+    }
+
+    /// Compute the digest of the message again, compare it, and return the message without it.
+    pub fn open(data: &[u8]) -> &[u8] {
+        let (body, digest) = data.split_at(data.len().checked_sub(32).expect("sealed message"));
+        assert!(Sha256::digest(body).as_slice() == digest, "digest mismatch");
+        body
+    }
+
+    /// The description of the stack, with the check when it is on.
+    pub fn label(stack: &str) -> String {
+        if on() {
+            format!("{stack}, SHA-256 at both ends")
+        } else {
+            stack.to_string()
+        }
+    }
+}
 
 fn spikes_bytes(n: usize) -> Vec<u8> {
     let mut state = 0x2545_f491_4f6c_dd1d_u64;
@@ -28,20 +64,57 @@ fn spikes_bytes(n: usize) -> Vec<u8> {
     senders
 }
 
-/// The server side of every arm: the request header, then N cached spikes.
-#[derive(Default)]
+/// The server side of every arm: the request header, then N cached spikes. With the integrity
+/// check on, it checks the request's digest and appends the response's.
 struct Responder {
     cache: HashMap<usize, Vec<u8>>,
+    sealed: bool,
+}
+
+impl Default for Responder {
+    fn default() -> Self {
+        Self {
+            cache: HashMap::new(),
+            sealed: integrity::on(),
+        }
+    }
 }
 
 impl Responder {
-    fn respond(&mut self, request: &[u8]) -> Vec<u8> {
+    fn respond(&mut self, received: &[u8]) -> Vec<u8> {
+        let request = if self.sealed {
+            integrity::open(received)
+        } else {
+            received
+        };
         let n = u64::from_le_bytes(request[8..16].try_into().expect("request")) as usize;
         let body = self.cache.entry(n).or_insert_with(|| spikes_bytes(n));
-        let mut response = Vec::with_capacity(16 + body.len());
+        let mut response = Vec::with_capacity(16 + body.len() + 32);
         response.extend_from_slice(&request[..16]);
         response.extend_from_slice(body);
-        response
+        if self.sealed {
+            integrity::seal(response)
+        } else {
+            response
+        }
+    }
+}
+
+/// The client side of the integrity check: the bytes to send for a request.
+fn outgoing(data: &[u8]) -> Vec<u8> {
+    if integrity::on() {
+        integrity::seal(data.to_vec())
+    } else {
+        data.to_vec()
+    }
+}
+
+/// The client side of the integrity check: the response without its digest, after the check.
+fn incoming(received: &[u8]) -> &[u8] {
+    if integrity::on() {
+        integrity::open(received)
+    } else {
+        received
     }
 }
 
@@ -115,21 +188,22 @@ fn raw_client(args: &[String]) {
     for index in 0..warmup + calls {
         let started = Instant::now();
         let data = request(index, spikes);
-        let mut frame = (data.len() as u32).to_be_bytes().to_vec();
-        frame.extend_from_slice(&data);
+        let sent = outgoing(&data);
+        let mut frame = (sent.len() as u32).to_be_bytes().to_vec();
+        frame.extend_from_slice(&sent);
         writer.write_all(&frame).expect("write");
         let mut header = [0u8; 4];
         reader.read_exact(&mut header).expect("read");
         buffer.resize(u32::from_be_bytes(header) as usize, 0);
         reader.read_exact(&mut buffer).expect("read");
-        check(&data, &buffer, spikes);
+        check(&data, incoming(&buffer), spikes);
         if index >= warmup {
             times.push(started.elapsed().as_secs_f64() * 1e6);
         }
     }
     drop(writer);
     child.wait().expect("wait");
-    report(times, warmup, spikes, json!("raw pipe"));
+    report(times, warmup, spikes, json!(integrity::label("raw pipe")));
 }
 
 // gRPC with tonic: one unary method whose request and response hold one bytes field.
@@ -207,8 +281,20 @@ fn runtime() -> tokio::runtime::Runtime {
         .expect("runtime")
 }
 
-fn grpc_server() {
+fn grpc_server(args: &[String]) {
     runtime().block_on(async {
+        if args.get(2).map(String::as_str) == Some("unix") {
+            let path = args.get(3).expect("socket path");
+            let listener = tokio::net::UnixListener::bind(path).expect("bind");
+            println!("ready unix:{path}");
+            std::io::stdout().flush().expect("flush");
+            tonic::transport::Server::builder()
+                .add_service(grpc::EchoService::default())
+                .serve_with_incoming(unix_incoming::Incoming(listener))
+                .await
+                .expect("serve");
+            return;
+        }
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
             .expect("bind");
@@ -222,6 +308,23 @@ fn grpc_server() {
             .await
             .expect("serve");
     });
+}
+
+mod unix_incoming {
+    //! A minimal stream of accepted Unix domain socket connections, for serve_with_incoming.
+    use std::pin::Pin;
+    use std::task::{Context, Poll};
+    pub struct Incoming(pub tokio::net::UnixListener);
+    impl tonic::codegen::tokio_stream::Stream for Incoming {
+        type Item = std::io::Result<tokio::net::UnixStream>;
+        fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+            match self.0.poll_accept(cx) {
+                Poll::Ready(Ok((stream, _))) => Poll::Ready(Some(Ok(stream))),
+                Poll::Ready(Err(error)) => Poll::Ready(Some(Err(error))),
+                Poll::Pending => Poll::Pending,
+            }
+        }
+    }
 }
 
 fn futures_incoming(listener: tokio::net::TcpListener) -> impl tokio_stream_like::Stream {
@@ -262,14 +365,32 @@ mod tokio_stream_like {
 
 fn grpc_client(args: &[String]) {
     let (calls, warmup, spikes) = numbers(args);
+    let unix = args[5].strip_prefix("unix:").map(str::to_string);
     let address = format!("http://{}", args[5]);
     runtime().block_on(async {
-        let channel = tonic::transport::Endpoint::from_shared(address)
-            .expect("endpoint")
-            .tcp_nodelay(true)
-            .connect()
-            .await
-            .expect("connect");
+        let channel = match &unix {
+            // The URI is not used: the connector opens the Unix domain socket.
+            Some(path) => {
+                let path = path.clone();
+                tonic::transport::Endpoint::from_static("http://localhost")
+                    .connect_with_connector(tower::service_fn(move |_: tonic::transport::Uri| {
+                        let path = path.clone();
+                        async move {
+                            Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(
+                                tokio::net::UnixStream::connect(path).await?,
+                            ))
+                        }
+                    }))
+                    .await
+                    .expect("connect")
+            }
+            None => tonic::transport::Endpoint::from_shared(address)
+                .expect("endpoint")
+                .tcp_nodelay(true)
+                .connect()
+                .await
+                .expect("connect"),
+        };
         let mut client = tonic::client::Grpc::new(channel)
             .max_decoding_message_size(64 << 20)
             .max_encoding_message_size(64 << 20);
@@ -281,19 +402,24 @@ fn grpc_client(args: &[String]) {
             let response = client
                 .unary(
                     tonic::Request::new(Message {
-                        data: data.clone().into(),
+                        data: outgoing(&data).into(),
                     }),
                     tonic::codegen::http::uri::PathAndQuery::from_static(grpc::PATH),
                     tonic_prost::ProstCodec::<Message, Message>::default(),
                 )
                 .await
                 .expect("call");
-            check(&data, &response.into_inner().data, spikes);
+            check(&data, incoming(&response.into_inner().data), spikes);
             if index >= warmup {
                 times.push(started.elapsed().as_secs_f64() * 1e6);
             }
         }
-        report(times, warmup, spikes, json!("tonic 0.14, TCP loopback"));
+        let stack = if unix.is_some() {
+            "tonic 0.14, Unix domain socket"
+        } else {
+            "tonic 0.14, TCP loopback"
+        };
+        report(times, warmup, spikes, json!(integrity::label(stack)));
     });
 }
 
@@ -371,7 +497,7 @@ fn zenoh_client(args: &[String]) {
             for index in 0..warmup + calls {
                 let started = Instant::now();
                 let data = request(index, spikes);
-                let replies = querier.get().payload(data.clone()).await.expect("get");
+                let replies = querier.get().payload(outgoing(&data)).await.expect("get");
                 let reply = replies.recv_async().await.expect("reply");
                 let received = reply
                     .result()
@@ -379,12 +505,17 @@ fn zenoh_client(args: &[String]) {
                     .payload()
                     .to_bytes()
                     .into_owned();
-                check(&data, &received, spikes);
+                check(&data, incoming(&received), spikes);
                 if index >= warmup {
                     times.push(started.elapsed().as_secs_f64() * 1e6);
                 }
             }
-            report(times, warmup, spikes, json!("zenoh 1.9.0, TCP loopback"));
+            report(
+                times,
+                warmup,
+                spikes,
+                json!(integrity::label("zenoh 1.10.1, TCP loopback")),
+            );
             drop(session);
         });
 }
@@ -394,7 +525,7 @@ fn main() {
     match args[1].as_str() {
         "raw-server" => raw_server(),
         "raw-client" => raw_client(&args),
-        "grpc-server" => grpc_server(),
+        "grpc-server" => grpc_server(&args),
         "grpc-client" => grpc_client(&args),
         "zenoh-server" => zenoh_server(),
         "zenoh-client" => zenoh_client(&args),

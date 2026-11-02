@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Analyze the comparison benchmark (see PROTOCOL.md, section 9).
+"""Analyze the comparison benchmark (see PROTOCOL.md, section 9, and PROTOCOL-2.md).
 
 Usage: analyze.py RESULTS_DIR [--figures DIR]
 
 Reads RESULTS_DIR/runs.jsonl, RESULTS_DIR/schedule.json, and RESULTS_DIR/validity.json. Writes
 RESULTS_DIR/analysis.json (statistics and hypothesis results), RESULTS_DIR/summary.md (the same
 values as tables), and four figures, each in a light and a dark version, into DIR (default
-RESULTS_DIR/figures). The output is deterministic: the same input gives the same bytes.
+RESULTS_DIR/figures). For protocol 2 it adds R1 to R3, the arms with the integrity check of NCP 2,
+and a fifth figure. The output is deterministic: the same input gives the same bytes.
 Needs numpy and matplotlib (requirements.txt).
 """
 
@@ -58,6 +59,36 @@ TIERS = {
     ],
 }
 
+# Protocol 2: the NCP 2 arms against the other arms with the same integrity check (SHA-256 at both ends).
+INTEGRITY_TIERS = {
+    "rust": [
+        ("ncp2-rust-rust-pipe", "NCP 2, pipe"),
+        ("ncp2-rust-rust-unix", "NCP 2, Unix socket"),
+        ("ncp2-rust-rust-tcp", "NCP 2, TCP"),
+        ("grpc-rust-unix-sha256", "gRPC (tonic), Unix socket + SHA-256"),
+        ("grpc-rust-tcp-sha256", "gRPC (tonic), TCP + SHA-256"),
+        ("zenoh-rust-tcp-sha256", "Zenoh, TCP + SHA-256"),
+        ("raw-rust-pipe-sha256", "Raw pipe + SHA-256"),
+    ],
+    "python": [
+        ("ncp2-python-python-pipe", "NCP 2, pipe"),
+        ("ncp2-python-python-unix", "NCP 2, Unix socket"),
+        ("ncp2-python-python-tcp", "NCP 2, TCP"),
+        ("grpc-python-unix-sha256", "gRPC (grpcio), Unix socket + SHA-256"),
+        ("grpc-python-tcp-sha256", "gRPC (grpcio), TCP + SHA-256"),
+        ("zmq-python-ipc-sha256", "ZeroMQ, ipc + SHA-256"),
+        ("zmq-python-tcp-sha256", "ZeroMQ, TCP + SHA-256"),
+        ("http-python-tcp-sha256", "HTTP/1.1, TCP + SHA-256"),
+        ("zenoh-python-tcp-sha256", "Zenoh, TCP + SHA-256"),
+        ("raw-python-pipe-sha256", "Raw pipe + SHA-256"),
+    ],
+}
+# Protocol 2: arms that protocol 1 did not have, for the tables.
+NEW_ARMS = {
+    "rust": [("grpc-rust-unix", "gRPC (tonic), Unix socket")] + INTEGRITY_TIERS["rust"][3:],
+    "python": INTEGRITY_TIERS["python"][3:],
+}
+
 # Colors: the validated reference palette of the dataviz method (accent slots 1 and 2, checked for
 # color-vision deficiency in both modes), and its chart chrome.
 THEMES = {
@@ -99,12 +130,14 @@ def load(results: Path) -> tuple[list[dict], dict, dict]:
 
 
 def final_rows(rows: list[dict]) -> dict[tuple[int, str], dict]:
-    """The row that counts for each (block, configuration): a success, else the last failure."""
+    """The row that counts for each (block, configuration): a success, else the last failure. In
+    protocol 2, a later attempt replaces a disturbed success (the last attempt counts)."""
     final: dict[tuple[int, str], dict] = {}
     for row in rows:
         key = (row["block"], row["config"])
-        if key not in final or final[key]["returncode"] != 0:
-            final[key] = row  # the first success stays; a later repeat replaces a failure
+        earlier = final.get(key)
+        if earlier is None or earlier["returncode"] != 0 or (row["returncode"] == 0 and earlier.get("disturbed")):
+            final[key] = row  # the first success stays; a later repeat replaces a failure or a disturbed run
     return final
 
 
@@ -115,8 +148,10 @@ def statistics_by_config(final: dict[tuple[int, str], dict], blocks: int) -> dic
             config,
             {"arm": row["arm"], "spikes": row["spikes"], "family": row["family"], "blocks": {}, "failed_blocks": []},
         )
-        if row["returncode"] == 0:
+        if row["returncode"] == 0 and not row.get("disturbed"):
             entry["blocks"][block] = {k: row[k] for k in ("median_us", "p95_us", "p99_us") if k in row}
+        elif row["returncode"] == 0:
+            entry.setdefault("disturbed_blocks", []).append(block)  # still disturbed after the last attempt
         else:
             entry["failed_blocks"].append(block)
     for entry in by_config.values():
@@ -197,6 +232,53 @@ def hypotheses(stats: dict, blocks: int) -> dict[str, dict]:
     ]
     result["H5"] = {"comparisons": h5, "supported": all(c["holds"] for c in h5)}
     return result
+
+
+def hypotheses_2(stats: dict, blocks: int) -> dict[str, dict]:
+    """PROTOCOL-2.md: R1 repeats H1 to H5; R2 and R3 compare NCP 2 with the other arms that make the
+    same integrity check, over the same kind of connection."""
+    result = hypotheses(stats, blocks)
+    result["R1"] = {
+        "replicated": [name for name in ("H1", "H2", "H3", "H4", "H5") if result[name]["supported"]],
+        "supported": all(result[name]["supported"] for name in ("H1", "H2", "H3", "H4", "H5")),
+    }
+    r2 = [
+        lower_in_every_block(stats, f"ncp2-rust-rust-{kind}-n{n}", f"{other}-n{n}", blocks)
+        for n in NCP1_SPIKES
+        for kind, other in (("unix", "grpc-rust-unix-sha256"), ("tcp", "grpc-rust-tcp-sha256"), ("tcp", "zenoh-rust-tcp-sha256"))
+    ]
+    result["R2"] = {"comparisons": r2, "supported": all(c["holds"] for c in r2)}
+    r3 = [
+        lower_in_every_block(stats, f"ncp2-python-python-{kind}-n{n}", f"grpc-python-{kind}-sha256-n{n}", blocks)
+        for n in NCP1_SPIKES
+        for kind in ("unix", "tcp")
+    ]
+    result["R3"] = {"comparisons": r3, "supported": all(c["holds"] for c in r3)}
+    return result
+
+
+def integrity_parts(stats: dict) -> list[dict]:
+    """Protocol 2, exploratory: over pipes, the floor, the cost of the integrity check alone (the raw
+    pipe with SHA-256 minus the raw pipe), and the rest of NCP 2 (NCP 2 minus the raw pipe with
+    SHA-256), which can be negative."""
+    parts = []
+    for language in ("rust", "python"):
+        for n in SPIKES:
+            names = (f"raw-{language}-pipe-n{n}", f"raw-{language}-pipe-sha256-n{n}", f"ncp2-{language}-{language}-pipe-n{n}")
+            if any("statistic_us" not in stats.get(name, {}) for name in names):
+                continue
+            floor, sealed, ncp2 = (stats[name]["statistic_us"] for name in names)
+            parts.append(
+                {
+                    "language": language,
+                    "spikes": n,
+                    "floor_us": floor,
+                    "check_us": sealed - floor,
+                    "rest_of_ncp2_us": ncp2 - sealed,
+                    "ncp2_us": ncp2,
+                }
+            )
+    return parts
 
 
 def decomposition(stats: dict) -> list[dict]:
@@ -306,15 +388,35 @@ def save(figure, path: Path, title: str, description: str) -> None:
     path.write_text(text)
 
 
-def figure_calls(stats: dict, theme: dict, path: Path) -> None:
-    rows = {language: len(arms) for language, arms in TIERS.items()}
+CALLS_TEXT = (
+    "Time of one call: a small request and N spikes back",
+    "Dot: median of three block medians. Line: the smallest to the largest block median. "
+    "NCP 2 in blue; other systems in gray; ring: the raw pipe, the floor.",
+    "Time of one call for NCP 2 and other systems",
+    "Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. Each panel "
+    "shows a dot for the call time of each arm on a log scale, with a line for the range of the block medians. "
+    "Values are in summary.md.",
+)
+INTEGRITY_TEXT = (
+    "Time of one call when every system checks integrity as NCP 2 does",
+    "Gray arms add a SHA-256 digest to each message, which the receiver checks, as NCP 2 does. "
+    "Dot: median of three block medians; line: their range. Ring: raw pipe with the same check.",
+    "Time of one call with the same integrity check",
+    "Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. NCP 2 over a "
+    "pipe, a Unix socket, and TCP in blue; gRPC, ZeroMQ, HTTP/1.1, Zenoh, and the raw pipe, each with a SHA-256 "
+    "digest of every message checked by the receiver, in gray. Values are in summary.md.",
+)
+
+
+def figure_calls(stats: dict, theme: dict, path: Path, tiers: dict = TIERS, text: tuple = CALLS_TEXT) -> None:
+    rows = {language: len(arms) for language, arms in tiers.items()}
     figure, axes = plt.subplots(
         2, 4, figsize=(11.5, 7.4), gridspec_kw={"height_ratios": [rows["rust"], rows["python"]]}, sharex="col"
     )
     for column, n in enumerate(SPIKES):
         for row, language in enumerate(("rust", "python")):
             axis = axes[row][column]
-            arms = TIERS[language]
+            arms = tiers[language]
             for position, (arm, _) in enumerate(arms):
                 entry = stats.get(f"{arm}-n{n}")
                 y = len(arms) - 1 - position
@@ -365,7 +467,7 @@ def figure_calls(stats: dict, theme: dict, path: Path) -> None:
         axes[0][column].set_xlim(low / 1.2, high * 2.2)
         log_ticks(axes[0][column])
     figure.suptitle(
-        "Time of one call: a small request and N spikes back",
+        text[0],
         x=0.01,
         ha="left",
         fontsize=11,
@@ -375,20 +477,12 @@ def figure_calls(stats: dict, theme: dict, path: Path) -> None:
     figure.text(
         0.01,
         0.945,
-        "Dot: median of three block medians. Line: the smallest to the largest block median. "
-        "NCP 2 in blue; other systems in gray; ring: the raw pipe, the floor.",
+        text[1],
         fontsize=8,
         color=theme["ink2"],
     )
     figure.tight_layout(rect=(0, 0, 1, 0.93))
-    save(
-        figure,
-        path,
-        "Time of one call for NCP 2 and other systems",
-        "Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. Each panel "
-        "shows a dot for the call time of each arm on a log scale, with a line for the range of the block medians. "
-        "Values are in summary.md.",
-    )
+    save(figure, path, text[2], text[3])
 
 
 def figure_versions(stats: dict, theme: dict, path: Path) -> None:
@@ -543,26 +637,42 @@ def figure_tails(stats: dict, theme: dict, path: Path) -> None:
 # --------------------------------------------------------------------------- tables
 
 
-def summary(stats: dict, result: dict, parts: list[dict], context: dict) -> str:
+def summary(stats: dict, result: dict, parts: list[dict], context: dict, integrity: list[dict] | None = None) -> str:
+    two = integrity is not None
     lines = [
-        "# Comparison benchmark: results",
+        "# Comparison benchmark: results" + (" of protocol 2" if two else ""),
         "",
         f"Protocol SHA-256 `{context['protocol_sha256']}`; {context['runs']} runs in {context['blocks']} blocks, "
         f"{context['started']} to {context['finished']} UTC; failed runs that counted: {context['failed']}.",
         f"One-minute load average before the runs: {context['load_min']} to {context['load_max']}. "
         f"Power source: {', '.join(context['power'])}.",
+    ]
+    if two:
+        lines += [
+            f"Disturbed attempts: {context['disturbed_attempts']}; runs still disturbed after the last attempt: "
+            f"{len(context['still_disturbed'])}{' (' + ', '.join(context['still_disturbed']) + ')' if context['still_disturbed'] else ''}. "
+            f"Clock of a core before each run: {context['clock_before'][0]} to {context['clock_before'][1]} GHz; "
+            f"after it: {context['clock_after'][0]} to {context['clock_after'][1]} GHz. "
+            f"Waiting for the conditions: {context['waited_minutes']} minutes in all.",
+        ]
+    lines += [
         "",
         "Statistic: the median of three block medians, in µs. Range: the smallest and largest block median.",
         "",
     ]
-    for language in ("rust", "python"):
+    tables = [(f"{LANGUAGE[language]} client and server", TIERS[language], language) for language in ("rust", "python")]
+    if two:
+        tables += [
+            (f"{LANGUAGE[language]}: arms of protocol 2", NEW_ARMS[language], language) for language in ("rust", "python")
+        ]
+    for heading, arms, language in tables:
         lines += [
-            f"## {LANGUAGE[language]} client and server",
+            f"## {heading}",
             "",
             "| Arm | " + " | ".join(SPIKE_LABEL[n] for n in SPIKES) + " |",
             "| --- |" + " ---: |" * len(SPIKES),
         ]
-        for arm, label in TIERS[language]:
+        for arm, label in arms:
             cells = []
             for n in SPIKES:
                 entry = stats.get(f"{arm}-n{n}")
@@ -591,6 +701,10 @@ def summary(stats: dict, result: dict, parts: list[dict], context: dict) -> str:
             failed = [f"{c['faster']} not below {c['slower']}" for c in entry["comparisons"] if not c["holds"]]
             detail = f"{len(entry['comparisons']) - len(failed)} of {len(entry['comparisons'])} comparisons hold"
             detail += ("; " + "; ".join(failed)) if failed else ""
+        elif "replicated" in entry:
+            detail = f"{len(entry['replicated'])} of H1 to H5 hold again" + (
+                f": {', '.join(entry['replicated'])}" if entry["replicated"] else ""
+            )
         elif "checks" in entry:
             detail = "; ".join(
                 f"{c['config']}: {c['statistic_us']:.1f} µs (limit {c['limit_us']:g})"
@@ -620,6 +734,22 @@ def summary(stats: dict, result: dict, parts: list[dict], context: dict) -> str:
         "† Smaller than the spread of the block medians of the two arms that give the part: variation between runs, "
         "not a measured cost.",
     ]
+    if two:
+        lines += [
+            "",
+            "## The integrity check alone, over pipes (exploratory)",
+            "",
+            "Check: the raw pipe with SHA-256 at both ends minus the raw pipe. Rest of NCP 2: NCP 2 minus the raw pipe "
+            "with SHA-256; below zero when NCP 2 is faster than the raw pipe with the same check.",
+            "",
+            "| Language | N | Raw pipe | Check | Rest of NCP 2 | NCP 2 |",
+            "| --- | ---: | ---: | ---: | ---: | ---: |",
+        ]
+        for part in integrity:
+            lines.append(
+                f"| {LANGUAGE[part['language']]} | {part['spikes']} | {part['floor_us']:.1f} | {part['check_us']:.1f} | "
+                f"{part['rest_of_ncp2_us']:.1f} | {part['ncp2_us']:.1f} |"
+            )
     return "\n".join(lines) + "\n"
 
 
@@ -629,10 +759,12 @@ def main() -> None:
     parser.add_argument("--figures", type=Path)
     args = parser.parse_args()
     rows, schedule, validity = load(args.results)
+    two = schedule.get("protocol", "PROTOCOL.md") == "PROTOCOL-2.md"
     final = final_rows(rows)
     stats = statistics_by_config(final, schedule["blocks"])
-    result = hypotheses(stats, schedule["blocks"])
+    result = (hypotheses_2 if two else hypotheses)(stats, schedule["blocks"])
     parts = decomposition(stats)
+    integrity = integrity_parts(stats) if two else None
     counted = list(final.values())
     context = {
         "protocol_sha256": schedule["protocol_sha256"],
@@ -645,6 +777,18 @@ def main() -> None:
         "load_max": max(row["load1_before"] for row in rows),
         "power": sorted({row.get("power", "not recorded") for row in rows}),
     }
+    if two:
+        measured = [row for row in rows if row.get("before") and row.get("after")]
+        context.update(
+            {
+                "protocol": schedule["protocol"],
+                "disturbed_attempts": sum(1 for row in rows if row.get("disturbed")),
+                "still_disturbed": sorted(f"{config} block {block}" for (block, config), row in final.items() if row.get("disturbed")),
+                "clock_before": [min(r["before"]["clock_ghz"] for r in measured), max(r["before"]["clock_ghz"] for r in measured)],
+                "clock_after": [min(r["after"]["clock_ghz"] for r in measured), max(r["after"]["clock_ghz"] for r in measured)],
+                "waited_minutes": round(sum(r.get("waited_s", 0.0) for r in rows) / 60),
+            }
+        )
     analysis = {
         "context": context,
         "environment": validity.get("environment", {}),
@@ -652,8 +796,10 @@ def main() -> None:
         "hypotheses": result,
         "decomposition": parts,
     }
+    if two:
+        analysis["integrity"] = integrity
     (args.results / "analysis.json").write_text(json.dumps(analysis, indent=1, sort_keys=True) + "\n")
-    (args.results / "summary.md").write_text(summary(stats, result, parts, context))
+    (args.results / "summary.md").write_text(summary(stats, result, parts, context, integrity))
     figures = args.figures or args.results / "figures"
     figures.mkdir(parents=True, exist_ok=True)
     for mode, theme in THEMES.items():
@@ -662,6 +808,8 @@ def main() -> None:
         figure_versions(stats, theme, figures / f"versions_{mode}.svg")
         figure_decomposition(parts, theme, figures / f"decomposition_{mode}.svg")
         figure_tails(stats, theme, figures / f"tails_{mode}.svg")
+        if two:
+            figure_calls(stats, theme, figures / f"integrity_{mode}.svg", INTEGRITY_TIERS, INTEGRITY_TEXT)
     for name, entry in result.items():
         print(f"{name}: {'supported' if entry['supported'] else 'not supported'}")
 

@@ -12,7 +12,7 @@ import sys
 import time
 
 import zenoh
-from common import Responder, check, measure, report, request, start_server, stop_server
+from common import Responder, check, incoming, measure, outgoing, report, request, start_server, stop_server
 
 KEY = "bench/echo"
 
@@ -60,10 +60,10 @@ def client() -> None:
 
         def call(index: int) -> None:
             data = request(index, spikes)
-            reply = querier.get(payload=data).recv()
+            reply = querier.get(payload=outgoing(data)).recv()
             if reply.ok is None:
                 raise SystemExit("no reply")
-            check(data, reply.ok.payload.to_bytes(), spikes)
+            check(data, incoming(reply.ok.payload.to_bytes()), spikes)
 
         times = measure(call, calls, warmup)
         querier.undeclare()

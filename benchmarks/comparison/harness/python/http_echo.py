@@ -12,7 +12,7 @@ import os
 import socket
 import sys
 
-from common import Responder, check, measure, report, request, start_server, stop_server
+from common import Responder, check, incoming, measure, outgoing, report, request, start_server, stop_server
 
 
 class Echo(http.server.BaseHTTPRequestHandler):
@@ -49,8 +49,9 @@ def client() -> None:
 
         def call(index: int) -> None:
             data = request(index, spikes)
-            connection.request("POST", "/echo", body=data, headers={"Content-Type": "application/octet-stream"})
-            check(data, connection.getresponse().read(), spikes)
+            body = outgoing(data)
+            connection.request("POST", "/echo", body=body, headers={"Content-Type": "application/octet-stream"})
+            check(data, incoming(connection.getresponse().read()), spikes)
 
         times = measure(call, calls, warmup)
     finally:

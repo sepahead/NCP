@@ -693,6 +693,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/comparison/PROTOCOL-2.md",
+        "bytes": 6710,
+        "sha256": "1d7a7451760f1dcf42ef321cddd1c9baaee97a56c2d9123a44c0de43ebab7921",
+        "git_blob_oid": "21eff207557aa543fd9a372a9328f4074219db95",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/PROTOCOL-2.sha256",
+        "bytes": 65,
+        "sha256": "da951c9169a2aa06dc3f4ced8c470774773d0ca598b0191e6cc62709618daba5",
+        "git_blob_oid": "c19bbe37bae3b3bc16b963d5b9f98d91a3c1ba1a",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/comparison/PROTOCOL.md",
         "bytes": 10384,
         "sha256": "e711a417841de8ef100dbc0a274f1e290d22c9da8295f0ce1cb794f21eb4f7a7",
@@ -708,16 +722,16 @@
       },
       {
         "path": "benchmarks/comparison/README.md",
-        "bytes": 8488,
-        "sha256": "2646085b05b0fda4fe161a1c8c8d2c85449092602872d32c3408a105576f78dd",
-        "git_blob_oid": "733461dc41c34c370017accd4175d5f850c16c91",
+        "bytes": 9915,
+        "sha256": "be35529edcc59ab95604a7132a35fc2b8c62ed4de587ea16e0b584bd04b845ca",
+        "git_blob_oid": "fbe24516811082af916ebe473b2b2da5fb60431c",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/analyze.py",
-        "bytes": 28553,
-        "sha256": "4a46a2460d21a9f579dd9320ac478137fc3329e328c5fb4e50a8d661cefa3f86",
-        "git_blob_oid": "f2b5bc177eb23ebaf66da40794f6d2b91bf70cc9",
+        "bytes": 36412,
+        "sha256": "d47fd7944768010633e4a04c0b7081c8e041cb889dda624a75a43ede071420e2",
+        "git_blob_oid": "6b611c5f5424122e9dcf2df0f6b79b049055b9b6",
         "indexed": true
       },
       {
@@ -764,23 +778,23 @@
       },
       {
         "path": "benchmarks/comparison/harness/python/common.py",
-        "bytes": 3280,
-        "sha256": "d82c3f38de173a3b79b50a58d55e387baae1a31c4698927421666f6fe4bacc28",
-        "git_blob_oid": "ae10972379d8976406e29e0d1814f3333c6ee635",
+        "bytes": 4547,
+        "sha256": "4dfcb4db7c023112fc705d1a8914034aa0b70282c20213348f62b7f680b9dfce",
+        "git_blob_oid": "95c622614d63266a927689662f6fdb44be2be63b",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/harness/python/grpc_echo.py",
-        "bytes": 2091,
-        "sha256": "6289cf575b57f9c5843cb843a9b694b0906cb329df73eb75a9769523afca096a",
-        "git_blob_oid": "eef32ba62653e063477119b8eb8d92b668f2c494",
+        "bytes": 2131,
+        "sha256": "0aaa62973fe321edc6b1a3cd5b96e1a6884df39be2424dcd1bc03b541540a3e5",
+        "git_blob_oid": "7e1e2aaa09f140376c96c8d6944c3a70633af5f9",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/harness/python/http_echo.py",
-        "bytes": 2021,
-        "sha256": "416b4f0405d41e7059da6bd8a46395d5462172d2afe7dccb8f198ef5c414d095",
-        "git_blob_oid": "bf9de35bf888648f29f5b0fec713583f47b80178",
+        "bytes": 2085,
+        "sha256": "0e70bbec11a80906b5f9e8ea7d05a1b31b9a1e4065f5b3a401839045f654e65b",
+        "git_blob_oid": "9798dfb726a1bce8def016933f3d2b7dc0209979",
         "indexed": true
       },
       {
@@ -792,44 +806,44 @@
       },
       {
         "path": "benchmarks/comparison/harness/python/raw_pipe.py",
-        "bytes": 2006,
-        "sha256": "8c776e3f014dab710835fed7385e83f7b295c5649ee0de7b549573c8febcd640",
-        "git_blob_oid": "6c1aa0258d349e530c0df65c896678752df52d3f",
+        "bytes": 2066,
+        "sha256": "bb8b75ac1c5bc710451d9d01dd7a62f7f690aec57c6a1a09f82273a96b32b1f1",
+        "git_blob_oid": "528c25e945fd5c88b4c2dac883a421ccabd956ed",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/harness/python/zenoh_echo.py",
-        "bytes": 2429,
-        "sha256": "89fc418d24cc9808ce1a0bc1aef997da1652cf4c9626326f695c16f86d272c9f",
-        "git_blob_oid": "5e43a2b4855d2a1716386e6011f2ee99fb6205c7",
+        "bytes": 2469,
+        "sha256": "a5d0360bd1bdbabdd01b0d471876af07aff0c2196ce72b50b2f10000aa0a8f1b",
+        "git_blob_oid": "ca8c6db3130d990f9ba4f227039b063740a63d9e",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/harness/python/zmq_echo.py",
-        "bytes": 1681,
-        "sha256": "0e3faabc8d7f85a3138876c9fd7a441dd43821beb2f82c455deb314a85bd087f",
-        "git_blob_oid": "d35a26ba6d0a8abedcef60785575cc9549a59b24",
+        "bytes": 1721,
+        "sha256": "2d630e8703c1ac2c98b81cbe545349c96a5f0ecae11b4a2ab9c7f60633cef5a4",
+        "git_blob_oid": "4a4d417d2f79a65e8e4eae0fe6bd9cd1fdaa85f6",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/harness/rust/Cargo.lock",
-        "bytes": 76301,
-        "sha256": "95f9e9666b0bd8a17f5226bc6a7f90b47071a3ac62e04061d1d796a39a24816b",
-        "git_blob_oid": "dfede8d5144e27c82d07bade76881a7000f3040d",
+        "bytes": 78024,
+        "sha256": "8226dd6488e6464b49727b6336f4277b98dcd0656105e8ee5bce958254c94af4",
+        "git_blob_oid": "d160494f5f8fa2b7a2c8e1eab36d70ac1329ac73",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/harness/rust/Cargo.toml",
-        "bytes": 556,
-        "sha256": "82cdc26436f4e9adec8515b847ec352a930f036f5c00e5c9867739c5db9a885c",
-        "git_blob_oid": "1d94035a3b038e2374559b4694d8bd49bc58da47",
+        "bytes": 773,
+        "sha256": "8e0f73dbc33a167a8050ba7a02e9e97a47af5e700474e1287c2242eb41491b11",
+        "git_blob_oid": "720939a390651f7e70c96d94e1e41ea492819f51",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/harness/rust/src/main.rs",
-        "bytes": 14709,
-        "sha256": "7aa6af1701c65b38dbff23da9d28e43b4197c40ba0bc959718aaf4ff7054ebf6",
-        "git_blob_oid": "5264323c71b15a8e85ff88a240868fc1c42413f8",
+        "bytes": 19474,
+        "sha256": "7ea3fd213abac6073384d9d0073beca5f9838f4ac86e7732d6ab75e09df7a818",
+        "git_blob_oid": "79c7410ad6eeb4f363fbfadcd34e324e98c371da",
         "indexed": true
       },
       {
@@ -932,9 +946,16 @@
       },
       {
         "path": "benchmarks/comparison/run.py",
-        "bytes": 18224,
-        "sha256": "de97a323f04b83bd4e9b81b2514a7993aa13f2aca925b50022d3da0700fc63d9",
-        "git_blob_oid": "4a0b164ab8f3550598f8fd4a3a056de94f4dd0c5",
+        "bytes": 24066,
+        "sha256": "1a3c6481d92f941731acd4c8a6cf5007281f99dc15f652382053924a5614b317",
+        "git_blob_oid": "d3c7d1b361c7688bdfd06699e3bc633058926542",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/conditions.py",
+        "bytes": 3255,
+        "sha256": "e411a75576d780f91782e5db0648f556ed70d7c07e07d5f0eac783159520f15e",
+        "git_blob_oid": "b118e9658886dd5ed1ddd91f9cd513d51a488e51",
         "indexed": true
       },
       {
@@ -10750,7 +10771,7 @@
     ]
   },
   "counts": {
-    "text_files": 1496,
+    "text_files": 1499,
     "binary_or_non_utf8_files": 29,
     "occurrences": 377,
     "by_token_id": {
@@ -10783,7 +10804,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "153ab452e302d5c2b28ac8845b592b5d43bc6e69a3be1f08c9f591b74cdad777",
+  "scanned_path_set_sha256": "0714d943e63d2b552c0fc1dafa10e4f811dba6512bfcb86f08cd8ae55d033afe",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -11274,13 +11295,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-89BF9940E14244175637",
+      "id": "NCP-LATENT-12AD2A7EA766EC7B3875",
       "path": "benchmarks/comparison/harness/rust/src/main.rs",
-      "line": 190,
+      "line": 264,
       "column": 46,
       "token_id": "M005",
       "line_sha256": "9c4c23d9c140401650e01c1ca53622e661f64e4d500c75b815d1d20493208be5",
-      "file_sha256": "7aa6af1701c65b38dbff23da9d28e43b4197c40ba0bc959718aaf4ff7054ebf6",
+      "file_sha256": "7ea3fd213abac6073384d9d0073beca5f9838f4ac86e7732d6ab75e09df7a818",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "NO_RUNTIME_OR_RELEASE_AUTHORIZATION",
       "evidence_paths": [

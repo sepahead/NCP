@@ -1,7 +1,13 @@
-"""Shared parts of the Python benchmark clients: payloads, timing, and the result line."""
+"""Shared parts of the Python benchmark clients: payloads, timing, and the result line.
+
+With BENCH_SHA256=1 in the environment of both ends (protocol 2), each sender appends the SHA-256
+digest of its message, and each receiver computes it again and compares: the integrity check of
+NCP 2, with the hashlib that the NCP 2 Python SDK uses.
+"""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import struct
@@ -9,6 +15,25 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
+
+SEALED = os.environ.get("BENCH_SHA256") == "1"
+DIGEST_BYTES = 32
+
+
+def outgoing(data: bytes) -> bytes:
+    """The bytes that a sender sends: the message, and its digest when the check is on."""
+    return data + hashlib.sha256(data).digest() if SEALED else data
+
+
+def incoming(received: bytes) -> bytes | memoryview:
+    """The message without its digest, after the receiver has checked the digest."""
+    if not SEALED:
+        return received
+    view = memoryview(received)
+    body = view[: len(view) - DIGEST_BYTES]
+    if len(view) < DIGEST_BYTES or hashlib.sha256(body).digest() != view[len(view) - DIGEST_BYTES :]:
+        raise SystemExit("digest mismatch")
+    return body
 
 
 def request(index: int, spikes: int) -> bytes:
@@ -34,13 +59,19 @@ class Responder:
         self.cache: dict[int, bytes] = {}
 
     def __call__(self, data: bytes) -> bytes:
+        data = incoming(data)
         n = struct.unpack_from("<QQ", data)[1]
         if n not in self.cache:
             self.cache[n] = spikes_bytes(n)
-        return data[:16] + self.cache[n]
+        if not SEALED:
+            return data[:16] + self.cache[n]
+        header = bytes(data[:16])
+        digest = hashlib.sha256(header)
+        digest.update(self.cache[n])
+        return b"".join((header, self.cache[n], digest.digest()))
 
 
-def check(sent: bytes, received: bytes, spikes: int) -> None:
+def check(sent: bytes, received: bytes | memoryview, spikes: int) -> None:
     if len(received) != 16 + 12 * spikes or received[:16] != sent:
         raise SystemExit("wrong response")
 
@@ -64,6 +95,7 @@ def report(times: list[float], **fields) -> None:
     line = {
         "calls": len(ordered),
         **fields,
+        **({"integrity": "SHA-256 at both ends"} if SEALED else {}),
         "median_us": pick(0.5),
         "p05_us": pick(0.05),
         "p95_us": pick(0.95),

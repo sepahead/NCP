@@ -64,12 +64,22 @@ The rest of NCP 2 includes the sender's digest, the JSON encoding and decoding, 
 
 Section 10 of the [protocol](PROTOCOL.md) lists the limits: one computer, lockstep calls by one client, call time without a real owner's work, other systems with their default settings, and different guarantees. NCP 2 sets 1 MiB socket buffers; the other arms keep their libraries' defaults, which affects their results most at 1 MiB.
 
+## Protocol 2
+
+[Protocol 2](PROTOCOL-2.md) was fixed on 2 November 2026 (SHA-256 in [`PROTOCOL-2.sha256`](PROTOCOL-2.sha256)).
+It repeats this benchmark on the power adapter at full speed, with the controlled conditions of NEST protocol 5 ([`../conditions.py`](../conditions.py)).
+It adds gRPC over a Unix domain socket in Rust, and versions of the other arms that make the integrity check of NCP 2: each sender appends the SHA-256 digest of its message, and each receiver checks it (`BENCH_SHA256=1`).
+Its hypotheses are that the results above hold again (R1) and that, with the same check and the same kind of connection, NCP 2 is faster than gRPC and Zenoh in Rust (R2) and than gRPC in Python (R3), at N of 0, 127, and 1788.
+It has not run yet.
+
 ## Correction to the protocol
 
 Section 3 of the protocol says that the NCP 1.0.1 harness is the one of `benchmarks/pipelined-ack` at commit `99e9adc`.
 That commit has no such directory. The harness comes from the pipelined-acknowledgement benchmark of the October 2026 campaign, which is now in [`../pipelined-ack`](../pipelined-ack).
 [`harness/ncp1/`](harness/ncp1) holds the exact files that the runs used. The NCP 1.0.1 SDK is the one of commit `99e9adc`, as the protocol says.
 The protocol stays unchanged, so that its digest still identifies the text that was fixed before the runs.
+
+The Rust harness labelled the stack of `zenoh-rust-tcp` as "zenoh 1.9.0" in each run record. The harness was built with Zenoh 1.10.1, as `harness/rust/Cargo.lock` and section 4 of the protocol say; only the label was wrong. The records keep the label as it was written, and the harness now writes "zenoh 1.10.1".
 
 ## Reproduce
 
@@ -83,6 +93,8 @@ env/bin/python run.py RESULTS --python env/bin/python --ncp1 "$NCP1"
 env/bin/python analyze.py RESULTS
 ```
 
+For protocol 2, add `--protocol 2` to `run.py`; it also builds the clock probe of the NEST campaign and runs only under the conditions of [`../conditions.py`](../conditions.py).
+
 `run.py` builds the Rust programs with `cargo`, runs the validity checks, writes the schedule, and records every run in `RESULTS/runs.jsonl` as soon as it ends; it continues where it stopped if you start it again. `analyze.py` writes `analysis.json`, `summary.md`, and the figures.
 
 The Rust harness keeps the measured Zenoh 1.10.1, whose transport requires `lz4_flex` 0.10. The advisory GHSA-vvp9-7p8x-rfvv concerns that crate's decompression, which Zenoh compiles only with its `transport_compression` feature; the harness builds Zenoh without it (`default-features = false`, `transport_tcp` only), so the affected function is not in the program.
@@ -91,9 +103,9 @@ The Rust harness keeps the measured Zenoh 1.10.1, whose transport requires `lz4_
 
 | Path | Content |
 | --- | --- |
-| [`PROTOCOL.md`](PROTOCOL.md), [`PROTOCOL.sha256`](PROTOCOL.sha256) | The fixed protocol and its digest |
+| [`PROTOCOL.md`](PROTOCOL.md), [`PROTOCOL.sha256`](PROTOCOL.sha256), [`PROTOCOL-2.md`](PROTOCOL-2.md), [`PROTOCOL-2.sha256`](PROTOCOL-2.sha256) | The fixed protocols and their digests |
 | [`run.py`](run.py), [`analyze.py`](analyze.py), [`requirements.txt`](requirements.txt) | The runner, the analysis, and the Python environment |
-| [`harness/python/`](harness/python) | The Python clients and servers of the NCP 2, raw pipe, gRPC, ZeroMQ, HTTP/1.1, and Zenoh arms |
-| [`harness/rust/`](harness/rust) | The Rust raw pipe, gRPC (tonic), and Zenoh arms |
+| [`harness/python/`](harness/python) | The Python clients and servers of the NCP 2, raw pipe, gRPC, ZeroMQ, HTTP/1.1, and Zenoh arms, with the optional integrity check |
+| [`harness/rust/`](harness/rust) | The Rust raw pipe, gRPC (tonic, over TCP or a Unix domain socket), and Zenoh arms, with the optional integrity check |
 | [`harness/ncp1/`](harness/ncp1) | The NCP 1.0.1 harness of `benchmarks/pipelined-ack`, with the spike body built once |
 | [`results/`](results) | `schedule.json`, `validity.json`, `runs.jsonl`, `analysis.json`, `summary.md`, and `figures/` |

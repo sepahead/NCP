@@ -13,7 +13,7 @@ import time
 from concurrent import futures
 
 import grpc
-from common import Responder, check, measure, report, request, start_server, stop_server
+from common import Responder, check, incoming, measure, outgoing, report, request, start_server, stop_server
 
 METHOD = "/bench.Echo/Call"
 OPTIONS = [("grpc.max_receive_message_length", 64 << 20), ("grpc.max_send_message_length", 64 << 20)]
@@ -51,7 +51,7 @@ def client(kind: str) -> None:
 
             def call(index: int) -> None:
                 data = request(index, spikes)
-                check(data, stub(data, wait_for_ready=True), spikes)
+                check(data, incoming(stub(outgoing(data), wait_for_ready=True)), spikes)
 
             times = measure(call, calls, warmup)
     finally:
