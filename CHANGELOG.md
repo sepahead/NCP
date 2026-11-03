@@ -144,6 +144,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   servers now ask for the largest queue that the system allows. A test in each SDK
   lets a listener with a queue of one connection accept eight clients only after
   200 ms; both fail without the retry.
+- `ncp.Rounds`: each request now waits on its own event instead of a condition that all
+  requests share, and the owner counts the requests that are reserved but not yet added
+  instead of scanning them on each arrival. The behaviour is the same: the tests pass,
+  and seven injected defects each fail one of them. The time of a round with 256 agents
+  did not change measurably.
+- The audit artifacts (`evidence/audit/`) are regenerated: the three commits before this
+  one changed scanned files without regenerating them, and the machine-contract gate of
+  the main CI workflow failed on them.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

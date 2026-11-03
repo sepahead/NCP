@@ -22,14 +22,14 @@ Step = Callable[[int, list[tuple[str, Any]]], dict[str, dict[str, Any]]]
 class _Slot:
     """One agent's request in the open round."""
 
-    __slots__ = ("request", "body", "added", "result", "failed")
+    __slots__ = ("request", "body", "result", "failed", "done")
 
     def __init__(self, request: str) -> None:
         self.request = request  # the identity of the request
         self.body: Any = None
-        self.added = False  # the request is in the round (execute has run)
         self.result: dict[str, Any] | None = None
         self.failed = False
+        self.done = threading.Event()  # set when the round has closed
 
 
 class Rounds:
@@ -82,9 +82,10 @@ class Rounds:
         self.excluded: dict[str, int] = {}  # member -> the round that it missed
         self.error: BaseException | None = None  # set when a step failed; no later round runs
         self._members = frozenset(names)
-        self._lock = threading.Condition()
+        self._lock = threading.Lock()
         self._sessions: dict[str, _AgentHandler] = {}
-        self._slots: dict[str, _Slot] = {}
+        self._slots: dict[str, _Slot] = {}  # the open round's requests, reserved or added
+        self._pending = 0  # requests of the open round that are reserved but not yet added
         self._opened = 0.0  # time.monotonic() when round closed + 1 opened, if it has slots
 
     def owner(self) -> Owner:
@@ -131,6 +132,7 @@ class Rounds:
             if not self._slots:
                 self._opened = time.monotonic()
             self._slots[agent] = _Slot(handler.owner.request_identity)
+            self._pending += 1
 
     def _wait(self, handler: _AgentHandler, body: Any) -> dict[str, Any]:
         """Add a validated request to its round, wait until the round closes, and return the
@@ -138,20 +140,36 @@ class Rounds:
         with self._lock:
             number = self.closed + 1
             slot = self._slots[handler.agent]  # type: ignore[index]
-            slot.body, slot.added = body, True
-            while self.closed < number:
-                pending = any(not other.added for other in self._slots.values())
-                remaining = self._opened + self.deadline - time.monotonic()
-                if not pending and (len(self._slots) + len(self.excluded) == len(self.members) or remaining <= 0):
-                    self._close(number)
-                    break
-                # Wait for the deadline, or, after it, for a reserved request to be added; the
-                # thread that adds it closes the round. A thread that closes a round wakes all.
-                self._lock.wait(remaining if remaining > 0 else None)
-            if slot.failed:
-                raise RuntimeError(f"the step of round {number} failed") from self.error
-            assert slot.result is not None
-            return slot.result
+            slot.body = body
+            self._pending -= 1
+            self._close_if_ready(number)
+            deadline = self._opened + self.deadline
+        # Each request waits on its own event, so that a closed round wakes its requests without
+        # making them queue for the lock.
+        while not slot.done.is_set():
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                slot.done.wait(remaining)
+                continue
+            with self._lock:
+                if not slot.done.is_set():
+                    self._close_if_ready(number)
+            # After the deadline, a round stays open only while a reserved request is being
+            # added, and the thread that adds it closes the round.
+            slot.done.wait()
+        if slot.failed:
+            raise RuntimeError(f"the step of round {number} failed") from self.error
+        assert slot.result is not None
+        return slot.result
+
+    def _close_if_ready(self, number: int) -> None:
+        """Close round `number` if every member that is not excluded has a request in it, or if
+        its deadline has passed; never while a reserved request is not yet added. Needs the lock."""
+        if self._pending == 0 and (
+            len(self._slots) + len(self.excluded) == len(self.members)
+            or time.monotonic() >= self._opened + self.deadline
+        ):
+            self._close(number)
 
     def _close(self, number: int) -> None:
         applied = [(agent, self._slots[agent]) for agent in self.members if agent in self._slots]
@@ -179,7 +197,8 @@ class Rounds:
                 slot.failed = True
         self.closed = number
         self._slots = {}
-        self._lock.notify_all()
+        for _, slot in applied:
+            slot.done.set()
 
 
 class _AgentHandler:
