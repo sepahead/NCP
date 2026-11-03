@@ -242,10 +242,33 @@ pub fn listen_tcp(address: impl ToSocketAddrs, allow_remote: bool) -> io::Result
 pub type UnixChannel =
     StreamChannel<std::os::unix::net::UnixStream, std::os::unix::net::UnixStream>;
 
+/// How long [`connect_unix`] tries a refused connection again.
+pub const CONNECT_PATIENCE: Duration = Duration::from_secs(10);
+
 /// Connect to an owner that listens on a Unix domain socket (section 9.1, rule 5).
+///
+/// A refused connection is tried again for up to [`CONNECT_PATIENCE`]. An owner refuses
+/// connections while its queue of connections that it has not yet accepted is full, for example
+/// when many agents start at once; macOS keeps at most 128 of them.
 #[cfg(unix)]
 pub fn connect_unix(path: impl AsRef<std::path::Path>) -> io::Result<UnixChannel> {
-    unix_channel(std::os::unix::net::UnixStream::connect(path)?)
+    let deadline = std::time::Instant::now() + CONNECT_PATIENCE;
+    let mut pause = Duration::from_millis(1);
+    loop {
+        match std::os::unix::net::UnixStream::connect(path.as_ref()) {
+            Ok(stream) => return unix_channel(stream),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    io::ErrorKind::ConnectionRefused | io::ErrorKind::WouldBlock
+                ) && std::time::Instant::now() + pause < deadline =>
+            {
+                std::thread::sleep(pause);
+                pause = (pause * 2).min(Duration::from_millis(50));
+            }
+            Err(error) => return Err(error),
+        }
+    }
 }
 
 /// Wrap an accepted or connected Unix domain socket stream: sets [`SOCKET_BUFFER`].

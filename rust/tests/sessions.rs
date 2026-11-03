@@ -729,6 +729,61 @@ fn scratch(name: &str) -> PathBuf {
     directory
 }
 
+#[cfg(unix)]
+#[test]
+fn connect_unix_tries_a_refused_connection_again() {
+    // An owner refuses connections while its queue of connections that it has not yet accepted
+    // is full (macOS; Linux makes the client wait instead). Here the queue holds one connection,
+    // and the owner starts to accept only after 200 ms.
+    // A short path: a Unix domain socket path holds at most 104 bytes on macOS.
+    let directory = std::env::temp_dir().join(format!("ncp-{}", &ncp::random_session()[..8]));
+    std::fs::create_dir_all(&directory).expect("directory");
+    let path = directory.join("owner.sock");
+    let socket =
+        socket2::Socket::new(socket2::Domain::UNIX, socket2::Type::STREAM, None).expect("socket");
+    socket
+        .bind(&socket2::SockAddr::unix(&path).expect("address"))
+        .expect("bind");
+    socket.listen(1).expect("listen");
+    let listener = std::os::unix::net::UnixListener::from(std::os::fd::OwnedFd::from(socket));
+    let clients = 8;
+    let server = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        let workers: Vec<_> = (0..clients)
+            .map(|_| {
+                let (stream, _) = listener.accept().expect("accept");
+                std::thread::spawn(move || {
+                    let mut channel = binding::unix_channel(stream).expect("channel");
+                    let mut owner = owner(Echo::default(), MAX_BOUND);
+                    binding::serve(&mut owner, &mut channel).expect("serve");
+                })
+            })
+            .collect();
+        for worker in workers {
+            worker.join().expect("worker");
+        }
+    });
+    let handles: Vec<_> = (0..clients)
+        .map(|i| {
+            let path = path.clone();
+            std::thread::spawn(move || {
+                let contract = contract();
+                let channel = binding::connect_unix(&path).expect("connect");
+                let mut client = Client::new(channel, &contract.application, &contract.identity);
+                client.open().expect("open");
+                let reply = client.call("echo", json!({ "i": i }), &[]).expect("call");
+                assert_eq!(reply.message["body"], json!({ "i": i }));
+                client.close().expect("close");
+            })
+        })
+        .collect();
+    for handle in handles {
+        handle.join().expect("client");
+    }
+    server.join().expect("server");
+    std::fs::remove_dir_all(&directory).expect("remove scratch directory");
+}
+
 #[test]
 fn encoders_refuse_frames_that_receivers_must_reject() {
     let ok = Array::from_u32(&[1, 2, 3]);

@@ -137,6 +137,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   client the identity of the request that a result answers. `tests/test_rounds.py`
   covers order, agreement, the deadline, rejections, failed steps, and the client
   check; six injected defects each fail a test. Spec section 15 names the profile.
+- `connect_unix` in both SDKs tries a refused connection again, for up to 10 s in Rust
+  and until its `timeout` in Python. An owner refuses connections while its queue of
+  connections that it has not yet accepted is full: when 256 agents of the multi-agent
+  benchmark connected at once, macOS, which keeps 128, refused some of them. The Python
+  servers now ask for the largest queue that the system allows. A test in each SDK
+  lets a listener with a queue of one connection accept eight clients only after
+  200 ms; both fail without the retry.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 import uuid
 
@@ -672,6 +673,50 @@ class BindingTests(unittest.TestCase):
             server.stop()
             os.rmdir(directory)
         self.assertFalse(os.path.exists(path))
+
+    @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "no Unix domain sockets")
+    def test_connect_unix_tries_a_refused_connection_again(self) -> None:
+        # An owner refuses connections while its queue of connections that it has not yet
+        # accepted is full (macOS; Linux makes the client wait instead). Here the queue holds one
+        # connection, and the owner starts to accept only after 0.2 s.
+        directory = tempfile.mkdtemp(prefix="ncp-")
+        os.chmod(directory, 0o700)
+        path = os.path.join(directory, "owner.sock")
+        listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        listener.bind(path)
+        listener.listen(1)
+        clients = 8
+        results: list[object] = []
+
+        def owner() -> None:
+            time.sleep(0.2)
+            for _ in range(clients):
+                connection, _ = listener.accept()
+                channel = ncp.StreamChannel.from_socket(connection)
+                threading.Thread(target=ncp.serve, args=(make_owner(), channel), daemon=True).start()
+
+        def client(index: int) -> None:
+            try:
+                session = ncp.Client(ncp.connect_unix(path), application="echo", contract=CONTRACT.identity)
+                session.open()
+                results.append(session.call("echo", {"i": index}).body == {"i": index})
+                session.close()
+            except Exception as error:  # noqa: BLE001 - reported by the assertion below
+                results.append(error)
+
+        threads = [threading.Thread(target=owner)] + [
+            threading.Thread(target=client, args=(i,)) for i in range(clients)
+        ]
+        try:
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(30)
+        finally:
+            listener.close()
+            os.unlink(path)
+            os.rmdir(directory)
+        self.assertEqual(results, [True] * clients)
 
     @unittest.skipUnless(os.environ.get("NCP_RUST_EXAMPLES"), "set NCP_RUST_EXAMPLES to the Rust examples directory")
     def test_python_client_with_the_rust_owner(self) -> None:

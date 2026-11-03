@@ -204,15 +204,30 @@ def connect_tcp(
 
 
 def connect_unix(path: str, *, tap: Tap | None = None, timeout: float = 10.0) -> StreamChannel:
-    """Connect to an owner that listens on a Unix domain socket."""
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    try:
-        sock.settimeout(timeout)
-        sock.connect(path)
-        sock.settimeout(None)
-    except OSError:
-        sock.close()
-        raise
+    """Connect to an owner that listens on a Unix domain socket.
+
+    A refused connection is tried again until `timeout` seconds have passed. An owner refuses
+    connections while its queue of connections that it has not yet accepted is full, for example
+    when many agents start at once; macOS keeps at most 128 of them.
+    """
+    deadline = time.monotonic() + timeout
+    pause = 0.001
+    while True:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            sock.settimeout(max(deadline - time.monotonic(), 0.001))
+            sock.connect(path)
+            sock.settimeout(None)
+            break
+        except (ConnectionRefusedError, BlockingIOError):
+            sock.close()
+            if time.monotonic() + pause >= deadline:
+                raise
+            time.sleep(pause)
+            pause = min(2 * pause, 0.05)
+        except OSError:
+            sock.close()
+            raise
     return StreamChannel.from_socket(sock, tap=tap)
 
 
@@ -268,7 +283,7 @@ class TcpServer(_Server):
         self, make_owner: Callable[[], Owner], host: str = "127.0.0.1", port: int = 0, *, allow_remote: bool = False
     ) -> None:
         _check_address(host, allow_remote)
-        super().__init__(make_owner, socket.create_server((host, port)))
+        super().__init__(make_owner, socket.create_server((host, port), backlog=socket.SOMAXCONN))
         self.address: tuple[Any, ...] = self._socket.getsockname()
 
 
@@ -282,7 +297,7 @@ class UnixServer(_Server):
         listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
             listener.bind(path)
-            listener.listen()
+            listener.listen(socket.SOMAXCONN)
         except OSError:
             listener.close()
             raise

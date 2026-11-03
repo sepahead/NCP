@@ -104,6 +104,7 @@ The types are `u8`, `i8`, `u16`, `i16`, `u32`, `i32`, `u64`, `i64`, `f32`, and `
 | TCP | `TcpServer(make_owner, host, port).start()` | `connect_tcp(host, port)` |
 
 A connection carries one session. `UnixServer` and `TcpServer` call `make_owner()` for each connection.
+An owner refuses connections while its queue of connections that it has not yet accepted is full, for example when many agents start at once; the servers ask for the largest queue that the system allows (128 on macOS), and `connect_unix` tries a refused connection again until its `timeout` (10 s) has passed.
 TCP accepts only loopback addresses unless you pass `allow_remote=True`; use it only on a trusted cluster network.
 Put a Unix domain socket in a directory that only the users of the sessions can access.
 
