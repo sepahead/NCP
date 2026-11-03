@@ -169,6 +169,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   1788 spikes, and all 521 million spikes checked were exact. The README, the guide, the
   design record, and both SDK READMEs report the results; the Rust README says when to
   split many sessions over threads.
+- Rust SDK: `set_unix_timeout` sets a time limit for each receive on a Unix domain socket
+  channel, as `set_tcp_timeout` does for TCP; both are now exported at the crate root and
+  described in the README. A channel to a child process over pipes still has no time limit,
+  because the standard library cannot wait on a pipe with one. New tests against an owner
+  that stalls check both limits over real sockets; the Unix test fails without the setter.
 - `benchmarks/conditions.py`: a runner can allow runs on battery (`require_ac=False`), with
   at least 10 % left, because the benchmark computer now runs mostly on battery in its
   High Power mode. Every reading records the power source, the battery level, and the

@@ -729,6 +729,95 @@ fn scratch(name: &str) -> PathBuf {
     directory
 }
 
+/// Executes `echo` only after a long sleep: an owner that stalls.
+struct Stalling;
+
+impl Handler for Stalling {
+    fn validate(&mut self, _op: &str, _request: &Decoded) -> Result<(), String> {
+        Ok(())
+    }
+    fn execute(
+        &mut self,
+        _op: &str,
+        request: &Decoded,
+    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        Ok(request.message["body"].clone().into())
+    }
+}
+
+fn stalling_owner() -> Owner<Stalling> {
+    let contract = contract();
+    Owner::new(
+        &contract.application,
+        &contract.identity,
+        Stalling,
+        contract.operations,
+        MAX_BOUND,
+    )
+}
+
+/// A call to an owner that stalls must end with `timeout` and executed `unknown` once the
+/// channel's time limit passes (specification 7.6, rule 7), not wait for the owner.
+fn assert_times_out<C: Channel>(mut client: Client<C>) {
+    client.open().expect("open");
+    let started = std::time::Instant::now();
+    match client.call("echo", json!({"stall": true}), &[]) {
+        Err(Error::Ended { code, executed }) => {
+            assert_eq!((code.as_str(), executed), ("timeout", "unknown"))
+        }
+        other => panic!("expected a timeout, got {other:?}"),
+    }
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(2),
+        "the time limit was not kept"
+    );
+}
+
+#[test]
+fn a_tcp_time_limit_ends_a_stalled_call() {
+    let listener = binding::listen_tcp("127.0.0.1:0", false).expect("listen");
+    let address = listener.local_addr().expect("address");
+    std::thread::spawn(move || {
+        let (stream, _) = listener.accept().expect("accept");
+        let mut channel = binding::tcp_channel(stream).expect("channel");
+        let _ = binding::serve(&mut stalling_owner(), &mut channel);
+    });
+    let contract = contract();
+    let channel = binding::connect_tcp(address, false).expect("connect");
+    ncp::set_tcp_timeout(&channel, Some(std::time::Duration::from_millis(200)))
+        .expect("time limit");
+    assert_times_out(Client::new(
+        channel,
+        &contract.application,
+        &contract.identity,
+    ));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_unix_time_limit_ends_a_stalled_call() {
+    let directory = std::env::temp_dir().join(format!("ncp-{}", &ncp::random_session()[..8]));
+    std::fs::create_dir_all(&directory).expect("directory");
+    let path = directory.join("owner.sock");
+    let listener = std::os::unix::net::UnixListener::bind(&path).expect("bind");
+    std::thread::spawn(move || {
+        let (stream, _) = listener.accept().expect("accept");
+        let mut channel = binding::unix_channel(stream).expect("channel");
+        let _ = binding::serve(&mut stalling_owner(), &mut channel);
+    });
+    let contract = contract();
+    let channel = binding::connect_unix(&path).expect("connect");
+    ncp::set_unix_timeout(&channel, Some(std::time::Duration::from_millis(200)))
+        .expect("time limit");
+    assert_times_out(Client::new(
+        channel,
+        &contract.application,
+        &contract.identity,
+    ));
+    std::fs::remove_dir_all(&directory).expect("remove directory");
+}
+
 #[cfg(unix)]
 #[test]
 fn connect_unix_tries_a_refused_connection_again() {

@@ -288,3 +288,10 @@ pub fn unix_channel(stream: std::os::unix::net::UnixStream) -> io::Result<UnixCh
 pub fn set_tcp_timeout(channel: &TcpChannel, timeout: Option<Duration>) -> io::Result<()> {
     channel.reader.get_ref().set_read_timeout(timeout)
 }
+
+/// Set a time limit for each receive on a Unix domain socket channel; a missed limit reads as a
+/// timeout. A channel to a child process over pipes ([`spawn`]) has no time limit.
+#[cfg(unix)]
+pub fn set_unix_timeout(channel: &UnixChannel, timeout: Option<Duration>) -> io::Result<()> {
+    channel.reader.get_ref().set_read_timeout(timeout)
+}

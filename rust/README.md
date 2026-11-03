@@ -117,6 +117,8 @@ A received frame keeps its bytes once: `array_bytes(i)` returns a slice of the f
 A connection carries one session. TCP accepts only loopback addresses unless the second argument is `true`; use that only on a trusted cluster network.
 `connect_unix` tries a refused connection again for up to 10 s (`binding::CONNECT_PATIENCE`): an owner refuses connections while its queue of connections that it has not yet accepted is full, for example when many agents start at once (macOS keeps 128).
 The binding sets 1 MiB socket buffers and `TCP_NODELAY`.
+`set_tcp_timeout(&channel, Some(limit))` and `set_unix_timeout(&channel, Some(limit))` set a time limit for each receive: a call whose response does not arrive in time ends the session with `timeout` and executed `unknown`.
+A channel to a child process over pipes (`spawn`) has no time limit; a host that needs one can end the child process itself.
 To call many sessions at once, use `ncp::call_all(&mut clients, op, bodies)`.
 It sends every request before it reads the first response, so the owners work at the same time without a thread for each session, and it returns each session's result in its place.
 With 64 or more sessions, a host can split them over threads that each use `call_all` on their share: in the [multi-agent benchmark](../benchmarks/multi-agent/README.md), 8 such threads finished a round over 256 owners in 646 µs, against 921 µs for one `call_all`, but they were slower with 16 sessions or fewer.
