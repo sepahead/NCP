@@ -96,7 +96,10 @@ NCP 1.0.1 added 228 to 248 µs and 492 to 524 µs. Sending a message to another 
   <img src="../benchmarks/nest-campaign/results-5/figures/overhead_light.svg" alt="Time that each coupling adds to an exchange after every 1 ms step of the Brunel network, on a logarithmic scale: about 8 to 11 µs for a raw round trip, 23 to 32 µs for NCP 2 with a Rust host, 50 to 61 µs with a Python host, and 228 to 524 µs for NCP 1.0.1.">
 </picture>
 
-The [comparison benchmark](../benchmarks/comparison/README.md) and the [NEST campaign](../benchmarks/nest-campaign/README.md) give all values, with the range over three repeated blocks, and state what each result does not show.
+One program can also talk to many others at once. Sending one request to each of 256 programs and receiving all 256 answers took 0.92 ms from a Rust program and 2.8 ms from a Python program, because NCP 2 sends every request before it reads the first answer.
+When 64 agents shared one simulated world that applies their requests in rounds, a round took 2.6 ms, every agent saw the same result, and the result never depended on which request arrived first ([multi-agent benchmark](../benchmarks/multi-agent/README.md)).
+
+The [comparison benchmark](../benchmarks/comparison/README.md), the [NEST campaign](../benchmarks/nest-campaign/README.md), and the multi-agent benchmark give all values, with the range over three repeated blocks, and state what each result does not show.
 In both, the protocol of each measurement was fixed, with its fingerprint, before the measurements ran.
 
 ## How NCP 2 compares with other tools

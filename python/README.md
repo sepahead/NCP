@@ -110,6 +110,7 @@ Put a Unix domain socket in a directory that only the users of the sessions can 
 
 To call many sessions at once, for example one for each agent, use `ncp.call_all(clients, op, bodies)`.
 It sends every request before it reads the first response, so the owners work at the same time without a thread for each session.
+Threads do not make it faster in Python: in the [multi-agent benchmark](../benchmarks/multi-agent/README.md), `call_all` finished a round over 256 owners in 2.8 ms, one thread for each session in 8.0 ms, and 8 threads that each used `call_all` in 4.2 ms.
 It returns, for each session in its place, the result or the exception; one failed session does not stop the others.
 
 For many agents that share one owner, such as robots in one simulated world, `ncp.Rounds` implements the [rounds profile](../spec/NCP-2-ROUNDS.md).

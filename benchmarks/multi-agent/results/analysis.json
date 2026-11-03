@@ -1,0 +1,3323 @@
+{
+ "context": {
+  "protocol": "PROTOCOL.md",
+  "protocol_sha256": "f80247fb1901d1577647f65fa65eff3cbcc477714f50e0888303276288b9041e",
+  "commit": "648f7a90e980fbb7349f7e3ac144d6f0cc4689c7",
+  "worktree_clean": true,
+  "environment": {
+   "computer": "Mac16,5",
+   "chip": "Apple M4 Max",
+   "cores": "16",
+   "performance_cores": "12",
+   "memory_bytes": "137438953472",
+   "os": "26.5.1",
+   "kernel": "25.5.0",
+   "somaxconn": "128",
+   "open_file_limit": [
+    1048576,
+    9223372036854775807
+   ],
+   "power": "Now drawing from 'Battery Power'",
+   "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+   "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+   "python": "3.15.0",
+   "mpi_python": "3.11.15",
+   "mpi_packages": "mpi4py 4.1.2 numpy 1.26.4",
+   "mpirun": "mpirun (Open MPI) 5.0.10",
+   "ncp_commit": "648f7a90e980fbb7349f7e3ac144d6f0cc4689c7",
+   "ncp_worktree_clean": true,
+   "cargo_lock_sha256": {
+    "sdk": "eddcdb985955018cfc347b9307892d488098c811cf4322ae11ae21de21da64e5",
+    "harness": "08911fb6015d39cd992921c39c7d148a02a9baf03aebae4bab87f5ac9b00dd54"
+   }
+  },
+  "validity": {
+   "python_sdk_tests": 0,
+   "python_rounds_tests": 0,
+   "rust_sdk_tests": 0,
+   "mpi_python_imports": 0,
+   "smoke_F-rust-all-n4-w0": 0,
+   "smoke_F-python-all-n4-w0": 0,
+   "smoke_R-rounds-n4": 0,
+   "smoke_R-arrival-n4": 0,
+   "smoke_M-ranks2-spikes1788": 0
+  },
+  "runs_recorded": 385,
+  "runs_scheduled": 375,
+  "failed_rows": [],
+  "disturbed_attempts": 12,
+  "still_disturbed": [
+   {
+    "block": 0,
+    "config": "F-python-sequential-n256-w1000"
+   },
+   {
+    "block": 0,
+    "config": "F-rust-sequential-n256-w1000"
+   }
+  ],
+  "missing": [
+   "0:F-python-sequential-n256-w1000",
+   "0:F-rust-sequential-n256-w1000"
+  ],
+  "started_utc": "2026-11-03T09:27:08.312865Z",
+  "finished_utc": "2026-11-03T09:55:25.517995Z",
+  "waited_s": 700.7
+ },
+ "configurations": {
+  "F-python-all-n1-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    20.541,
+    20.708,
+    20.458
+   ],
+   "statistic_us": 20.541,
+   "range_us": [
+    20.458,
+    20.708
+   ],
+   "p95_statistic_us": 22.958,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n1-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1595.542,
+    1538.375,
+    1611.75
+   ],
+   "statistic_us": 1595.542,
+   "range_us": [
+    1538.375,
+    1611.75
+   ],
+   "p95_statistic_us": 1691.25,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n16-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    193.333,
+    186.458,
+    186.709
+   ],
+   "statistic_us": 186.709,
+   "range_us": [
+    186.458,
+    193.333
+   ],
+   "p95_statistic_us": 199.083,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n16-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    1853.375,
+    1831.458,
+    1841.25
+   ],
+   "statistic_us": 1841.25,
+   "range_us": [
+    1831.458,
+    1853.375
+   ],
+   "p95_statistic_us": 2310.917,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n256-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    2706.208,
+    2783.0,
+    2837.25
+   ],
+   "statistic_us": 2783.0,
+   "range_us": [
+    2706.208,
+    2837.25
+   ],
+   "p95_statistic_us": 2896.958,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n256-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    3470.875,
+    3402.75,
+    3445.708
+   ],
+   "statistic_us": 3445.708,
+   "range_us": [
+    3402.75,
+    3470.875
+   ],
+   "p95_statistic_us": 3555.334,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n4-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    56.5,
+    56.875,
+    57.041
+   ],
+   "statistic_us": 56.875,
+   "range_us": [
+    56.5,
+    57.041
+   ],
+   "p95_statistic_us": 59.125,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n4-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    1661.291,
+    1569.5,
+    1568.5
+   ],
+   "statistic_us": 1569.5,
+   "range_us": [
+    1568.5,
+    1661.291
+   ],
+   "p95_statistic_us": 1818.417,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n64-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    716.916,
+    713.583,
+    720.75
+   ],
+   "statistic_us": 716.916,
+   "range_us": [
+    713.583,
+    720.75
+   ],
+   "p95_statistic_us": 740.666,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-all-n64-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    2065.958,
+    2145.875,
+    2068.042
+   ],
+   "statistic_us": 2068.042,
+   "range_us": [
+    2065.958,
+    2145.875
+   ],
+   "p95_statistic_us": 2831.708,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n1-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    28.959,
+    28.75,
+    28.958
+   ],
+   "statistic_us": 28.958,
+   "range_us": [
+    28.75,
+    28.959
+   ],
+   "p95_statistic_us": 33.417,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n1-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1641.834,
+    1642.542,
+    1549.875
+   ],
+   "statistic_us": 1641.834,
+   "range_us": [
+    1549.875,
+    1642.542
+   ],
+   "p95_statistic_us": 1791.042,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n16-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    467.875,
+    466.542,
+    468.333
+   ],
+   "statistic_us": 467.875,
+   "range_us": [
+    466.542,
+    468.333
+   ],
+   "p95_statistic_us": 493.666,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n16-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    2102.209,
+    1978.5,
+    2072.5
+   ],
+   "statistic_us": 2072.5,
+   "range_us": [
+    1978.5,
+    2102.209
+   ],
+   "p95_statistic_us": 2401.291,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n256-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    8278.5,
+    7977.958,
+    8041.292
+   ],
+   "statistic_us": 8041.292,
+   "range_us": [
+    7977.958,
+    8278.5
+   ],
+   "p95_statistic_us": 8579.208,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n256-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    9323.25,
+    9627.084,
+    9181.084
+   ],
+   "statistic_us": 9323.25,
+   "range_us": [
+    9181.084,
+    9627.084
+   ],
+   "p95_statistic_us": 9916.542,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n4-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    137.042,
+    134.084,
+    128.584
+   ],
+   "statistic_us": 134.084,
+   "range_us": [
+    128.584,
+    137.042
+   ],
+   "p95_statistic_us": 155.709,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n4-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    1723.042,
+    1732.541,
+    1692.792
+   ],
+   "statistic_us": 1723.042,
+   "range_us": [
+    1692.792,
+    1732.541
+   ],
+   "p95_statistic_us": 2114.083,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n64-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    1775.541,
+    1776.375,
+    1796.167
+   ],
+   "statistic_us": 1776.375,
+   "range_us": [
+    1775.541,
+    1796.167
+   ],
+   "p95_statistic_us": 1837.666,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-pool-n64-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "pool",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    2742.542,
+    2744.833,
+    2744.958
+   ],
+   "statistic_us": 2744.833,
+   "range_us": [
+    2742.542,
+    2744.958
+   ],
+   "p95_statistic_us": 2855.375,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n1-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    5.041,
+    4.916,
+    5.041
+   ],
+   "statistic_us": 5.041,
+   "range_us": [
+    4.916,
+    5.041
+   ],
+   "p95_statistic_us": 8.417,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n1-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1540.958,
+    1539.959,
+    1542.75
+   ],
+   "statistic_us": 1540.958,
+   "range_us": [
+    1539.959,
+    1542.75
+   ],
+   "p95_statistic_us": 1584.125,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n16-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    45.917,
+    32.833,
+    43.375
+   ],
+   "statistic_us": 43.375,
+   "range_us": [
+    32.833,
+    45.917
+   ],
+   "p95_statistic_us": 50.042,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n16-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    1611.959,
+    1601.209,
+    1610.667
+   ],
+   "statistic_us": 1610.667,
+   "range_us": [
+    1601.209,
+    1611.959
+   ],
+   "p95_statistic_us": 1705.083,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n256-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    440.5,
+    417.083,
+    440.625
+   ],
+   "statistic_us": 440.5,
+   "range_us": [
+    417.083,
+    440.625
+   ],
+   "p95_statistic_us": 468.292,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n256-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    1958.75,
+    1900.458,
+    1892.75
+   ],
+   "statistic_us": 1900.458,
+   "range_us": [
+    1892.75,
+    1958.75
+   ],
+   "p95_statistic_us": 2174.125,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n4-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    12.292,
+    13.458,
+    12.292
+   ],
+   "statistic_us": 12.292,
+   "range_us": [
+    12.292,
+    13.458
+   ],
+   "p95_statistic_us": 13.708,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n4-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    1554.667,
+    1525.917,
+    1522.167
+   ],
+   "statistic_us": 1525.917,
+   "range_us": [
+    1522.167,
+    1554.667
+   ],
+   "p95_statistic_us": 1624.25,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n64-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    109.583,
+    110.958,
+    110.875
+   ],
+   "statistic_us": 110.875,
+   "range_us": [
+    109.583,
+    110.958
+   ],
+   "p95_statistic_us": 122.792,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-raw-n64-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "raw",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    1735.042,
+    1730.334,
+    1740.75
+   ],
+   "statistic_us": 1735.042,
+   "range_us": [
+    1730.334,
+    1740.75
+   ],
+   "p95_statistic_us": 1975.792,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n1-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    19.959,
+    20.0,
+    19.916
+   ],
+   "statistic_us": 19.959,
+   "range_us": [
+    19.916,
+    20.0
+   ],
+   "p95_statistic_us": 21.958,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n1-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1604.666,
+    1605.583,
+    1611.291
+   ],
+   "statistic_us": 1605.583,
+   "range_us": [
+    1604.666,
+    1611.291
+   ],
+   "p95_statistic_us": 1742.542,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n16-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    338.625,
+    334.459,
+    331.333
+   ],
+   "statistic_us": 334.459,
+   "range_us": [
+    331.333,
+    338.625
+   ],
+   "p95_statistic_us": 368.833,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n16-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    26846.917,
+    27036.375,
+    27015.542
+   ],
+   "statistic_us": 27015.542,
+   "range_us": [
+    26846.917,
+    27036.375
+   ],
+   "p95_statistic_us": 29008.542,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n256-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    5766.667,
+    6519.791,
+    5807.166
+   ],
+   "statistic_us": 5807.166,
+   "range_us": [
+    5766.667,
+    6519.791
+   ],
+   "p95_statistic_us": 6250.459,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n256-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    448963.875,
+    419038.542
+   ],
+   "statistic_us": 434001.2085,
+   "range_us": [
+    419038.542,
+    448963.875
+   ],
+   "p95_statistic_us": 473311.7085,
+   "blocks": [
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n4-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    83.542,
+    89.583,
+    89.834
+   ],
+   "statistic_us": 89.583,
+   "range_us": [
+    83.542,
+    89.834
+   ],
+   "p95_statistic_us": 97.791,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n4-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    6518.083,
+    6695.375,
+    6687.541
+   ],
+   "statistic_us": 6687.541,
+   "range_us": [
+    6518.083,
+    6695.375
+   ],
+   "p95_statistic_us": 7056.791,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n64-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    1406.042,
+    1582.25,
+    1400.125
+   ],
+   "statistic_us": 1406.042,
+   "range_us": [
+    1400.125,
+    1582.25
+   ],
+   "p95_statistic_us": 1562.375,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-sequential-n64-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "sequential",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    108598.5,
+    108602.958,
+    103959.416
+   ],
+   "statistic_us": 108598.5,
+   "range_us": [
+    103959.416,
+    108602.958
+   ],
+   "p95_statistic_us": 113216.0,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n1-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    29.209,
+    30.25,
+    33.333
+   ],
+   "statistic_us": 30.25,
+   "range_us": [
+    29.209,
+    33.333
+   ],
+   "p95_statistic_us": 36.5,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n1-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1631.458,
+    1556.583,
+    1630.875
+   ],
+   "statistic_us": 1630.875,
+   "range_us": [
+    1556.583,
+    1631.458
+   ],
+   "p95_statistic_us": 1809.917,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n16-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    393.291,
+    399.0,
+    387.375
+   ],
+   "statistic_us": 393.291,
+   "range_us": [
+    387.375,
+    399.0
+   ],
+   "p95_statistic_us": 423.75,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n16-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    2048.541,
+    1998.833,
+    1978.0
+   ],
+   "statistic_us": 1998.833,
+   "range_us": [
+    1978.0,
+    2048.541
+   ],
+   "p95_statistic_us": 2387.792,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n256-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    4141.875,
+    4190.917,
+    4276.084
+   ],
+   "statistic_us": 4190.917,
+   "range_us": [
+    4141.875,
+    4276.084
+   ],
+   "p95_statistic_us": 4403.459,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n256-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    5470.459,
+    5662.625,
+    5762.042
+   ],
+   "statistic_us": 5662.625,
+   "range_us": [
+    5470.459,
+    5762.042
+   ],
+   "p95_statistic_us": 6072.833,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n4-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    133.792,
+    130.0,
+    133.375
+   ],
+   "statistic_us": 133.375,
+   "range_us": [
+    130.0,
+    133.792
+   ],
+   "p95_statistic_us": 150.416,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n4-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    1738.583,
+    1740.791,
+    1629.625
+   ],
+   "statistic_us": 1738.583,
+   "range_us": [
+    1629.625,
+    1740.791
+   ],
+   "p95_statistic_us": 2088.125,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n64-w0": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    1153.75,
+    1166.458,
+    1154.041
+   ],
+   "statistic_us": 1154.041,
+   "range_us": [
+    1153.75,
+    1166.458
+   ],
+   "p95_statistic_us": 1219.0,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-python-split-n64-w1000": {
+   "part": "F",
+   "host": "python",
+   "mode": "split",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    2316.166,
+    2323.208,
+    2319.667
+   ],
+   "statistic_us": 2319.667,
+   "range_us": [
+    2316.166,
+    2323.208
+   ],
+   "p95_statistic_us": 2407.667,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n1-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    11.875,
+    9.334000000000001,
+    10.875
+   ],
+   "statistic_us": 10.875,
+   "range_us": [
+    9.334000000000001,
+    11.875
+   ],
+   "p95_statistic_us": 12.584,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n1-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1570.125,
+    1521.708,
+    1519.292
+   ],
+   "statistic_us": 1521.708,
+   "range_us": [
+    1519.292,
+    1570.125
+   ],
+   "p95_statistic_us": 1583.7920000000001,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n16-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    70.375,
+    70.33399999999999,
+    68.625
+   ],
+   "statistic_us": 70.33399999999999,
+   "range_us": [
+    68.625,
+    70.375
+   ],
+   "p95_statistic_us": 76.333,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n16-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    1668.9579999999999,
+    1633.0,
+    1674.958
+   ],
+   "statistic_us": 1668.9579999999999,
+   "range_us": [
+    1633.0,
+    1674.958
+   ],
+   "p95_statistic_us": 1876.625,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n256-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    888.459,
+    920.625,
+    1001.5829999999999
+   ],
+   "statistic_us": 920.625,
+   "range_us": [
+    888.459,
+    1001.5829999999999
+   ],
+   "p95_statistic_us": 1116.583,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n256-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    2250.958,
+    2208.167,
+    2255.833
+   ],
+   "statistic_us": 2250.958,
+   "range_us": [
+    2208.167,
+    2255.833
+   ],
+   "p95_statistic_us": 2321.166,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n4-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    23.040999999999997,
+    24.875,
+    24.833000000000002
+   ],
+   "statistic_us": 24.833000000000002,
+   "range_us": [
+    23.040999999999997,
+    24.875
+   ],
+   "p95_statistic_us": 26.125,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n4-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    1535.375,
+    1577.75,
+    1583.042
+   ],
+   "statistic_us": 1577.75,
+   "range_us": [
+    1535.375,
+    1583.042
+   ],
+   "p95_statistic_us": 1683.542,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n64-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    234.334,
+    241.375,
+    237.625
+   ],
+   "statistic_us": 237.625,
+   "range_us": [
+    234.334,
+    241.375
+   ],
+   "p95_statistic_us": 259.79200000000003,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-all-n64-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "all",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    1931.083,
+    1774.625,
+    1885.541
+   ],
+   "statistic_us": 1885.541,
+   "range_us": [
+    1774.625,
+    1931.083
+   ],
+   "p95_statistic_us": 2483.375,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n1-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    18.541999999999998,
+    18.0,
+    17.708000000000002
+   ],
+   "statistic_us": 18.0,
+   "range_us": [
+    17.708000000000002,
+    18.541999999999998
+   ],
+   "p95_statistic_us": 21.333000000000002,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n1-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1574.375,
+    1528.9170000000001,
+    1586.042
+   ],
+   "statistic_us": 1574.375,
+   "range_us": [
+    1528.9170000000001,
+    1586.042
+   ],
+   "p95_statistic_us": 1631.959,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n16-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    151.625,
+    154.709,
+    154.125
+   ],
+   "statistic_us": 154.125,
+   "range_us": [
+    151.625,
+    154.709
+   ],
+   "p95_statistic_us": 192.875,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n16-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    1800.958,
+    1711.25,
+    1785.333
+   ],
+   "statistic_us": 1785.333,
+   "range_us": [
+    1711.25,
+    1800.958
+   ],
+   "p95_statistic_us": 2033.959,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n256-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    1945.9589999999998,
+    1712.875,
+    1687.625
+   ],
+   "statistic_us": 1712.875,
+   "range_us": [
+    1687.625,
+    1945.9589999999998
+   ],
+   "p95_statistic_us": 2245.583,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n256-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    3666.2079999999996,
+    3094.542,
+    3709.458
+   ],
+   "statistic_us": 3666.2079999999996,
+   "range_us": [
+    3094.542,
+    3709.458
+   ],
+   "p95_statistic_us": 4257.5419999999995,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n4-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    33.25,
+    32.459,
+    33.708000000000006
+   ],
+   "statistic_us": 33.25,
+   "range_us": [
+    32.459,
+    33.708000000000006
+   ],
+   "p95_statistic_us": 39.625,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n4-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    1610.5,
+    1608.666,
+    1610.083
+   ],
+   "statistic_us": 1610.083,
+   "range_us": [
+    1608.666,
+    1610.5
+   ],
+   "p95_statistic_us": 1722.042,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n64-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    464.54200000000003,
+    486.45799999999997,
+    553.917
+   ],
+   "statistic_us": 486.45799999999997,
+   "range_us": [
+    464.54200000000003,
+    553.917
+   ],
+   "p95_statistic_us": 692.458,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-pool-n64-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "pool",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    2079.75,
+    2057.8340000000003,
+    2050.584
+   ],
+   "statistic_us": 2057.8340000000003,
+   "range_us": [
+    2050.584,
+    2079.75
+   ],
+   "p95_statistic_us": 2861.875,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n1-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    4.082999999999999,
+    4.042,
+    4.1659999999999995
+   ],
+   "statistic_us": 4.082999999999999,
+   "range_us": [
+    4.042,
+    4.1659999999999995
+   ],
+   "p95_statistic_us": 6.25,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n1-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1514.8329999999999,
+    1511.416,
+    1538.3339999999998
+   ],
+   "statistic_us": 1514.8329999999999,
+   "range_us": [
+    1511.416,
+    1538.3339999999998
+   ],
+   "p95_statistic_us": 1549.6660000000002,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n16-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    28.25,
+    41.666,
+    28.666999999999998
+   ],
+   "statistic_us": 28.666999999999998,
+   "range_us": [
+    28.25,
+    41.666
+   ],
+   "p95_statistic_us": 47.25,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n16-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    1601.708,
+    1572.666,
+    1596.541
+   ],
+   "statistic_us": 1596.541,
+   "range_us": [
+    1572.666,
+    1601.708
+   ],
+   "p95_statistic_us": 1649.0,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n256-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    367.20799999999997,
+    365.75,
+    368.125
+   ],
+   "statistic_us": 367.20799999999997,
+   "range_us": [
+    365.75,
+    368.125
+   ],
+   "p95_statistic_us": 388.75,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n256-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    1923.125,
+    1918.625,
+    1927.292
+   ],
+   "statistic_us": 1923.125,
+   "range_us": [
+    1918.625,
+    1927.292
+   ],
+   "p95_statistic_us": 2323.5,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n4-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    10.125,
+    10.458,
+    10.458
+   ],
+   "statistic_us": 10.458,
+   "range_us": [
+    10.125,
+    10.458
+   ],
+   "p95_statistic_us": 11.125,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n4-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    1546.7079999999999,
+    1546.791,
+    1538.333
+   ],
+   "statistic_us": 1546.7079999999999,
+   "range_us": [
+    1538.333,
+    1546.791
+   ],
+   "p95_statistic_us": 1626.959,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n64-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    99.542,
+    102.75,
+    112.459
+   ],
+   "statistic_us": 102.75,
+   "range_us": [
+    99.542,
+    112.459
+   ],
+   "p95_statistic_us": 111.292,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-raw-n64-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "raw",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    1727.166,
+    1642.375,
+    1688.875
+   ],
+   "statistic_us": 1688.875,
+   "range_us": [
+    1642.375,
+    1727.166
+   ],
+   "p95_statistic_us": 1822.291,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n1-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    10.583,
+    10.583,
+    10.833
+   ],
+   "statistic_us": 10.583,
+   "range_us": [
+    10.583,
+    10.833
+   ],
+   "p95_statistic_us": 12.875,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n1-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1566.625,
+    1558.583,
+    1557.166
+   ],
+   "statistic_us": 1558.583,
+   "range_us": [
+    1557.166,
+    1566.625
+   ],
+   "p95_statistic_us": 1627.125,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n16-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    191.375,
+    195.041,
+    189.375
+   ],
+   "statistic_us": 191.375,
+   "range_us": [
+    189.375,
+    195.041
+   ],
+   "p95_statistic_us": 214.29199999999997,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n16-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    25529.75,
+    25717.708,
+    25474.041
+   ],
+   "statistic_us": 25529.75,
+   "range_us": [
+    25474.041,
+    25717.708
+   ],
+   "p95_statistic_us": 27400.459,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n256-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    3474.834,
+    3399.875,
+    3460.2090000000003
+   ],
+   "statistic_us": 3460.2090000000003,
+   "range_us": [
+    3399.875,
+    3474.834
+   ],
+   "p95_statistic_us": 3854.5,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n256-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    411972.416,
+    399486.208
+   ],
+   "statistic_us": 405729.31200000003,
+   "range_us": [
+    399486.208,
+    411972.416
+   ],
+   "p95_statistic_us": 421643.375,
+   "blocks": [
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n4-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    45.375,
+    46.917,
+    45.791000000000004
+   ],
+   "statistic_us": 45.791000000000004,
+   "range_us": [
+    45.375,
+    46.917
+   ],
+   "p95_statistic_us": 52.75,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n4-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    6319.5,
+    6330.625,
+    6333.916
+   ],
+   "statistic_us": 6330.625,
+   "range_us": [
+    6319.5,
+    6333.916
+   ],
+   "p95_statistic_us": 6532.834000000001,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n64-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    809.0,
+    823.8330000000001,
+    799.0840000000001
+   ],
+   "statistic_us": 809.0,
+   "range_us": [
+    799.0840000000001,
+    823.8330000000001
+   ],
+   "p95_statistic_us": 904.875,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-sequential-n64-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "sequential",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    101460.792,
+    102465.291,
+    100781.083
+   ],
+   "statistic_us": 101460.792,
+   "range_us": [
+    100781.083,
+    102465.291
+   ],
+   "p95_statistic_us": 105853.25,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n1-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 1,
+   "wait_us": 0,
+   "measures_us": [
+    18.916,
+    18.541999999999998,
+    17.959
+   ],
+   "statistic_us": 18.541999999999998,
+   "range_us": [
+    17.959,
+    18.916
+   ],
+   "p95_statistic_us": 22.125,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n1-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 1,
+   "wait_us": 1000,
+   "measures_us": [
+    1322.9579999999999,
+    1529.125,
+    1569.4579999999999
+   ],
+   "statistic_us": 1529.125,
+   "range_us": [
+    1322.9579999999999,
+    1569.4579999999999
+   ],
+   "p95_statistic_us": 1588.417,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n16-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 16,
+   "wait_us": 0,
+   "measures_us": [
+    85.95800000000001,
+    88.54100000000001,
+    88.791
+   ],
+   "statistic_us": 88.54100000000001,
+   "range_us": [
+    85.95800000000001,
+    88.791
+   ],
+   "p95_statistic_us": 109.16600000000001,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n16-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 16,
+   "wait_us": 1000,
+   "measures_us": [
+    1699.8339999999998,
+    1650.709,
+    1708.584
+   ],
+   "statistic_us": 1699.8339999999998,
+   "range_us": [
+    1650.709,
+    1708.584
+   ],
+   "p95_statistic_us": 1943.0,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n256-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 256,
+   "wait_us": 0,
+   "measures_us": [
+    656.167,
+    637.625,
+    646.417
+   ],
+   "statistic_us": 646.417,
+   "range_us": [
+    637.625,
+    656.167
+   ],
+   "p95_statistic_us": 701.875,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n256-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 256,
+   "wait_us": 1000,
+   "measures_us": [
+    2128.917,
+    2109.958,
+    2131.5
+   ],
+   "statistic_us": 2128.917,
+   "range_us": [
+    2109.958,
+    2131.5
+   ],
+   "p95_statistic_us": 2213.0829999999996,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n4-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 4,
+   "wait_us": 0,
+   "measures_us": [
+    33.667,
+    37.375,
+    34.916999999999994
+   ],
+   "statistic_us": 34.916999999999994,
+   "range_us": [
+    33.667,
+    37.375
+   ],
+   "p95_statistic_us": 50.791999999999994,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n4-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 4,
+   "wait_us": 1000,
+   "measures_us": [
+    1574.333,
+    1566.708,
+    1614.0
+   ],
+   "statistic_us": 1574.333,
+   "range_us": [
+    1566.708,
+    1614.0
+   ],
+   "p95_statistic_us": 1731.75,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n64-w0": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 64,
+   "wait_us": 0,
+   "measures_us": [
+    179.042,
+    188.208,
+    179.042
+   ],
+   "statistic_us": 179.042,
+   "range_us": [
+    179.042,
+    188.208
+   ],
+   "p95_statistic_us": 200.625,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "F-rust-split-n64-w1000": {
+   "part": "F",
+   "host": "rust",
+   "mode": "split",
+   "n": 64,
+   "wait_us": 1000,
+   "measures_us": [
+    1901.792,
+    1848.0,
+    1885.209
+   ],
+   "statistic_us": 1885.209,
+   "range_us": [
+    1848.0,
+    1901.792
+   ],
+   "p95_statistic_us": 2197.542,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks0-spikes0": {
+   "part": "M",
+   "ranks": 0,
+   "spikes": 0,
+   "measures_us": [
+    29.875,
+    33.125,
+    29.791999999999998
+   ],
+   "statistic_us": 29.875,
+   "range_us": [
+    29.791999999999998,
+    33.125
+   ],
+   "p95_statistic_us": 34.333,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks0-spikes1788": {
+   "part": "M",
+   "ranks": 0,
+   "spikes": 1788,
+   "measures_us": [
+    50.292,
+    50.458999999999996,
+    50.25
+   ],
+   "statistic_us": 50.292,
+   "range_us": [
+    50.25,
+    50.458999999999996
+   ],
+   "p95_statistic_us": 54.25,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks0-spikes87381": {
+   "part": "M",
+   "ranks": 0,
+   "spikes": 87381,
+   "measures_us": [
+    952.125,
+    968.709,
+    953.7080000000001
+   ],
+   "statistic_us": 953.7080000000001,
+   "range_us": [
+    952.125,
+    968.709
+   ],
+   "p95_statistic_us": 1039.875,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks1-spikes0": {
+   "part": "M",
+   "ranks": 1,
+   "spikes": 0,
+   "measures_us": [
+    34.125,
+    34.916000000000004,
+    34.333
+   ],
+   "statistic_us": 34.333,
+   "range_us": [
+    34.125,
+    34.916000000000004
+   ],
+   "p95_statistic_us": 52.958,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks1-spikes1788": {
+   "part": "M",
+   "ranks": 1,
+   "spikes": 1788,
+   "measures_us": [
+    57.667,
+    57.708,
+    58.334
+   ],
+   "statistic_us": 57.708,
+   "range_us": [
+    57.667,
+    58.334
+   ],
+   "p95_statistic_us": 64.417,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks1-spikes87381": {
+   "part": "M",
+   "ranks": 1,
+   "spikes": 87381,
+   "measures_us": [
+    1029.708,
+    1080.792,
+    1033.167
+   ],
+   "statistic_us": 1033.167,
+   "range_us": [
+    1029.708,
+    1080.792
+   ],
+   "p95_statistic_us": 1176.083,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks2-spikes0": {
+   "part": "M",
+   "ranks": 2,
+   "spikes": 0,
+   "measures_us": [
+    36.083,
+    37.792,
+    35.875
+   ],
+   "statistic_us": 36.083,
+   "range_us": [
+    35.875,
+    37.792
+   ],
+   "p95_statistic_us": 53.75,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks2-spikes1788": {
+   "part": "M",
+   "ranks": 2,
+   "spikes": 1788,
+   "measures_us": [
+    61.416,
+    61.333000000000006,
+    61.333000000000006
+   ],
+   "statistic_us": 61.333000000000006,
+   "range_us": [
+    61.333000000000006,
+    61.416
+   ],
+   "p95_statistic_us": 83.042,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks2-spikes87381": {
+   "part": "M",
+   "ranks": 2,
+   "spikes": 87381,
+   "measures_us": [
+    1060.708,
+    1022.6670000000001,
+    1036.5420000000001
+   ],
+   "statistic_us": 1036.5420000000001,
+   "range_us": [
+    1022.6670000000001,
+    1060.708
+   ],
+   "p95_statistic_us": 1111.291,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks4-spikes0": {
+   "part": "M",
+   "ranks": 4,
+   "spikes": 0,
+   "measures_us": [
+    35.083999999999996,
+    35.625,
+    34.708
+   ],
+   "statistic_us": 35.083999999999996,
+   "range_us": [
+    34.708,
+    35.625
+   ],
+   "p95_statistic_us": 48.541999999999994,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks4-spikes1788": {
+   "part": "M",
+   "ranks": 4,
+   "spikes": 1788,
+   "measures_us": [
+    54.5,
+    61.458999999999996,
+    53.5
+   ],
+   "statistic_us": 54.5,
+   "range_us": [
+    53.5,
+    61.458999999999996
+   ],
+   "p95_statistic_us": 65.541,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks4-spikes87381": {
+   "part": "M",
+   "ranks": 4,
+   "spikes": 87381,
+   "measures_us": [
+    1031.5420000000001,
+    1035.875,
+    1019.875
+   ],
+   "statistic_us": 1031.5420000000001,
+   "range_us": [
+    1019.875,
+    1035.875
+   ],
+   "p95_statistic_us": 1086.458,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks8-spikes0": {
+   "part": "M",
+   "ranks": 8,
+   "spikes": 0,
+   "measures_us": [
+    36.417,
+    34.541,
+    33.916
+   ],
+   "statistic_us": 34.541,
+   "range_us": [
+    33.916,
+    36.417
+   ],
+   "p95_statistic_us": 43.083,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks8-spikes1788": {
+   "part": "M",
+   "ranks": 8,
+   "spikes": 1788,
+   "measures_us": [
+    59.791,
+    57.166999999999994,
+    64.04100000000001
+   ],
+   "statistic_us": 59.791,
+   "range_us": [
+    57.166999999999994,
+    64.04100000000001
+   ],
+   "p95_statistic_us": 74.83300000000001,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "M-ranks8-spikes87381": {
+   "part": "M",
+   "ranks": 8,
+   "spikes": 87381,
+   "measures_us": [
+    968.375,
+    997.7090000000001,
+    984.2919999999999
+   ],
+   "statistic_us": 984.2919999999999,
+   "range_us": [
+    968.375,
+    997.7090000000001
+   ],
+   "p95_statistic_us": 1021.5409999999999,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-arrival-n1": {
+   "part": "R",
+   "mode": "arrival",
+   "n": 1,
+   "measures_us": [
+    26.459,
+    23.584,
+    23.709
+   ],
+   "statistic_us": 23.709,
+   "range_us": [
+    23.584,
+    26.459
+   ],
+   "p95_statistic_us": 28.75,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-arrival-n16": {
+   "part": "R",
+   "mode": "arrival",
+   "n": 16,
+   "measures_us": [
+    411.75,
+    427.20799999999997,
+    429.375
+   ],
+   "statistic_us": 427.20799999999997,
+   "range_us": [
+    411.75,
+    429.375
+   ],
+   "p95_statistic_us": 497.87500000000006,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-arrival-n256": {
+   "part": "R",
+   "mode": "arrival",
+   "n": 256,
+   "measures_us": [
+    7326.375,
+    7395.333,
+    6799.292
+   ],
+   "statistic_us": 7326.375,
+   "range_us": [
+    6799.292,
+    7395.333
+   ],
+   "p95_statistic_us": 8074.625,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-arrival-n4": {
+   "part": "R",
+   "mode": "arrival",
+   "n": 4,
+   "measures_us": [
+    97.875,
+    98.125,
+    97.708
+   ],
+   "statistic_us": 97.875,
+   "range_us": [
+    97.708,
+    98.125
+   ],
+   "p95_statistic_us": 105.917,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-arrival-n64": {
+   "part": "R",
+   "mode": "arrival",
+   "n": 64,
+   "measures_us": [
+    1764.708,
+    1822.041,
+    1789.208
+   ],
+   "statistic_us": 1789.208,
+   "range_us": [
+    1764.708,
+    1822.041
+   ],
+   "p95_statistic_us": 1987.5420000000001,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-rounds-n1": {
+   "part": "R",
+   "mode": "rounds",
+   "n": 1,
+   "measures_us": [
+    31.875000000000004,
+    36.792,
+    32.542
+   ],
+   "statistic_us": 32.542,
+   "range_us": [
+    31.875000000000004,
+    36.792
+   ],
+   "p95_statistic_us": 39.5,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-rounds-n16": {
+   "part": "R",
+   "mode": "rounds",
+   "n": 16,
+   "measures_us": [
+    594.542,
+    624.125,
+    619.958
+   ],
+   "statistic_us": 619.958,
+   "range_us": [
+    594.542,
+    624.125
+   ],
+   "p95_statistic_us": 695.4590000000001,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-rounds-n256": {
+   "part": "R",
+   "mode": "rounds",
+   "n": 256,
+   "measures_us": [
+    16600.541,
+    16456.667,
+    16575.75
+   ],
+   "statistic_us": 16575.75,
+   "range_us": [
+    16456.667,
+    16600.541
+   ],
+   "p95_statistic_us": 17433.75,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-rounds-n4": {
+   "part": "R",
+   "mode": "rounds",
+   "n": 4,
+   "measures_us": [
+    144.667,
+    139.542,
+    139.667
+   ],
+   "statistic_us": 139.667,
+   "range_us": [
+    139.542,
+    144.667
+   ],
+   "p95_statistic_us": 151.375,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  "R-rounds-n64": {
+   "part": "R",
+   "mode": "rounds",
+   "n": 64,
+   "measures_us": [
+    2452.375,
+    2648.417,
+    2605.875
+   ],
+   "statistic_us": 2605.875,
+   "range_us": [
+    2452.375,
+    2648.417
+   ],
+   "p95_statistic_us": 2872.5,
+   "blocks": [
+    "0",
+    "1",
+    "2"
+   ]
+  }
+ },
+ "hypotheses": {
+  "F1": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "rust all N=64 W=0 = 237.625 < 1000",
+     "holds": true
+    },
+    {
+     "check": "python all N=64 W=0 = 716.916 < 1000",
+     "holds": true
+    }
+   ]
+  },
+  "F2": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "rust all 1885.541 < 0.1 x sequential 101460.792",
+     "holds": true
+    },
+    {
+     "check": "python all 2068.042 < 0.1 x sequential 108598.5",
+     "holds": true
+    }
+   ]
+  },
+  "F3": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "rust N=4: all 24.833000000000002 < pool 33.25",
+     "holds": true
+    },
+    {
+     "check": "rust N=4: all 24.833000000000002 < sequential 45.791000000000004",
+     "holds": true
+    },
+    {
+     "check": "rust N=16: all 70.33399999999999 < pool 154.125",
+     "holds": true
+    },
+    {
+     "check": "rust N=16: all 70.33399999999999 < sequential 191.375",
+     "holds": true
+    },
+    {
+     "check": "rust N=64: all 237.625 < pool 486.45799999999997",
+     "holds": true
+    },
+    {
+     "check": "rust N=64: all 237.625 < sequential 809.0",
+     "holds": true
+    },
+    {
+     "check": "rust N=256: all 920.625 < pool 1712.875",
+     "holds": true
+    },
+    {
+     "check": "rust N=256: all 920.625 < sequential 3460.2090000000003",
+     "holds": true
+    },
+    {
+     "check": "python N=4: all 56.875 < pool 134.084",
+     "holds": true
+    },
+    {
+     "check": "python N=4: all 56.875 < sequential 89.583",
+     "holds": true
+    },
+    {
+     "check": "python N=16: all 186.709 < pool 467.875",
+     "holds": true
+    },
+    {
+     "check": "python N=16: all 186.709 < sequential 334.459",
+     "holds": true
+    },
+    {
+     "check": "python N=64: all 716.916 < pool 1776.375",
+     "holds": true
+    },
+    {
+     "check": "python N=64: all 716.916 < sequential 1406.042",
+     "holds": true
+    },
+    {
+     "check": "python N=256: all 2783.0 < pool 8041.292",
+     "holds": true
+    },
+    {
+     "check": "python N=256: all 2783.0 < sequential 5807.166",
+     "holds": true
+    }
+   ]
+  },
+  "F4": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "rust: (all - raw) / 256 at N=256 = 2.16 < (all - raw) at N=1 = 6.79",
+     "holds": true
+    },
+    {
+     "check": "python: (all - raw) / 256 at N=256 = 9.15 < (all - raw) at N=1 = 15.50",
+     "holds": true
+    }
+   ]
+  },
+  "F5": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "rust split 646.417 < all 920.625",
+     "holds": true
+    },
+    {
+     "check": "python split 4190.917 > all 2783.0",
+     "holds": true
+    }
+   ]
+  },
+  "R1": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "0 of 15 recorded rounds runs ended with an error",
+     "holds": true
+    },
+    {
+     "check": "N=1 block 0: states agree, 220 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=1 block 1: states agree, 220 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=1 block 2: states agree, 220 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=4 block 0: states agree, 880 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=4 block 1: states agree, 880 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=4 block 2: states agree, 880 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=16 block 0: states agree, 3520 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=16 block 1: states agree, 3520 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=16 block 2: states agree, 3520 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=64 block 0: states agree, 14080 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=64 block 1: states agree, 14080 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=64 block 2: states agree, 14080 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=256 block 0: states agree, 56320 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=256 block 1: states agree, 56320 records checked, none excluded",
+     "holds": true
+    },
+    {
+     "check": "N=256 block 2: states agree, 56320 records checked, none excluded",
+     "holds": true
+    }
+   ]
+  },
+  "R2": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "N=1: 3 runs, 1 final state(s)",
+     "holds": true
+    },
+    {
+     "check": "N=4: 3 runs, 1 final state(s)",
+     "holds": true
+    },
+    {
+     "check": "N=4 block 0: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=4 block 1: 218 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=4 block 2: 219 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=16: 3 runs, 1 final state(s)",
+     "holds": true
+    },
+    {
+     "check": "N=16 block 0: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=16 block 1: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=16 block 2: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=64: 3 runs, 1 final state(s)",
+     "holds": true
+    },
+    {
+     "check": "N=64 block 0: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=64 block 1: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=64 block 2: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=256: 3 runs, 1 final state(s)",
+     "holds": true
+    },
+    {
+     "check": "N=256 block 0: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=256 block 1: 220 of 220 rounds out of member order",
+     "holds": true
+    },
+    {
+     "check": "N=256 block 2: 220 of 220 rounds out of member order",
+     "holds": true
+    }
+   ]
+  },
+  "R3": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "N=4: 3 runs, 3 final states",
+     "holds": true
+    },
+    {
+     "check": "N=16: 3 runs, 3 final states",
+     "holds": true
+    },
+    {
+     "check": "N=64: 3 runs, 3 final states",
+     "holds": true
+    },
+    {
+     "check": "N=256: 3 runs, 3 final states",
+     "holds": true
+    }
+   ]
+  },
+  "R4": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "N=1: rounds / arrival = 1.37 <= 2.0",
+     "holds": true
+    },
+    {
+     "check": "N=4: rounds / arrival = 1.43 <= 2.0",
+     "holds": true
+    },
+    {
+     "check": "N=16: rounds / arrival = 1.45 <= 2.0",
+     "holds": true
+    },
+    {
+     "check": "N=64: rounds / arrival = 1.46 <= 2.0",
+     "holds": true
+    },
+    {
+     "check": "N=256: rounds / arrival = 2.26 <= 3.0",
+     "holds": true
+    }
+   ]
+  },
+  "R5": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "rounds N=64 = 2605.875 < 5000",
+     "holds": true
+    }
+   ]
+  },
+  "M1": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "0 of 48 recorded runs of part M ended with an error",
+     "holds": true
+    }
+   ]
+  },
+  "M2": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "R=1 S=0: 34.333 - 29.875 <= 30",
+     "holds": true
+    },
+    {
+     "check": "R=1 S=1788: 57.708 - 50.292 <= 30",
+     "holds": true
+    },
+    {
+     "check": "R=2 S=0: 36.083 - 29.875 <= 30",
+     "holds": true
+    },
+    {
+     "check": "R=2 S=1788: 61.333000000000006 - 50.292 <= 30",
+     "holds": true
+    },
+    {
+     "check": "R=4 S=0: 35.083999999999996 - 29.875 <= 30",
+     "holds": true
+    },
+    {
+     "check": "R=4 S=1788: 54.5 - 50.292 <= 30",
+     "holds": true
+    },
+    {
+     "check": "R=8 S=0: 34.541 - 29.875 <= 30",
+     "holds": true
+    },
+    {
+     "check": "R=8 S=1788: 59.791 - 50.292 <= 30",
+     "holds": true
+    }
+   ]
+  },
+  "M3": {
+   "holds": true,
+   "checks": [
+    {
+     "check": "R=1: 1033.167 <= 1.2 x 953.7080000000001",
+     "holds": true
+    },
+    {
+     "check": "R=2: 1036.5420000000001 <= 1.2 x 953.7080000000001",
+     "holds": true
+    },
+    {
+     "check": "R=4: 1031.5420000000001 <= 1.2 x 953.7080000000001",
+     "holds": true
+    },
+    {
+     "check": "R=8: 984.2919999999999 <= 1.2 x 953.7080000000001",
+     "holds": true
+    }
+   ]
+  }
+ },
+ "exploratory": {
+  "added_per_session_us": {
+   "rust-w0-n1": 6.792,
+   "rust-w0-n4": 3.594,
+   "rust-w0-n16": 2.604,
+   "rust-w0-n64": 2.107,
+   "rust-w0-n256": 2.162,
+   "rust-w1000-n1": 6.875,
+   "rust-w1000-n4": 7.761,
+   "rust-w1000-n16": 4.526,
+   "rust-w1000-n64": 3.073,
+   "rust-w1000-n256": 1.281,
+   "python-w0-n1": 15.5,
+   "python-w0-n4": 11.146,
+   "python-w0-n16": 8.958,
+   "python-w0-n64": 9.469,
+   "python-w0-n256": 9.15,
+   "python-w1000-n1": 54.584,
+   "python-w1000-n4": 10.896,
+   "python-w1000-n16": 14.411,
+   "python-w1000-n64": 5.203,
+   "python-w1000-n256": 6.036
+  },
+  "split_faster_than_all": {
+   "rust-w0-n1": false,
+   "rust-w0-n4": false,
+   "rust-w0-n16": false,
+   "rust-w0-n64": true,
+   "rust-w0-n256": true,
+   "rust-w1000-n1": false,
+   "rust-w1000-n4": true,
+   "rust-w1000-n16": false,
+   "rust-w1000-n64": true,
+   "rust-w1000-n256": true,
+   "python-w0-n1": false,
+   "python-w0-n4": false,
+   "python-w0-n16": false,
+   "python-w0-n64": false,
+   "python-w0-n256": false,
+   "python-w1000-n1": false,
+   "python-w1000-n4": false,
+   "python-w1000-n16": false,
+   "python-w1000-n64": false,
+   "python-w1000-n256": false
+  }
+ }
+}

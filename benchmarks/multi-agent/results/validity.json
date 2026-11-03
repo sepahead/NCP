@@ -1,0 +1,183 @@
+{
+ "python_sdk_tests": {
+  "returncode": 0,
+  "tail": [
+   "Ran 46 tests in 0.770s",
+   "",
+   "OK (skipped=3)"
+  ]
+ },
+ "python_rounds_tests": {
+  "returncode": 0,
+  "tail": [
+   "Ran 9 tests in 1.187s",
+   "",
+   "OK"
+  ]
+ },
+ "rust_sdk_tests": {
+  "returncode": 0,
+  "tail": [
+   "running 0 tests",
+   "",
+   "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+  ]
+ },
+ "mpi_python_imports": {
+  "returncode": 0,
+  "tail": [
+   "4.1.2 1.26.4"
+  ]
+ },
+ "smoke_F-rust-all-n4-w0": {
+  "returncode": 0,
+  "result": {
+   "host": "rust",
+   "mode": "all",
+   "n": 4,
+   "part": "F",
+   "round": {
+    "max_us": 34.666000000000004,
+    "mean_us": 22.802,
+    "median_us": 22.166999999999998,
+    "n": 20,
+    "p05_us": 17.416999999999998,
+    "p95_us": 34.208,
+    "p99_us": 34.666000000000004
+   },
+   "rounds": 20,
+   "wait_us": 0,
+   "warmup": 2
+  },
+  "tail": []
+ },
+ "smoke_F-python-all-n4-w0": {
+  "returncode": 0,
+  "result": {
+   "part": "F",
+   "host": "python",
+   "mode": "all",
+   "n": 4,
+   "wait_us": 0,
+   "rounds": 20,
+   "warmup": 2,
+   "round": {
+    "n": 20,
+    "median_us": 51.792,
+    "p05_us": 49.042,
+    "p95_us": 57.208,
+    "p99_us": 57.542,
+    "mean_us": 52.17909999999999,
+    "max_us": 57.542
+   }
+  },
+  "tail": []
+ },
+ "smoke_R-rounds-n4": {
+  "returncode": 0,
+  "result": {
+   "last_state_agent_0": "4e7af915fd19caa70c3d06ae425157f12eb16fa94b1c53e09d965e3edb985ca3",
+   "mode": "rounds",
+   "n": 4,
+   "part": "R",
+   "records_checked": 88,
+   "round": {
+    "max_us": 316.417,
+    "mean_us": 202.4854,
+    "median_us": 199.541,
+    "n": 20,
+    "p05_us": 171.459,
+    "p95_us": 288.583,
+    "p99_us": 316.417
+   },
+   "rounds": 20,
+   "states_agree": true,
+   "warmup": 2,
+   "owner": {
+    "mode": "rounds",
+    "n": 4,
+    "final_state": "4e7af915fd19caa70c3d06ae425157f12eb16fa94b1c53e09d965e3edb985ca3",
+    "rounds_closed": 22,
+    "excluded": [],
+    "rounds_out_of_member_order": 22,
+    "rounds_recorded": 22
+   }
+  },
+  "tail": []
+ },
+ "smoke_R-arrival-n4": {
+  "returncode": 0,
+  "result": {
+   "last_state_agent_0": "31e4d56fed1020725901e377de3daf59cdce87468fa69a2b61bf1913c4af504a",
+   "mode": "arrival",
+   "n": 4,
+   "part": "R",
+   "records_checked": 0,
+   "round": {
+    "max_us": 149.459,
+    "mean_us": 112.8667,
+    "median_us": 108.708,
+    "n": 20,
+    "p05_us": 94.208,
+    "p95_us": 136.542,
+    "p99_us": 149.459
+   },
+   "rounds": 20,
+   "states_agree": false,
+   "warmup": 2,
+   "owner": {
+    "mode": "arrival",
+    "n": 4,
+    "final_state": "9e121861b41c7fe7da9ebaa6767c4f4e995d4fc46d19038615741ca34da48488"
+   }
+  },
+  "tail": []
+ },
+ "smoke_M-ranks2-spikes1788": {
+  "returncode": 0,
+  "result": {
+   "call": {
+    "max_us": 347.5,
+    "mean_us": 63.68164000000001,
+    "median_us": 56.459,
+    "n": 50,
+    "p05_us": 53.875,
+    "p95_us": 76.166,
+    "p99_us": 347.5
+   },
+   "calls": 50,
+   "part": "M",
+   "spikes": 1788,
+   "spikes_checked": 98340,
+   "warmup": 5
+  },
+  "tail": []
+ },
+ "environment": {
+  "computer": "Mac16,5",
+  "chip": "Apple M4 Max",
+  "cores": "16",
+  "performance_cores": "12",
+  "memory_bytes": "137438953472",
+  "os": "26.5.1",
+  "kernel": "25.5.0",
+  "somaxconn": "128",
+  "open_file_limit": [
+   1048576,
+   9223372036854775807
+  ],
+  "power": "Now drawing from 'Battery Power'",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "python": "3.15.0",
+  "mpi_python": "3.11.15",
+  "mpi_packages": "mpi4py 4.1.2 numpy 1.26.4",
+  "mpirun": "mpirun (Open MPI) 5.0.10",
+  "ncp_commit": "648f7a90e980fbb7349f7e3ac144d6f0cc4689c7",
+  "ncp_worktree_clean": true,
+  "cargo_lock_sha256": {
+   "sdk": "eddcdb985955018cfc347b9307892d488098c811cf4322ae11ae21de21da64e5",
+   "harness": "08911fb6015d39cd992921c39c7d148a02a9baf03aebae4bab87f5ac9b00dd54"
+  }
+ }
+}

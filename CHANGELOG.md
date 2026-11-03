@@ -159,6 +159,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   owner made of 1 to 8 MPI processes that serves one session from rank 0. Thirteen
   hypotheses with decision rules; the runner checks the conditions of each run and
   resumes after an interruption.
+- The multi-agent benchmark ran on 3 November 2026 (375 runs, none failed): all 13
+  hypotheses held. With `call_all`, one host finished a round over 256 owners in 0.92 ms
+  (Rust) and 2.8 ms (Python), 1.9 to 3.8 times faster than one thread for each session or
+  one call after another, and NCP 2 added 2.2 µs (Rust) and 9.2 µs (Python) per session to
+  plain pipes. In rounds, 1 to 256 agents agreed on every round and the world's final
+  state was the same in every run; rounds cost 1.4 to 2.3 times as much as applying
+  requests on arrival. An MPI owner with 1 to 8 ranks added 4 to 11 µs per call up to
+  1788 spikes, and all 521 million spikes checked were exact. The README, the guide, the
+  design record, and both SDK READMEs report the results; the Rust README says when to
+  split many sessions over threads.
+- `benchmarks/conditions.py`: a runner can allow runs on battery (`require_ac=False`), with
+  at least 10 % left, because the benchmark computer now runs mostly on battery in its
+  High Power mode. Every reading records the power source, the battery level, and the
+  energy mode. The protocols that already ran keep the rule of the power adapter.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

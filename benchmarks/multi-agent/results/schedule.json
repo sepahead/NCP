@@ -1,0 +1,1537 @@
+{
+ "protocol": "PROTOCOL.md",
+ "protocol_sha256": "f80247fb1901d1577647f65fa65eff3cbcc477714f50e0888303276288b9041e",
+ "seed": 20261103,
+ "blocks": 3,
+ "smoke": false,
+ "rounds": [
+  200,
+  20
+ ],
+ "calls": {
+  "0": [
+   2000,
+   100
+  ],
+  "1788": [
+   2000,
+   100
+  ],
+  "87381": [
+   300,
+   30
+  ]
+ },
+ "created_utc": "2026-11-03T09:17:21.170389Z",
+ "commit": "648f7a90e980fbb7349f7e3ac144d6f0cc4689c7",
+ "worktree_clean": true,
+ "conditions": {
+  "load_limit": 8.0,
+  "clock_min_ghz": 4.0,
+  "end_clock_min_ghz": 3.8,
+  "max_attempts": 3,
+  "sleep_limit_s": 0.5
+ },
+ "order": [
+  {
+   "block": 0,
+   "config": "F-rust-split-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks4-spikes1788"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks1-spikes0"
+  },
+  {
+   "block": 0,
+   "config": "R-arrival-n16"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks4-spikes0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "R-rounds-n16"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "R-rounds-n4"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks1-spikes87381"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks2-spikes87381"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "R-rounds-n64"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "R-arrival-n256"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "R-arrival-n1"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks8-spikes1788"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks0-spikes0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "R-arrival-n64"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks0-spikes1788"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "R-arrival-n4"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks2-spikes1788"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks8-spikes0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n16-w1000"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks4-spikes87381"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks0-spikes87381"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks2-spikes0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-split-n1-w1000"
+  },
+  {
+   "block": 0,
+   "config": "R-rounds-n1"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-all-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n256-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-sequential-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-split-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks8-spikes87381"
+  },
+  {
+   "block": 0,
+   "config": "F-python-sequential-n16-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-pool-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-all-n4-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n4-w1000"
+  },
+  {
+   "block": 0,
+   "config": "M-ranks1-spikes1788"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-rust-raw-n64-w1000"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n256-w0"
+  },
+  {
+   "block": 0,
+   "config": "R-rounds-n256"
+  },
+  {
+   "block": 0,
+   "config": "F-python-raw-n1-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n64-w0"
+  },
+  {
+   "block": 0,
+   "config": "F-python-pool-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks4-spikes87381"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks1-spikes87381"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks8-spikes1788"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "R-arrival-n64"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks0-spikes0"
+  },
+  {
+   "block": 1,
+   "config": "R-rounds-n16"
+  },
+  {
+   "block": 1,
+   "config": "R-rounds-n1"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "R-arrival-n256"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks2-spikes87381"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks0-spikes1788"
+  },
+  {
+   "block": 1,
+   "config": "R-rounds-n256"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks1-spikes0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "R-arrival-n1"
+  },
+  {
+   "block": 1,
+   "config": "R-arrival-n16"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks0-spikes87381"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "R-rounds-n4"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks2-spikes1788"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks4-spikes1788"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-all-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks8-spikes0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-raw-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks2-spikes0"
+  },
+  {
+   "block": 1,
+   "config": "R-rounds-n64"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks4-spikes0"
+  },
+  {
+   "block": 1,
+   "config": "R-arrival-n4"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-sequential-n64-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n256-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-all-n1-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n4-w1000"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks8-spikes87381"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-pool-n256-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n16-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-split-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-split-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n1-w1000"
+  },
+  {
+   "block": 1,
+   "config": "M-ranks1-spikes1788"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n64-w1000"
+  },
+  {
+   "block": 1,
+   "config": "F-python-sequential-n4-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-raw-n16-w0"
+  },
+  {
+   "block": 1,
+   "config": "F-rust-pool-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "R-arrival-n256"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "R-rounds-n16"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks4-spikes1788"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks1-spikes1788"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks8-spikes0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "R-rounds-n64"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks2-spikes87381"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks8-spikes1788"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks2-spikes0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks1-spikes0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks2-spikes1788"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks0-spikes87381"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks1-spikes87381"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "R-rounds-n4"
+  },
+  {
+   "block": 2,
+   "config": "R-arrival-n64"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "R-arrival-n1"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "R-rounds-n1"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n16-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "R-rounds-n256"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-pool-n1-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "R-arrival-n16"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks0-spikes1788"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks4-spikes87381"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-split-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n64-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n4-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-python-all-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-sequential-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n256-w1000"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks8-spikes87381"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n256-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-python-raw-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-raw-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-pool-n16-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks0-spikes0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-all-n4-w0"
+  },
+  {
+   "block": 2,
+   "config": "M-ranks4-spikes0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n64-w0"
+  },
+  {
+   "block": 2,
+   "config": "F-rust-split-n1-w1000"
+  },
+  {
+   "block": 2,
+   "config": "R-arrival-n4"
+  },
+  {
+   "block": 2,
+   "config": "F-python-sequential-n16-w1000"
+  }
+ ]
+}

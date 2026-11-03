@@ -104,11 +104,12 @@ They are the remaining work before the release of NCP 2.0.
 
 1. Fault trials over Unix domain sockets and TCP, and with the Rust client (row 28).
 2. A modular-composition test: a host with neural, body, monitor, and recorder modules in every subset of the optional ones, with faults, and a check of every transcript (row 30).
-3. The multi-agent and MPI benchmarks, with the rounds helper (design record, sections 8 and 11.4).
-4. The Zenoh binding with mutual TLS and access control (row 32).
-5. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
-6. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
-7. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
+3. The Zenoh binding with mutual TLS and access control (row 32).
+4. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
+5. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
+6. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
+
+Done since this list was written: the multi-agent and MPI benchmarks, with the rounds profile (design record, sections 8 and 11.4; [multi-agent benchmark](../../benchmarks/multi-agent/README.md)).
 
 Protocol 5 also left one question open that is not a shortcoming of NCP 1: whether a coupling slows NEST's own work. At 10,000 neurons, that work varied between runs by more than the time of an exchange (hypotheses G1 and G3).
 

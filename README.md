@@ -33,6 +33,8 @@ The [specification](spec/NCP-2.md) is the exact definition, and the [design reco
 | Time added to each 1 ms step of a NEST network, Rust client | 23 to 32 µs | 228 to 248 µs | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-protocol-5) |
 | Spikes compared with NEST's recorder | All 42,026,126 exact, in 96 trials with up to 10,000 neurons | All exact in 72 trials with 1000 neurons | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-content-protocol-2) |
 | Fault trials with real programs | 4,170 trials: no wrong result, no step run twice, no false report of a step | 3,816 trials: no wrong result | [Fault campaign](benchmarks/fault-campaign/README.md#results-of-protocol-3) |
+| One round over 256 programs from one host (`call_all`) | 0.92 ms (Rust), 2.8 ms (Python) | not measured | [Multi-agent benchmark](benchmarks/multi-agent/README.md#results) |
+| 64 agents sharing one world in rounds, Python owner | 2.6 ms per round; the same final state in every run | no rounds profile | [Multi-agent benchmark](benchmarks/multi-agent/README.md#results) |
 
 Up to 1,788 spikes per call, NCP 2 was also faster than gRPC and Zenoh in Rust, and than gRPC and HTTP in Python; with 1 MiB per call, the systems without an integrity check were faster, by about the time of NCP 2's SHA-256 check.
 When every other system made the same SHA-256 check as NCP 2, NCP 2 was the fastest at every size, 1 MiB included, in both languages ([comparison protocol 2](benchmarks/comparison/README.md#results-of-protocol-2)).

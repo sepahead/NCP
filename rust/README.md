@@ -119,6 +119,7 @@ A connection carries one session. TCP accepts only loopback addresses unless the
 The binding sets 1 MiB socket buffers and `TCP_NODELAY`.
 To call many sessions at once, use `ncp::call_all(&mut clients, op, bodies)`.
 It sends every request before it reads the first response, so the owners work at the same time without a thread for each session, and it returns each session's result in its place.
+With 64 or more sessions, a host can split them over threads that each use `call_all` on their share: in the [multi-agent benchmark](../benchmarks/multi-agent/README.md), 8 such threads finished a round over 256 owners in 646 µs, against 921 µs for one `call_all`, but they were slower with 16 sessions or fewer.
 
 The crate is tested on Linux and macOS. It also builds for Windows, without the Unix domain socket functions, but it is not tested there; the examples and tests use Unix domain sockets.
 
