@@ -152,6 +152,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The audit artifacts (`evidence/audit/`) are regenerated: the three commits before this
   one changed scanned files without regenerating them, and the machine-contract gate of
   the main CI workflow failed on them.
+- [`benchmarks/multi-agent`](benchmarks/multi-agent/README.md) has a protocol fixed before
+  its runs: one host with up to 256 owners (`call_all` against one thread for each
+  session, threads that each use `call_all` on a share, one call after another, and plain
+  pipes), up to 256 agents sharing one owner in rounds or in the order of arrival, and an
+  owner made of 1 to 8 MPI processes that serves one session from rank 0. Thirteen
+  hypotheses with decision rules; the runner checks the conditions of each run and
+  resumes after an interruption.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

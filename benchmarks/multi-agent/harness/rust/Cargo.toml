@@ -1,0 +1,15 @@
+# Multi-agent arms of benchmarks/multi-agent: one host with many owners, and one owner with many clients.
+[package]
+name = "ncp-multi-agent-bench"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+sepahead-ncp-core = { path = "../../../../rust" }
+serde_json = "=1.0.154"
+
+[profile.release]
+codegen-units = 1
+
+[workspace]
