@@ -820,6 +820,53 @@ fn a_unix_time_limit_ends_a_stalled_call() {
 
 #[cfg(unix)]
 #[test]
+fn a_child_on_a_socket_pair_serves_a_session() {
+    let Some(command) = python_echo_owner() else {
+        return;
+    };
+    let (channel, mut child) = binding::spawn_unix(command).expect("spawn");
+    ncp::set_unix_timeout(&channel, Some(std::time::Duration::from_secs(10))).expect("time limit");
+    let mut client = Client::new(channel, "echo", &python_contract_identity());
+    client.open().expect("open");
+    let reply = client
+        .call("echo", json!({"pair": true}), &[])
+        .expect("call");
+    assert_eq!(reply.message["body"], json!({"pair": true}));
+    client.close().expect("close");
+    assert!(
+        child.wait().expect("wait").success(),
+        "the owner exits after close"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn a_time_limit_ends_the_wait_for_a_silent_child() {
+    // A child that never answers: without a time limit, open would wait as long as it runs.
+    let mut command = std::process::Command::new("sleep");
+    command.arg("5");
+    let (channel, mut child) = binding::spawn_unix(command).expect("spawn");
+    ncp::set_unix_timeout(&channel, Some(std::time::Duration::from_millis(200)))
+        .expect("time limit");
+    let contract = contract();
+    let mut client = Client::new(channel, &contract.application, &contract.identity);
+    let started = std::time::Instant::now();
+    match client.open() {
+        Err(Error::Ended { code, executed }) => {
+            assert_eq!((code.as_str(), executed), ("timeout", "unknown"))
+        }
+        other => panic!("expected a timeout, got {other:?}"),
+    }
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(2),
+        "the time limit was not kept"
+    );
+    child.kill().expect("kill");
+    child.wait().expect("wait");
+}
+
+#[cfg(unix)]
+#[test]
 fn connect_unix_tries_a_refused_connection_again() {
     // An owner refuses connections while its queue of connections that it has not yet accepted
     // is full (macOS; Linux makes the client wait instead). Here the queue holds one connection,

@@ -12,7 +12,7 @@ pub use binding::{
     connect_tcp, listen_tcp, serve, serve_stdio, set_tcp_timeout, spawn, tcp_channel, StreamChannel,
 };
 #[cfg(unix)]
-pub use binding::{connect_unix, set_unix_timeout, unix_channel};
+pub use binding::{connect_unix, set_unix_timeout, spawn_unix, unix_channel};
 pub use exchange::{Channel, Client, Error, Handler, Owner, Reply, IMPLEMENTATION, PROTOCOL};
 pub use frame::{
     decode, encode, identity, Array, Decoded, Dtype, FrameError, DEFAULT_BOUND, HANDSHAKE_BOUND,

@@ -174,6 +174,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   described in the README. A channel to a child process over pipes still has no time limit,
   because the standard library cannot wait on a pipe with one. New tests against an owner
   that stalls check both limits over real sockets; the Unix test fails without the setter.
+- Rust SDK: `spawn_unix` starts an owner whose standard input and output are one end of a
+  Unix domain socket pair, so that a client can set a time limit for a child process
+  without a new dependency; `spawn` keeps pipes, which the benchmarks measured. Tests run a
+  session with the Python reference owner over a socket pair and end the wait for a child
+  that never answers.
 - `benchmarks/conditions.py`: a runner can allow runs on battery (`require_ac=False`), with
   at least 10 % left, because the benchmark computer now runs mostly on battery in its
   High Power mode. Every reading records the power source, the battery level, and the

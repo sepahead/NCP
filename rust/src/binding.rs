@@ -193,6 +193,25 @@ pub fn spawn(mut command: Command) -> io::Result<(ChildChannel, Child)> {
     Ok((StreamChannel::new(stdout, stdin), child))
 }
 
+/// Start an owner process whose standard input and output are one end of a Unix domain socket
+/// pair, and return a channel to the other end. Unlike [`spawn`], whose pipes take no time limit,
+/// the channel takes one with [`set_unix_timeout`]. The owner serves its standard input and
+/// output as it would serve pipes.
+#[cfg(unix)]
+pub fn spawn_unix(mut command: Command) -> io::Result<(UnixChannel, Child)> {
+    let (parent, child_end) = std::os::unix::net::UnixStream::pair()?;
+    let input = std::os::fd::OwnedFd::from(child_end.try_clone()?);
+    let output = std::os::fd::OwnedFd::from(child_end);
+    let child = command
+        .stdin(Stdio::from(input))
+        .stdout(Stdio::from(output))
+        .spawn()?;
+    // Dropping the command closes this process's copies of the child's end, so that the channel
+    // sees the end of the stream when the child exits.
+    drop(command);
+    Ok((unix_channel(parent)?, child))
+}
+
 fn check_loopback(addresses: &[SocketAddr], allow_remote: bool) -> io::Result<()> {
     if allow_remote || addresses.iter().all(|a| a.ip().is_loopback()) {
         Ok(())
@@ -290,7 +309,8 @@ pub fn set_tcp_timeout(channel: &TcpChannel, timeout: Option<Duration>) -> io::R
 }
 
 /// Set a time limit for each receive on a Unix domain socket channel; a missed limit reads as a
-/// timeout. A channel to a child process over pipes ([`spawn`]) has no time limit.
+/// timeout. A channel to a child process over pipes ([`spawn`]) has no time limit; start the
+/// child with [`spawn_unix`] to give it one.
 #[cfg(unix)]
 pub fn set_unix_timeout(channel: &UnixChannel, timeout: Option<Duration>) -> io::Result<()> {
     channel.reader.get_ref().set_read_timeout(timeout)
