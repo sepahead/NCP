@@ -20,6 +20,7 @@ cd "$root"
 
 echo "== Python SDK, Python $("$python" -c 'import sys; print(sys.version.split()[0])')"
 "$python" -I python/tests/test_ncp.py
+"$python" -I python/tests/test_rounds.py
 "$python" -I python/tests/test_conformance.py
 
 echo "== Shared vectors: generated, never edited"

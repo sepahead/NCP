@@ -428,7 +428,6 @@ class ClientTests(unittest.TestCase):
             client.call("echo", {})
         self.assertTrue(client.ended)
 
-
     def test_call_all_sends_every_request_before_it_reads_a_response(self) -> None:
         # Spec section 16: the owners work at the same time, and each session still has one
         # request outstanding (rule 7.6.1).
@@ -462,7 +461,9 @@ class ClientTests(unittest.TestCase):
             lossy = False
 
         clients = [
-            ncp.Client(Lossless(make_owner()), application="echo", contract=CONTRACT.identity, bound=ncp.HANDSHAKE_BOUND)
+            ncp.Client(
+                Lossless(make_owner()), application="echo", contract=CONTRACT.identity, bound=ncp.HANDSHAKE_BOUND
+            )
             for _ in range(4)
         ]
         for client in clients:
@@ -732,8 +733,7 @@ class BindingTests(unittest.TestCase):
             # connect_tcp below also calls from_socket. Wait until the server's call has failed, or
             # a slow server thread lets the client take the one injected failure.
             self.assertTrue(failed.wait(10))
-            client = ncp.Client(ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity,
-                                timeout=10)
+            client = ncp.Client(ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity, timeout=10)
             client.open()
             self.assertEqual(client.call("echo", {"x": 1}).body, {"x": 1})
             client.close()
@@ -772,8 +772,9 @@ class BindingTests(unittest.TestCase):
 
         server = ncp.binding._Server(make_owner, Aborting()).start()
         try:
-            client = ncp.Client(ncp.connect_tcp(*listener.getsockname()[:2]), application="echo",
-                                contract=CONTRACT.identity, timeout=10)
+            client = ncp.Client(
+                ncp.connect_tcp(*listener.getsockname()[:2]), application="echo", contract=CONTRACT.identity, timeout=10
+            )
             client.open()
             self.assertEqual(client.call("echo", {"x": 2}).body, {"x": 2})
             client.close()
@@ -795,8 +796,9 @@ class BindingTests(unittest.TestCase):
             host, port = server.address[:2]
             with contextlib.redirect_stderr(errors):
                 socket.create_connection((host, port)).close()
-                client = ncp.Client(ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity,
-                                    timeout=10)
+                client = ncp.Client(
+                    ncp.connect_tcp(host, port), application="echo", contract=CONTRACT.identity, timeout=10
+                )
                 client.open()  # served after the first connection, so the report is written by now
             self.assertEqual(client.call("echo", {"x": 3}).body, {"x": 3})
             client.close()

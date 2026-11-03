@@ -348,7 +348,7 @@ These names are reserved for later versions of NCP and for NCP profiles. Applica
 1. Operation names that start with `ncp.`.
 2. Object members, at any level of a body, whose names start with `ncp.`. Section 5 uses `ncp.array`.
 
-The design record (`docs/design/NCP-2-DESIGN.md`, section 11) describes the profiles that are planned for these names.
+The design record (`docs/design/NCP-2-DESIGN.md`, section 11) describes the profiles that are planned for these names. The rounds profile ([NCP-2-ROUNDS.md](NCP-2-ROUNDS.md)) defines `ncp.round` and `ncp.round_record`.
 
 ## 16. Threads, processes, and clusters (informative)
 

@@ -111,6 +111,23 @@ To call many sessions at once, for example one for each agent, use `ncp.call_all
 It sends every request before it reads the first response, so the owners work at the same time without a thread for each session.
 It returns, for each session in its place, the result or the exception; one failed session does not stop the others.
 
+For many agents that share one owner, such as robots in one simulated world, `ncp.Rounds` implements the [rounds profile](../spec/NCP-2-ROUNDS.md).
+Each agent has its own session. The owner applies one request of each agent per round, in the fixed order of the members, and every agent receives the same record of the requests that the round applied:
+
+```python
+def step(round_number, inputs):  # inputs: (agent, body) in member order
+    return {agent: {"seen": len(inputs)} for agent, body in inputs}
+
+rounds = ncp.Rounds("world", contract.identity, "act", ["drone-1", "drone-2"], step, deadline=1.0)
+server = ncp.UnixServer(rounds.owner, "/run/world/world.sock").start()
+
+# in each agent, k = 1, 2, 3, ...
+result = client.call("act", {"ncp.round": {"agent": "drone-1", "round": k}, "thrust": 0.4})
+record = ncp.RoundRecord.of(result, "drone-1")  # checks that the round applied this request
+```
+
+A round closes when every member that is not excluded has sent its request, or at the deadline. A member without a request at the deadline is excluded from the later rounds, so an agent that stops delays the others once.
+
 The SDK is tested on Linux and macOS. Windows has no Unix domain sockets in Python, and a receive time limit on a pipe fails there, because `select` accepts only sockets; pipes without a time limit and TCP are not tested on Windows.
 
 ## Streams
@@ -154,6 +171,7 @@ A failure to write a record raises, so that a session never runs on without its 
 
 ```sh
 python3 tests/test_ncp.py
+python3 tests/test_rounds.py
 python3 tests/test_conformance.py
 ```
 

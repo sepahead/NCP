@@ -28,6 +28,7 @@ from .exchange import (
     Result,
 )
 from .frame import DEFAULT_BOUND, HANDSHAKE_BOUND, MAX_BOUND, Array, FrameError, decode, encode, identity
+from .rounds import RoundRecord, Rounds
 from .stream import Delivery, Publisher, Subscriber
 from .transcript import Tap
 from .transcript import verify as verify_transcript
@@ -52,6 +53,8 @@ __all__ = [
     "Publisher",
     "Rejected",
     "Result",
+    "RoundRecord",
+    "Rounds",
     "StreamChannel",
     "Subscriber",
     "Tap",

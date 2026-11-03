@@ -125,6 +125,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in its place and leaves the other sessions in step; Python refuses a client that
   appears twice. Python's `executor` argument is removed. New tests in both SDKs check
   the order of sends and receives and fail on the previous order.
+- [`spec/NCP-2-ROUNDS.md`](spec/NCP-2-ROUNDS.md) specifies the rounds profile, and the
+  Python SDK implements it: `ncp.Rounds` serves many agents, each in its own session,
+  and applies one request of each agent per round, in the fixed order of the members.
+  Every agent receives the same record of the round: the agents whose requests it
+  applied, the identities of those requests, and the members that missed it.
+  `ncp.RoundRecord.of` checks that the record lists the agent's own request. A member
+  without a request at the deadline is excluded from later rounds, so an agent that
+  stops delays the others once. For it, `Owner.request_identity` gives a handler the
+  identity of the request that it validates or executes, and `Result.request` gives a
+  client the identity of the request that a result answers. `tests/test_rounds.py`
+  covers order, agreement, the deadline, rejections, failed steps, and the client
+  check; six injected defects each fail a test. Spec section 15 names the profile.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

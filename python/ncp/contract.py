@@ -65,13 +65,13 @@ def call_all(clients: Sequence[Client], op: str, bodies: Sequence[Any]) -> list[
     if len({id(client) for client in clients}) != len(clients):
         raise ValueError("each client at most once")
     started: list[tuple[int, str, bytes, str] | Exception] = []
-    for client, body in zip(clients, bodies):
+    for client, body in zip(clients, bodies, strict=True):
         try:
             started.append(client._start(op, body))
         except Exception as error:
             started.append(error)
     results: list[Result | Exception] = []
-    for client, pending in zip(clients, started):
+    for client, pending in zip(clients, started, strict=True):
         if isinstance(pending, Exception):
             results.append(pending)
             continue

@@ -131,6 +131,9 @@ class Owner:
     `check_digests=False` stops the comparison of each request's digest with its bytes. Use it
     only on a pipe pair or a Unix domain socket with no other program between the endpoints
     (spec section 3, rule 4). The response digests are always computed.
+
+    `request_identity` is the identity of the request that `handle` is processing, or processed
+    last. A handler can read it in `validate` and `execute`, for example to cite the request.
     """
 
     def __init__(
@@ -158,6 +161,7 @@ class Owner:
         self.kept: tuple[str, bytes, str] | None = None  # (request identity, response frame, response identity)
         self.ended = False
         self.closed = False
+        self.request_identity: str | None = None
 
     def handle(self, frame_bytes: bytes | bytearray | memoryview) -> bytes:
         """Handle one request frame and return the response frame."""
@@ -165,6 +169,7 @@ class Owner:
         request = decoded.message
         check_request(request)
         request_id = decoded.identity
+        self.request_identity = request_id
         session, seq, op = request["session"], request["seq"], request["op"]
 
         def reply(outcome: str, code: str | None, body: Any) -> bytes:
@@ -333,12 +338,13 @@ class Channel(Protocol):
 
 
 class Result:
-    """The body of an ok response, with its arrays in place, and the response identity."""
+    """The body of an ok response, with its arrays in place, the response identity, and the
+    identity of the request that it answers."""
 
-    __slots__ = ("body", "identity", "arrays")
+    __slots__ = ("body", "identity", "arrays", "request")
 
-    def __init__(self, body: Any, identity: str, arrays: list[F.Array]) -> None:
-        self.body, self.identity, self.arrays = body, identity, arrays
+    def __init__(self, body: Any, identity: str, arrays: list[F.Array], request: str) -> None:
+        self.body, self.identity, self.arrays, self.request = body, identity, arrays, request
 
 
 class Client:
@@ -481,7 +487,7 @@ class Client:
             self.seq, self.ack = seq, decoded.identity
             if op == "close":
                 self.ended = True
-            return Result(message["body"], decoded.identity, decoded.arrays)
+            return Result(message["body"], decoded.identity, decoded.arrays, message["request"])
         if outcome == "rejected":
             raise Rejected(message["code"], message["body"])
         self.ended = True
