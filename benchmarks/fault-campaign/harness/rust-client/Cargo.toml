@@ -1,0 +1,19 @@
+# The Rust client of fault-campaign protocol 4 (../../PROTOCOL-4.md).
+[package]
+name = "ncp-fault-client"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "fault-client"
+path = "src/main.rs"
+
+[dependencies]
+sepahead-ncp-core = { path = "../../../../rust" }
+serde_json = "=1.0.154"
+
+[profile.release]
+codegen-units = 1
+
+[workspace]

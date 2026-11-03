@@ -179,6 +179,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without a new dependency; `spawn` keeps pipes, which the benchmarks measured. Tests run a
   session with the Python reference owner over a socket pair and end the wait for a child
   that never answers.
+- [`benchmarks/fault-campaign`](benchmarks/fault-campaign/README.md#protocol-4-ncp-2-over-sockets-and-with-the-rust-client)
+  has a fourth protocol, fixed before its trials: the scenarios of protocol 3 over Unix
+  domain sockets and TCP, with the Python client and a new Rust client, against the Python
+  and the Rust owner, 4,560 trials. The owners run as servers, a relay over sockets changes
+  frames, and a killed client must leave its owner able to serve a new session.
 - `benchmarks/conditions.py`: a runner can allow runs on battery (`require_ac=False`), with
   at least 10 % left, because the benchmark computer now runs mostly on battery in its
   High Power mode. Every reading records the power source, the battery level, and the

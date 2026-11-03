@@ -1,6 +1,6 @@
 # Fault campaign
 
-This directory holds three protocols. [Protocols 2 and 3](#protocol-2-ncp-2), at the end, test NCP 2.
+This directory holds four protocols. [Protocols 2, 3, and 4](#protocol-2-ncp-2), at the end, test NCP 2; protocol 4 adds Unix domain sockets, TCP, and the Rust client.
 Protocol 1, from here on, is a campaign of 22 October 2026 that drives local NCP 1.0.1 sessions into the failures that the profile names.
 It asks two questions: what happens in each failure, and does any failure make a client accept a wrong result.
 All trials use SDK 1.0.1 with `LocalClient` and a Python or Rust owner on one computer.
@@ -211,3 +211,12 @@ All nine hypotheses hold.
 | Python client, Python owner, blocks 0 to 2 | 200,000 | 38.9, 52.9, 34.3 | 0.06 %, 0 %, 0.06 % | 0 %, 0 %, 0.19 % | 30 / 24 |
 | Python client, Rust owner, blocks 0 to 2 | 1,000,000 | 20.7, 20.0, 20.5 | 0.06 % each | 0 % | 30 / 6 |
 | Rust client, Rust owner, blocks 0 to 2 | 1,000,000 | 9.4, 20.0, 8.7 | 0.69 %, 0 %, 0.67 % | 0 % | 8 / 6 |
+
+## Protocol 4: NCP 2 over sockets and with the Rust client
+
+[`PROTOCOL-4.md`](PROTOCOL-4.md) was fixed on 3 November 2026 (SHA-256 in [`PROTOCOL-4.sha256`](PROTOCOL-4.sha256)).
+It runs the scenarios of protocol 3, without the soaks, over a Unix domain socket and over TCP, with the Python client and with a new Rust client ([`harness/rust-client`](harness/rust-client/src/main.rs)), against the Python and the Rust owner: 4,560 trials in three blocks.
+The owners run as servers, a relay over sockets ([`harness/relay_socket.py`](harness/relay_socket.py)) changes frames, and after a killed client the trial checks that the owner serves a new session within 10 s.
+`run4.py` runs it, and `analyze4.py` applies its criteria.
+
+The results of protocol 4 follow once its trials have run.
