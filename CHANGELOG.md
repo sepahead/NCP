@@ -189,6 +189,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   High Power mode. Every reading records the power source, the battery level, and the
   energy mode. The protocols that already ran keep the rule of the power adapter.
 
+- [`python/tests/test_composition.py`](python/tests/test_composition.py) is the
+  modular-composition test of the design record, now in `scripts/check_ncp2.sh`: a host
+  runs a closed loop of stand-in neural, body, monitor, and recorder modules, each in its
+  own process, with every subset of the optional monitor and recorder, without a fault
+  and with a kill, a stall, or a raising handler in each module present. A fault in the
+  neural module or the body ends the run at its step with executed `unknown`; a fault in
+  an optional module never stops the loop; every transcript verifies, except the
+  unanswered request of a killed or stalled module; the same seed gives the same message
+  bodies; and the optional modules change none of the loop's bodies. A recorder that dies
+  while its messages still fit in the pipe is noticed only by its exit status after the
+  run, because a stream has no responses; the host reports that loss as after the last
+  step.
+
 ### Security: dependency updates in the root lockfile (no wire change)
 
 - RUSTSEC-2026-0386: the safe `AsyncFd` constructors of `tokio` violate I/O

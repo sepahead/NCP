@@ -23,6 +23,9 @@ echo "== Python SDK, Python $("$python" -c 'import sys; print(sys.version.split(
 "$python" -I python/tests/test_rounds.py
 "$python" -I python/tests/test_conformance.py
 
+echo "== Modular composition: 40 closed-loop runs with optional modules and faults"
+"$python" -I python/tests/test_composition.py
+
 echo "== Shared vectors: generated, never edited"
 "$python" -I conformance/generate.py "$work/vectors.json"
 cmp conformance/vectors.json "$work/vectors.json"
