@@ -202,6 +202,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   run, because a stream has no responses; the host reports that loss as after the last
   step.
 
+- Fault-campaign protocol 4 ran on 9 November 2026 over Unix domain sockets and TCP,
+  with the Python and the Rust client: 4,554 of its 4,560 trials ended with a result,
+  and none broke a criterion. Six `kill-owner` trials with the Rust owner ended without
+  a result because the driver's cleanup did not catch `EPERM`, which macOS returns for
+  `killpg` while a killed owner is a zombie; by the protocol's rule, none of E1 to E8
+  holds formally. Protocol 5, fixed after these results, corrects the cleanup in
+  `fault_client4.py` (and in `benchmarks/multi-agent/run.py`) and runs every trial
+  again with new draws. The six error messages are redacted to `<checkout>`, as
+  `results-4/REDACTION.json` records.
+
 ### Security: dependency updates in the root lockfile (no wire change)
 
 - RUSTSEC-2026-0386: the safe `AsyncFd` constructors of `tokio` violate I/O

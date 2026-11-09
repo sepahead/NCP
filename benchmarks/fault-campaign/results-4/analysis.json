@@ -1,0 +1,641 @@
+{
+ "protocol": "PROTOCOL-4.md",
+ "protocol_sha256": "796927dde5f31d4da018d84e3a18e19a524fe711a55c2569354c609e38b33471",
+ "commit": "7fb3df8ecb3aa0f30913ee78608ad6c62f4b9076",
+ "worktree_clean": true,
+ "power": "Now drawing from 'AC Power'",
+ "rows": 4560,
+ "scheduled": 4560,
+ "failed_to_run": [
+  "kill-owner rust owner python client unix block 0 #155",
+  "kill-owner rust owner python client unix block 0 #1081",
+  "kill-owner rust owner python client unix block 1 #1057",
+  "kill-owner rust owner rust client unix block 1 #1517",
+  "kill-owner rust owner python client unix block 2 #95",
+  "kill-owner rust owner rust client tcp block 2 #847"
+ ],
+ "trials_by_combination": {
+  "python owner, python client, tcp": {
+   "trials": 600
+  },
+  "python owner, python client, unix": {
+   "trials": 600
+  },
+  "python owner, rust client, tcp": {
+   "trials": 600
+  },
+  "python owner, rust client, unix": {
+   "trials": 600
+  },
+  "rust owner, python client, tcp": {
+   "trials": 540
+  },
+  "rust owner, python client, unix": {
+   "trials": 536
+  },
+  "rust owner, rust client, tcp": {
+   "trials": 539
+  },
+  "rust owner, rust client, unix": {
+   "trials": 539
+  }
+ },
+ "by_scenario": {
+  "backend-raise | python owner, python client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "backend-raise | python owner, python client, unix": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "backend-raise | python owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "backend-raise | python owner, rust client, unix": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "backend-raise | rust owner, python client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "backend-raise | rust owner, python client, unix": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "backend-raise | rust owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "backend-raise | rust owner, rust client, unix": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o | python owner, python client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o | python owner, python client, unix": {
+   "trials": 30,
+   "completed": 4,
+   "detected": 26,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o | python owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 1,
+   "detected": 29,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o | python owner, rust client, unix": {
+   "trials": 30,
+   "completed": 4,
+   "detected": 26,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o | rust owner, python client, tcp": {
+   "trials": 30,
+   "completed": 3,
+   "detected": 27,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o | rust owner, python client, unix": {
+   "trials": 30,
+   "completed": 2,
+   "detected": 28,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o | rust owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 2,
+   "detected": 28,
+   "wrong_accepted": 0
+  },
+  "duplicate-c2o | rust owner, rust client, unix": {
+   "trials": 30,
+   "completed": 3,
+   "detected": 27,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c | python owner, python client, tcp": {
+   "trials": 30,
+   "completed": 3,
+   "detected": 27,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c | python owner, python client, unix": {
+   "trials": 30,
+   "completed": 7,
+   "detected": 23,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c | python owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 3,
+   "detected": 27,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c | python owner, rust client, unix": {
+   "trials": 30,
+   "completed": 2,
+   "detected": 28,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c | rust owner, python client, tcp": {
+   "trials": 30,
+   "completed": 3,
+   "detected": 27,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c | rust owner, python client, unix": {
+   "trials": 30,
+   "completed": 5,
+   "detected": 25,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c | rust owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 2,
+   "detected": 28,
+   "wrong_accepted": 0
+  },
+  "duplicate-o2c | rust owner, rust client, unix": {
+   "trials": 30,
+   "completed": 3,
+   "detected": 27,
+   "wrong_accepted": 0
+  },
+  "flip-c2o | python owner, python client, tcp": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-c2o | python owner, python client, unix": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-c2o | python owner, rust client, tcp": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-c2o | python owner, rust client, unix": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-c2o | rust owner, python client, tcp": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-c2o | rust owner, python client, unix": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-c2o | rust owner, rust client, tcp": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-c2o | rust owner, rust client, unix": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-o2c | python owner, python client, tcp": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-o2c | python owner, python client, unix": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-o2c | python owner, rust client, tcp": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-o2c | python owner, rust client, unix": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-o2c | rust owner, python client, tcp": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-o2c | rust owner, python client, unix": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-o2c | rust owner, rust client, tcp": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "flip-o2c | rust owner, rust client, unix": {
+   "trials": 120,
+   "completed": 0,
+   "detected": 120,
+   "wrong_accepted": 0,
+   "changed": 120
+  },
+  "kill-client | python owner, python client, tcp": {
+   "trials": 30,
+   "owner_served_again": 30
+  },
+  "kill-client | python owner, python client, unix": {
+   "trials": 30,
+   "owner_served_again": 30
+  },
+  "kill-client | python owner, rust client, tcp": {
+   "trials": 30,
+   "owner_served_again": 30
+  },
+  "kill-client | python owner, rust client, unix": {
+   "trials": 30,
+   "owner_served_again": 30
+  },
+  "kill-client | rust owner, python client, tcp": {
+   "trials": 30,
+   "owner_served_again": 30
+  },
+  "kill-client | rust owner, python client, unix": {
+   "trials": 30,
+   "owner_served_again": 30
+  },
+  "kill-client | rust owner, rust client, tcp": {
+   "trials": 30,
+   "owner_served_again": 30
+  },
+  "kill-client | rust owner, rust client, unix": {
+   "trials": 30,
+   "owner_served_again": 30
+  },
+  "kill-owner | python owner, python client, tcp": {
+   "trials": 60,
+   "completed": 22,
+   "detected": 38,
+   "wrong_accepted": 0
+  },
+  "kill-owner | python owner, python client, unix": {
+   "trials": 60,
+   "completed": 19,
+   "detected": 41,
+   "wrong_accepted": 0
+  },
+  "kill-owner | python owner, rust client, tcp": {
+   "trials": 60,
+   "completed": 15,
+   "detected": 45,
+   "wrong_accepted": 0
+  },
+  "kill-owner | python owner, rust client, unix": {
+   "trials": 60,
+   "completed": 17,
+   "detected": 43,
+   "wrong_accepted": 0
+  },
+  "kill-owner | rust owner, python client, tcp": {
+   "trials": 60,
+   "completed": 41,
+   "detected": 19,
+   "wrong_accepted": 0
+  },
+  "kill-owner | rust owner, python client, unix": {
+   "trials": 56,
+   "completed": 45,
+   "detected": 11,
+   "wrong_accepted": 0
+  },
+  "kill-owner | rust owner, rust client, tcp": {
+   "trials": 59,
+   "completed": 50,
+   "detected": 9,
+   "wrong_accepted": 0
+  },
+  "kill-owner | rust owner, rust client, unix": {
+   "trials": 59,
+   "completed": 57,
+   "detected": 2,
+   "wrong_accepted": 0
+  },
+  "oversize-request | python owner, python client, tcp": {
+   "trials": 30,
+   "completed": 30,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-request | python owner, python client, unix": {
+   "trials": 30,
+   "completed": 30,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-request | python owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 30,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-request | python owner, rust client, unix": {
+   "trials": 30,
+   "completed": 30,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-request | rust owner, python client, tcp": {
+   "trials": 30,
+   "completed": 30,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-request | rust owner, python client, unix": {
+   "trials": 30,
+   "completed": 30,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-request | rust owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 30,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-request | rust owner, rust client, unix": {
+   "trials": 30,
+   "completed": 30,
+   "detected": 0,
+   "wrong_accepted": 0
+  },
+  "oversize-response | python owner, python client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "oversize-response | python owner, python client, unix": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "oversize-response | python owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "oversize-response | python owner, rust client, unix": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0
+  },
+  "stall | python owner, python client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0,
+   "max_seconds": 2.0132
+  },
+  "stall | python owner, python client, unix": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0,
+   "max_seconds": 2.0072
+  },
+  "stall | python owner, rust client, tcp": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0,
+   "max_seconds": 2.0084
+  },
+  "stall | python owner, rust client, unix": {
+   "trials": 30,
+   "completed": 0,
+   "detected": 30,
+   "wrong_accepted": 0,
+   "max_seconds": 2.0078
+  },
+  "truncate-c2o | python owner, python client, tcp": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-c2o | python owner, python client, unix": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-c2o | python owner, rust client, tcp": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-c2o | python owner, rust client, unix": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-c2o | rust owner, python client, tcp": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-c2o | rust owner, python client, unix": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-c2o | rust owner, rust client, tcp": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-c2o | rust owner, rust client, unix": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-o2c | python owner, python client, tcp": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-o2c | python owner, python client, unix": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-o2c | python owner, rust client, tcp": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-o2c | python owner, rust client, unix": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-o2c | rust owner, python client, tcp": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-o2c | rust owner, python client, unix": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-o2c | rust owner, rust client, tcp": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  },
+  "truncate-o2c | rust owner, rust client, unix": {
+   "trials": 45,
+   "completed": 0,
+   "detected": 45,
+   "wrong_accepted": 0,
+   "changed": 45
+  }
+ },
+ "flip_regions": {
+  "attachments": 295,
+  "digest": 205,
+  "header": 80,
+  "json": 1340
+ },
+ "hypotheses": {
+  "E1": {
+   "criterion": "No trial accepts a wrong result.",
+   "violations": [],
+   "holds": false
+  },
+  "E2": {
+   "criterion": "In every trial, the owner executes each step at most once, in order.",
+   "violations": [],
+   "holds": false
+  },
+  "E3": {
+   "criterion": "In every trial, what the client learned about each step is true, and at most one step is uncertain.",
+   "violations": [],
+   "holds": false
+  },
+  "E4": {
+   "criterion": "Every failure reaches the application as an error that the client's SDK documents for a call.",
+   "violations": [],
+   "holds": false
+  },
+  "E5": {
+   "criterion": "Every flipped or truncated frame ends the session early.",
+   "violations": [],
+   "holds": false
+  },
+  "E6": {
+   "criterion": "After every killed client, the owner serves a new session within 10 s.",
+   "violations": [],
+   "holds": false
+  },
+  "E7": {
+   "criterion": "Every stall ends with a timeout, possibly executed, within the time limit plus 1 s.",
+   "violations": [],
+   "holds": false
+  },
+  "E8": {
+   "criterion": "Oversized results end with result_too_large (executed), raising handlers with owner_failure (unknown), and oversized requests are refused before sending, after which the session completes.",
+   "violations": [],
+   "holds": false
+  }
+ }
+}

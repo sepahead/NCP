@@ -52,17 +52,23 @@ def start(command: list[str], env: dict, pass_fds: tuple = ()) -> tuple[subproce
 
 
 def stop(process: subprocess.Popen | None) -> int | str | None:
+    """Stop a server or relay and its process group. On macOS, `killpg` fails with EPERM while the
+    group's only member is a zombie, for example a killed owner that is not yet reaped, and with
+    ESRCH once it is reaped; both mean that the group is gone or going (PROTOCOL-5.md)."""
     if process is None:
         return None
     if process.poll() is None:
         try:
             os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             pass
         try:
             process.wait(timeout=10)
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
             process.wait()
     if process.stdout is not None:
         process.stdout.close()

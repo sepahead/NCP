@@ -1,0 +1,9 @@
+{
+ "file": "trials.jsonl",
+ "replaced": "the absolute path of the campaign checkout on the benchmark computer",
+ "with": "<checkout>",
+ "occurrences": 6,
+ "where": "stderr_tail of the six trials that ended without a result",
+ "sha256_before": "a138f83cbebbd6c5efd155437da8af118da643a2ec9436927571d64cee61f318",
+ "sha256_after": "0a294c13ee96cc9459fcfdbb0b333782caaebdfa92120f0f8d22d39fec0b05f8"
+}

@@ -97,16 +97,20 @@ def environment() -> dict[str, str]:
 
 
 def stop(process: subprocess.Popen, timeout: float = 10.0) -> None:
-    """Stop a process and its process group."""
+    """Stop a process and its process group. On macOS, `killpg` fails with EPERM while the group's
+    only member is a zombie, and with ESRCH once it is reaped (fault campaign, PROTOCOL-5.md)."""
     if process.poll() is None:
         try:
             os.killpg(process.pid, signal.SIGTERM)
-        except ProcessLookupError:
+        except (ProcessLookupError, PermissionError):
             pass
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
             process.wait()
 
 

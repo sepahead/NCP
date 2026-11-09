@@ -1,6 +1,6 @@
 # Fault campaign
 
-This directory holds four protocols. [Protocols 2, 3, and 4](#protocol-2-ncp-2), at the end, test NCP 2; protocol 4 adds Unix domain sockets, TCP, and the Rust client.
+This directory holds five protocols. [Protocols 2 to 5](#protocol-2-ncp-2), at the end, test NCP 2; protocols 4 and 5 add Unix domain sockets, TCP, and the Rust client.
 Protocol 1, from here on, is a campaign of 22 October 2026 that drives local NCP 1.0.1 sessions into the failures that the profile names.
 It asks two questions: what happens in each failure, and does any failure make a client accept a wrong result.
 All trials use SDK 1.0.1 with `LocalClient` and a Python or Rust owner on one computer.
@@ -219,4 +219,44 @@ It runs the scenarios of protocol 3, without the soaks, over a Unix domain socke
 The owners run as servers, a relay over sockets ([`harness/relay_socket.py`](harness/relay_socket.py)) changes frames, and after a killed client the trial checks that the owner serves a new session within 10 s.
 `run4.py` runs it, and `analyze4.py` applies its criteria.
 
-The results of protocol 4 follow once its trials have run.
+### Results of protocol 4
+
+The trials ran on 9 November 2026 from 19:16 to 19:30 UTC, from the clean commit `7fb3df8`, with Python 3.15.0 and Rust 1.99.1, on the power adapter, with one-minute load averages of 4.0 to 6.5 before a trial.
+[`results-4/trials.jsonl`](results-4/trials.jsonl) holds every trial, and [`results-4/analysis.json`](results-4/analysis.json) the analysis.
+
+Of the 4,560 scheduled trials, 4,554 ended with a result, and in none of them did a criterion of E1 to E8 fail.
+Six trials ended without a result. All six were `kill-owner` trials with the Rust owner: five over a Unix domain socket and one over TCP, four with the Python client and two with the Rust client.
+In each, the trial's timer had killed the owner, which runs as a server, and the driver's cleanup then sent SIGTERM to the owner's process group while the dead owner was not yet reaped.
+macOS answers `killpg` on a group whose only member is a zombie with `EPERM`, which the driver did not catch, so it stopped before it printed the trial's result.
+The protocol counts a scheduled trial without a result against every hypothesis, so **formally, none of E1 to E8 holds**.
+The defect is in the cleanup of the harness, after the session had ended; it is not a behavior of NCP.
+[Protocol 5](#protocol-5-protocol-4-with-a-corrected-cleanup) corrects the cleanup and runs every trial again with new draws.
+
+The six error messages contained the absolute path of the checkout on the benchmark computer; [`results-4/REDACTION.json`](results-4/REDACTION.json) records its replacement by `<checkout>`.
+
+| Scenario | Owner | Trials with a result | Completed | Ended early | Wrong results |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Bit flip, client to owner | Python, Rust | 480 each | 0 | 480 each | 0 |
+| Bit flip, owner to client | Python, Rust | 480 each | 0 | 480 each | 0 |
+| Truncated frame, client to owner | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Truncated frame, owner to client | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Repeated frame, client to owner | Python / Rust | 120 each | 9 / 10 | 111 / 110 | 0 |
+| Repeated frame, owner to client | Python / Rust | 120 each | 15 / 13 | 105 / 107 | 0 |
+| Owner killed at a random time | Python / Rust | 240 / 234 | 73 / 193 | 167 / 41 | 0 |
+| Client killed at a random time | Python, Rust | 120 each | The owner served a new session in all 240, within 0.006 s | | |
+| Step stalls three times the time limit | Python | 120 | 0 | 120 | 0 |
+| Result larger than the session bound | Python | 120 | 0 | 120 | 0 |
+| Request larger than the session bound | Python, Rust | 120 each | 120 each | 0 | 0 |
+| Handler raises | Python, Rust | 120 each | 0 | 120 each | 0 |
+
+Each row adds both bindings and both clients. Of the 1,920 flipped bits, 1,340 were in the JSON region, 295 in the attachments, 205 in the digest, and 80 in the header. Every stall ended with `timeout`, executed `unknown`, after 2.00 to 2.01 s.
+A killed owner more often finished the session first with the Rust owner, whose session takes a few milliseconds, than with the Python owner, whose steps sleep 20 ms each.
+
+## Protocol 5: protocol 4 with a corrected cleanup
+
+[`PROTOCOL-5.md`](PROTOCOL-5.md) was fixed on 9 November 2026 (SHA-256 in [`PROTOCOL-5.sha256`](PROTOCOL-5.sha256)), after the results of protocol 4.
+It changes two things: the driver's cleanup treats `PermissionError` from `killpg` like `ProcessLookupError` and waits for the owner to exit, and each block is shuffled with the seed 20261109, so the trials draw new kill times, frames, and bits.
+Everything else is as in protocol 4. `run4.py --protocol 5` runs it, and `analyze4.py` applies the same criteria.
+The same correction went into the cleanup of [`../multi-agent/run.py`](../multi-agent/run.py), whose recorded runs did not meet the race.
+
+The results of protocol 5 follow once its trials have run.

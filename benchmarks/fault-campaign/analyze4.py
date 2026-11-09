@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evaluate protocol 4 of the fault campaign (see PROTOCOL-4.md).
+"""Evaluate protocol 4 or 5 of the fault campaign (see PROTOCOL-4.md and PROTOCOL-5.md).
 
 Usage: analyze4.py RESULTS_DIR. Writes RESULTS_DIR/analysis.json and prints the tables.
 Standard library only.
