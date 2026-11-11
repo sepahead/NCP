@@ -48,6 +48,8 @@ REVIEW_AND_PLAN.md
 /formal/.lake/
 /rust/target/
 /bindings/zenoh/rust/target/
+/bindings/zenoh/python/build/
+/bindings/zenoh/python/*.egg-info/
 /benchmarks/**/target/
 /python/build/
 /python/*.egg-info/
