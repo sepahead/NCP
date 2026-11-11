@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### NCP 2 (in development; not released)
+### NCP 2.0.0 (prepared for release; tag and publication follow)
+
+- The specification is final (`spec/NCP-2.md`, with the rounds profile `spec/NCP-2-ROUNDS.md`), and the
+  packages are version 2.0.0: `sepahead-ncp` (Python), `sepahead-ncp-core` (Rust), and the Zenoh
+  binding `sepahead-ncp-zenoh` for both. The Rust crates can be published; the Python packages are
+  marked stable. [`docs/release/NCP-2.0.0.md`](docs/release/NCP-2.0.0.md) records the artifacts,
+  their checksums, the dependencies, and the checks.
+- Every package carries both license texts. `scripts/build_ncp2_release.py` checks that the four
+  packages share one version, that each binding requires exactly that core version, and that the
+  package READMEs link with absolute URLs to files and headings that exist, because they become the
+  PyPI and crates.io pages. It builds every artifact twice from fresh copies of the tracked files
+  and requires identical bytes; it rewrites each source distribution with fixed times, so that the
+  source distributions are reproducible too. A Python test ties `ncp.IMPLEMENTATION` to the
+  package version.
+- The README has a section of NCP 2 benchmarks: the median and 99th-percentile time of one call
+  for NCP 2, NCP 1.0.1, gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe, with the result under
+  the same integrity check; the time added to each step of a NEST simulation, median and 99th
+  percentile, with MUSIC's time and its exactness; correctness (exact spikes, fault trials,
+  rounds, proofs); and scale. The plain-language guide gives the tail latencies, and both SDK
+  READMEs give their own numbers.
 
 - [`spec/NCP-2.md`](spec/NCP-2.md) defines NCP 2: one request/response protocol
   over pipes, Unix domain sockets, and TCP. An optional Zenoh binding is specified

@@ -1,6 +1,6 @@
 # NCP 2 profile: rounds
 
-Status: draft for implementation, 3 November 2026. Like NCP 2, not released.
+Status: a profile of NCP 2.0, final, 11 November 2026. The Python SDK 2.0.0 implements it.
 This document is normative. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119 and RFC 8174 when, and only when, they appear in all capitals.
 It builds on the [NCP 2 specification](NCP-2.md) and changes nothing in it. The Python SDK implements it as `ncp.Rounds` (owner) and `ncp.RoundRecord` (client check).
 

@@ -1,6 +1,6 @@
 # NCP 2 for Python
 
-The reference SDK of [NCP 2](../spec/NCP-2.md): exactly-once exchanges and hash-chained streams between independent programs.
+The reference SDK of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md): exactly-once exchanges and hash-chained streams between independent programs.
 It uses only the Python standard library.
 
 - Distribution name: `sepahead-ncp`. Import name: `ncp`.
@@ -106,15 +106,15 @@ The types are `u8`, `i8`, `u16`, `i16`, `u32`, `i32`, `u64`, `i64`, `f32`, and `
 A connection carries one session. `UnixServer` and `TcpServer` call `make_owner()` for each connection.
 An owner refuses connections while its queue of connections that it has not yet accepted is full, for example when many agents start at once; the servers ask for the largest queue that the system allows (128 on macOS), and `connect_unix` tries a refused connection again until its `timeout` (10 s) has passed.
 TCP accepts only loopback addresses unless you pass `allow_remote=True`; use it only on a trusted cluster network.
-Between computers, or over a network that can lose messages, use the optional [Zenoh binding](../bindings/zenoh/README.md) (`ncp_zenoh`), with mutual TLS and access control on networks that are not trusted.
+Between computers, or over a network that can lose messages, use the optional [Zenoh binding](https://github.com/sepahead/NCP/blob/main/bindings/zenoh/README.md) (`ncp_zenoh`), with mutual TLS and access control on networks that are not trusted.
 Put a Unix domain socket in a directory that only the users of the sessions can access.
 
 To call many sessions at once, for example one for each agent, use `ncp.call_all(clients, op, bodies)`.
 It sends every request before it reads the first response, so the owners work at the same time without a thread for each session.
-Threads do not make it faster in Python: in the [multi-agent benchmark](../benchmarks/multi-agent/README.md), `call_all` finished a round over 256 owners in 2.8 ms, one thread for each session in 8.0 ms, and 8 threads that each used `call_all` in 4.2 ms.
+Threads do not make it faster in Python: in the [multi-agent benchmark](https://github.com/sepahead/NCP/blob/main/benchmarks/multi-agent/README.md), `call_all` finished a round over 256 owners in 2.8 ms, one thread for each session in 8.0 ms, and 8 threads that each used `call_all` in 4.2 ms.
 It returns, for each session in its place, the result or the exception; one failed session does not stop the others.
 
-For many agents that share one owner, such as robots in one simulated world, `ncp.Rounds` implements the [rounds profile](../spec/NCP-2-ROUNDS.md).
+For many agents that share one owner, such as robots in one simulated world, `ncp.Rounds` implements the [rounds profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-ROUNDS.md).
 Each agent has its own session. The owner applies one request of each agent per round, in the fixed order of the members, and every agent receives the same record of the requests that the round applied:
 
 ```python
@@ -169,6 +169,12 @@ A failure to write a record raises, so that a session never runs on without its 
 | `Client(timeout=...)` | none | The time limit for a response, in seconds. |
 | `Owner(max_bound=...)` | 1 MiB | The largest session bound that the owner accepts. |
 | `check_digests=False` | on | Turns off the comparison of received digests. Use it only on pipes or a Unix domain socket with no other program between the two ends (specification section 3, rule 4). |
+
+## Performance
+
+On one laptop (Apple M4 Max), a call between two Python programs over a pipe took 38.8 µs with no spikes and 67.2 µs with 1,788 spikes, and 99 of 100 calls took at most 52.5 µs and 81.3 µs (each value is the middle one of three repeated runs). NCP 1.0.1 took 469 µs and 11,263 µs.
+Coupled to NEST, an exchange after each 1 ms step added 50 to 61 µs, and a Python host called 256 owners in one round in 2.8 ms with `call_all`.
+The [benchmark section of the README](https://github.com/sepahead/NCP/blob/main/README.md#ncp-2-benchmarks-speed-lag-and-correctness) compares these times with gRPC, ZeroMQ, HTTP/1.1, and Zenoh, and states how they were measured.
 
 ## Tests
 

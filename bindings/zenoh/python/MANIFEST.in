@@ -1,0 +1,3 @@
+# The tests need files from the rest of the repository; they run there, not from the source
+# distribution.
+prune tests

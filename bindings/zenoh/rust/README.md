@@ -9,4 +9,4 @@ It needs the NCP 2 core crate `sepahead-ncp-core` and Zenoh 1.10.2, built with T
 - `secure_config(&TlsFiles, listen, connect)`: mutual TLS for networks that are not trusted; add Zenoh access control to it.
 
 The [binding's README](https://github.com/sepahead/NCP/blob/main/bindings/zenoh/README.md) explains its behavior, security, tests, and limits.
-NCP 2 is in development and not released.
+Version 2.0.0, with NCP 2.0, which is prepared for release; the tag and the publication follow.

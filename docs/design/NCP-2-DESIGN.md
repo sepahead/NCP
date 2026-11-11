@@ -134,8 +134,8 @@ Targets for NCP 2 on the same computer as section 3, tested by preregistered pro
 
 | Measure | NCP 1.0.1 | NCP 2 target | NCP 2 measured |
 | --- | --- | --- | --- |
-| Rust client and Rust echo owner, one call | 35.6 µs | ≤ 15 µs | 9.1 µs ([comparison benchmark](../../benchmarks/comparison/README.md), H2) |
-| Python client and Python echo owner, one call | 466 µs | ≤ 150 µs | 38.6 µs (H2) |
+| Rust client and Rust echo owner, one call | 35.6 µs | ≤ 15 µs | 9.1 µs ([comparison benchmark](../../benchmarks/comparison/README.md), H2); 9.0 µs in protocol 2, with a 99th percentile of 12.4 µs |
+| Python client and Python echo owner, one call | 466 µs | ≤ 150 µs | 38.6 µs (H2); 38.8 µs in protocol 2, with a 99th percentile of 52.5 µs |
 | NEST coupling, cost per exchange, Rust host | 0.23–0.29 ms | ≤ 0.10 ms | 0.032 ms, the median of six configurations at Δ = 1 ms ([NEST protocol 5](../../benchmarks/nest-campaign/README.md#results-of-protocol-5), G2). Measured inside the processes, an exchange adds 23 to 32 µs, against 228 to 248 µs for NCP 1.0.1 (G6) |
 | Spike payloads (D4 of the NEST campaign) | 0.4–1.4 ms, and failure above 64 KiB | ≤ 0.15 ms, no failure | No failure: NCP 2 carried every step, also with 10,000 neurons at 5 ms, and the number of spikes at the host equalled the recorder's total in every run (protocols 3 and 5). Both hosts received exactly NEST's spikes, each neuron and time, in all 96 trials of [content protocol 2](../../benchmarks/nest-campaign/README.md#results-of-content-protocol-2), with up to 8 threads and 10,000 neurons. Measured inside the processes, an exchange adds 36 to 119 µs (protocol 5, G7). From the wall times: 0.044 to 0.054 ms in three configurations, and 0.200 ms with 10,000 neurons at 5 ms, above the target (G3), where NEST's own work varied between runs by more than the time of an exchange. 1788 spikes in one call take 32.8 µs (Rust) and 67.8 µs (Python) without NEST |
 

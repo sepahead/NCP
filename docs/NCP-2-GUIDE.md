@@ -2,7 +2,7 @@
 
 This guide explains NCP 2 for readers without a background in protocols.
 The [specification](../spec/NCP-2.md) is the exact definition; where this guide and the specification differ, the specification is correct.
-NCP 2 is in development and not yet released.
+NCP 2.0.0 is prepared for release: the specification is final, and the tag and the publication of the packages follow.
 
 ## What NCP is for
 
@@ -90,6 +90,7 @@ NCP 1.0.1 took 37.9 µs and 457.8 µs. Over all pairs of languages and sizes, NC
 
 Coupled to the NEST simulator, an exchange after each 1 ms step added 23 to 32 µs with a Rust client and 50 to 61 µs with a Python client.
 NCP 1.0.1 added 228 to 248 µs and 492 to 524 µs. Sending a message to another process and back without any protocol took 8 to 11 µs.
+Slow exchanges also stayed short: in each configuration, 99 of 100 exchanges added at most 78 µs with a Rust client and 109 µs with a Python client, against 324 µs and 629 µs for NCP 1.0.1 (each value is the middle one of three repeated runs).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/nest-campaign/results-5/figures/overhead_dark.svg">
@@ -99,7 +100,7 @@ NCP 1.0.1 added 228 to 248 µs and 492 to 524 µs. Sending a message to another 
 One program can also talk to many others at once. Sending one request to each of 256 programs and receiving all 256 answers took 0.92 ms from a Rust program and 2.8 ms from a Python program, because NCP 2 sends every request before it reads the first answer.
 When 64 agents shared one simulated world that applies their requests in rounds, a round took 2.6 ms, every agent saw the same result, and the result never depended on which request arrived first ([multi-agent benchmark](../benchmarks/multi-agent/README.md)).
 
-The [comparison benchmark](../benchmarks/comparison/README.md), the [NEST campaign](../benchmarks/nest-campaign/README.md), and the multi-agent benchmark give all values, with the range over three repeated blocks, and state what each result does not show.
+The [benchmark section of the README](../README.md#ncp-2-benchmarks-speed-lag-and-correctness) collects the main values in tables. The [comparison benchmark](../benchmarks/comparison/README.md), the [NEST campaign](../benchmarks/nest-campaign/README.md), and the multi-agent benchmark give all values, with the range over three repeated blocks, and state what each result does not show.
 In both, the protocol of each measurement was fixed, with its fingerprint, before the measurements ran.
 
 ## How NCP 2 compares with other tools

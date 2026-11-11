@@ -11,7 +11,7 @@ from . import frame as F
 from .frame import FrameError
 
 PROTOCOL = 2
-IMPLEMENTATION = "ncp-python/2.0.0a1"
+IMPLEMENTATION = "ncp-python/2.0.0"
 _SESSION = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\Z")
 _OPERATION = re.compile(r"[a-z][a-z0-9_.-]{0,63}\Z")
 _IDENTITY = re.compile(r"[0-9a-f]{64}\Z")

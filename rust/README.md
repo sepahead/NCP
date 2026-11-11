@@ -1,6 +1,6 @@
 # NCP 2 for Rust
 
-The Rust core of [NCP 2](../spec/NCP-2.md): exactly-once exchanges and hash-chained streams between independent programs.
+The Rust core of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md): exactly-once exchanges and hash-chained streams between independent programs.
 
 - Crate name: `sepahead-ncp-core`. Library name: `ncp`.
 - Rust 1.88 or later. No `unsafe` code.
@@ -115,14 +115,14 @@ A received frame keeps its bytes once: `array_bytes(i)` returns a slice of the f
 | TCP | `listen_tcp(address, false)`, then `tcp_channel(stream)` and `serve` for each connection | `connect_tcp(address, false)` |
 
 A connection carries one session. TCP accepts only loopback addresses unless the second argument is `true`; use that only on a trusted cluster network.
-Between computers, or over a network that can lose messages, use the optional [Zenoh binding](../bindings/zenoh/README.md) (crate `sepahead-ncp-zenoh`), with mutual TLS and access control on networks that are not trusted.
+Between computers, or over a network that can lose messages, use the optional [Zenoh binding](https://github.com/sepahead/NCP/blob/main/bindings/zenoh/README.md) (crate `sepahead-ncp-zenoh`), with mutual TLS and access control on networks that are not trusted.
 `connect_unix` tries a refused connection again for up to 10 s (`binding::CONNECT_PATIENCE`): an owner refuses connections while its queue of connections that it has not yet accepted is full, for example when many agents start at once (macOS keeps 128).
 The binding sets 1 MiB socket buffers and `TCP_NODELAY`.
 `set_tcp_timeout(&channel, Some(limit))` and `set_unix_timeout(&channel, Some(limit))` set a time limit for each receive: a call whose response does not arrive in time ends the session with `timeout` and executed `unknown`.
 A channel to a child process over pipes (`spawn`) has no time limit. To give one to a child, start it with `spawn_unix(command)`: its standard input and output are then one end of a Unix domain socket pair, which the owner serves as it serves pipes, and `set_unix_timeout` applies to the channel.
 To call many sessions at once, use `ncp::call_all(&mut clients, op, bodies)`.
 It sends every request before it reads the first response, so the owners work at the same time without a thread for each session, and it returns each session's result in its place.
-With 64 or more sessions, a host can split them over threads that each use `call_all` on their share: in the [multi-agent benchmark](../benchmarks/multi-agent/README.md), 8 such threads finished a round over 256 owners in 646 µs, against 921 µs for one `call_all`, but they were slower with 16 sessions or fewer.
+With 64 or more sessions, a host can split them over threads that each use `call_all` on their share: in the [multi-agent benchmark](https://github.com/sepahead/NCP/blob/main/benchmarks/multi-agent/README.md), 8 such threads finished a round over 256 owners in 646 µs, against 921 µs for one `call_all`, but they were slower with 16 sessions or fewer.
 
 The crate is tested on Linux and macOS. It also builds for Windows, without the Unix domain socket functions, but it is not tested there; the examples and tests use Unix domain sockets.
 
@@ -140,6 +140,12 @@ A failure to write a record is an error of the channel's send or receive.
 | `Client::with_bound` | 1 MiB | The largest frame of the session, from 64 KiB to 64 MiB. The owner can lower it. |
 | The `max_bound` argument of `Owner::new` | required | The largest session bound that the owner accepts, from 64 KiB to 64 MiB. |
 | `without_digest_check` on `Owner`, `Client`, `Subscriber` | check on | Turns off the comparison of received digests. Use it only on pipes or a Unix domain socket with no other program between the two ends (specification section 3, rule 4). |
+
+## Performance
+
+On one laptop (Apple M4 Max), a call between two Rust programs over a pipe took 9.0 µs with no spikes and 32.5 µs with 1,788 spikes, and 99 of 100 calls took at most 12.4 µs and 38.5 µs (each value is the middle one of three repeated runs). gRPC (tonic) took 35.9 µs and 55.6 µs over a Unix socket, and NCP 1.0.1 took 36.1 µs and 430 µs.
+Coupled to NEST, an exchange after each 1 ms step added 23 to 32 µs, and a Rust host called 256 owners in one round in 0.92 ms with `call_all`.
+The [benchmark section of the README](https://github.com/sepahead/NCP/blob/main/README.md#ncp-2-benchmarks-speed-lag-and-correctness) gives the other systems and sizes, and states how they were measured.
 
 ## Tests and examples
 

@@ -17,7 +17,7 @@ Each application describes its own steps and data in a contract.
 
 ## NCP 2
 
-**NCP 2 is the protocol in development; it is not released yet.** It replaces the three protocol families of NCP 1, below, with one protocol.
+**NCP 2.0.0 is prepared for release: the specification is final and the packages are version 2.0.0; the tag and the publication follow.** NCP 2 replaces the three protocol families of NCP 1, below, with one protocol. The projects that use NCP 1 move to NCP 2 before NCP 1 leaves the main branch.
 [NCP 2 in plain words](docs/NCP-2-GUIDE.md) explains it with figures for readers without a background in protocols.
 The [specification](spec/NCP-2.md) is the exact definition, and the [design record](docs/design/NCP-2-DESIGN.md) gives the reason for each decision and the alternatives that were measured.
 
@@ -43,6 +43,86 @@ When every other system made the same SHA-256 check as NCP 2, NCP 2 was the fast
 - Twelve claims about the owner are proved in Lean for every sequence of requests ([`formal/`](formal/README.md)); the SDKs are tested against the proved model, not proved themselves.
 - [What NCP 2 changes from NCP 1](docs/design/NCP-1-SHORTCOMINGS.md) maps each known shortcoming of NCP 1 to its fix and its check, and lists the work that is still open.
 - The projects that use NCP move to NCP 2 one at a time, in the order of the [migration plan](docs/design/NCP-2-MIGRATION.md). NCP 1 stays available until the last one has moved.
+
+## NCP 2 benchmarks: speed, lag, and correctness
+
+Each measurement below comes from a protocol that was fixed, with its SHA-256 fingerprint, before its runs; each protocol ran in three blocks in a shuffled order on one laptop (Apple MacBook Pro, M4 Max, macOS 26.5.1).
+A median is the median of the three block medians, and a 99th percentile is the median of the three blocks' 99th percentiles. Each benchmark's README gives every value, the range over the blocks, the conditions, and what the results do not show.
+
+### Time of one call
+
+One call sends a small request and gets N spikes back, 12 bytes each, between two processes on the laptop ([comparison benchmark, protocol 2](benchmarks/comparison/README.md#results-of-protocol-2), on the power adapter, with the clock and the load checked before and after each run).
+Each cell gives the median and, after the slash, the 99th percentile, in µs. 99 of 100 calls took at most the 99th percentile, so it shows how long the slow calls take.
+
+| Rust client and server | No spikes | 127 spikes | 1,788 spikes | 1 MiB |
+| --- | ---: | ---: | ---: | ---: |
+| NCP 2, pipe | 9.0 / 12.4 | 13.9 / 18.7 | 32.5 / 38.5 | 918 / 981 |
+| NCP 2, Unix socket | 9.5 / 12.9 | 14.1 / 18.5 | 33.0 / 37.7 | 872 / 906 |
+| gRPC (tonic), Unix socket | 35.9 / 41.1 | 34.5 / 41.6 | 55.6 / 64.2 | 1,200 / 1,315 |
+| gRPC (tonic), TCP | 47.9 / 57.1 | 48.2 / 57.4 | 54.7 / 65.3 | 259 / 425 |
+| Zenoh, TCP | 59.5 / 86.6 | 60.7 / 96.2 | 63.5 / 97.6 | 371 / 1,710 |
+| NCP 1.0.1, pipe | 36.1 / 42.3 | 72.8 / 81.4 | 430 / 450 | not measured |
+| Raw pipe, no protocol | 4.5 / 10.4 | 7.5 / 10.6 | 8.4 / 10.6 | 151 / 165 |
+
+| Python client and server | No spikes | 127 spikes | 1,788 spikes | 1 MiB |
+| --- | ---: | ---: | ---: | ---: |
+| NCP 2, pipe | 38.8 / 52.5 | 49.2 / 62.2 | 67.2 / 81.3 | 909 / 961 |
+| NCP 2, Unix socket | 38.9 / 51.3 | 57.2 / 65.3 | 70.2 / 78.7 | 759 / 826 |
+| ZeroMQ, ipc | 54.6 / 68.4 | 56.0 / 73.1 | 79.6 / 98.4 | 1,006 / 1,079 |
+| Zenoh, TCP | 65.2 / 89.5 | 65.1 / 101.5 | 68.9 / 102.2 | 144 / 192 |
+| HTTP/1.1, TCP | 80.3 / 98.9 | 88.5 / 96.2 | 74.7 / 99.6 | 139 / 245 |
+| gRPC (grpcio), TCP | 128.7 / 167.5 | 128.7 / 146.4 | 135.0 / 158.9 | 244 / 375 |
+| NCP 1.0.1, pipe | 469 / 670 | 1,255 / 1,478 | 11,263 / 11,732 | not measured |
+| Raw pipe, no protocol | 9.2 / 13.2 | 9.2 / 13.5 | 11.7 / 14.7 | 186 / 204 |
+
+In Rust, NCP 2 was the fastest protocol up to 1,788 spikes, at the median and at the 99th percentile.
+In Python, NCP 2 had the lowest 99th percentile up to 1,788 spikes and the lowest median with no spikes. With 127 and 1,788 spikes, its median was close to that of the fastest other system (ZeroMQ, then Zenoh): lower in this protocol, and higher in [protocol 1](benchmarks/comparison/README.md#exploratory-results), which ran on battery.
+At 1 MiB, the other systems make no integrity check of the message, while NCP 2 computes and checks a SHA-256 fingerprint of every message. That check takes most of NCP 2's time there: on a raw pipe in Rust, the same check costs 722 µs.
+With the same check added to every system, NCP 2 was the fastest at every size, 1 MiB included: in Rust, 872 µs over a Unix socket against 1,104 µs for Zenoh and 1,137 µs for gRPC over TCP; in Python, 759 µs against 801 µs for Zenoh and 830 µs for HTTP/1.1.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="benchmarks/comparison/results-2/figures/integrity_dark.svg">
+  <img src="benchmarks/comparison/results-2/figures/integrity_light.svg" alt="Time of one call when every system checks a SHA-256 fingerprint of each message as NCP 2 does, for Rust and Python and for 0, 127, 1788, and 87381 spikes, on log scales: NCP 2 is the fastest at every size.">
+</picture>
+
+### Lag added to a running simulation
+
+Coupled to the NEST simulator, a host asks NEST to advance its network by one step and waits for the result ([NEST campaign, protocol 5](benchmarks/nest-campaign/README.md#results-of-protocol-5)).
+The table gives the time that the coupling adds to each exchange, measured inside the processes, for the Brunel network with 1,000 and 10,000 neurons on 1, 4, and 8 threads and one exchange after every 1 ms of simulated time: the range over the six configurations, in µs.
+
+| Coupling | Median | 99th percentile |
+| --- | ---: | ---: |
+| NCP 2, Rust host | 23 to 32 | 39 to 78 |
+| NCP 2, Python host | 50 to 61 | 72 to 109 |
+| NCP 1.0.1, Rust host | 228 to 248 | 279 to 324 |
+| NCP 1.0.1, Python host | 492 to 524 | 574 to 629 |
+| Raw round trip to another process, no protocol | 8 to 11 | 13 to 23 |
+
+When each step also returns its spikes, NCP 2 adds 36 to 119 µs with a Rust host. NCP 1.0.1 adds 434 to 1,365 µs, and it cannot carry the steps of 10,000 neurons at 5 ms, because some of them exceed its 64 KiB message limit.
+These times leave out one effect: a coupled NEST can do its own work more slowly than NEST alone. With 10,000 neurons, that effect varied between runs by more than the time of an exchange.
+MUSIC, the MPI library with which NEST exchanges spikes with other simulators, needs all coupled programs in one MPI job. From the difference of wall times, it added 0.001 to 0.256 ms per 1 ms step in these configurations, against 0.026 to 0.141 ms for NCP 2 with a Rust host: less in three of the six, all with 4 or 8 NEST threads, and more in the other three. In this NEST build, MUSIC delivered the exact spikes only with one NEST thread; with T threads, only one channel in T carried its exact spike train ([content protocol](benchmarks/nest-campaign/README.md#results-of-the-content-protocol)).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="benchmarks/nest-campaign/results-5/figures/overhead_dark.svg">
+  <img src="benchmarks/nest-campaign/results-5/figures/overhead_light.svg" alt="Time that each coupling adds to an exchange after every 1 ms step of the Brunel network, on a logarithmic scale: about 8 to 11 µs for a raw round trip, 23 to 32 µs for NCP 2 with a Rust host, 50 to 61 µs with a Python host, and 228 to 524 µs for NCP 1.0.1.">
+</picture>
+
+### Correctness
+
+- **Exact data.** Both NCP 2 hosts received exactly the spikes that NEST recorded, each neuron and each time, in all 96 trials of [content protocol 2](benchmarks/nest-campaign/README.md#results-of-content-protocol-2), with 1 to 8 threads and up to 10,000 neurons: 42,026,126 spikes compared. Through the first process of an MPI program, all 521 million spikes that the client checked arrived exactly ([multi-agent benchmark](benchmarks/multi-agent/README.md#results)).
+- **Faults.** In 8,730 trials with real programs over pipes, Unix sockets, and TCP, with Rust and Python on both sides, messages were damaged, cut, or repeated, programs were killed, steps stalled, and messages were too large: no client accepted a wrong result, no owner ran a step twice or out of order, and no client was told something false about a step ([fault campaign, protocols 3 and 5](benchmarks/fault-campaign/README.md#results-of-protocol-5)).
+- **One order for many agents.** With the rounds profile, up to 256 agents sharing one world received the same result after every round, and the world ended in the same state in every run ([multi-agent benchmark](benchmarks/multi-agent/README.md#results)).
+- **Proofs and checks.** Twelve claims about the owner are proved in Lean for every sequence of requests; a model check explores every state of sessions of up to three steps with up to two faults: lost, repeated, reordered, and damaged messages, and crashes. Both SDKs pass the same conformance vectors, and their decoders agree on 200,000 random and damaged messages in every gate run.
+
+### Scale
+
+- One host called 256 owners in one round in 0.92 ms with the Rust SDK and 2.8 ms with the Python SDK (`call_all`).
+- 64 agents in rounds on one Python owner took 2.6 ms per round.
+- An owner in the first process of an MPI program added 4 to 11 µs to a call with 1 to 8 processes, up to 1,788 spikes.
+
+### What these results do not show
+
+They come from one laptop, with programs on one computer. They measure the protocols, not the work of a real simulation, except in the NEST campaign. The other systems ran with their default settings; NCP 2 sets 1 MiB socket buffers, which matters most at 1 MiB. The [Zenoh binding](bindings/zenoh/README.md) and networks between computers have not been measured yet.
 
 ## NCP 1: the released local SDK
 

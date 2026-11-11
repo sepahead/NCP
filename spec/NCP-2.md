@@ -1,6 +1,6 @@
 # NCP 2 specification
 
-Status: draft for implementation, 23 October 2026.
+Status: NCP 2.0, final, 11 November 2026. The reference packages are version 2.0.0; the tag and their publication follow.
 This document is normative. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119 and RFC 8174 when, and only when, they appear in all capitals.
 The [design record](../docs/design/NCP-2-DESIGN.md) gives the reasons for each decision.
 

@@ -925,5 +925,14 @@ class ContractTests(unittest.TestCase):
             ncp.Contract.from_bytes(b'{"ncp_contract":2}')
 
 
+class PackageTests(unittest.TestCase):
+    def test_implementation_names_the_package_version(self) -> None:
+        import tomllib
+
+        with open(os.path.join(HERE, "..", "pyproject.toml"), "rb") as f:
+            version = tomllib.load(f)["project"]["version"]
+        self.assertEqual(ncp.IMPLEMENTATION, f"ncp-python/{version}")
+
+
 if __name__ == "__main__":
     unittest.main()
