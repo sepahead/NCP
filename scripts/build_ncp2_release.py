@@ -154,8 +154,10 @@ def rust_dependencies(crate: Path) -> list[dict]:
 
 
 def check_versions() -> str:
-    """Every package has the same version, each binding requires exactly that core version, and the
-    Python SDK names it in its `implementation`. Returns the version."""
+    """Every package has the same version, each binding requires that core version or a later
+    compatible one, and the Python SDK names the version in its `implementation`. Returns the
+    version. The requirements are ranges, not exact versions: an exact requirement in a library
+    forces every consumer onto that one version of the dependency."""
     python = {n: tomllib.loads((d / "pyproject.toml").read_text())["project"] for n, d in PYTHON_PACKAGES.items()}
     rust = {n: tomllib.loads((d / "Cargo.toml").read_text()) for n, d in CRATES.items()}
     versions = {f"{n} (Python)": p["version"] for n, p in python.items()}
@@ -163,10 +165,19 @@ def check_versions() -> str:
     if len(set(versions.values())) != 1:
         raise SystemExit(f"the package versions differ: {versions}")
     version = python["sepahead-ncp"]["version"]
-    if f"sepahead-ncp=={version}" not in python["sepahead-ncp-zenoh"]["dependencies"]:
-        raise SystemExit(f"the Python binding does not require sepahead-ncp=={version}")
-    if rust["sepahead-ncp-zenoh"]["dependencies"]["sepahead-ncp-core"].get("version") != f"={version}":
-        raise SystemExit(f"the Rust binding does not require sepahead-ncp-core ={version}")
+    major = int(version.split(".")[0])
+    if f"sepahead-ncp>={version},<{major + 1}" not in python["sepahead-ncp-zenoh"]["dependencies"]:
+        raise SystemExit(f"the Python binding does not require sepahead-ncp>={version},<{major + 1}")
+    if rust["sepahead-ncp-zenoh"]["dependencies"]["sepahead-ncp-core"].get("version") != version:
+        raise SystemExit(f"the Rust binding does not require sepahead-ncp-core {version}")
+    for name, manifest in rust.items():
+        exact = [d for d, spec in manifest["dependencies"].items() if str(spec.get("version", spec) if isinstance(spec, dict) else spec).startswith("=")]
+        if exact:
+            raise SystemExit(f"{name} requires exact versions of {exact}; a library takes ranges")
+    for name, project in python.items():
+        exact = [d for d in project.get("dependencies", []) if "==" in d]
+        if exact:
+            raise SystemExit(f"{name} requires exact versions: {exact}; a library takes ranges")
     if f'IMPLEMENTATION = "ncp-python/{version}"' not in (ROOT / "python" / "ncp" / "exchange.py").read_text():
         raise SystemExit(f"python/ncp/exchange.py does not name ncp-python/{version}")
     return version

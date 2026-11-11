@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 license = "MIT OR Apache-2.0"
 license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
 authors = [{ name = "Sepehr Mahmoudian" }]
-dependencies = ["sepahead-ncp==2.0.0", "eclipse-zenoh==1.10.2"]
+dependencies = ["sepahead-ncp>=2.0.0,<3", "eclipse-zenoh>=1.10.2,<2"]
 keywords = ["co-simulation", "closed-loop", "neurorobotics", "protocol", "zenoh"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",

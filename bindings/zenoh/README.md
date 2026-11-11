@@ -3,7 +3,7 @@
 This directory holds the Zenoh binding of [specification section 9.2](../../spec/NCP-2.md#92-zenoh-binding), for Python ([`python/`](python), package `sepahead-ncp-zenoh`, module `ncp_zenoh`) and for Rust ([`rust/`](rust), crate `sepahead-ncp-zenoh`, library `ncp_zenoh`).
 Use it when the programs of a closed loop run on different computers, or when a network can lose messages. On one computer, pipes and Unix domain sockets (section 9.1) are simpler and faster.
 
-The binding is optional. The NCP 2 core packages do not depend on Zenoh: the Python SDK uses only the standard library, and the Rust SDK keeps its four dependencies. Both binding packages use Zenoh 1.10.2 with TCP and TLS links only: no QUIC, no shared memory, and no compression.
+The binding is optional. The NCP 2 core packages do not depend on Zenoh: the Python SDK uses only the standard library, and the Rust SDK keeps its four dependencies. Both binding packages are tested with Zenoh 1.10.2 and accept later 1.x releases. They use TCP and TLS links only: no QUIC, no shared memory, and no compression.
 The packages are version 2.0.0, like the rest of NCP 2.0, which is prepared for release; the tag and the publication follow.
 
 ## How it works
@@ -19,7 +19,7 @@ The packages are version 2.0.0, like the rest of NCP 2.0, which is prepared for 
 
 ## Use it
 
-Python, with the core package and `eclipse-zenoh==1.10.2` installed:
+Python, with the core package and `eclipse-zenoh` 1.10.2 or a later 1.x release installed:
 
 ```python
 import threading, zenoh, ncp, ncp_zenoh

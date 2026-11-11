@@ -17,11 +17,11 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 36,439 | `709729c667bc5b56f0bf58e7be76a674a0ef9c84e91141242e0f1aef4b75b037` |
+| `sepahead-ncp-core-2.0.0.crate` | 36,437 | `18469dcb19ec817dde3f286fab8dccc5ac6054f8be1393fc802de74f51ff8574` |
 | `sepahead_ncp-2.0.0-py3-none-any.whl` | 34,673 | `d9e45a1f47480576c8e91faaab5dddcdbf6accf8c9c5ec3bbee10a72ec6038cb` |
 | `sepahead_ncp-2.0.0.tar.gz` | 33,578 | `e48702a38db3aa032781dd438679050397962c6a3e489b3e4cef2f50e8d6f804` |
-| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 11,671 | `acba25bf56814e941a4e777a222998853e3827aa809f4a9e708ef69c8009d83e` |
-| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 10,549 | `b4c8d60eea5c037e75f38ec7fe26d9c689c657af5f49fbc5ab40e6b0ca1b75a3` |
+| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 11,699 | `09d6676f848b4e041f579d7ab4ab1ffbac3b5e96d74651db91abc68d930dbc65` |
+| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 10,595 | `516999aeb26f3906955d452229c50cd691f1b7aecc2d99ef8b05d327a4730463` |
 
 - With the same tools (see below), a rebuild from any commit with the same package files and lockfiles gives the same five files; a third build, run separately, gave the same checksums.
 - The crate archive was made from a copy outside Git. `cargo publish` from the tagged commit adds `.cargo_vcs_info.json`, with the commit, so the published archive differs from this one by that file.
@@ -37,9 +37,11 @@ macOS 26.5.1 on an Apple M4 Max; Python 3.15.0 with `build` 1.6.1 and setuptools
 
 [`evidence/release/ncp-2.0.0/dependencies.json`](../../evidence/release/ncp-2.0.0/dependencies.json) lists every resolved Rust package of both crates, with its version, source, checksum, and license, and the requirements of both Python packages.
 
+The packages require ranges, such as `serde` 1.0.229 or a later 1.x release, not exact versions: an exact requirement in a library would force every consumer onto that one version and fail when another of its dependencies needs a newer one. The lockfiles fix the versions that the checks and the artifacts used, and `dependencies.json` records them.
+
 - `sepahead-ncp` requires nothing beyond Python 3.11 or later.
-- `sepahead-ncp-zenoh` (Python) requires `sepahead-ncp` 2.0.0 and `eclipse-zenoh` 1.10.2 (EPL-2.0 OR Apache-2.0).
-- `sepahead-ncp-core` uses `serde` 1.0.229, `serde_json` 1.0.154, `sha2` 0.11.1, `socket2` 0.6.5; with their own dependencies, 25 packages, all under MIT, Apache-2.0, Unlicense, or Unicode-3.0 terms.
+- `sepahead-ncp-zenoh` (Python) requires `sepahead-ncp` 2.0.0 or a later 2.x release and `eclipse-zenoh` 1.10.2 or a later 1.x release (EPL-2.0 OR Apache-2.0); its tests use 1.10.2.
+- `sepahead-ncp-core` uses `serde` 1.0.229, `serde_json` 1.0.154, `sha2` 0.11.1, and `socket2` 0.6.5, or later compatible releases; with their own dependencies, 25 packages, all under MIT, Apache-2.0, Unlicense, or Unicode-3.0 terms.
 - `sepahead-ncp-zenoh` (Rust) resolves 312 packages with Zenoh 1.10.2. The Zenoh packages are under EPL-2.0 OR Apache-2.0, `webpki-roots` under CDLA-Permissive-2.0, and `option-ext` 0.2.0, which Zenoh reaches through `dirs`, under MPL-2.0, which requires that its own files, when changed and distributed, stay available as source; all others are under permissive terms such as MIT, Apache-2.0, BSD, ISC, and Zlib.
 - The binding's lockfile holds `lz4_flex` 0.10.0, which `zenoh-transport` requires; the advisory GHSA-vvp9-7p8x-rfvv concerns its decompression, which Zenoh uses only with the `transport_compression` feature, and the binding does not enable it.
 

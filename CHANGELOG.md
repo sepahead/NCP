@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and requires identical bytes; it rewrites each source distribution with fixed times, so that the
   source distributions are reproducible too. A Python test ties `ncp.IMPLEMENTATION` to the
   package version.
+- The packages require ranges of their dependencies instead of exact versions: `serde`
+  1.0.229 or a later 1.x release, `eclipse-zenoh` and `zenoh` 1.10.2 or a later 1.x release, and
+  the core 2.0.0 or a later 2.x release for the binding. An exact requirement in a library forces
+  every consumer onto one version: CREBAIN, for example, pins Zenoh 1.9.0, and with an exact
+  requirement it could add the binding only at Zenoh 1.10.2 and then follow no later Zenoh
+  release without a new binding release. The lockfiles still fix the tested versions, and the
+  release script rejects an exact requirement.
 - The README has a section of NCP 2 benchmarks: the median and 99th-percentile time of one call
   for NCP 2, NCP 1.0.1, gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe, with the result under
   the same integrity check; the time added to each step of a NEST simulation, median and 99th
