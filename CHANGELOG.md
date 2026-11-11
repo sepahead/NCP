@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [`spec/NCP-2.md`](spec/NCP-2.md) defines NCP 2: one request/response protocol
   over pipes, Unix domain sockets, and TCP. An optional Zenoh binding is specified
-  but not yet implemented. A frame is a JSON header and binary attachments,
+  and implemented in separate packages (see below). A frame is a JSON header and binary attachments,
   followed by the SHA-256 digest of its bytes; the digest is the frame's identity.
   Each request carries the identity of the previous response, so a call takes one
   round trip and the accepted exchanges form a hash chain. Streams and transcripts
@@ -218,6 +218,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   twice, or reported a step falsely; every damaged frame ended its session; every
   stall ended after 2.00 to 2.01 s; and every killed client left an owner that served a
   new session within 0.004 s.
+
+- [`bindings/zenoh`](bindings/zenoh/README.md) implements the Zenoh binding of
+  specification 9.2 as optional packages, `sepahead-ncp-zenoh` for Python (module
+  `ncp_zenoh`) and for Rust (library `ncp_zenoh`), on Zenoh 1.10.2 with TCP and TLS links
+  only. Exchanges travel as queries and replies on `ncp/x/<service>`, streams as
+  publications on `ncp/s/<name>`; the client's channel is lossy, so it sends a request
+  again after its time limit, and the owner answers a repeat with its kept response. A
+  server keeps one owner for each session and forgets a session after 10 minutes without
+  a request. The specification gains rule 9.2.7 and the ending code `session_expired`
+  (possibly executed) for a forgotten session, and both SDKs list that code. Their
+  tests, in `scripts/check_ncp2_zenoh.sh` and the workflow `NCP 2 Zenoh binding`, cover
+  lost replies and queries (each step still runs once), damaged frames, independent
+  sessions, expiry, streams, mutual TLS that refuses a client of another certificate
+  authority, access control that admits only the named certificate, and a Python client
+  with the Rust owner and the reverse. The binding is not yet measured in a benchmark.
 
 ### Security: dependency updates in the root lockfile (no wire change)
 

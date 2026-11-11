@@ -129,7 +129,7 @@ A second run gave every other tool the same fingerprint check as NCP 2, added by
 ## What NCP 2 does not do
 
 - It does not check what a result means. Units, value ranges, and clocks belong to each application's contract.
-- It does not prove who sent a message. Pipes and local sockets rely on the operating system's access control. Across untrusted networks, a secure tunnel or the planned Zenoh binding with mutual TLS is needed. Commands to physical machines need their own signed authority, which Haldir adds.
+- It does not prove who sent a message. Pipes and local sockets rely on the operating system's access control. Across untrusted networks, a secure tunnel or the [Zenoh binding](../bindings/zenoh/README.md) with mutual TLS and access control is needed. Commands to physical machines need their own signed authority, which Haldir adds.
 - It does not make several owners agree on one decision. The [design record](design/NCP-2-DESIGN.md#11-coordination-across-sessions) explains which patterns work across sessions and which need other tools.
 - A session does not survive a crash of its owner. The client learns which call is uncertain and opens a new session.
 - Streams do not guarantee delivery.

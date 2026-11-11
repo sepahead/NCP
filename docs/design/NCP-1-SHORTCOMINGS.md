@@ -84,7 +84,7 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 
 | # | Shortcoming of NCP 1 | What NCP 2 does | Status | Check |
 | --- | --- | --- | --- | --- |
-| 32 | The production-secure identity binding for Zenoh was not implemented | On networks that are not trusted, the Zenoh binding MUST use TLS with client certificates and access control. The binding is not implemented yet | Open | Specification, rule 9.2.6; section 8 |
+| 32 | The production-secure identity binding for Zenoh was not implemented | The optional Zenoh binding, in Python and Rust, carries NCP 2 frames as Zenoh queries, replies, and publications. Its tests show that mutual TLS refuses a client of another certificate authority and that access control admits only the named certificate; on networks that are not trusted, rule 9.2.6 requires both | Fixed | [`bindings/zenoh`](../../bindings/zenoh/README.md), `scripts/check_ncp2_zenoh.sh` |
 | 33 | Plane-wide authority grants, plant-safety governors, an ESTOP reset, and a body-generation owner were inside the protocol, several of them incomplete | NCP checks integrity and gives a hash-chained record. Applications add signed authority in their contracts; Haldir gates commands to physical machines | By design | Specification, section 13 |
 | 34 | The local audit chain was not signed | Transcripts prove which frames one program sent and received and in which order. They do not prove who produced them; signing belongs to the application | By design | Specification, sections 10 and 13 |
 
@@ -102,12 +102,11 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 These items follow from the open rows above and from the [design record](NCP-2-DESIGN.md).
 They are the remaining work before the release of NCP 2.0.
 
-1. The Zenoh binding with mutual TLS and access control (row 32).
-2. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
-3. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
-4. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
+1. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
+2. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
+3. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
 
-Done since this list was written: fault trials over Unix domain sockets and TCP and with the Rust client (row 28), the modular-composition test (row 30), and the multi-agent and MPI benchmarks, with the rounds profile (design record, sections 8 and 11.4; [multi-agent benchmark](../../benchmarks/multi-agent/README.md)).
+Done since this list was written: the Zenoh binding with mutual TLS and access control (row 32), fault trials over Unix domain sockets and TCP and with the Rust client (row 28), the modular-composition test (row 30), and the multi-agent and MPI benchmarks, with the rounds profile (design record, sections 8 and 11.4; [multi-agent benchmark](../../benchmarks/multi-agent/README.md)).
 
 Protocol 5 also left one question open that is not a shortcoming of NCP 1: whether a coupling slows NEST's own work. At 10,000 neurons, that work varied between runs by more than the time of an exchange (hypotheses G1 and G3).
 

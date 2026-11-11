@@ -1,0 +1,62 @@
+name: NCP 2 Zenoh binding
+
+# The gate of the Zenoh binding (scripts/check_ncp2_zenoh.sh): the Rust crate and the Python
+# package in bindings/zenoh, their tests with mutual TLS and access control, and the tests
+# across the two languages.
+on:
+  push:
+    paths:
+      - "bindings/zenoh/**"
+      - "python/**"
+      - "rust/**"
+      - "spec/NCP-2.md"
+      - "scripts/check_ncp2_zenoh.sh"
+      - ".github/workflows/ncp2-zenoh.yml"
+  pull_request:
+    paths:
+      - "bindings/zenoh/**"
+      - "python/**"
+      - "rust/**"
+      - "spec/NCP-2.md"
+      - "scripts/check_ncp2_zenoh.sh"
+      - ".github/workflows/ncp2-zenoh.yml"
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.15"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # pinned 2026-07-10
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Install eclipse-zenoh
+        run: python -m pip install --disable-pip-version-check eclipse-zenoh==1.10.2
+
+      - name: NCP 2 Zenoh gate
+        env:
+          PYTHON: python
+        run: scripts/check_ncp2_zenoh.sh

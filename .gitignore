@@ -47,6 +47,7 @@ REVIEW_AND_PLAN.md
 .ruff_cache/
 /formal/.lake/
 /rust/target/
+/bindings/zenoh/rust/target/
 /benchmarks/**/target/
 /python/build/
 /python/*.egg-info/

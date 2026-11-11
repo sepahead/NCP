@@ -115,6 +115,7 @@ A received frame keeps its bytes once: `array_bytes(i)` returns a slice of the f
 | TCP | `listen_tcp(address, false)`, then `tcp_channel(stream)` and `serve` for each connection | `connect_tcp(address, false)` |
 
 A connection carries one session. TCP accepts only loopback addresses unless the second argument is `true`; use that only on a trusted cluster network.
+Between computers, or over a network that can lose messages, use the optional [Zenoh binding](../bindings/zenoh/README.md) (crate `sepahead-ncp-zenoh`), with mutual TLS and access control on networks that are not trusted.
 `connect_unix` tries a refused connection again for up to 10 s (`binding::CONNECT_PATIENCE`): an owner refuses connections while its queue of connections that it has not yet accepted is full, for example when many agents start at once (macOS keeps 128).
 The binding sets 1 MiB socket buffers and `TCP_NODELAY`.
 `set_tcp_timeout(&channel, Some(limit))` and `set_unix_timeout(&channel, Some(limit))` set a time limit for each receive: a call whose response does not arrive in time ends the session with `timeout` and executed `unknown`.

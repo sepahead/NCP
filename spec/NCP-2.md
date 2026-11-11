@@ -216,6 +216,7 @@ A `rejected` response changes no state. The owner does not keep it, and the same
 | `seq_stale` | `rejected` | Not by this frame. An earlier copy of the request may have executed: a delayed copy of an executed request gets this code once a later request has executed. |
 | `result_too_large` | `ended` | Yes |
 | `owner_failure` | `ended` | Unknown |
+| `session_expired` | `ended` | Unknown: the owner forgot the session (rule 9.2.7) |
 | `bad_frame`, `shutdown` | `ended` | No request is named |
 
 For `contract_mismatch` and `bound_unacceptable`, the owner responds to `open` and stays without a session.
@@ -278,8 +279,9 @@ The Zenoh binding carries the same frame bytes as Zenoh payloads. It is optional
 2. A publisher puts stream frames on `ncp/s/<stream-key>`. Subscribers subscribe to that key.
 3. **Bad-frame rule:** a receiver drops a bad frame.
 4. The client accepts only the reply that matches its request (rule 7.6.2). If no reply arrives in time, it sends the same request frame again.
-5. Each owner MUST use its own service key.
+5. Each owner MUST use its own service key. Service keys and stream keys contain no wildcards.
 6. Deployments on networks that are not trusted MUST use TLS with client certificates and Zenoh access control.
+7. An owner serves one session for each session identifier. It MAY forget a session that has sent no request for a time, counted from the owner's last response to it, that the owner documents; that time MUST exceed the longest time that a client of the service waits for a response, all repeats included. The owner then answers every later request of the forgotten session with outcome `ended` and the code `session_expired`: the request is possibly executed. It answers a request of a session that it never served with `not_open`.
 
 ## 10. Transcripts
 

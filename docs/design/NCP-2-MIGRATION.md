@@ -23,7 +23,7 @@ The counts are source references on `main`, without vendored copies and document
 | --- | --- | --- |
 | `ncp-local` lockstep client and owner | `ncp::Client` and `ncp::Owner` in the Rust package `sepahead-ncp-core` (library `ncp`) and the Python package `sepahead-ncp` (module `ncp`): one round trip per call, the acknowledgement in the next request | none: both SDKs bind pipes and child processes, Unix sockets, and TCP |
 | Typed messages of the wire-1.0 candidate | NCP 2 frames: JSON region, attachments, digest identity; operations and streams named by a contract document | each consumer writes its own contract; no generated types |
-| Zenoh transport (`ncp-zenoh`) | the Zenoh binding of specification 9.2 | **not implemented** in either SDK |
+| Zenoh transport (`ncp-zenoh`) | the Zenoh binding of specification 9.2: the optional packages in [`bindings/zenoh`](../../bindings/zenoh/README.md), Python `ncp_zenoh` and Rust `ncp_zenoh` | a session per service and session identifier, not per Zenoh key family; mutual TLS and access control in the Zenoh configuration |
 | Sensor streams | NCP 2 streams: sequenced, hash-chained, loss reported (`Publisher`, `Subscriber`) | none |
 | Transcripts | NCP 2 transcripts and their offline verifier (`Tap`, `verify`) | none |
 | TypeScript `@sepahead/ncp` | none | **no TypeScript SDK** |

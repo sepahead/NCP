@@ -32,14 +32,14 @@ The [specification](spec/NCP-2.md) is the exact definition, and the [design reco
 | One call with a small result, Python to Python | 38.6 µs | 457.8 µs | [Comparison benchmark](benchmarks/comparison/README.md) |
 | Time added to each 1 ms step of a NEST network, Rust client | 23 to 32 µs | 228 to 248 µs | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-protocol-5) |
 | Spikes compared with NEST's recorder | All 42,026,126 exact, in 96 trials with up to 10,000 neurons | All exact in 72 trials with 1000 neurons | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-content-protocol-2) |
-| Fault trials with real programs | 4,170 trials: no wrong result, no step run twice, no false report of a step | 3,816 trials: no wrong result | [Fault campaign](benchmarks/fault-campaign/README.md#results-of-protocol-3) |
+| Fault trials with real programs, over pipes, Unix domain sockets, and TCP | 8,730 trials: no wrong result, no step run twice, no false report of a step | 3,816 trials over pipes: no wrong result | [Fault campaign](benchmarks/fault-campaign/README.md#results-of-protocol-5) |
 | One round over 256 programs from one host (`call_all`) | 0.92 ms (Rust), 2.8 ms (Python) | not measured | [Multi-agent benchmark](benchmarks/multi-agent/README.md#results) |
 | 64 agents sharing one world in rounds, Python owner | 2.6 ms per round; the same final state in every run | no rounds profile | [Multi-agent benchmark](benchmarks/multi-agent/README.md#results) |
 
 Up to 1,788 spikes per call, NCP 2 was also faster than gRPC and Zenoh in Rust, and than gRPC and HTTP in Python; with 1 MiB per call, the systems without an integrity check were faster, by about the time of NCP 2's SHA-256 check.
 When every other system made the same SHA-256 check as NCP 2, NCP 2 was the fastest at every size, 1 MiB included, in both languages ([comparison protocol 2](benchmarks/comparison/README.md#results-of-protocol-2)).
 
-- The SDKs: [Python](python/README.md), which uses only the standard library, and [Rust](rust/README.md).
+- The SDKs: [Python](python/README.md), which uses only the standard library, and [Rust](rust/README.md). The optional [Zenoh binding](bindings/zenoh/README.md), for both languages, carries the same frames between computers, with mutual TLS and access control.
 - Twelve claims about the owner are proved in Lean for every sequence of requests ([`formal/`](formal/README.md)); the SDKs are tested against the proved model, not proved themselves.
 - [What NCP 2 changes from NCP 1](docs/design/NCP-1-SHORTCOMINGS.md) maps each known shortcoming of NCP 1 to its fix and its check, and lists the work that is still open.
 - The projects that use NCP move to NCP 2 one at a time, in the order of the [migration plan](docs/design/NCP-2-MIGRATION.md). NCP 1 stays available until the last one has moved.

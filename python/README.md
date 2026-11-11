@@ -106,6 +106,7 @@ The types are `u8`, `i8`, `u16`, `i16`, `u32`, `i32`, `u64`, `i64`, `f32`, and `
 A connection carries one session. `UnixServer` and `TcpServer` call `make_owner()` for each connection.
 An owner refuses connections while its queue of connections that it has not yet accepted is full, for example when many agents start at once; the servers ask for the largest queue that the system allows (128 on macOS), and `connect_unix` tries a refused connection again until its `timeout` (10 s) has passed.
 TCP accepts only loopback addresses unless you pass `allow_remote=True`; use it only on a trusted cluster network.
+Between computers, or over a network that can lose messages, use the optional [Zenoh binding](../bindings/zenoh/README.md) (`ncp_zenoh`), with mutual TLS and access control on networks that are not trusted.
 Put a Unix domain socket in a directory that only the users of the sessions can access.
 
 To call many sessions at once, for example one for each agent, use `ncp.call_all(clients, op, bodies)`.

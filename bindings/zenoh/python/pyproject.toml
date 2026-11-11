@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools==84.1.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sepahead-ncp-zenoh"
+version = "2.0.0a1"
+description = "The Zenoh binding of NCP 2: exchanges as Zenoh queries and replies, streams as publications (optional package)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT OR Apache-2.0"
+authors = [{ name = "Sepehr Mahmoudian" }]
+dependencies = ["sepahead-ncp==2.0.0a1", "eclipse-zenoh==1.10.2"]
+keywords = ["co-simulation", "closed-loop", "neurorobotics", "protocol", "zenoh"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Repository = "https://github.com/sepahead/NCP"
+Specification = "https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md"
+
+[tool.setuptools.packages.find]
+include = ["ncp_zenoh*"]
+
+[tool.setuptools.package-data]
+ncp_zenoh = ["py.typed"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ncp_zenoh"]
+known-third-party = ["ncp", "zenoh"]

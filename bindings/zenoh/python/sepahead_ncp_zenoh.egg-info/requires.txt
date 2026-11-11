@@ -1,0 +1,2 @@
+sepahead-ncp==2.0.0a1
+eclipse-zenoh==1.10.2

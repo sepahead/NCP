@@ -30,7 +30,13 @@ pub const REJECTION_CODES: [&str; 14] = [
     "session_ended",
 ];
 /// The ending codes of this version (spec section 7.5).
-pub const ENDING_CODES: [&str; 4] = ["result_too_large", "owner_failure", "bad_frame", "shutdown"];
+pub const ENDING_CODES: [&str; 5] = [
+    "result_too_large",
+    "owner_failure",
+    "bad_frame",
+    "shutdown",
+    "session_expired",
+];
 
 /// Whether the request named by an `ended` response executed: "yes", "no", or "unknown". A code
 /// that this version does not know gives "unknown" (spec section 7.5).

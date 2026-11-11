@@ -36,8 +36,14 @@ REJECTION_CODES = frozenset(
         "session_ended",
     }
 )
-ENDING_CODES = frozenset({"result_too_large", "owner_failure", "bad_frame", "shutdown"})
-EXECUTED = {"result_too_large": "yes", "owner_failure": "unknown", "bad_frame": "no", "shutdown": "no"}
+ENDING_CODES = frozenset({"result_too_large", "owner_failure", "bad_frame", "shutdown", "session_expired"})
+EXECUTED = {
+    "result_too_large": "yes",
+    "owner_failure": "unknown",
+    "session_expired": "unknown",
+    "bad_frame": "no",
+    "shutdown": "no",
+}
 _CODE = re.compile(r"[a-z_]{1,64}")
 
 

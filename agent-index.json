@@ -28,6 +28,8 @@
     {"id": "plots", "when": "scripts/plot_perf.py or docs/plots changes", "command": "python3 scripts/plot_perf.py --self-test --check", "cost": "fast", "environment": "scripts/requirements-plot.txt"},
     {"id": "agent-index", "when": "agent-index.json or a path it names changes", "command": "python3 scripts/check_agent_index.py", "cost": "fast"},
     {"id": "frozen-baselines", "when": "a protocol, schema or vector changes", "command": "python3 scripts/check_wire_baseline.py && python3 scripts/check_released_baselines.py", "cost": "medium"},
+    {"id": "ncp2", "when": "python/, rust/, model/, formal/, conformance/, or spec/NCP-2.md changes", "command": "scripts/check_ncp2.sh", "cost": "medium"},
+    {"id": "ncp2-zenoh", "when": "bindings/zenoh/, python/, rust/, or spec/NCP-2.md changes", "command": "scripts/check_ncp2_zenoh.sh", "cost": "medium"},
     {"id": "complete-local-gate", "when": "before a release-candidate handoff", "command": "scripts/check.sh", "cost": "full"}
   ],
   "generated": [
