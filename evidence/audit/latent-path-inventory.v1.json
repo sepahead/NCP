@@ -2716,76 +2716,6 @@
         "indexed": true
       },
       {
-        "path": "bindings/zenoh/python/ncp_zenoh/__init__.py",
-        "bytes": 12500,
-        "sha256": "33b3b385b1553d5f5f7e1aca9bd3e1d186c7be470817365032f992f3a443cd7e",
-        "git_blob_oid": "1155c6af4d91b9193edc06e3b64fafa171631b5c",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/python/ncp_zenoh/py.typed",
-        "bytes": 0,
-        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "git_blob_oid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/python/pyproject.toml",
-        "bytes": 1267,
-        "sha256": "d05c19abff76a9f42a331e3e04d5470e95c889847e3f4b8551e58f44658c315e",
-        "git_blob_oid": "aa5775c310d0df93e89174f8edb1f31e45f14d43",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/python/tests/test_zenoh.py",
-        "bytes": 19394,
-        "sha256": "03d0b5f793a140629392bf2824ff59227f0b1fe41bfb92fe024b3ccebcc3e1c0",
-        "git_blob_oid": "358e6bf8d9478ac5e1b0a0b026041d70a48b908b",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/python/tests/zenoh_echo_owner.py",
-        "bytes": 1953,
-        "sha256": "407e8b8ecb150b4df91a12251afc59fa65e8ba3f47a149b08a2b44c7350d6a64",
-        "git_blob_oid": "6e928e9ab1f23cc1de519983a493f92e1cc0a517",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/rust/Cargo.lock",
-        "bytes": 76568,
-        "sha256": "60a57031a0875ee459938f0f51644fb3cffe10443efc2ed091d06255ca626448",
-        "git_blob_oid": "b93e806b9ea7e729b12d51efdf621b77b7745282",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/rust/Cargo.toml",
-        "bytes": 1019,
-        "sha256": "2402d3119329c72f354957f28ff22953ddbe0c8758de5d98a520694f39451fb3",
-        "git_blob_oid": "e28c36a4fc0cbbc648c1d727cf92017ff9786ab3",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/rust/examples/zenoh_echo_owner.rs",
-        "bytes": 2898,
-        "sha256": "2bdc0257ce67ea102a7d67408e06e1cea6b942684c34f5db5d6aea41dcd42f27",
-        "git_blob_oid": "4a8916ec981efe7b5eed2a2b225327a6957845d2",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/rust/src/lib.rs",
-        "bytes": 18171,
-        "sha256": "df0a6c2c41103263ef9a9c497398f42d327c6b7272e9711b56bde025d3cbd29a",
-        "git_blob_oid": "0819ecec1c1c403405a8f5ad87cdec487034f27c",
-        "indexed": false
-      },
-      {
-        "path": "bindings/zenoh/rust/tests/zenoh.rs",
-        "bytes": 23782,
-        "sha256": "ae34c8e4e08456bde9d90760c2e8b2575842cc704245ad20a541c2090d959372",
-        "git_blob_oid": "44169a7ea55f69c674565f9861dfc0609e7d805a",
-        "indexed": false
-      },
-      {
         "path": "buf.gen.yaml",
         "bytes": 1032,
         "sha256": "7f690ea2319ceabab73f56a1a131c27a1d839ccbef10c601c77589b8990066ac",
@@ -10207,9 +10137,9 @@
       },
       {
         "path": "python/ncp/exchange.py",
-        "bytes": 20889,
-        "sha256": "1310aaff55e27dfefc30ee86cebbe77030d6e1b0e98ff195761e55d12fa4e3a6",
-        "git_blob_oid": "7e46bfc6b945759010f46ed0f6bdc8066290a0fd",
+        "bytes": 20817,
+        "sha256": "24d837518ed374fa23bab51b71eff504c6c5322bbb2292f87f00fd73ea897bdf",
+        "git_blob_oid": "0d19f76d1f9e9a4d9fb093da3bee6c5c8e1dcef0",
         "indexed": true
       },
       {
@@ -10389,9 +10319,9 @@
       },
       {
         "path": "rust/src/exchange.rs",
-        "bytes": 29268,
-        "sha256": "ed455bd15fa97d1965cfada719c3ffb9b58df3f218393e406b7a74cf3c10f42e",
-        "git_blob_oid": "91516997e5e56bfad2e1bb4ae2c36484f45ea2b4",
+        "bytes": 29226,
+        "sha256": "f41d377ad26e6c75378e6b492a3b47476d60ff02f1e6f5a0e77d9555f09b1094",
+        "git_blob_oid": "8ad9dade53c37f7c071c3f3291777e1693679f4e",
         "indexed": true
       },
       {
@@ -11194,9 +11124,9 @@
       },
       {
         "path": "spec/NCP-2.md",
-        "bytes": 24540,
-        "sha256": "d2c69383166e9b536ca7e9060a72ba146fdefe30d805f5e7360b9bed352307c2",
-        "git_blob_oid": "1c0d9ddcdbce5b1f7f236f559a0ef1b235adc3c5",
+        "bytes": 23926,
+        "sha256": "ec236f9cb32fe4647a3d0fd08817c050819974d781f952390c2eabd7d1356754",
+        "git_blob_oid": "abe03c25b9b4cacb385126d9962fd88f73928419",
         "indexed": true
       }
     ],
@@ -11436,7 +11366,7 @@
     ]
   },
   "counts": {
-    "text_files": 1594,
+    "text_files": 1584,
     "binary_or_non_utf8_files": 29,
     "occurrences": 377,
     "by_token_id": {
@@ -11469,7 +11399,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "70cb13c342ef4611990580fa9b8f06aa889d02fe7ad47c6a6bfb08fe44ad52ac",
+  "scanned_path_set_sha256": "96d12579227b79f06e332f9de30bed84f48ded3b92ac03b751121dbfadee9534",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
