@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   requirement it could add the binding only at Zenoh 1.10.2 and then follow no later Zenoh
   release without a new binding release. The lockfiles still fix the tested versions, and the
   release script rejects an exact requirement.
+- A transcript records a frame before its program sends it (specification section 10). The
+  byte-stream channels of both SDKs recorded it after the write, so a program that stopped
+  while sending could leave out a request that its peer had executed; the Zenoh bindings
+  already recorded first. A transcript now holds every request that a peer may have
+  executed, and a frame whose sending failed stays recorded as sent. A test in each SDK
+  sends through a broken writer and finds the frame in the transcript.
 - The README has a section of NCP 2 benchmarks: the median and 99th-percentile time of one call
   for NCP 2, NCP 1.0.1, gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe, with the result under
   the same integrity check; the time added to each step of a NEST simulation, median and 99th

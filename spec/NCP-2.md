@@ -297,6 +297,9 @@ Each record has this layout:
 
 A transcript file starts with the 8 bytes `4E 43 50 54 00 00 00 01` (`"NCPT"` and version 1).
 
+A recorder MUST record a frame that it sends before it sends the frame, and a frame that it receives after it has received the whole frame.
+A transcript therefore holds every request that a peer may have executed, also when the recorder stops while sending; a frame whose sending failed stays recorded as sent.
+
 A transcript is **complete** for a session if it contains the `open` request, a response for every request, and the response to `close`.
 A verifier MUST check the digests of all frames, the sequence numbers, and the hash chain (property 7.7.6).
 A complete, verified transcript proves which requests and responses the recorder sent and received, and in which order.

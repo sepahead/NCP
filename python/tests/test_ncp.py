@@ -550,6 +550,22 @@ class ForwardCompatibilityTests(unittest.TestCase):
 
 
 class TapTests(unittest.TestCase):
+    def test_a_tap_records_a_frame_before_sending_it(self) -> None:
+        from ncp import transcript as T
+
+        path = os.path.join(tempfile.mkdtemp(prefix="ncp-tap-"), "sent.ncpt")
+        tap = T.Tap(path)
+
+        def broken(_: bytes) -> None:
+            raise BrokenPipeError("the peer is gone")
+
+        channel = ncp.StreamChannel(lambda n: b"", broken, None, tap=tap)
+        frame = F.encode({"a": 1})
+        with self.assertRaises(BrokenPipeError):
+            channel.send(frame)
+        records = list(T.read(path))
+        self.assertEqual([(r.kind, r.frame) for r in records], [(T.SENT, frame)])
+
     def test_a_tap_keeps_its_records_when_the_program_dies(self) -> None:
         from ncp import transcript as T
 

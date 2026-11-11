@@ -147,7 +147,7 @@ A second run gave every other tool the same fingerprint check as NCP 2, added by
 | Receipt | The identity of the last response, carried by the next request. The specification calls it `ack`. |
 | Contract | A document in which an application describes its steps and data. NCP compares contracts by their identity. |
 | Possibly executed | The client cannot know whether the step ran. |
-| Transcript | A file with every message that one program sent and received. A verifier checks its fingerprints and its chain. |
+| Transcript | A file with every message that one program sent and received. A message is written to it before it is sent, so a transcript holds every request that the other program may have carried out. A verifier checks its fingerprints and its chain. |
 
 ## Read more
 

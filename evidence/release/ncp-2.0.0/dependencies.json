@@ -1,16 +1,16 @@
 {
  "artifacts": {
   "sepahead-ncp-core-2.0.0.crate": {
-   "bytes": 36437,
-   "sha256": "18469dcb19ec817dde3f286fab8dccc5ac6054f8be1393fc802de74f51ff8574"
+   "bytes": 36557,
+   "sha256": "74c71dfc590bb6e141b0a4c72e32ae459e947ff41eeccc65ffdb189c32a09113"
   },
   "sepahead_ncp-2.0.0-py3-none-any.whl": {
-   "bytes": 34673,
-   "sha256": "d9e45a1f47480576c8e91faaab5dddcdbf6accf8c9c5ec3bbee10a72ec6038cb"
+   "bytes": 34759,
+   "sha256": "96f70b8cbeed036188f61f187944d7bc952298fe11e1af39bd0a6fc3a972fbdb"
   },
   "sepahead_ncp-2.0.0.tar.gz": {
-   "bytes": 33578,
-   "sha256": "e48702a38db3aa032781dd438679050397962c6a3e489b3e4cef2f50e8d6f804"
+   "bytes": 33648,
+   "sha256": "fd0be4d4c906253948f8677d4a15cff7d3c6f72d07207d63fe1633929b1046e6"
   },
   "sepahead_ncp_zenoh-2.0.0-py3-none-any.whl": {
    "bytes": 11699,

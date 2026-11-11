@@ -60,18 +60,18 @@ impl<R: Read, W: Write> StreamChannel<R, W> {
         self.closer = Some(closer);
     }
 
-    /// Send one frame.
+    /// Send one frame. The tap records it first (spec section 10), so that a transcript holds
+    /// every request that the peer may have executed, even if this program stops while sending.
     pub fn send_frame(&mut self, frame: &[u8]) -> io::Result<()> {
         let writer = self
             .writer
             .as_mut()
             .ok_or_else(|| io::Error::new(io::ErrorKind::BrokenPipe, "channel closed"))?;
-        writer.write_all(frame)?;
-        writer.flush()?;
         if let Some(tap) = &self.tap {
             tap.record(SENT, frame)?;
         }
-        Ok(())
+        writer.write_all(frame)?;
+        writer.flush()
     }
 
     fn read_header(&mut self, header: &mut [u8; HEADER_BYTES]) -> Result<(), Error> {

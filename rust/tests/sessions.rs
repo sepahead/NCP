@@ -1170,6 +1170,35 @@ fn unknown_codes_are_handled_by_outcome() {
 }
 
 #[test]
+fn a_tap_records_a_frame_before_sending_it() {
+    // A writer that fails: the frame never leaves, but the transcript must already hold it,
+    // because the peer could have executed a request whose sending was interrupted (spec 10).
+    struct Broken;
+    impl std::io::Write for Broken {
+        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "the peer is gone",
+            ))
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let path = scratch("write-ahead").join("sent.ncpt");
+    let tap = Arc::new(ncp::Tap::create(&path).expect("tap"));
+    let mut channel = ncp::StreamChannel::new(std::io::empty(), Broken).with_tap(tap);
+    let frame_bytes = frame::encode(&json!({"a": 1}), &[]).expect("encode");
+    assert!(channel.send_frame(&frame_bytes).is_err(), "the write fails");
+    let records = transcript::read(&path).expect("transcript");
+    assert_eq!(records.len(), 1);
+    assert_eq!(
+        (records[0].kind, records[0].frame.clone()),
+        (transcript::SENT, frame_bytes)
+    );
+}
+
+#[test]
 fn a_tap_keeps_its_records_when_the_program_dies() {
     let directory = scratch("crash");
     let frame_bytes = frame::encode(&json!({"a": 1}), &[]).expect("encode");

@@ -78,9 +78,11 @@ class StreamChannel:
         return cls(sock.recv, sock.sendall, sock.fileno(), tap=tap, close=sock.close)
 
     def send(self, frame: bytes) -> None:
-        self._write(frame)
+        # The tap records the frame first (spec section 10), so that a transcript holds every
+        # request that the peer may have executed, even if this program stops while sending.
         if self.tap is not None:
             self.tap.record(SENT, frame)
+        self._write(frame)
 
     def receive(self, bound: int, timeout: float | None, frame_timeout: float | None = None) -> bytes:
         """Return one complete frame. Raise FrameError for a bad header, TimeoutError, or
