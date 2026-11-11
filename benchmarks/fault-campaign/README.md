@@ -259,4 +259,37 @@ It changes two things: the driver's cleanup treats `PermissionError` from `killp
 Everything else is as in protocol 4. `run4.py --protocol 5` runs it, and `analyze4.py` applies the same criteria.
 The same correction went into the cleanup of [`../multi-agent/run.py`](../multi-agent/run.py), whose recorded runs did not meet the race.
 
-The results of protocol 5 follow once its trials have run.
+### Results of protocol 5
+
+The trials ran on 11 November 2026 from 17:35 to 17:48 UTC, from the clean commit `c08665c`, with Python 3.15.0 and Rust 1.99.1, on battery in High Power mode, with one-minute load averages of 3.5 to 26.9 before a trial.
+[`results-5/trials.jsonl`](results-5/trials.jsonl) holds every trial, and [`results-5/analysis.json`](results-5/analysis.json) the analysis.
+**Every scheduled trial ran, and all eight hypotheses hold**, in each of the eight combinations of binding, client, and owner.
+
+| Scenario | Owner | Trials | Completed | Ended early | Wrong results |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Bit flip, client to owner | Python, Rust | 480 each | 0 | 480 each | 0 |
+| Bit flip, owner to client | Python, Rust | 480 each | 0 | 480 each | 0 |
+| Truncated frame, client to owner | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Truncated frame, owner to client | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Repeated frame, client to owner | Python / Rust | 120 each | 15 / 20 | 105 / 100 | 0 |
+| Repeated frame, owner to client | Python / Rust | 120 each | 17 / 17 | 103 / 103 | 0 |
+| Owner killed at a random time | Python / Rust | 240 each | 66 / 198 | 174 / 42 | 0 |
+| Client killed at a random time | Python, Rust | 120 each | The owner served a new session in all 240, within 0.004 s | | |
+| Step stalls three times the time limit | Python | 120 | 0 | 120 | 0 |
+| Result larger than the session bound | Python | 120 | 0 | 120 | 0 |
+| Request larger than the session bound | Python, Rust | 120 each | 120 each | 0 | 0 |
+| Handler raises | Python, Rust | 120 each | 0 | 120 each | 0 |
+
+| # | Hypothesis | Holds |
+| --- | --- | --- |
+| E1 | No trial accepts a wrong result. | yes |
+| E2 | In every trial, the owner executes each step at most once, in order. | yes |
+| E3 | In every trial, what the client learned is true. | yes |
+| E4 | Every failure reaches the application as an error that the client's SDK documents. | yes |
+| E5 | Every flipped or truncated frame ends the session before it completes. | yes: 2,640 of 2,640 |
+| E6 | After every killed client, the owner serves a new session within 10 s. | yes: 240 of 240 |
+| E7 | Every stall ends with `timeout`, executed `unknown`, within 3 s of the start of the session. | yes: after 2.00 to 2.01 s |
+| E8 | Oversized results, raising handlers, and oversized requests end as stated. | yes |
+
+Each row adds both bindings and both clients. Of the 1,920 flipped bits, 1,309 were in the JSON region, 315 in the attachments, 215 in the digest, and 81 in the header.
+With protocols 2 and 3 over pipes, NCP 2 has now met every fault scenario of this campaign over pipes, Unix domain sockets, and TCP, with both clients and both owners, without a wrong result.

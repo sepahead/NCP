@@ -75,7 +75,7 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 | 25 | No fuzz target for the local SDK | Differential fuzzing of both decoders: 200,000 cases in each gate run | Fixed | `conformance/fuzz.py` |
 | 26 | Only the report arithmetic was checked in Lean | The owner rules are a Lean model. Twelve claims are proved with Lean's standard axioms only, and six model defects show what each claim constrains | Fixed | [`formal/`](../../formal) |
 | 27 | The complete gate took about 65 minutes | The NCP 2 gate takes about 17 seconds | Fixed | `scripts/check_ncp2.sh` |
-| 28 | Fault and soak campaigns covered only NCP 1.0.1 | The model check covers lost, repeated, delayed, and changed frames and crashes. With real processes over pipes, 4,170 fault trials with the Python client and both owners found no wrong result, no step run twice, and no false report of a step, and nine soaks of up to 1,000,000 calls kept memory and descriptors constant. Unix sockets, TCP, and fault trials with the Rust client are not covered | Fixed for pipes | [Fault campaign](../../benchmarks/fault-campaign/README.md#results-of-protocol-3), protocol 3; section 8 |
+| 28 | Fault and soak campaigns covered only NCP 1.0.1 | The model check covers lost, repeated, delayed, and changed frames and crashes. With real processes, 4,170 fault trials over pipes (protocol 3) and 4,560 over Unix domain sockets and TCP, with the Python and the Rust client against both owners (protocol 5), found no wrong result, no step run twice, and no false report of a step; nine soaks of up to 1,000,000 calls kept memory and descriptors constant | Fixed | [Fault campaign](../../benchmarks/fault-campaign/README.md#results-of-protocol-5), protocols 3 and 5 |
 | 29 | No independent second implementation | Two SDKs share the conformance vectors, but one author wrote both | Open | Section 8 |
 | 30 | No modular-composition test of the ecosystem | A closed loop of stand-in neural, body, monitor, and recorder modules runs with every subset of the optional modules and with a fault in each module; faults in optional modules never stop the loop, every transcript verifies, and the same seed gives the same messages | Fixed | [`python/tests/test_composition.py`](../../python/tests/test_composition.py), in `scripts/check_ncp2.sh` |
 | 31 | Installed packages and supply-chain records were missing for a release | The NCP 2 packages have not been built as release artifacts yet | Open | Section 8 |
@@ -102,13 +102,12 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 These items follow from the open rows above and from the [design record](NCP-2-DESIGN.md).
 They are the remaining work before the release of NCP 2.0.
 
-1. Fault trials over Unix domain sockets and TCP, and with the Rust client (row 28).
-2. The Zenoh binding with mutual TLS and access control (row 32).
-3. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
-4. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
-5. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
+1. The Zenoh binding with mutual TLS and access control (row 32).
+2. A TypeScript client or a bridge for CREBAIN's web interface, if it still needs NCP after its Rust side has moved (row 38).
+3. The moves of the consumers to NCP 2, then the removal of the NCP 1 code from the main branch (row 36).
+4. Release artifacts and supply-chain records for both packages (row 31); the tag and the publication are owner actions.
 
-Done since this list was written: the modular-composition test (row 30), and the multi-agent and MPI benchmarks, with the rounds profile (design record, sections 8 and 11.4; [multi-agent benchmark](../../benchmarks/multi-agent/README.md)).
+Done since this list was written: fault trials over Unix domain sockets and TCP and with the Rust client (row 28), the modular-composition test (row 30), and the multi-agent and MPI benchmarks, with the rounds profile (design record, sections 8 and 11.4; [multi-agent benchmark](../../benchmarks/multi-agent/README.md)).
 
 Protocol 5 also left one question open that is not a shortcoming of NCP 1: whether a coupling slows NEST's own work. At 10,000 neurons, that work varied between runs by more than the time of an exchange (hypotheses G1 and G3).
 

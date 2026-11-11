@@ -212,6 +212,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   again with new draws. The six error messages are redacted to `<checkout>`, as
   `results-4/REDACTION.json` records.
 
+- Fault-campaign protocol 5 ran on 11 November 2026: every one of its 4,560 trials over
+  Unix domain sockets and TCP, with the Python and the Rust client against both owners,
+  ran, and all eight hypotheses hold. No trial accepted a wrong result, executed a step
+  twice, or reported a step falsely; every damaged frame ended its session; every
+  stall ended after 2.00 to 2.01 s; and every killed client left an owner that served a
+  new session within 0.004 s.
+
 ### Security: dependency updates in the root lockfile (no wire change)
 
 - RUSTSEC-2026-0386: the safe `AsyncFd` constructors of `tokio` violate I/O
