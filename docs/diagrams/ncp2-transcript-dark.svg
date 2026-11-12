@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1050" viewBox="0 0 1600 1050" role="img" aria-labelledby="ncp2-transcript-title ncp2-transcript-desc">
+<title id="ncp2-transcript-title">An NCP 2 transcript and its hash chain</title>
+<desc id="ncp2-transcript-desc">A program records each frame before it sends it. Requests and responses name each other by digest, so a session forms one hash chain that a verifier checks. A transcript does not show who produced the frames. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="ncp2-transcript-arrow-muted" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#AAB7BE"/></marker>
+<pattern id="ncp2-transcript-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1050" fill="#131D26"/>
+<path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="156" width="477.3" height="239" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M52 170 L52 170 Q52 156 66 156 L515.3 156 Q529.3 156 529.3 170 L529.3 170 Z" fill="#8DB2D8"/>
+<circle cx="90" cy="207" r="21.2" fill="#8DB2D8"/>
+<path d="M78 236 L503.3 236" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="561.3" y="156" width="477.3" height="239" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M561.3 170 L561.3 170 Q561.3 156 575.3 156 L1024.7 156 Q1038.7 156 1038.7 170 L1038.7 170 Z" fill="#6FC1BD"/>
+<circle cx="599.3" cy="207" r="21.2" fill="#6FC1BD"/>
+<path d="M587.3 236 L1012.7 236" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1070.7" y="156" width="477.3" height="239" rx="14" fill="#1A2631" stroke="#E2B75A" stroke-width="3"/>
+<path d="M1070.7 170 L1070.7 170 Q1070.7 156 1084.7 156 L1534 156 Q1548 156 1548 170 L1548 170 Z" fill="#E2B75A"/>
+<circle cx="1108.7" cy="207" r="21.2" fill="#E2B75A"/>
+<path d="M1096.7 236 L1522 236" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="505" width="290" height="104" rx="12" fill="#1F3340" stroke="#8DB2D8" stroke-width="3"/>
+<rect x="454" y="505" width="290" height="104" rx="12" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<rect x="856" y="505" width="290" height="104" rx="12" fill="#1F3340" stroke="#8DB2D8" stroke-width="3"/>
+<rect x="1258" y="505" width="290" height="104" rx="12" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<rect x="52" y="693" width="290" height="104" rx="12" fill="#1F3340" stroke="#8DB2D8" stroke-width="3"/>
+<rect x="454" y="693" width="290" height="104" rx="12" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<rect x="856" y="693" width="290" height="104" rx="12" fill="#1F3340" stroke="#8DB2D8" stroke-width="3"/>
+<rect x="1258" y="693" width="290" height="104" rx="12" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<rect x="52" y="847" width="1496" height="163" rx="10" fill="#1E3240"/>
+<rect x="52" y="847" width="10" height="163" rx="5" fill="#D8AA45"/>
+<path d="M342 557 L454 557" fill="none" stroke="#AAB7BE" stroke-width="3" stroke-linejoin="round" marker-end="url(#ncp2-transcript-arrow-muted)"/>
+<path d="M744 557 L856 557" fill="none" stroke="#AAB7BE" stroke-width="3" stroke-linejoin="round" marker-end="url(#ncp2-transcript-arrow-muted)"/>
+<path d="M1146 557 L1258 557" fill="none" stroke="#AAB7BE" stroke-width="3" stroke-linejoin="round" marker-end="url(#ncp2-transcript-arrow-muted)"/>
+<path d="M1403 609 L1403 651 L197 651 L197 693" fill="none" stroke="#AAB7BE" stroke-width="3" stroke-linejoin="round" marker-end="url(#ncp2-transcript-arrow-muted)"/>
+<path d="M342 745 L454 745" fill="none" stroke="#AAB7BE" stroke-width="3" stroke-linejoin="round" marker-end="url(#ncp2-transcript-arrow-muted)"/>
+<path d="M744 745 L856 745" fill="none" stroke="#AAB7BE" stroke-width="3" stroke-linejoin="round" marker-end="url(#ncp2-transcript-arrow-muted)"/>
+<path d="M1146 745 L1258 745" fill="none" stroke="#AAB7BE" stroke-width="3" stroke-linejoin="round" marker-end="url(#ncp2-transcript-arrow-muted)"/>
+<text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">NCP 2 TRANSCRIPT</text>
+<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Every session can be checked afterwards</text>
+<text x="90" y="215.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="122" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Record first</text>
+<text x="78" y="274" class="r" font-size="25" fill="#ECE5D5">The program writes each frame to its</text>
+<text x="78" y="307" class="r" font-size="25" fill="#ECE5D5">transcript before it sends it, and each</text>
+<text x="78" y="340" class="r" font-size="25" fill="#ECE5D5">received frame once it has arrived</text>
+<text x="78" y="373" class="r" font-size="25" fill="#ECE5D5">whole.</text>
+<text x="599.3" y="215.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="631.3" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">One chain</text>
+<text x="587.3" y="274" class="r" font-size="25" fill="#ECE5D5">Each request names the response</text>
+<text x="587.3" y="307" class="r" font-size="25" fill="#ECE5D5">before it, and each response names its</text>
+<text x="587.3" y="340" class="r" font-size="25" fill="#ECE5D5">request, by their digests.</text>
+<text x="1108.7" y="215.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="1140.7" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Check afterwards</text>
+<text x="1096.7" y="274" class="r" font-size="25" fill="#ECE5D5">A verifier recomputes every digest and</text>
+<text x="1096.7" y="307" class="r" font-size="25" fill="#ECE5D5">checks the numbers and the chain. A</text>
+<text x="1096.7" y="340" class="r" font-size="25" fill="#ECE5D5">changed byte breaks it.</text>
+<text x="52" y="475" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">THE FRAMES OF ONE SESSION, IN ORDER</text>
+<text x="197" y="547" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="middle">request 0</text>
+<text x="197" y="585" class="s" font-size="26" fill="#ECE5D5" font-weight="700" text-anchor="middle">open</text>
+<text x="599" y="547" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="middle">response 0</text>
+<text x="599" y="585" class="s" font-size="26" fill="#ECE5D5" font-weight="700" text-anchor="middle">ok</text>
+<text x="1001" y="547" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="middle">request 1</text>
+<text x="1001" y="585" class="s" font-size="26" fill="#ECE5D5" font-weight="700" text-anchor="middle">step</text>
+<text x="1403" y="547" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="middle">response 1</text>
+<text x="1403" y="585" class="s" font-size="26" fill="#ECE5D5" font-weight="700" text-anchor="middle">ok</text>
+<text x="197" y="735" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="middle">request 2</text>
+<text x="197" y="773" class="s" font-size="26" fill="#ECE5D5" font-weight="700" text-anchor="middle">step</text>
+<text x="599" y="735" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="middle">response 2</text>
+<text x="599" y="773" class="s" font-size="26" fill="#ECE5D5" font-weight="700" text-anchor="middle">ok</text>
+<text x="1001" y="735" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="middle">request 3</text>
+<text x="1001" y="773" class="s" font-size="26" fill="#ECE5D5" font-weight="700" text-anchor="middle">close</text>
+<text x="1403" y="735" class="s" font-size="24" fill="#AAB7BE" font-weight="600" text-anchor="middle">response 3</text>
+<text x="1403" y="773" class="s" font-size="26" fill="#ECE5D5" font-weight="700" text-anchor="middle">ok</text>
+<text x="84" y="885" class="s" font-size="24" fill="#AAB7BE" font-weight="600">WHAT A TRANSCRIPT SHOWS</text>
+<text x="84" y="923" class="r" font-size="25" fill="#ECE5D5">Which frames one program sent and received, in which order. Because a frame is recorded before it is sent, the transcript holds</text>
+<text x="84" y="956" class="r" font-size="25" fill="#ECE5D5">every request that the peer may have run. It does not show who produced the frames: transcripts are not signed. CREBAIN's</text>
+<text x="84" y="989" class="r" font-size="25" fill="#ECE5D5">loop check and Prisoma's capture read transcripts.</text>
+</svg>

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="985" viewBox="0 0 1600 985" role="img" aria-labelledby="ncp2-frame-title ncp2-frame-desc">
+<title id="ncp2-frame-title">One NCP 2 frame</title>
+<desc id="ncp2-frame-desc">A frame has a 12-byte header, the JSON text, binary attachments, and a 32-byte SHA-256 digest of all bytes before it. The digest is the frame's identity; a receiver checks it before parsing. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="ncp2-frame-arrow-muted" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#AAB7BE"/></marker>
+<pattern id="ncp2-frame-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="985" fill="#131D26"/>
+<path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="208" width="246" height="112" rx="10" fill="#8DB2D8"/>
+<rect x="304" y="208" width="492" height="112" rx="10" fill="#6FC1BD"/>
+<rect x="802" y="208" width="492" height="112" rx="10" fill="#6FC1BD"/>
+<rect x="1300" y="208" width="248" height="112" rx="10" fill="#E2B75A"/>
+<rect x="52" y="410" width="350" height="338" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M52 424 L52 424 Q52 410 66 410 L388 410 Q402 410 402 424 L402 424 Z" fill="#8DB2D8"/>
+<circle cx="90" cy="461" r="21.2" fill="#8DB2D8"/>
+<path d="M78 490 L376 490" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="434" y="410" width="350" height="338" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M434 424 L434 424 Q434 410 448 410 L770 410 Q784 410 784 424 L784 424 Z" fill="#6FC1BD"/>
+<circle cx="472" cy="461" r="21.2" fill="#6FC1BD"/>
+<path d="M460 490 L758 490" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="816" y="410" width="350" height="338" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M816 424 L816 424 Q816 410 830 410 L1152 410 Q1166 410 1166 424 L1166 424 Z" fill="#6FC1BD"/>
+<circle cx="854" cy="461" r="21.2" fill="#6FC1BD"/>
+<path d="M842 490 L1140 490" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1198" y="410" width="350" height="338" rx="14" fill="#1A2631" stroke="#E2B75A" stroke-width="3"/>
+<path d="M1198 424 L1198 424 Q1198 410 1212 410 L1534 410 Q1548 410 1548 424 L1548 424 Z" fill="#E2B75A"/>
+<circle cx="1236" cy="461" r="21.2" fill="#E2B75A"/>
+<path d="M1224 490 L1522 490" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="782" width="1496" height="163" rx="10" fill="#1E3240"/>
+<rect x="52" y="782" width="10" height="163" rx="5" fill="#D8AA45"/>
+<path d="M175 320 L175 365 L227 365 L227 410" fill="none" stroke="#AAB7BE" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-frame-arrow-muted)"/>
+<path d="M550 320 L550 365 L609 365 L609 410" fill="none" stroke="#AAB7BE" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-frame-arrow-muted)"/>
+<path d="M1048 320 L1048 365 L991 365 L991 410" fill="none" stroke="#AAB7BE" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-frame-arrow-muted)"/>
+<path d="M1424 320 L1424 365 L1373 365 L1373 410" fill="none" stroke="#AAB7BE" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-frame-arrow-muted)"/>
+<text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">NCP 2 FRAME</text>
+<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Every message is one frame with its own fingerprint</text>
+<text x="56" y="192" class="s" font-size="24" fill="#AAB7BE" font-weight="600">byte 0</text>
+<text x="175" y="258" class="s" font-size="27" fill="#10202B" font-weight="700" text-anchor="middle">Header</text>
+<text x="175" y="296" class="s" font-size="24" fill="#10202B" font-weight="600" text-anchor="middle">12 bytes</text>
+<text x="308" y="192" class="s" font-size="24" fill="#AAB7BE" font-weight="600">12</text>
+<text x="550" y="258" class="s" font-size="27" fill="#10202B" font-weight="700" text-anchor="middle">JSON text</text>
+<text x="550" y="296" class="s" font-size="24" fill="#10202B" font-weight="600" text-anchor="middle">J bytes</text>
+<text x="806" y="192" class="s" font-size="24" fill="#AAB7BE" font-weight="600">12 + J</text>
+<text x="1048" y="258" class="s" font-size="27" fill="#10202B" font-weight="700" text-anchor="middle">Attachments</text>
+<text x="1048" y="296" class="s" font-size="24" fill="#10202B" font-weight="600" text-anchor="middle">A bytes</text>
+<text x="1304" y="192" class="s" font-size="24" fill="#AAB7BE" font-weight="600">12 + J + A</text>
+<text x="1424" y="258" class="s" font-size="27" fill="#10202B" font-weight="700" text-anchor="middle">Digest</text>
+<text x="1424" y="296" class="s" font-size="24" fill="#10202B" font-weight="600" text-anchor="middle">32 bytes</text>
+<text x="90" y="469.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="122" y="470" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Header</text>
+<text x="78" y="528" class="r" font-size="25" fill="#ECE5D5">The magic bytes NCP and</text>
+<text x="78" y="561" class="r" font-size="25" fill="#ECE5D5">2, then J and A as 32-bit</text>
+<text x="78" y="594" class="r" font-size="25" fill="#ECE5D5">lengths. The receiver</text>
+<text x="78" y="627" class="r" font-size="25" fill="#ECE5D5">compares the frame size,</text>
+<text x="78" y="660" class="r" font-size="25" fill="#ECE5D5">44 + J + A, with the</text>
+<text x="78" y="693" class="r" font-size="25" fill="#ECE5D5">session's limit before it</text>
+<text x="78" y="726" class="r" font-size="25" fill="#ECE5D5">reads on.</text>
+<text x="472" y="469.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="504" y="470" class="s" font-size="28" fill="#ECE5D5" font-weight="700">JSON text</text>
+<text x="460" y="528" class="r" font-size="25" fill="#ECE5D5">A request names its</text>
+<text x="460" y="561" class="r" font-size="25" fill="#ECE5D5">session, its number, the</text>
+<text x="460" y="594" class="r" font-size="25" fill="#ECE5D5">operation, the response</text>
+<text x="460" y="627" class="r" font-size="25" fill="#ECE5D5">before it, and a body. A</text>
+<text x="460" y="660" class="r" font-size="25" fill="#ECE5D5">response names its request,</text>
+<text x="460" y="693" class="r" font-size="25" fill="#ECE5D5">an outcome, and a code.</text>
+<text x="854" y="469.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="886" y="470" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Attachments</text>
+<text x="842" y="528" class="r" font-size="25" fill="#ECE5D5">Binary arrays, such as the</text>
+<text x="842" y="561" class="r" font-size="25" fill="#ECE5D5">neurons and times of</text>
+<text x="842" y="594" class="r" font-size="25" fill="#ECE5D5">spikes. Each starts at a</text>
+<text x="842" y="627" class="r" font-size="25" fill="#ECE5D5">multiple of 8 bytes, so a</text>
+<text x="842" y="660" class="r" font-size="25" fill="#ECE5D5">program reads it in place,</text>
+<text x="842" y="693" class="r" font-size="25" fill="#ECE5D5">without converting it.</text>
+<text x="1236" y="469.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">4</text>
+<text x="1268" y="470" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Digest</text>
+<text x="1224" y="528" class="r" font-size="25" fill="#ECE5D5">SHA-256 of all bytes</text>
+<text x="1224" y="561" class="r" font-size="25" fill="#ECE5D5">before it: the frame's</text>
+<text x="1224" y="594" class="r" font-size="25" fill="#ECE5D5">identity. The next request</text>
+<text x="1224" y="627" class="r" font-size="25" fill="#ECE5D5">acknowledges a response</text>
+<text x="1224" y="660" class="r" font-size="25" fill="#ECE5D5">by naming it, and</text>
+<text x="1224" y="693" class="r" font-size="25" fill="#ECE5D5">transcripts chain frames</text>
+<text x="1224" y="726" class="r" font-size="25" fill="#ECE5D5">with it.</text>
+<text x="84" y="820" class="s" font-size="24" fill="#AAB7BE" font-weight="600">WHY ONE FINGERPRINT</text>
+<text x="84" y="858" class="r" font-size="25" fill="#ECE5D5">A changed bit anywhere in the frame gives another digest, so a receiver never parses or runs a damaged request. The client</text>
+<text x="84" y="891" class="r" font-size="25" fill="#ECE5D5">chooses the size limit when it opens the session: from 64 KiB to 64 MiB, 1 MiB by default. Text and binary data travel in one</text>
+<text x="84" y="924" class="r" font-size="25" fill="#ECE5D5">frame, with no Base64 and no second message.</text>
+</svg>

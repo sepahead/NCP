@@ -63,6 +63,11 @@ In a session, at most one call can be in this state, and it is always the last o
 | The connection breaks | The session ends. | The request without a response possibly ran. |
 | A result is larger than the session allows | The owner answers `ended` with the code `result_too_large`, the size, and the limit. | The step ran; only its result was too large to send. |
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-outcomes-dark.svg">
+  <img src="diagrams/ncp2-outcomes-light.svg" alt="Three cards for the outcomes ok, rejected, and ended, and six cards for a damaged, lost, repeated, or late message, an owner failure, and a broken connection, each with what the client learns. A note says that at most one call of a session is possibly executed, and it is the last one.">
+</picture>
+
 These rules are proved for the owner (see [How we know that it works](#how-we-know-that-it-works)).
 
 ## Large data
@@ -72,11 +77,34 @@ A program can read an attachment in place, without converting it.
 The client chooses the largest message size of a session when it opens it: from 64 KiB to 64 MiB, and 1 MiB by default.
 NCP 1 had a fixed limit of 64 KiB, and a result above it stopped the run.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-frame-dark.svg">
+  <img src="diagrams/ncp2-frame-light.svg" alt="A frame drawn as four parts in a row: a 12-byte header, the JSON text, the attachments, and a 32-byte SHA-256 digest, with the byte offsets 0, 12, 12 + J, and 12 + J + A. A card under each part explains it, and a note explains why one fingerprint protects the whole frame.">
+</picture>
+
 ## Streams
 
 For live data, such as sensor readings, NCP 2 also has **streams**: a publisher sends numbered messages to any number of subscribers.
 Each stream message names the one before it, so a subscriber can see when messages are lost, arrive in the wrong order, or were changed.
 Streams do not resend lost messages: for live data, the next reading is usually more useful than an old one.
+
+Requests and streams travel over pipes, Unix domain sockets, TCP, or Zenoh. The frames and the rules are the same on each kind of link.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-bindings-dark.svg">
+  <img src="diagrams/ncp2-bindings-light.svg" alt="Four cards for the links pipe pair, Unix socket, TCP, and Zenoh, with what each is for, and two cards for streams and for the rounds profile, in which many agents share one owner. A note says that the Python SDK needs only the standard library and the Rust SDK four crates.">
+</picture>
+
+## Records that can be checked
+
+A program can keep a **transcript** of a session: every frame that it sent and received, in order.
+It writes each frame to the transcript before it sends it, so the transcript holds every request that the other program may have carried out.
+Because each request names the response before it, a verifier can check the whole session afterwards, and a single changed byte breaks the check.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-transcript-dark.svg">
+  <img src="diagrams/ncp2-transcript-light.svg" alt="Three numbered cards: record each frame first, the chain of requests and responses, and the check afterwards. Below them, the eight frames of one session in two rows: request 0 open, response 0 ok, then two steps, close, and their responses, each joined to the next. A note says what a transcript shows and that it is not signed.">
+</picture>
 
 ## How fast it is
 
@@ -104,6 +132,11 @@ The [benchmark section of the README](../README.md#ncp-2-benchmarks-speed-lag-an
 In both, the protocol of each measurement was fixed, with its fingerprint, before the measurements ran.
 
 ## How NCP 2 compares with other tools
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-why-dark.svg">
+  <img src="diagrams/ncp2-why-light.svg" alt="A table of NCP 2, gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 has four guarantees built in: each request runs at most once, the client learns after a failure whether it ran, each message has a SHA-256 fingerprint, and a verifier can check the session record. The others have none of them built in. The last column gives the time of a small call: 9.0 and 38.8 microseconds for NCP 2 in Rust and Python.">
+</picture>
 
 | Tool | What it is for | Measured here | What NCP 2 adds |
 | --- | --- | --- | --- |

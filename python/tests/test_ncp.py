@@ -554,15 +554,15 @@ class TapTests(unittest.TestCase):
         from ncp import transcript as T
 
         path = os.path.join(tempfile.mkdtemp(prefix="ncp-tap-"), "sent.ncpt")
-        tap = T.Tap(path)
 
         def broken(_: bytes) -> None:
             raise BrokenPipeError("the peer is gone")
 
-        channel = ncp.StreamChannel(lambda n: b"", broken, None, tap=tap)
         frame = F.encode({"a": 1})
-        with self.assertRaises(BrokenPipeError):
-            channel.send(frame)
+        with T.Tap(path) as tap:
+            channel = ncp.StreamChannel(lambda n: b"", broken, None, tap=tap)
+            with self.assertRaises(BrokenPipeError):
+                channel.send(frame)
         records = list(T.read(path))
         self.assertEqual([(r.kind, r.frame) for r in records], [(T.SENT, frame)])
 

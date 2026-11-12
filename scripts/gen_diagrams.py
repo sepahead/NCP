@@ -3391,6 +3391,477 @@ def ncp2_call() -> Canvas:
     return c
 
 
+SEGMENT = Style("sans", 27, 700, color="on_accent")
+SEGMENT_NOTE = Style("sans", 24, 600, color="on_accent")
+CELL = Style("sans", 25, 600, color="ink")
+CELL_YES = Style("sans", 25, 700, color="turquoise")
+CELL_NO = Style("sans", 25, 600, color="muted")
+CELL_HEAD = Style("sans", 24, 700, color="lapis")
+
+
+def _finish(c: Canvas, bottom: float) -> Canvas:
+    c.height = bottom + 40
+    c.nodes["canvas"].box = Box(0, 0, c.width, c.height)
+    return c
+
+
+def ncp2_frame() -> Canvas:
+    """The four parts of one NCP 2 frame and what a receiver checks."""
+    c = Canvas(
+        "ncp2-frame",
+        WIDTH,
+        1400,
+        "One NCP 2 frame",
+        "A frame has a 12-byte header, the JSON text, binary attachments, and a 32-byte SHA-256 digest of all bytes before it. The digest is the frame's identity; a receiver checks it before parsing. "
+        f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "NCP 2 FRAME", "Every message is one frame with its own fingerprint")
+    parts = [
+        ("frame-header", "Header", "12 bytes", 246, "lapis", "byte 0"),
+        ("frame-json", "JSON text", "J bytes", 492, "turquoise", "12"),
+        ("frame-attachments", "Attachments", "A bytes", 492, "turquoise", "12 + J"),
+        ("frame-digest", "Digest", "32 bytes", 248, "bronze", "12 + J + A"),
+    ]
+    x = MARGIN
+    bar_y = y + 62
+    segments = []
+    for name, title, size, width, color, offset in parts:
+        c.text(x + 4, bar_y - 16, offset, SMALL)
+        box = c.node(name, Box(x, bar_y, width, 112))
+        c.shape("rect", x=x, y=bar_y, w=width, h=112, rx=10, fill=color)
+        c.text(x + width / 2, bar_y + 50, title, SEGMENT, anchor="middle", container=name)
+        c.text(x + width / 2, bar_y + 88, size, SEGMENT_NOTE, anchor="middle", container=name)
+        segments.append(box)
+        x += width + 6
+    cards = card_row(
+        c,
+        bar_y + 112 + 90,
+        [
+            dict(
+                name="frame-header-card",
+                title="Header",
+                number="1",
+                body="The magic bytes NCP and 2, then J and A as 32-bit lengths. The receiver "
+                "compares the frame size, 44 + J + A, with the session's limit before it reads on.",
+            ),
+            dict(
+                name="frame-json-card",
+                title="JSON text",
+                number="2",
+                accent="turquoise",
+                body="A request names its session, its number, the operation, the response "
+                "before it, and a body. A response names its request, an outcome, and a code.",
+            ),
+            dict(
+                name="frame-attachments-card",
+                title="Attachments",
+                number="3",
+                accent="turquoise",
+                body="Binary arrays, such as the neurons and times of spikes. Each starts at a "
+                "multiple of 8 bytes, so a program reads it in place, without converting it.",
+            ),
+            dict(
+                name="frame-digest-card",
+                title="Digest",
+                number="4",
+                accent="bronze",
+                body="SHA-256 of all bytes before it: the frame's identity. The next request "
+                "acknowledges a response by naming it, and transcripts chain frames with it.",
+            ),
+        ],
+    )
+    for segment, layout, (name, *_rest) in zip(segments, cards, parts, strict=True):
+        middle = segment.bottom + 45
+        c.connector(
+            f"{name}-explained",
+            [(segment.cx, segment.bottom), (segment.cx, middle), (layout.box.cx, middle), (layout.box.cx, layout.box.y)],
+            name,
+            f"{name}-card",
+            "muted",
+        )
+    bottom = note(
+        c,
+        "frame-why",
+        cards[0].box.bottom + 34,
+        "WHY ONE FINGERPRINT",
+        "A changed bit anywhere in the frame gives another digest, so a receiver never parses or "
+        "runs a damaged request. The client chooses the size limit when it opens the session: "
+        "from 64\u00a0KiB to 64\u00a0MiB, 1\u00a0MiB by default. Text and binary data travel in one frame, with "
+        "no Base64 and no second message.",
+    ).bottom
+    return _finish(c, bottom)
+
+
+def ncp2_outcomes() -> Canvas:
+    """The three outcomes of a response and what happens when something goes wrong."""
+    c = Canvas(
+        "ncp2-outcomes",
+        WIDTH,
+        1800,
+        "What an NCP 2 response tells the client",
+        "Every response is ok, rejected, or ended. Six cards show what happens to damaged, lost, repeated, and late messages, after an owner failure, and when the connection breaks. At most one call is possibly executed. "
+        f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "NCP 2 OUTCOMES", "Three outcomes tell the client exactly what happened")
+    outcomes = card_row(
+        c,
+        y + 10,
+        [
+            dict(
+                name="outcome-ok",
+                title="ok",
+                subtitle="It ran once",
+                accent="turquoise",
+                body="The owner ran the request once. The body is its result. The session continues.",
+            ),
+            dict(
+                name="outcome-rejected",
+                title="rejected",
+                subtitle="Nothing ran",
+                body="Nothing ran and nothing changed. A code says why, for example a wrong "
+                "sequence number. The client can send a corrected request.",
+            ),
+            dict(
+                name="outcome-ended",
+                title="ended",
+                subtitle="The session is over",
+                accent="pomegranate",
+                body="The session cannot continue. The code says whether the request ran: yes, "
+                "no, or possibly. The client opens a new session if it needs one.",
+            ),
+        ],
+    )
+    label_y = outcomes[0].box.bottom + 66
+    c.text(MARGIN, label_y, "WHEN SOMETHING GOES WRONG", EYEBROW)
+    events = [
+        ("event-damaged", "A message is damaged", "The receiver computes the fingerprint "
+         "again and finds a difference. No damaged request runs. On a pipe or a socket, the "
+         "session then ends."),
+        ("event-lost", "A message is lost", "The client sends the same request again. The "
+         "owner sends its kept response again: the step ran once."),
+        ("event-twice", "A message arrives twice", "The owner recognizes the copy and sends "
+         "its kept response again. The step ran once."),
+        ("event-late", "An old copy arrives late", "The owner rejects it, because a later "
+         "request already ran. Nothing runs again."),
+        ("event-failure", "The owner fails in a step", "It answers ended with the code "
+         "owner_failure. The step possibly ran."),
+        ("event-broken", "The connection breaks", "The session ends. The request without a "
+         "response possibly ran."),
+    ]
+    first = card_row(
+        c,
+        label_y + 26,
+        [dict(name=n, title=t, body=b, accent="lapis") for n, t, b in events[:3]],
+    )
+    second = card_row(
+        c,
+        first[0].box.bottom + 28,
+        [
+            dict(name=n, title=t, body=b, accent="pomegranate" if n != "event-late" else "lapis")
+            for n, t, b in events[3:]
+        ],
+    )
+    bottom = note(
+        c,
+        "outcome-boundary",
+        second[0].box.bottom + 34,
+        "POSSIBLY EXECUTED",
+        "In a session, at most one call can be possibly executed, and it is always the last one. "
+        "Lean proofs cover these owner rules for every sequence of requests, and 8,730 fault "
+        "trials with real programs found no wrong result, no step run twice, and no false report.",
+    ).bottom
+    return _finish(c, bottom)
+
+
+def ncp2_transcript() -> Canvas:
+    """Write-ahead transcripts and the hash chain that a verifier checks."""
+    c = Canvas(
+        "ncp2-transcript",
+        WIDTH,
+        1500,
+        "An NCP 2 transcript and its hash chain",
+        "A program records each frame before it sends it. Requests and responses name each other by digest, so a session forms one hash chain that a verifier checks. A transcript does not show who produced the frames. "
+        f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "NCP 2 TRANSCRIPT", "Every session can be checked afterwards")
+    steps = card_row(
+        c,
+        y + 10,
+        [
+            dict(
+                name="transcript-record",
+                number="1",
+                title="Record first",
+                body="The program writes each frame to its transcript before it sends it, and "
+                "each received frame once it has arrived whole.",
+            ),
+            dict(
+                name="transcript-chain",
+                number="2",
+                title="One chain",
+                accent="turquoise",
+                body="Each request names the response before it, and each response names its "
+                "request, by their digests.",
+            ),
+            dict(
+                name="transcript-check",
+                number="3",
+                title="Check afterwards",
+                accent="bronze",
+                body="A verifier recomputes every digest and checks the numbers and the chain. "
+                "A changed byte breaks it.",
+            ),
+        ],
+    )
+    frames = [
+        ("chain-open", "request 0", "open"),
+        ("chain-r0", "response 0", "ok"),
+        ("chain-s1", "request 1", "step"),
+        ("chain-r1", "response 1", "ok"),
+        ("chain-s2", "request 2", "step"),
+        ("chain-r2", "response 2", "ok"),
+        ("chain-close", "request 3", "close"),
+        ("chain-r3", "response 3", "ok"),
+    ]
+    width, gap, height = 290, (WIDTH - 2 * MARGIN - 4 * 290) / 3, 104
+    first_top = steps[0].box.bottom + 110
+    second_top = first_top + height + 84
+    c.text(MARGIN, first_top - 30, "THE FRAMES OF ONE SESSION, IN ORDER", EYEBROW)
+    boxes = []
+    for index, (name, upper, lower) in enumerate(frames):
+        x = MARGIN + (index % 4) * (width + gap)
+        top = first_top if index < 4 else second_top
+        request = upper.startswith("request")
+        box = c.node(name, Box(x, top, width, height))
+        c.shape("rect", x=x, y=top, w=width, h=height, rx=12, fill="tint" if request else "card",
+                stroke="lapis" if request else "turquoise", stroke_width=3)
+        c.text(x + width / 2, top + 42, upper, SMALL, anchor="middle", container=name)
+        c.text(x + width / 2, top + 80, lower, TITLE_NARROW, anchor="middle", container=name)
+        boxes.append(box)
+    for index, ((a_name, *_), (b_name, *_), a, b) in enumerate(zip(frames, frames[1:], boxes, boxes[1:])):
+        if index == 3:
+            middle = a.bottom + 42
+            points = [(a.cx, a.bottom), (a.cx, middle), (b.cx, middle), (b.cx, b.y)]
+        else:
+            points = [(a.right, a.cy), (b.x, b.cy)]
+        c.connector(f"{a_name}-{b_name}", points, a_name, b_name, "muted", width=3)
+    bottom = note(
+        c,
+        "transcript-boundary",
+        boxes[-1].bottom + 50,
+        "WHAT A TRANSCRIPT SHOWS",
+        "Which frames one program sent and received, in which order. Because a frame is recorded "
+        "before it is sent, the transcript holds every request that the peer may have run. It "
+        "does not show who produced the frames: transcripts are not signed. CREBAIN's loop check "
+        "and Prisoma's capture read transcripts.",
+    ).bottom
+    return _finish(c, bottom)
+
+
+def ncp2_bindings() -> Canvas:
+    """The links that carry NCP 2 frames, and the stream and rounds patterns."""
+    c = Canvas(
+        "ncp2-bindings",
+        WIDTH,
+        1700,
+        "NCP 2 links, streams, and rounds",
+        "The same NCP 2 frames travel over a pipe pair, a Unix domain socket, TCP, and Zenoh for networks that can lose messages. Streams carry live data, and rounds let many agents share one owner. "
+        f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "NCP 2 LINKS", "The same frames and rules over every kind of link")
+    links = card_row(
+        c,
+        y + 10,
+        [
+            dict(name="link-pipe", title="Pipe pair", subtitle="Child process",
+                 body="The owner runs as a child process and speaks on its standard input and "
+                 "output. The simplest local link."),
+            dict(name="link-unix", title="Unix socket", subtitle="One computer",
+                 body="One owner process serves many sessions. File permissions decide who may "
+                 "connect."),
+            dict(name="link-tcp", title="TCP", subtitle="Trusted network",
+                 body="Between computers on a network that you trust, with a time limit for each "
+                 "call."),
+            dict(name="link-zenoh", title="Zenoh", subtitle="Lossy or open network", accent="turquoise",
+                 body="Requests travel as queries. A lost message is sent again, and the owner "
+                 "answers with its kept response. Mutual TLS and access control protect it."),
+        ],
+    )
+    patterns = card_row(
+        c,
+        links[0].box.bottom + 40,
+        [
+            dict(name="pattern-streams", title="Streams", subtitle="Live data", accent="turquoise",
+                 body="A publisher numbers its messages, and each names the one before. "
+                 "Subscribers see lost, repeated, and changed messages. Nothing is sent again."),
+            dict(name="pattern-rounds", title="Rounds", subtitle="Many agents, one world", accent="bronze",
+                 body="Many agents share one owner. Each round applies their requests in a fixed "
+                 "order, and every agent receives the same record of the round."),
+        ],
+    )
+    bottom = note(
+        c,
+        "links-dependencies",
+        patterns[0].box.bottom + 34,
+        "SMALL BY DESIGN",
+        "The Python SDK uses only the standard library, and the Rust SDK needs four crates. The "
+        "Zenoh binding is a separate, optional package for both languages; the rounds profile "
+        "is in the Python SDK.",
+    ).bottom
+    return _finish(c, bottom)
+
+
+def ncp2_loop() -> Canvas:
+    """NEST networks fly CREBAIN drones over NCP 2, with the result of 12 November 2026."""
+    c = Canvas(
+        "ncp2-loop",
+        WIDTH,
+        1500,
+        "Neural networks fly simulated drones over NCP 2",
+        "A loop host runs NEST network controllers and CREBAIN worlds, each with its own NCP 2 session. Networks flew five drones in two worlds to within 2.6 cm of their targets, and the check confirmed all 2,400 controller responses. "
+        f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "NCP 2 CLOSED LOOP", "Neural networks fly simulated drones, step by step")
+    gap = 230
+    row = card_row(
+        c,
+        y + 10,
+        [
+            dict(name="loop-controllers", title="Controllers", subtitle="NEST networks", accent="turquoise",
+                 body="N programs, one session each. Each receives the latest estimate of its drones "
+                 "and proposes their accelerations."),
+            dict(name="loop-host", title="Loop host", subtitle="crebain-ncp-loop",
+                 body="First all controllers, at the same time, then all worlds. One transcript for "
+                 "each session."),
+            dict(name="loop-worlds", title="Worlds", subtitle="CREBAIN simulator", accent="bronze",
+                 body="K programs with 1 to 3 drones each. A world refuses actions computed from "
+                 "another state."),
+        ],
+        gap=gap,
+    )
+    controllers, host, worlds = (layout.box for layout in row)
+    upper, lower = host.y + host.h * 0.30, host.y + host.h * 0.72
+    c.connector("loop-host-controllers", [(host.x, upper), (controllers.right, upper)], "loop-host", "loop-controllers", "lapis")
+    c.connector("loop-controllers-host", [(controllers.right, lower), (host.x, lower)], "loop-controllers", "loop-host", "turquoise")
+    c.connector("loop-host-worlds", [(host.right, lower), (worlds.x, lower)], "loop-host", "loop-worlds", "turquoise")
+    c.connector("loop-worlds-host", [(worlds.x, upper), (host.right, upper)], "loop-worlds", "loop-host", "lapis")
+    for x, top_label, bottom_label in (
+        (controllers.right + 16, ["estimate,", "state digest"], ["accelerations,", "response"]),
+        (host.right + 16, ["estimate,", "state digest"], ["accelerations,", "identities"]),
+    ):
+        for index, line in enumerate(top_label):
+            c.text(x, upper - 54 + index * 28, line, SMALL)
+        for index, line in enumerate(bottom_label):
+            c.text(x, lower + 42 + index * 28, line, SMALL)
+    results = card_row(
+        c,
+        host.bottom + 60,
+        [
+            dict(name="loop-result-drones", number="1", title="Drones reach their targets", accent="turquoise",
+                 body="One network flew one drone, and three networks flew five drones in two "
+                 "worlds. Each drone started 7.3 to 15.6\u00a0m from its target and ended within 2.6\u00a0cm, "
+                 "after 600 steps of 20\u00a0ms."),
+            dict(name="loop-result-check", number="2", title="Every action checked", accent="lapis",
+                 body="The offline check confirmed all 2,400 controller responses: each applied "
+                 "once, from the state it answered, to the drones it named."),
+            dict(name="loop-result-repeat", number="3", title="The same again", accent="bronze",
+                 body="A second run gave the same results, final states included. NEST ran on "
+                 "one thread with a fixed seed."),
+        ],
+    )
+    bottom = note(
+        c,
+        "loop-limits",
+        results[0].box.bottom + 34,
+        "LIMITS",
+        "Simulated drones and a minimal spiking controller of integrate-and-fire populations, run "
+        "with NEST 3.10 on one laptop on 12\u00a0November\u00a02026. No physical drone, safety, or "
+        "real-time claim; an Engram network can implement the same controller contract.",
+    ).bottom
+    return _finish(c, bottom)
+
+
+def ncp2_why() -> Canvas:
+    """The guarantees that a closed loop needs, built into NCP 2, and the call time."""
+    c = Canvas(
+        "ncp2-why",
+        WIDTH,
+        1500,
+        "Why NCP 2 exists: built-in guarantees and fast calls",
+        "A table compares NCP 2 with gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 builds in four guarantees that the others do not, and has the fastest small call in Rust and Python. "
+        f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
+    )
+    y = header(c, "WHY NCP 2", "Guarantees built in, and the fastest small call")
+    intro_bottom = lines_at(
+        c,
+        MARGIN,
+        y + 20,
+        "A closed loop needs each step to run once, a clear answer after a failure, checked "
+        "messages, and a record that can be checked. Other tools can add these on top; NCP 2 has "
+        "them built in.",
+        BODY,
+        WIDTH - 2 * MARGIN,
+    )
+    columns = [
+        ("System", 196),
+        ("Runs each request at most once", 250),
+        ("Says after a failure whether it ran", 250),
+        ("SHA-256 fingerprint on each message", 250),
+        ("Session record a verifier checks", 250),
+        ("Small call, Rust\u00a0·\u00a0Python", 300),
+    ]
+    rows = [
+        ("NCP 2", True, "9.0 µs · 38.8 µs"),
+        ("gRPC", False, "35.9 µs · 114.5 µs"),
+        ("ZeroMQ", False, "not measured · 54.6 µs"),
+        ("Zenoh", False, "59.5 µs · 65.2 µs"),
+        ("HTTP/1.1", False, "not measured · 80.3 µs"),
+    ]
+    top = intro_bottom + 24
+    head_h, row_h = 116, 64
+    x = MARGIN
+    for index, (title, width) in enumerate(columns):
+        name = f"why-head-{index}"
+        c.node(name, Box(x, top, width, head_h))
+        c.shape("rect", x=x, y=top, w=width, h=head_h, rx=8, fill="note")
+        lines = wrap(title, CELL_HEAD, width - 28)
+        base = top + head_h / 2 - (len(lines) - 1) * 14 + 8
+        for line_index, line in enumerate(lines):
+            c.text(x + 14, base + line_index * 28, line, CELL_HEAD, container=name)
+        x += width
+    for row_index, (system, built_in, time) in enumerate(rows):
+        row_y = top + head_h + 8 + row_index * (row_h + 6)
+        x = MARGIN
+        for index, (_, width) in enumerate(columns):
+            name = f"why-{row_index}-{index}"
+            c.node(name, Box(x, row_y, width, row_h))
+            fill = "tint" if built_in else "card"
+            c.shape("rect", x=x, y=row_y, w=width, h=row_h, rx=6, fill=fill)
+            if index == 0:
+                value, style = system, CELL if not built_in else Style("sans", 25, 700, color="lapis")
+            elif index == len(columns) - 1:
+                value, style = time, CELL
+            else:
+                value, style = ("Built in", CELL_YES) if built_in else ("Not built in", CELL_NO)
+            c.text(x + 14, row_y + 41, value, style, container=name)
+            x += width
+    table_bottom = top + head_h + 8 + len(rows) * (row_h + 6)
+    bottom = note(
+        c,
+        "why-notes",
+        table_bottom + 28,
+        "HOW TO READ IT",
+        [
+            "Medians of the comparison benchmark on one laptop, with no spikes: NCP 2 over a pipe, "
+            "gRPC over a Unix socket, ZeroMQ over ipc, Zenoh and HTTP/1.1 over TCP. With the same "
+            "SHA-256 check added to every system, NCP 2 was the fastest at every size up to 1\u00a0MiB.",
+            "MUSIC, with which NEST exchanges spikes with other simulators, needs all of them in "
+            "one MPI job; in this NEST build it delivered exact spikes only with one NEST thread.",
+        ],
+    ).bottom
+    return _finish(c, bottom)
+
+
 DIAGRAMS = {
     "system-map": system_map,
     "exchange": exchange,
@@ -3408,6 +3879,12 @@ DIAGRAMS = {
     "versioning": versioning,
     "fsm": fsm,
     "ncp2-call": ncp2_call,
+    "ncp2-frame": ncp2_frame,
+    "ncp2-outcomes": ncp2_outcomes,
+    "ncp2-transcript": ncp2_transcript,
+    "ncp2-bindings": ncp2_bindings,
+    "ncp2-loop": ncp2_loop,
+    "ncp2-why": ncp2_why,
 }
 
 
@@ -3451,6 +3928,12 @@ DIAGRAM_OWNERS: dict[str, Path] = {
     / "NCP_1_0_LOW_OVERHEAD_ARCHITECTURE.md",
     "fsm": ROOT / "RESILIENCE.md",
     "ncp2-call": ROOT / "docs" / "NCP-2-GUIDE.md",
+    "ncp2-frame": ROOT / "docs" / "NCP-2-GUIDE.md",
+    "ncp2-outcomes": ROOT / "docs" / "NCP-2-GUIDE.md",
+    "ncp2-transcript": ROOT / "docs" / "NCP-2-GUIDE.md",
+    "ncp2-bindings": ROOT / "docs" / "NCP-2-GUIDE.md",
+    "ncp2-loop": ROOT / "README.md",
+    "ncp2-why": ROOT / "docs" / "NCP-2-GUIDE.md",
 }
 
 # Exact labels that must survive editorial changes, and retired labels that
@@ -3482,6 +3965,12 @@ REQUIRED_TEXT: dict[str, tuple[str, ...]] = {
     "exchange": ("retained",),
     "payload-transfer": ("32,768", "8,388,608"),
     "ncp2-call": ("receipt of response 0", "possibly executed"),
+    "ncp2-frame": ("12 + J + A", "SHA-256"),
+    "ncp2-outcomes": ("possibly", "owner_failure"),
+    "ncp2-transcript": ("before it sends it", "not signed"),
+    "ncp2-bindings": ("kept response", "standard library"),
+    "ncp2-loop": ("2,400", "same results"),
+    "ncp2-why": ("Built in", "Not built in", "MUSIC"),
 }
 FORBIDDEN_TEXT: dict[str, tuple[str, ...]] = {
     "ecosystem": ("nine role receipts", "Host API 2"),

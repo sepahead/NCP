@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1027" viewBox="0 0 1600 1027" role="img" aria-labelledby="ncp2-why-title ncp2-why-desc">
+<title id="ncp2-why-title">Why NCP 2 exists: built-in guarantees and fast calls</title>
+<desc id="ncp2-why-desc">A table compares NCP 2 with gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 builds in four guarantees that the others do not, and has the fastest small call in Rust and Python. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<pattern id="ncp2-why-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1027" fill="#F7F3E9"/>
+<path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="256" width="196" height="116" rx="8" fill="#D2E0E2"/>
+<rect x="248" y="256" width="250" height="116" rx="8" fill="#D2E0E2"/>
+<rect x="498" y="256" width="250" height="116" rx="8" fill="#D2E0E2"/>
+<rect x="748" y="256" width="250" height="116" rx="8" fill="#D2E0E2"/>
+<rect x="998" y="256" width="250" height="116" rx="8" fill="#D2E0E2"/>
+<rect x="1248" y="256" width="300" height="116" rx="8" fill="#D2E0E2"/>
+<rect x="52" y="380" width="196" height="64" rx="6" fill="#E4EDEE"/>
+<rect x="248" y="380" width="250" height="64" rx="6" fill="#E4EDEE"/>
+<rect x="498" y="380" width="250" height="64" rx="6" fill="#E4EDEE"/>
+<rect x="748" y="380" width="250" height="64" rx="6" fill="#E4EDEE"/>
+<rect x="998" y="380" width="250" height="64" rx="6" fill="#E4EDEE"/>
+<rect x="1248" y="380" width="300" height="64" rx="6" fill="#E4EDEE"/>
+<rect x="52" y="450" width="196" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="248" y="450" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="498" y="450" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="748" y="450" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="998" y="450" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="1248" y="450" width="300" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="52" y="520" width="196" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="248" y="520" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="498" y="520" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="748" y="520" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="998" y="520" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="1248" y="520" width="300" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="52" y="590" width="196" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="248" y="590" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="498" y="590" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="748" y="590" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="998" y="590" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="1248" y="590" width="300" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="52" y="660" width="196" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="248" y="660" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="498" y="660" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="748" y="660" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="998" y="660" width="250" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="1248" y="660" width="300" height="64" rx="6" fill="#FBF9F3"/>
+<rect x="52" y="758" width="1496" height="229" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="758" width="10" height="229" rx="5" fill="#B28218"/>
+<text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">WHY NCP 2</text>
+<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">Guarantees built in, and the fastest small call</text>
+<text x="52" y="166" class="r" font-size="25" fill="#2C3E50">A closed loop needs each step to run once, a clear answer after a failure, checked messages, and a record that can be checked. Other</text>
+<text x="52" y="199" class="r" font-size="25" fill="#2C3E50">tools can add these on top; NCP 2 has them built in.</text>
+<text x="66" y="322" class="s" font-size="24" fill="#1F3F60" font-weight="700">System</text>
+<text x="262" y="308" class="s" font-size="24" fill="#1F3F60" font-weight="700">Runs each request</text>
+<text x="262" y="336" class="s" font-size="24" fill="#1F3F60" font-weight="700">at most once</text>
+<text x="512" y="308" class="s" font-size="24" fill="#1F3F60" font-weight="700">Says after a failure</text>
+<text x="512" y="336" class="s" font-size="24" fill="#1F3F60" font-weight="700">whether it ran</text>
+<text x="762" y="294" class="s" font-size="24" fill="#1F3F60" font-weight="700">SHA-256</text>
+<text x="762" y="322" class="s" font-size="24" fill="#1F3F60" font-weight="700">fingerprint on each</text>
+<text x="762" y="350" class="s" font-size="24" fill="#1F3F60" font-weight="700">message</text>
+<text x="1012" y="308" class="s" font-size="24" fill="#1F3F60" font-weight="700">Session record a</text>
+<text x="1012" y="336" class="s" font-size="24" fill="#1F3F60" font-weight="700">verifier checks</text>
+<text x="1262" y="308" class="s" font-size="24" fill="#1F3F60" font-weight="700">Small call,</text>
+<text x="1262" y="336" class="s" font-size="24" fill="#1F3F60" font-weight="700">Rust · Python</text>
+<text x="66" y="421" class="s" font-size="25" fill="#1F3F60" font-weight="700">NCP 2</text>
+<text x="262" y="421" class="s" font-size="25" fill="#1F6968" font-weight="700">Built in</text>
+<text x="512" y="421" class="s" font-size="25" fill="#1F6968" font-weight="700">Built in</text>
+<text x="762" y="421" class="s" font-size="25" fill="#1F6968" font-weight="700">Built in</text>
+<text x="1012" y="421" class="s" font-size="25" fill="#1F6968" font-weight="700">Built in</text>
+<text x="1262" y="421" class="s" font-size="25" fill="#2C3E50" font-weight="600">9.0 µs · 38.8 µs</text>
+<text x="66" y="491" class="s" font-size="25" fill="#2C3E50" font-weight="600">gRPC</text>
+<text x="262" y="491" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="512" y="491" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="762" y="491" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="1012" y="491" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="1262" y="491" class="s" font-size="25" fill="#2C3E50" font-weight="600">35.9 µs · 114.5 µs</text>
+<text x="66" y="561" class="s" font-size="25" fill="#2C3E50" font-weight="600">ZeroMQ</text>
+<text x="262" y="561" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="512" y="561" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="762" y="561" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="1012" y="561" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="1262" y="561" class="s" font-size="25" fill="#2C3E50" font-weight="600">not measured · 54.6 µs</text>
+<text x="66" y="631" class="s" font-size="25" fill="#2C3E50" font-weight="600">Zenoh</text>
+<text x="262" y="631" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="512" y="631" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="762" y="631" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="1012" y="631" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="1262" y="631" class="s" font-size="25" fill="#2C3E50" font-weight="600">59.5 µs · 65.2 µs</text>
+<text x="66" y="701" class="s" font-size="25" fill="#2C3E50" font-weight="600">HTTP/1.1</text>
+<text x="262" y="701" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="512" y="701" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="762" y="701" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="1012" y="701" class="s" font-size="25" fill="#4D5C64" font-weight="600">Not built in</text>
+<text x="1262" y="701" class="s" font-size="25" fill="#2C3E50" font-weight="600">not measured · 80.3 µs</text>
+<text x="84" y="796" class="s" font-size="24" fill="#4D5C64" font-weight="600">HOW TO READ IT</text>
+<text x="84" y="834" class="r" font-size="25" fill="#2C3E50">Medians of the comparison benchmark on one laptop, with no spikes: NCP 2 over a pipe, gRPC over a Unix socket, ZeroMQ over</text>
+<text x="84" y="867" class="r" font-size="25" fill="#2C3E50">ipc, Zenoh and HTTP/1.1 over TCP. With the same SHA-256 check added to every system, NCP 2 was the fastest at every size</text>
+<text x="84" y="900" class="r" font-size="25" fill="#2C3E50">up to 1 MiB.</text>
+<text x="84" y="933" class="r" font-size="25" fill="#2C3E50">MUSIC, with which NEST exchanges spikes with other simulators, needs all of them in one MPI job; in this NEST build it</text>
+<text x="84" y="966" class="r" font-size="25" fill="#2C3E50">delivered exact spikes only with one NEST thread.</text>
+</svg>

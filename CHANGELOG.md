@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already recorded first. A transcript now holds every request that a peer may have
   executed, and a frame whose sending failed stays recorded as sent. A test in each SDK
   sends through a broken writer and finds the frame in the transcript.
+- Six new NCP 2 diagrams, drawn and checked by `scripts/gen_diagrams.py` in light and dark
+  versions: one frame and its fingerprint, the three outcomes and what happens when something
+  goes wrong, links with streams and rounds, transcripts and their hash chain, the comparison
+  of built-in guarantees and call times with gRPC, ZeroMQ, Zenoh, and HTTP/1.1, and NEST
+  networks flying CREBAIN drones in the closed loop. The guide gains a section on transcripts,
+  and the README a section on the closed loop.
 - The README has a section of NCP 2 benchmarks: the median and 99th-percentile time of one call
   for NCP 2, NCP 1.0.1, gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe, with the result under
   the same integrity check; the time added to each step of a NEST simulation, median and 99th

@@ -120,6 +120,16 @@ MUSIC, the MPI library with which NEST exchanges spikes with other simulators, n
 - 64 agents in rounds on one Python owner took 2.6 ms per round.
 - An owner in the first process of an MPI program added 4 to 11 µs to a call with 1 to 8 processes, up to 1,788 spikes.
 
+### Neural networks fly simulated drones
+
+CREBAIN's [closed-loop host](https://github.com/sepahead/crebain/blob/main/docs/NATIVE_NCP_SIMULATION.md) runs controllers, such as spiking networks in NEST, and simulated drone worlds, each with its own NCP 2 session.
+On 12 November 2026, one network flew one drone, and three networks flew five drones in two worlds, to within 2.6 cm of their targets in 600 steps of 20 ms; an offline check of the transcripts confirmed all 2,400 controller responses, and a second run gave the same results ([evidence](https://github.com/sepahead/crebain/blob/main/integrations/ncp2-nest-controller/README.md)).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/ncp2-loop-dark.svg">
+  <img src="docs/diagrams/ncp2-loop-light.svg" alt="Three cards joined by arrows: NEST network controllers, the loop host crebain-ncp-loop, and CREBAIN worlds with one to three drones each. Below them, three results: the drones reached their targets, all 2,400 controller responses were checked, and a second run gave the same results. A note lists the limits.">
+</picture>
+
 ### What these results do not show
 
 They come from one laptop, with programs on one computer. They measure the protocols, not the work of a real simulation, except in the NEST campaign. The other systems ran with their default settings; NCP 2 sets 1 MiB socket buffers, which matters most at 1 MiB. The [Zenoh binding](bindings/zenoh/README.md) and networks between computers have not been measured yet.
