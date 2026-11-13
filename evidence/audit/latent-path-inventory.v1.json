@@ -5161,8 +5161,8 @@
       {
         "path": "docs/release/NCP-2.0.0.md",
         "bytes": 6886,
-        "sha256": "937637012238d7d841435042c3a1f01d7468a39577d88ea4d4682f4f0b09fcfe",
-        "git_blob_oid": "d014c8fee35c985e921b07bc54380084fd175b88",
+        "sha256": "d01fb1e87370dc3d5a481933650d465763f8ff637dd05fd909f2a0f5dc59a274",
+        "git_blob_oid": "6c1098d6562895b029d484c874ba9daf0cb2842e",
         "indexed": true
       },
       {
@@ -5469,15 +5469,15 @@
       {
         "path": "evidence/release/ncp-2.0.0/SHA256SUMS",
         "bytes": 496,
-        "sha256": "2d2a5433416878ce81195caf6892427d3d93941ad6870c0b2ab2480f0ea21b7f",
-        "git_blob_oid": "7476e2d726e01de1d8053b748ac9f49b03437d33",
+        "sha256": "0f5b281b237a55b4c04349190bdc7f41f20197f68e7706f71e0d6f996a13541e",
+        "git_blob_oid": "94dc1217e2945550ad800f10cba5b407db28c1cc",
         "indexed": true
       },
       {
         "path": "evidence/release/ncp-2.0.0/dependencies.json",
         "bytes": 87638,
-        "sha256": "7d311325f0c0fc7e96897df0034a9c3d2998c7a9af3099919ec042d346f4eee5",
-        "git_blob_oid": "c26e0b04e4056311725c2a759de67b87b7e4eaa8",
+        "sha256": "46c712f4bbdc162217129411cc45a5911b357168bdf313bbd38a0b98302f2795",
+        "git_blob_oid": "d21df7ffe848b10c727669f874ea86ded46e3c13",
         "indexed": true
       },
       {
@@ -10697,9 +10697,9 @@
       },
       {
         "path": "rust/src/contract.rs",
-        "bytes": 18649,
-        "sha256": "c552ccc3914b939b99e1c8be77627ef812c8de0dc8f1e2b13cef7c9bf26749c2",
-        "git_blob_oid": "9ba704094b40e3562117356f07c70f149a928699",
+        "bytes": 18754,
+        "sha256": "7d6af9bad3adf98d6165f7b20ad801ea0922476677bbf9d9c1fb51f90a2fec05",
+        "git_blob_oid": "70d387d60e2278d207a2979f67581a6b6e55ce78",
         "indexed": true
       },
       {

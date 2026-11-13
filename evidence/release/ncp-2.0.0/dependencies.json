@@ -1,8 +1,8 @@
 {
  "artifacts": {
   "sepahead-ncp-core-2.0.0.crate": {
-   "bytes": 65286,
-   "sha256": "a4de69d06be669b4c84fb83f013ebf371882040231c0ff31c7990339f441fe99"
+   "bytes": 65315,
+   "sha256": "c180cff546638bad3d1c0c096800e2a3e9f40ecea6ff263d08112cd8d4abae3f"
   },
   "sepahead_ncp-2.0.0-py3-none-any.whl": {
    "bytes": 99436,

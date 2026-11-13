@@ -17,7 +17,7 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 65,286 | `a4de69d06be669b4c84fb83f013ebf371882040231c0ff31c7990339f441fe99` |
+| `sepahead-ncp-core-2.0.0.crate` | 65,315 | `c180cff546638bad3d1c0c096800e2a3e9f40ecea6ff263d08112cd8d4abae3f` |
 | `sepahead_ncp-2.0.0-py3-none-any.whl` | 99,436 | `7930fb77bf517bc8c8c8262c3bb03610c78963de4e09a1f6a0e80108476eb004` |
 | `sepahead_ncp-2.0.0.tar.gz` | 95,140 | `ec3746daeb464561d646b38cf017b0216c504cdcdd23991b20f04831b5bf9178` |
 | `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 13,351 | `cb9c9cf96a74a4aed1416b21ac32ff28b0b35b72d64a14a94534da5cfe470b33` |

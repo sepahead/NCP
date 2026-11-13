@@ -217,7 +217,9 @@ pub fn check(schema: &Value, value: &Value, path: &str) -> Option<String> {
             Value::Array(items) => items.iter().filter_map(Value::as_str).collect(),
             other => other.as_str().into_iter().collect(),
         };
-        if !allowed.contains(&kind) && !(kind == "integer" && allowed.contains(&"number")) {
+        // An integer is also a number (section 11.1).
+        let integer_as_number = kind == "integer" && allowed.contains(&"number");
+        if !(allowed.contains(&kind) || integer_as_number) {
             return Some(format!(
                 "{path}: expected {}, found {kind}",
                 allowed.join(" or ")
