@@ -305,6 +305,10 @@ pub fn iterate(
     };
     out.version = version;
     let keyed = out.header.as_ref().and_then(|h| h["chain"].as_str()) == Some("hmac-sha256");
+    if key.is_some() && !keyed {
+        out.problems
+            .push("a key was given, but the transcript is not authenticated".into());
+    }
     let check = version == 2 && (!keyed || key.is_some());
     let chain_key = if keyed { key } else { None };
     if version == 2 {
@@ -481,11 +485,30 @@ impl Report {
     }
 }
 
+/// Whether a response answers an admitted request, so that its owner keeps it: every outcome
+/// except `rejected`, and `ended` with `session_expired` (rule 7.3.3) or `shutdown` (rule 7.3.10).
+fn admits(message: &Value) -> bool {
+    match message["outcome"].as_str() {
+        Some("rejected") => false,
+        Some("ended") => !matches!(
+            message["code"].as_str(),
+            Some("session_expired" | "shutdown")
+        ),
+        _ => true,
+    }
+}
+
+/// A request that the verifier waits to see answered: its seq, identity, op, and whether it
+/// follows the order of its session.
+type Pending = (u64, String, String, bool);
+
 #[derive(Default)]
 struct Verifier {
     report: Report,
     index: HashMap<String, usize>,
-    pending: HashMap<String, (u64, String, String)>,
+    pending: HashMap<String, Pending>,
+    /// The identity of the kept response to each request.
+    answers: HashMap<String, String>,
     last: HashMap<String, String>,
     next_seq: HashMap<String, u64>,
     seen: HashMap<String, HashSet<String>>,
@@ -576,7 +599,7 @@ impl Verifier {
                 "record {index}: a request in the direction of the other role"
             ));
         }
-        if let Some((pending_seq, pending_id, _)) = pending {
+        if let Some((pending_seq, pending_id, _, _)) = pending {
             if pending_seq == seq {
                 if pending_id != identity {
                     entry
@@ -592,28 +615,31 @@ impl Verifier {
             entry.repeats += 1; // a delayed copy of an earlier request
             return;
         }
+        let mut disorder = Vec::new();
         if seq != expected {
-            entry
-                .problems
-                .push(format!("seq {seq}: expected {expected}"));
+            disorder.push(format!("seq {seq}: expected {expected}"));
         }
         if seq == 0 {
             if message["op"] != "open" || !message["ack"].is_null() {
-                entry
-                    .problems
-                    .push("seq 0 is not an open without ack".into());
+                disorder.push("seq 0 is not an open without ack".to_owned());
             }
         } else if message["ack"].as_str() != last.as_deref() {
-            entry.problems.push(format!(
+            disorder.push(format!(
                 "seq {seq}: ack does not name the previous response"
             ));
         }
+        let in_order = disorder.is_empty();
+        if role == "client" {
+            entry.problems.extend(disorder); // the recorder's own request
+        }
+        // An owner receives what a client sends; it must not admit a request out of order, and
+        // response() checks that.
         self.seen
             .entry(session.clone())
             .or_default()
             .insert(identity.clone());
         let op = message["op"].as_str().unwrap_or_default().to_owned();
-        self.pending.insert(session, (seq, identity, op));
+        self.pending.insert(session, (seq, identity, op, in_order));
     }
 
     fn response(&mut self, index: usize, record_kind: u8, decoded: &frame::Decoded) {
@@ -649,6 +675,11 @@ impl Verifier {
             .is_some_and(|r| self.seen.get(&session).is_some_and(|s| s.contains(r)));
         let is_last = self.last.get(&session) == Some(&identity);
         let pending = self.pending.get(&session).cloned();
+        let admitted = admits(message);
+        let earlier = message["request"]
+            .as_str()
+            .and_then(|r| self.answers.get(r))
+            .cloned();
         let entry = self.session(&session, "client");
         let expected_kind = if entry.role == "client" {
             RECEIVED
@@ -660,7 +691,15 @@ impl Verifier {
                 "record {index}: a response in the direction of the other role"
             ));
         }
-        let Some((seq, request_id, op)) = pending else {
+        if admitted && earlier.as_ref().is_some_and(|earlier| *earlier != identity) {
+            // The owner sends a kept response again byte for byte (rule 7.3.5).
+            entry.problems.push(format!(
+                "seq {}: two different responses to one admitted request",
+                message["seq"]
+            ));
+            return;
+        }
+        let Some((seq, request_id, op, in_order)) = pending else {
             if is_last || names_seen {
                 entry.repeats += 1;
             } else {
@@ -680,6 +719,11 @@ impl Verifier {
                 ));
             }
             return;
+        }
+        if admitted && !in_order && entry.role == "owner" {
+            entry.problems.push(format!(
+                "seq {seq}: the owner admitted a request out of order"
+            ));
         }
         let outcome = message["outcome"].as_str().unwrap_or_default().to_owned();
         match outcome.as_str() {
@@ -702,6 +746,9 @@ impl Verifier {
             }
         }
         self.pending.remove(&session);
+        if admitted {
+            self.answers.insert(request_id.clone(), identity.clone());
+        }
         if outcome == "rejected" {
             if let Some(seen) = self.seen.get_mut(&session) {
                 seen.remove(&request_id); // a corrected request may follow with the same seq
@@ -751,7 +798,8 @@ impl Verifier {
     }
 }
 
-/// Verify every exchange session and stream of a transcript (section 10.3).
+/// Verify every exchange session and stream of a transcript (section 10.3). With `key`, the
+/// transcript must be authenticated with it.
 pub fn verify(path: impl AsRef<Path>, key: Option<&Key>) -> Result<Report, FrameError> {
     let path = path.as_ref();
     // The frames of a keyed transcript are authenticated with the same key (section 13.2).
@@ -789,7 +837,7 @@ pub fn verify(path: impl AsRef<Path>, key: Option<&Key>) -> Result<Report, Frame
             .problems
             .push(format!("the transcript is truncated at offset {offset}"));
     }
-    for (session, (seq, _, _)) in &verifier.pending {
+    for (session, (seq, _, _, _)) in &verifier.pending {
         if let Some(&position) = verifier.index.get(session) {
             report.sessions[position]
                 .problems

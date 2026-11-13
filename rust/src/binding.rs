@@ -255,6 +255,16 @@ pub struct ServeOptions {
     pub stop: Option<Arc<AtomicBool>>,
 }
 
+/// The session and the kept response that bind a nameless response to the owner's chain
+/// (section 6.2), if the owner holds a session.
+fn chain<H: Handler>(owner: &Owner<H>) -> Option<(&str, &str)> {
+    let state = owner.state();
+    match (&state.session, &state.kept) {
+        (Some(session), Some(kept)) => Some((session.as_str(), kept.identity.as_str())),
+        _ => None,
+    }
+}
+
 /// Serve one session on a byte stream until it ends. Returns how it ended: "closed", "ended",
 /// "lost", "shutdown", or "bad_frame".
 pub fn serve<H: Handler, R: Read, W: Write>(
@@ -290,7 +300,7 @@ pub fn serve_with<H: Handler, R: Read, W: Write>(
         let mut how = "lost";
         loop {
             if stopped() {
-                let _ = channel.send_frame(&shutdown_response(key.as_ref()));
+                let _ = channel.send_frame(&shutdown_response(key.as_ref(), chain(owner)));
                 return Ok("shutdown");
             }
             let frame_bytes = match channel.receive_with(
@@ -301,16 +311,16 @@ pub fn serve_with<H: Handler, R: Read, W: Write>(
             ) {
                 Ok(bytes) => bytes,
                 Err(ReceiveError::Idle) => {
-                    let _ = channel.send_frame(&shutdown_response(key.as_ref()));
+                    let _ = channel.send_frame(&shutdown_response(key.as_ref(), chain(owner)));
                     return Ok("shutdown");
                 }
                 Err(ReceiveError::BadFrame(_) | ReceiveError::Timeout) => {
-                    let _ = channel.send_frame(&bad_frame_response(key.as_ref()));
+                    let _ = channel.send_frame(&bad_frame_response(key.as_ref(), chain(owner)));
                     return Ok("bad_frame");
                 }
                 Err(ReceiveError::Closed(error)) => {
                     if stopped() {
-                        let _ = channel.send_frame(&shutdown_response(key.as_ref()));
+                        let _ = channel.send_frame(&shutdown_response(key.as_ref(), chain(owner)));
                         return Ok("shutdown");
                     }
                     return match error.kind() {
@@ -335,7 +345,7 @@ pub fn serve_with<H: Handler, R: Read, W: Write>(
                     }
                 }
                 Err(FrameError(_)) => {
-                    let _ = channel.send_frame(&bad_frame_response(key.as_ref()));
+                    let _ = channel.send_frame(&bad_frame_response(key.as_ref(), chain(owner)));
                     return Ok("bad_frame");
                 }
             }

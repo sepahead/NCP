@@ -31,7 +31,7 @@ from . import transcript as T
 from .binding import ChannelClosed, spawn
 from .contract import Contract, ContractError
 from .frame import FrameError
-from .messages import check_request, check_response, check_stream_message
+from .messages import check_request, check_response, check_stream_message, foreign
 from .owner import Declined, Owner, Request
 from .stream import Subscriber
 
@@ -185,7 +185,16 @@ def run_frames_with_program(vectors: dict[str, Any], argv: list[str]) -> list[st
 
 
 def run_messages(vectors: dict[str, Any]) -> list[str]:
-    checks = {"request": check_request, "response": check_response, "stream": check_stream_message}
+    def check_foreign(message: dict[str, Any]) -> None:
+        if not foreign(message):
+            raise FrameError("not a request of another protocol version")
+
+    checks = {
+        "request": check_request,
+        "response": check_response,
+        "stream": check_stream_message,
+        "foreign": check_foreign,
+    }
     failures = []
     for case in vectors["messages"]:
         message = F.decode(frame_bytes(case["frame"]), F.MAX_BOUND).message
@@ -327,9 +336,11 @@ def _scenario(
                 "other": "0" * 64,
             }[step["ack"]]
             session = vectors["session"] if step.get("session") != "other" else str(uuid.uuid4())
-            frame = F.encode(
-                {"ncp": step.get("ncp", 2), "session": session, "seq": step["seq"], "op": step["op"], "ack": ack, "body": body}
-            )
+            request = {"ncp": step.get("ncp", 2), "session": session, "seq": step["seq"], "op": step["op"], "ack": ack, "body": body}
+            for member in step.get("drop", ()):
+                del request[member]
+            request.update(step.get("extra", {}))
+            frame = F.encode(request)
         response = handle(frame)
         message = F.decode(response, F.MAX_BOUND).message
         observed = [message["outcome"], message["code"]]
@@ -467,6 +478,8 @@ def _reply(state: C.ClientState, reply: dict[str, Any], to: str) -> bytes:
         message["session"] = str(uuid.uuid4())
     elif to == "nameless":
         message.update(session=None, seq=None, request=None)
+    elif to == "nameless_bound":
+        message.update(session=None, seq=None, request=None, body={"session": state.session, "kept": state.ack})
     return F.encode(message)
 
 

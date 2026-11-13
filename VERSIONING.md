@@ -27,9 +27,9 @@ NCP has four separate identities:
 NCP 2 has one version for the protocol and its packages: 2.0.0. The magic of every frame and the
 member `ncp` of every message carry the protocol version 2.
 
-- Before the tag `v2.0.0`, the specification has revisions; revision 3 is current. The changelog
-  and section 12 of the [design record](docs/design/NCP-2-DESIGN.md) state what each revision
-  changed. The tag freezes the text; after it, section 19 of the specification lists errata,
+- Before the tag `v2.0.0`, the specification has revisions; revision 4 is current. The changelog
+  and sections 12 and 13 of the [design record](docs/design/NCP-2-DESIGN.md) state what each
+  revision changed. The tag freezes the text; after it, section 19 of the specification lists errata,
   which change no behavior.
 - A later version can add codes and members of the `open` response without a new protocol
   version: a receiver acts on the outcome of a code that it does not know, and a client ignores

@@ -90,7 +90,7 @@ Dropping the channel of `spawn` ends the child.
 | Error | Executed | Meaning |
 | --- | --- | --- |
 | `Error::Declined { code, .. }` | No, and never | The owner admitted the request and did not execute it. `code` is `body_invalid` or `unknown_op`. The session goes on. |
-| `Error::Ended { code, executed, .. }` | `Yes`, `No`, or `Unknown` | The session is over. `code` is the owner's code, or a local one: `local.timeout`, `local.closed`, `local.protocol`, or `local.bad_frame`. |
+| `Error::Ended { code, executed, .. }` | `Yes`, `No`, or `Unknown` | The session is over. `code` is the owner's code, or a local one: `local.timeout`, `local.closed`, `local.protocol`, or `local.bad_frame`. `request` is the identity of the request that `executed` is about. |
 | `Error::Rejected { code, .. }` | No | Only for `open`: the owner opened no session. |
 | `Error::Usage(reason)` | No | The client refused the call before it sent anything, for example a call after the session ended, or a request larger than the session bound. |
 
@@ -138,7 +138,7 @@ The crate is tested on Linux and macOS. It also builds for Windows, without the 
 
 ## Profiles, streams, and transcripts
 
-`Lockstep` and `LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and after a lost session, a new session tells the client whether its last step ran.
+`Lockstep` and `LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and after a lost session, a new session tells the client whether its last step ran. The new session takes the ticks from the old one, so a delayed copy of that step can no longer run.
 `Publisher` numbers and chains the messages of a stream under a unique stream identifier; `Subscriber` reports each frame as accepted (with the number of lost messages before it), joined, a repeat, a conflict, a broken chain, an unknown contract, or a bad frame.
 `Tap` records the frames that a channel sends and receives (`with_tap` on a channel), with a hash chain over the records, and `transcript::verify` checks the digests, the sequence numbers, the acknowledgements, and the chain.
 A tap gives each record to the operating system before the frame is sent, so a transcript keeps every record up to a crash of the recording program.

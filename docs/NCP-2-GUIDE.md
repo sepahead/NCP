@@ -2,7 +2,7 @@
 
 This guide explains NCP 2 for readers without a background in protocols.
 The [specification](../spec/NCP-2.md) is the exact definition; where this guide and the specification differ, the specification is correct.
-NCP 2.0 is a release candidate: revision 3 of the specification. The tag and the publication of the packages follow.
+NCP 2.0 is a release candidate: revision 4 of the specification. The tag and the publication of the packages follow.
 
 ## What NCP is for
 

@@ -15,7 +15,8 @@ a fault budget. Faults: loss and repetition of any frame (message); a restart of
 expiry of its session, after which old copies can still arrive (message); a stop of the owner;
 requests of a faulty client or of a second writer in the session: a sequence gap, a wrong
 acknowledgement, another request with the next sequence number, a request after the end (message);
-a broken connection and damaged frames (stream). The application declines bodies with
+a broken connection, damaged frames, and a response that an attacker replaces with a nameless
+frame replayed from another connection (stream). The application declines bodies with
 "bad", fails on "fail", and returns a result too large for the session on "big".
 
 In every reachable state, the search checks the properties of section 7.7:
@@ -64,6 +65,7 @@ CONTRACT = ncp.Contract.from_bytes(
     b'{"ncp_contract":1,"application":"model","version":"1","operations":{"step":{}},"streams":{}}'
 )
 SESSION = "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b"
+OTHER_SESSION = "1b2c3d4e-5f60-4718-9a2b-3c4d5e6f7a8b"
 RETRIES = 1
 
 # name -> (the client's calls, the verdicts of a run without faults)
@@ -93,6 +95,7 @@ MUTANTS = (
     "client_timeout_not_executed",
     "client_trusts_session_expired",
     "client_trusts_rejected_call",
+    "client_trusts_unbound_nameless",
 )
 
 
@@ -224,6 +227,8 @@ class Machines:
             executed = "no"
         if self.mutant == "client_trusts_rejected_call" and verdict.detail == C.LOST_SESSION:
             executed = "no"  # the rule before revision 3: a rejected call ran nowhere
+        if self.mutant == "client_trusts_unbound_nameless" and verdict.code in ("bad_frame", "shutdown"):
+            executed = "no"  # the rule before revision 4: any nameless bad_frame or shutdown
         return "ended", verdict.code, executed, None
 
 
@@ -382,10 +387,23 @@ class Search:
                 out.append(("connection broken", dataclasses.replace(w, client=after, **broken)))
             else:
                 out.append(("connection broken", self.verdict(w, c, after, result, broken)))
+            chain = M.nameless_binding(w.owner.session, w.owner.kept.identity if w.owner.kept else None)
             if w.to_owner:  # rule 9.1.3: the owner answers a damaged frame with bad_frame and closes
                 out.append(("request damaged", dataclasses.replace(
-                    w, to_owner=(), to_client=w.to_client + (M.bad_frame_response(key=None),),
+                    w, to_owner=(), to_client=w.to_client + (M.bad_frame_response(key=None, **chain),),
                     conn="owner_closed", faults=fault)))
+            if w.to_client:
+                # An attacker on the path drops a response and puts in its place a nameless frame
+                # replayed from another connection, then cuts the connection. Authentication of
+                # frames does not prevent this replay (section 7.7, assumption A2).
+                for label, replayed in (
+                    ("a response replaced by a replayed bad_frame",
+                     M.bad_frame_response(key=None, session=OTHER_SESSION, kept="0" * 64)),
+                    ("a response replaced by a replayed shutdown", M.shutdown_response(key=None)),
+                ):
+                    out.append((label, dataclasses.replace(
+                        w, to_client=(replayed,) + w.to_client[1:], to_owner=(), conn="owner_closed",
+                        faults=fault)))
             if w.to_client:
                 after, result = self.m.client_receive(c, b"\x00" * 16, False)
                 damaged = {"to_client": w.to_client[1:], "to_owner": (), "conn": "closed", "faults": fault}
@@ -395,7 +413,7 @@ class Search:
                     out.append(("response damaged", self.verdict(w, c, after, result, damaged)))
             if not w.stopped:  # rule 9.1.9: answer what was read, send shutdown, close
                 out.append(("owner stops", dataclasses.replace(
-                    w, to_owner=(), to_client=w.to_client + (M.shutdown_response(key=None),),
+                    w, to_owner=(), to_client=w.to_client + (M.shutdown_response(key=None, **chain),),
                     conn="owner_closed", stopped=True, faults=fault)))
             return out
         for index in distinct(w.to_owner):

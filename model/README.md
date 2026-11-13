@@ -24,7 +24,8 @@ It explores every order of the client's steps, the owner's steps, the time limit
 - a restart of the owner, or the expiry of its session; copies of the earlier opening's requests can still arrive (message);
 - a stop of the owner;
 - requests of a faulty client or of a second writer in the session: a sequence gap, a wrong acknowledgement, another request with the next sequence number, and a request after the end (message);
-- a broken connection, and damaged frames (stream).
+- a broken connection, and damaged frames (stream);
+- a response replaced by a `bad_frame` or `shutdown` response from another connection, replayed by a party on the path, as authentication of frames allows (stream).
 
 The application declines bodies with `bad`, fails on `fail`, and returns a result too large for the session on `big`.
 Four scripts of calls exercise `ok`, `declined`, `owner_failure`, `result_too_large`, `unknown_op`, `ncp.ping`, and `close`.
@@ -33,9 +34,9 @@ In every reachable state, the program checks properties 1 to 8 of section 7.7.
 It also checks that a stopped owner admits nothing, and that every run without faults and without expired time limits gives the verdicts that the application decides.
 With two faults, it reaches about 2.6 million states in about 90 seconds. With one fault, it reaches about 105,000 states in a few seconds.
 
-`--self-test` injects eleven known defects into the SDK machines, one at a time, and requires a violation for each.
+`--self-test` injects twelve known defects into the SDK machines, one at a time, and requires a violation for each.
 Nine are defects of the owner or the client: no acknowledgement check, accepted gaps, a forgotten kept request, execution after the end, a declined request that is not kept, a constant nonce, an ignored stop, a client that accepts a response to another request, and a client that reports a time limit as "not executed".
-Two are earlier rules: a client that trusts `session_expired`, and a client that treats a rejected call as "not executed".
+Three are earlier rules: a client that trusts `session_expired`, a client that treats a rejected call as "not executed", and a client that trusts a response that names no request without checking its binding to the chain, as revision 3 allowed.
 
 ### What the check found
 

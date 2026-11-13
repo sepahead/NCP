@@ -228,6 +228,18 @@ def frames() -> list[dict]:
             "shape product beyond 64 bits",
             raw(b'{"att":[0],"v":{"ncp.array":{"dtype":"u8","shape":[4294967296,4294967296],"att":0}}}'),
         ),
+        valid(
+            "a dimension 0 makes the number of elements 0, also beside large dimensions",
+            raw(b'{"att":[0],"v":{"ncp.array":{"dtype":"u8","shape":[1099511627776,1099511627776,0],"att":0}}}'),
+        ),
+        valid(
+            "a shape of 32 dimensions",
+            raw(b'{"att":[1],"v":{"ncp.array":{"dtype":"u8","shape":[' + b",".join([b"1"] * 32) + b'],"att":0}}}', b"x"),
+        ),
+        invalid(
+            "a shape of 33 dimensions",
+            raw(b'{"att":[1],"v":{"ncp.array":{"dtype":"u8","shape":[' + b",".join([b"1"] * 33) + b'],"att":0}}}', b"x"),
+        ),
         invalid("float beyond binary64", raw(b'{"a":1e400}')),
         invalid("NaN literal", raw(b'{"a":NaN}')),
         invalid("Infinity literal", raw(b'{"a":Infinity}')),
@@ -304,6 +316,12 @@ def messages() -> list[dict]:
         case("request", "ack that is not an identity", {**request, "ack": "B" * 64}, False),
         case("request", "an extra member", {**request, "extra": 1}, False),
         case("request", "a missing member", {k: v for k, v in request.items() if k != "body"}, False),
+        case("foreign", "protocol 3 with other members", {"ncp": 3, "session": SESSION, "seq": 1, "later": [1]}, True),
+        case("foreign", "protocol 3 with the request form", {**request, "ncp": 3}, True),
+        case("foreign", "protocol 2 is not foreign", request, False),
+        case("foreign", "protocol 3 without seq", {"ncp": 3, "session": SESSION, "later": [1]}, False),
+        case("foreign", "protocol 3 with a session that is not a UUID", {"ncp": 3, "session": "x", "seq": 1}, False),
+        case("foreign", "ncp true", request, False, text_of(request, b'"ncp":2', b'"ncp":true')),
         case("response", "an ok response", response, True),
         case("response", "ok with a code", {**response, "code": "x"}, False),
         case("response", "a declined response", {**response, "outcome": "declined", "code": "body_invalid"}, True),
@@ -417,6 +435,15 @@ def scenarios() -> list[dict]:
         {
             "name": "open rules",
             "steps": [
+                {
+                    "seq": 0,
+                    "op": "open",
+                    "ack": "none",
+                    "ncp": 3,
+                    "drop": ["op", "ack", "body"],
+                    "extra": {"later": [1]},
+                    "expect": ["rejected", "wrong_protocol"],
+                },
                 {"seq": 0, "op": "step", "body": {}, "ack": "none", "expect": ["rejected", "not_open"]},
                 {"seq": 1, "op": "step", "body": {}, "ack": "other", "expect": ["ended", "session_expired"]},
                 {
@@ -472,7 +499,7 @@ def scenarios() -> list[dict]:
                     "open_bound": F.HANDSHAKE_BOUND,
                     "open_features": {},
                 },
-                {"repeat": 10, "expect": ["ok", None]},
+                {"repeat": 11, "expect": ["ok", None]},
                 {
                     "seq": 1,
                     "op": "step",
@@ -482,6 +509,16 @@ def scenarios() -> list[dict]:
                     "expect": ["rejected", "wrong_session"],
                 },
                 {"seq": 1, "op": "step", "body": {}, "ack": "last", "ncp": 3, "expect": ["rejected", "wrong_protocol"]},
+                {
+                    "seq": 1,
+                    "op": "step",
+                    "body": {},
+                    "ack": "last",
+                    "ncp": 3,
+                    "drop": ["op", "ack"],
+                    "extra": {"later": [1]},
+                    "expect": ["rejected", "wrong_protocol"],
+                },
             ],
         },
         {
@@ -555,7 +592,9 @@ def scenarios() -> list[dict]:
 #   {"do": "open" | "call" | "close" | "ping", "op": ..., "body": ...}  the client makes a request
 #        "expect": "sent" (a frame) or "usage" (refused before sending)
 #   {"reply": {"outcome", "code", "body"}, "to": "own" | "other_seq" | "other_request" |
-#        "other_session" | "nameless" | "garbage", "expect": verdict}
+#        "other_session" | "nameless" | "nameless_bound" | "garbage", "expect": verdict}
+# "nameless" sets session, seq, and request to null; "nameless_bound" also sets the body to the
+# client's session and its acknowledgement, as an owner's nameless response bound to its chain.
 #   {"timeout": true, "expect": verdict}   {"closed": true, "expect": verdict}
 # A verdict: {"kind": "ok" | "declined" | "rejected" | "ended" | "ignored" | "resend",
 # "code", "executed"} and, after it, the state {"seq", "opened", "ended"}.
@@ -620,14 +659,42 @@ def clients() -> list[dict]:
             ],
         },
         {
-            "name": "a nameless response ends the session",
+            # Rule 7.6.2: a nameless frame says "not executed" only when it is bound to the chain
+            # of the request; it can be replayed from another connection, also under a key.
+            "name": "a nameless response that is not bound to the chain: possibly executed",
             "lossy": False,
-            "cases": [["bad_frame", "no"], ["shutdown", "no"], ["later_end", "unknown"]],
+            "cases": [["bad_frame", "unknown"], ["shutdown", "unknown"], ["result_too_large", "unknown"],
+                      ["later_end", "unknown"]],
             "steps": opened
             + [
                 {"do": "call", "op": "step", "body": {}, "expect": "sent"},
                 {"reply": {"outcome": "ended", "code": "$code", "body": {}}, "to": "nameless",
                  "expect": {"kind": "ended", "code": "$code", "executed": "$executed"}, "state": state(0, ended=True)},
+            ],
+        },
+        {
+            "name": "a nameless response bound to the chain of the request",
+            "lossy": False,
+            "cases": [["bad_frame", "no"], ["shutdown", "no"], ["result_too_large", "unknown"],
+                      ["later_end", "unknown"]],
+            "steps": opened
+            + [
+                {"do": "call", "op": "step", "body": {}, "expect": "sent"},
+                {"reply": {"outcome": "ended", "code": "$code", "body": {}}, "to": "nameless_bound",
+                 "expect": {"kind": "ended", "code": "$code", "executed": "$executed"}, "state": state(0, ended=True)},
+            ],
+        },
+        {
+            "name": "a nameless response on a lossy binding is ignored",
+            "lossy": True,
+            "cases": [["bad_frame"], ["shutdown"]],
+            "steps": opened
+            + [
+                {"do": "call", "op": "step", "body": {}, "expect": "sent"},
+                {"reply": {"outcome": "ended", "code": "$code", "body": {}}, "to": "nameless_bound",
+                 "expect": {"kind": "ignored"}, "state": state(0)},
+                {"reply": {"outcome": "ok", "code": None, "body": {}}, "to": "own", "expect": {"kind": "ok"},
+                 "state": state(1)},
             ],
         },
         {
@@ -703,7 +770,7 @@ def clients() -> list[dict]:
         {
             "name": "open responses that break section 7.1",
             "lossy": False,
-            "cases": [["nonce"], ["bound"], ["features"]],
+            "cases": [["nonce"], ["no_nonce"], ["bound"], ["features"]],
             "steps": [
                 {"do": "open", "expect": "sent"},
                 {"reply": {"outcome": "ok", "code": None, "body": "$code"}, "to": "own",
@@ -712,6 +779,8 @@ def clients() -> list[dict]:
             ],
             "bodies": {
                 "nonce": {"bound": F.HANDSHAKE_BOUND, "nonce": "XYZ", "features": {}},
+                # an owner of an earlier revision, without a nonce
+                "no_nonce": {"bound": F.HANDSHAKE_BOUND, "features": {}},
                 "bound": {"bound": F.MAX_BOUND, "nonce": NONCE, "features": {}},
                 "features": {"bound": F.HANDSHAKE_BOUND, "nonce": NONCE, "features": []},
             },
@@ -888,6 +957,30 @@ def transcripts() -> list[dict]:
         v1 += T.RECORD.pack(item.kind, item.time_ns, len(item.frame)) + item.frame
     session = {"role": "client", "requests": 5, "declined": 1, "complete": True}
 
+    def message_of(item: T.Record) -> dict:
+        return F.decode(item.frame, F.MAX_BOUND).message
+
+    # A second, different ok response to the first step, received after the first one.
+    first_ok = message_of(rec[3])
+    assert first_ok["outcome"] == "ok" and message_of(rec[2])["op"] == "step"
+    other_ok = F.encode({**first_ok, "body": {"x": 99}})
+    two_answers = rec[:4] + [T.Record(T.RECEIVED, rec[3].time_ns, other_ok)] + rec[4:]
+
+    # An owner's transcript (every direction flipped) with a request of seq 5 after the open.
+    gap_request = F.encode({"ncp": 2, "session": SESSION, "seq": 5, "op": "step", "ack": F.identity(rec[1].frame),
+                            "body": {}})
+
+    def gap_answer(outcome: str, code: str | None) -> bytes:
+        return F.encode({"ncp": 2, "session": SESSION, "seq": 5, "request": F.identity(gap_request),
+                         "outcome": outcome, "code": code, "body": {}})
+
+    def owner_with(answer: bytes) -> list[T.Record]:
+        moment = flipped[1].time_ns
+        return flipped[:2] + [T.Record(T.RECEIVED, moment, gap_request), T.Record(T.SENT, moment, answer)] + flipped[2:]
+
+    owner_session = {**session, "role": "owner"}
+    short = rec[:2] + [T.Record(T.RECEIVED, rec[1].time_ns, b"0123456789")] + rec[2:]
+
     def expect(ok: bool, *, closed: bool = True, truncated: bool = False, chain_ok: bool | None = True,
                problems: bool | None = None, sessions: list[dict] | None = None, version: int = 2) -> dict:
         return {
@@ -922,6 +1015,15 @@ def transcripts() -> list[dict]:
         ("cut inside the end record", original[:-10], None,
          expect(False, closed=False, truncated=True, sessions=[{**session, "problems": False}])),
         ("version 1", bytes(v1), None, expect(True, closed=False, chain_ok=None, version=1)),
+        ("version 1, verified with a key", bytes(v1), KEY, expect(False, closed=False, chain_ok=None, version=1)),
+        ("without a key, verified with a key", original, KEY, expect(False)),
+        ("two different ok responses to one request, chain recomputed", resealed(two_answers), None,
+         expect(False, sessions=[{**session, "problems": True}])),
+        ("an owner rejects a request with a gap, chain recomputed", resealed(owner_with(gap_answer("rejected", "seq_gap"))),
+         None, expect(True, sessions=[{**owner_session, "problems": False}])),
+        ("an owner admits a request with a gap, chain recomputed", resealed(owner_with(gap_answer("ok", None))),
+         None, expect(False, sessions=[{**owner_session, "requests": 6, "problems": True}])),
+        ("a received record shorter than a digest, chain recomputed", resealed(short), None, expect(False)),
     ]
     out = []
     for name, data, key, expected in cases:

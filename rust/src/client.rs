@@ -56,6 +56,8 @@ pub enum Error {
         detail: String,
         /// The response body, or an empty object for a local event.
         body: Value,
+        /// The identity of the request that `executed` is about, if one was outstanding.
+        request: Option<String>,
     },
     /// A call that the client refuses before it sends anything: the request was not sent.
     Usage(String),
@@ -87,6 +89,7 @@ impl Error {
             executed,
             detail: detail.into(),
             body: json!({}),
+            request: None,
         }
     }
 }
@@ -289,7 +292,10 @@ pub fn request(
     Ok((next, frame))
 }
 
-fn end(state: &ClientState, error: Error) -> (ClientState, Option<Result<Decoded, Error>>) {
+fn end(state: &ClientState, mut error: Error) -> (ClientState, Option<Result<Decoded, Error>>) {
+    if let Error::Ended { request, .. } = &mut error {
+        *request = state.pending.as_ref().map(|p| p.identity.clone());
+    }
     let mut next = state.clone();
     next.pending = None;
     next.ended = true;
@@ -333,9 +339,24 @@ pub fn receive(
     };
     let message = &decoded.message;
     if message["session"].is_null() {
-        // A response that names no request (section 6.2).
+        // A response that names no request (section 6.2). Only the byte-stream binding sends
+        // it (rule 7.6.2). It says "not executed" only when it is bound to the chain of the
+        // outstanding request: a nameless frame can be replayed from another connection, also
+        // when frames are authenticated.
+        if lossy {
+            return (state.clone(), None);
+        }
         let code = message["code"].as_str().unwrap_or_default().to_owned();
-        let verdict = executed(&code);
+        let body = &message["body"];
+        let bound = state
+            .ack
+            .as_deref()
+            .is_some_and(|ack| body["session"] == state.session.as_str() && body["kept"] == ack);
+        let verdict = if bound && (code == "bad_frame" || code == "shutdown") {
+            Executed::No
+        } else {
+            Executed::Unknown
+        };
         return end(
             state,
             Error::Ended {
@@ -343,6 +364,7 @@ pub fn receive(
                 executed: verdict,
                 detail: text_detail(&message["body"]),
                 body: message["body"].clone(),
+                request: None, // end() sets it
             },
         );
     }
@@ -409,6 +431,7 @@ pub fn receive(
                 executed: Executed::Unknown,
                 detail: LOST_SESSION.to_owned(),
                 body,
+                request: None, // end() sets it
             },
         ),
         _ => {
@@ -421,6 +444,7 @@ pub fn receive(
                     executed: verdict,
                     detail,
                     body,
+                    request: None, // end() sets it
                 },
             )
         }

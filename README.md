@@ -17,7 +17,7 @@ Each application describes its own steps and data in a contract.
 
 ## NCP 2
 
-**NCP 2.0 is a release candidate: revision 3 of the specification, and packages of version 2.0.0. The tag and the publication follow.** NCP 2 replaces the three protocol families of NCP 1, below, with one protocol. The projects that use NCP 1 move to NCP 2 before NCP 1 leaves the main branch.
+**NCP 2.0 is a release candidate: revision 4 of the specification, and packages of version 2.0.0. The tag and the publication follow.** NCP 2 replaces the three protocol families of NCP 1, below, with one protocol. The projects that use NCP 1 move to NCP 2 before NCP 1 leaves the main branch.
 [NCP 2 in plain words](docs/NCP-2-GUIDE.md) explains it with figures for readers without a background in protocols.
 The [specification](spec/NCP-2.md) is the exact definition, and the [design record](docs/design/NCP-2-DESIGN.md) gives the reason for each decision and the alternatives that were measured.
 

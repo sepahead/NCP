@@ -74,7 +74,7 @@ The `with` block opens the session and closes it; closing the channel of `spawn`
 | Exception | Executed | Meaning |
 | --- | --- | --- |
 | `ncp.Declined` | No, and never | The owner admitted the request and did not execute it. `code` is `body_invalid` or `unknown_op`. The session goes on. |
-| `ncp.Ended` | `executed`: `YES`, `NO`, or `UNKNOWN` | The session is over. `code` is the owner's code, or a local one: `local.timeout`, `local.closed`, `local.protocol`, or `local.bad_frame`. |
+| `ncp.Ended` | `executed`: `YES`, `NO`, or `UNKNOWN` | The session is over. `code` is the owner's code, or a local one: `local.timeout`, `local.closed`, `local.protocol`, or `local.bad_frame`. `request` is the identity of the request that `executed` is about. |
 | `ncp.Rejected` | No | Only for `open`: the owner opened no session. `code` says why, for example `refused`. |
 | `ncp.UsageError` | No | The client refused the call before it sent anything, for example a call after the session ended, or a request larger than the session bound. |
 
@@ -112,7 +112,7 @@ An owner can serve several contracts of one application, for example two version
 
 A connection carries one session. `UnixServer` and `TcpServer` call `make_owner()` for each connection, run each session in its own thread, and take `ncp.Limits` for the number of sessions and the time limits of frames and idle sessions.
 `stop()` sends each session the shutdown response, after the owner has answered every request that it read.
-TCP accepts only loopback addresses unless you pass `allow_remote=True`. Between computers, use TLS with certificates on both sides (`tls=ncp.TlsConfig(...)`), or the optional [Zenoh binding](https://github.com/sepahead/NCP/blob/main/bindings/zenoh/README.md) (`ncp_zenoh`) with mutual TLS and access control.
+TCP accepts only loopback addresses unless you pass `allow_remote=True`. Between computers, use TLS with certificates on both sides (`tls=ncp.TlsConfig(ca, cert, key, server_name=...)`; a client needs the server's name), or the optional [Zenoh binding](https://github.com/sepahead/NCP/blob/main/bindings/zenoh/README.md) (`ncp_zenoh`) with mutual TLS and access control.
 Put a Unix domain socket in a directory that only the users of the sessions can access; the servers create it with mode 0600.
 
 To call many sessions at once, for example one for each agent, use `ncp.call_all(clients, op, bodies)`.
@@ -136,7 +136,7 @@ result = client.call("act", {"ncp.round": {"agent": "drone-1", "round": k}, "thr
 record = ncp.RoundRecord.of(result, "drone-1")  # checks that the round applied this request
 ```
 
-For one simulation that steps through ticks, `ncp.Lockstep` and `ncp.LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and after a lost session, a new session tells the client whether its last step ran.
+For one simulation that steps through ticks, `ncp.Lockstep` and `ncp.LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and after a lost session, a new session tells the client whether its last step ran. The new session takes the ticks from the old one, so a delayed copy of that step can no longer run.
 
 ## Streams
 

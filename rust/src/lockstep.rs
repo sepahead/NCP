@@ -10,7 +10,7 @@ use crate::frame::{Array, Decoded};
 use crate::messages::Executed;
 use crate::owner::{declined, AppError, Handler, Invalid, OpenInfo, Refused, Reply, Request};
 use serde_json::{json, Map, Value};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 
 /// The feature name.
 pub const FEATURE: &str = "ncp.lockstep";
@@ -39,6 +39,10 @@ pub struct Clock {
     pub tick: u64,
     /// The digest of the state after the last tick.
     pub state: Option<String>,
+    /// The identity of the request whose step produced the last tick, if any.
+    pub request: Option<String>,
+    /// The session that holds the ticks: the last session that enabled the feature.
+    pub holder: Option<String>,
     /// The identity of the step between its validation and its execution, if any.
     running: Option<String>,
 }
@@ -49,7 +53,7 @@ pub struct Clock {
 /// of the application with [`Lockstep::share`] from the same [`Arc`].
 #[derive(Debug)]
 pub struct Lockstep<S: Stepper> {
-    shared: Arc<Mutex<(S, Clock)>>,
+    shared: Arc<(Mutex<(S, Clock)>, Condvar)>,
     ops: Vec<String>,
 }
 
@@ -57,7 +61,7 @@ impl<S: Stepper> Lockstep<S> {
     /// A lockstep handler for the operations `ops` of `stepper`, from tick 0.
     pub fn new(stepper: S, ops: &[&str]) -> Lockstep<S> {
         Lockstep {
-            shared: Arc::new(Mutex::new((stepper, Clock::default()))),
+            shared: Arc::new((Mutex::new((stepper, Clock::default())), Condvar::new())),
             ops: ops.iter().map(|op| (*op).to_owned()).collect(),
         }
     }
@@ -72,18 +76,30 @@ impl<S: Stepper> Lockstep<S> {
 
     /// The tick and the state now.
     pub fn clock(&self) -> Clock {
-        self.shared.lock().map(|g| g.1.clone()).unwrap_or_default()
+        self.shared
+            .0
+            .lock()
+            .map(|g| g.1.clone())
+            .unwrap_or_default()
     }
 }
 
 impl<S: Stepper> Handler for Lockstep<S> {
     fn open(&mut self, info: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
-        let mut guard = self.shared.lock().map_err(|_| Refused("lock".into()))?;
+        let (mutex, idle) = &*self.shared;
+        let mut guard = mutex.lock().map_err(|_| Refused("lock".into()))?;
         let mut granted = guard.0.open(info)?;
         if info.features.contains_key(FEATURE) {
+            // The session takes over the ticks (profile, rule 5.2): wait until no checked step
+            // is about to run, so that the tick read here is final for every earlier session,
+            // whose later steps validate then declines.
+            while guard.1.running.is_some() {
+                guard = idle.wait(guard).map_err(|_| Refused("lock".into()))?;
+            }
+            guard.1.holder = Some(info.session.to_owned());
             granted.insert(
                 FEATURE.to_owned(),
-                json!({"tick": guard.1.tick, "state": guard.1.state}),
+                json!({"tick": guard.1.tick, "state": guard.1.state, "request": guard.1.request}),
             );
         }
         Ok(granted)
@@ -92,6 +108,7 @@ impl<S: Stepper> Handler for Lockstep<S> {
     fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
         let mut guard = self
             .shared
+            .0
             .lock()
             .map_err(|_| Invalid::Failed("lock".into()))?;
         if !self.ops.iter().any(|op| op == request.op) {
@@ -104,6 +121,11 @@ impl<S: Stepper> Handler for Lockstep<S> {
         if !valid_shape {
             return Err(declined(
                 "a lockstep step needs the member \"ncp.tick\": {\"tick\": T, \"state\": S}",
+            ));
+        }
+        if guard.1.holder.as_deref() != Some(request.session) {
+            return Err(declined(
+                "the session does not hold the ticks: it did not ask for ncp.lockstep, or a later session took them over",
             ));
         }
         if !member["tick"].is_u64() || member["tick"].as_u64() != Some(guard.1.tick + 1) {
@@ -126,36 +148,41 @@ impl<S: Stepper> Handler for Lockstep<S> {
     }
 
     fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
-        let mut guard = self
-            .shared
-            .lock()
-            .map_err(|_| -> AppError { "lock".into() })?;
+        let (mutex, idle) = &*self.shared;
+        let mut guard = mutex.lock().map_err(|_| -> AppError { "lock".into() })?;
         if !self.ops.iter().any(|op| op == request.op) {
             return guard.0.execute(request);
         }
+        // The lock stays held to the end of the step, so a waiting open sees the new tick.
         guard.1.running = None;
-        let mut reply = guard.0.execute(request)?;
+        idle.notify_all();
+        // The step counts as executed from here, also if the application fails (profile, rule
+        // 5.3): the tick advances, so that a recovery says that the step ran.
+        let outcome = guard.0.execute(request);
+        let state = guard.0.state();
+        let valid = state_ok(&state.clone().map_or(Value::Null, Value::from));
+        guard.1.tick += 1;
+        guard.1.state = if valid { state.clone() } else { None };
+        guard.1.request = Some(request.identity.to_owned());
+        let mut reply = outcome?;
+        if !valid {
+            return Err("state() must return 1 to 128 characters or None".into());
+        }
         let Value::Object(body) = &mut reply.body else {
             return Err("a lockstep result must be an object".into());
         };
         if body.contains_key(TICK) {
             return Err(format!("a lockstep result must not have {TICK}").into());
         }
-        let state = guard.0.state();
-        if !state_ok(&state.clone().map_or(Value::Null, Value::from)) {
-            return Err("state() must return 1 to 128 characters or None".into());
-        }
-        guard.1.tick += 1;
-        guard.1.state = state.clone();
         body.insert(
             TICK.to_owned(),
-            json!({"tick": guard.1.tick, "state": state}),
+            json!({"tick": guard.1.tick, "state": state, "request": request.identity}),
         );
         Ok(reply)
     }
 
     fn close(&mut self, reason: &str) {
-        if let Ok(mut guard) = self.shared.lock() {
+        if let Ok(mut guard) = self.shared.0.lock() {
             guard.0.close(reason);
         }
     }
@@ -170,19 +197,25 @@ pub struct LockstepClient<C: Channel> {
     pub tick: u64,
     /// The state after it.
     pub state: Option<String>,
-    /// The tick of a step that is possibly executed.
-    pub uncertain: Option<u64>,
+    /// The tick and the request identity of a step that is possibly executed.
+    pub uncertain: Option<(u64, Option<String>)>,
 }
 
-fn granted<C: Channel>(client: &Client<C>) -> Result<(u64, Option<String>), Error> {
+/// The owner's tick, state, and the identity of the request that produced the tick.
+type Granted = (u64, Option<String>, Option<String>);
+
+fn granted<C: Channel>(client: &Client<C>) -> Result<Granted, Error> {
     let enabled = client.enabled();
-    let granted = enabled
-        .get(FEATURE)
-        .filter(|g| g["tick"].is_u64() && state_ok(&g["state"]));
+    let granted = enabled.get(FEATURE).filter(|g| {
+        g["tick"].is_u64()
+            && state_ok(&g["state"])
+            && (g["request"].is_null() || g["request"].is_string())
+    });
     match granted {
         Some(g) => Ok((
             g["tick"].as_u64().unwrap_or_default(),
             g["state"].as_str().map(str::to_owned),
+            g["request"].as_str().map(str::to_owned),
         )),
         None => Err(Error::Usage("the owner did not enable ncp.lockstep".into())),
     }
@@ -195,7 +228,7 @@ impl<C: Channel> LockstepClient<C> {
         if !client.opened() {
             client.open()?;
         }
-        let (tick, state) = granted(&client)?;
+        let (tick, state, _) = granted(&client)?;
         Ok(LockstepClient {
             client,
             tick,
@@ -210,7 +243,7 @@ impl<C: Channel> LockstepClient<C> {
     }
 
     /// Send one lockstep step. If the call ends with the step possibly executed, `uncertain`
-    /// holds its tick; call `recover` with a new client.
+    /// holds its tick and request identity; call `recover` with a new client.
     pub fn step(&mut self, op: &str, body: Value, arrays: &[Array]) -> Result<Decoded, Error> {
         let Value::Object(mut body) = body else {
             return Err(Error::Usage("a lockstep step's body is an object".into()));
@@ -225,7 +258,11 @@ impl<C: Channel> LockstepClient<C> {
         match self.client.call(op, Value::Object(body), arrays) {
             Ok(result) => {
                 let member = &result.message["body"][TICK];
-                if member["tick"].as_u64() != Some(self.tick + 1) || !state_ok(&member["state"]) {
+                if member["tick"].as_u64() != Some(self.tick + 1)
+                    || !state_ok(&member["state"])
+                    || !member["request"].is_string()
+                    || member["request"] != result.message["request"]
+                {
                     return Err(Error::Usage(
                         "the result does not carry the next tick".into(),
                     ));
@@ -235,11 +272,19 @@ impl<C: Channel> LockstepClient<C> {
                 Ok(result)
             }
             Err(error) => {
-                match error.executed() {
-                    Executed::Unknown if matches!(error, Error::Ended { .. }) => {
-                        self.uncertain = Some(self.tick + 1);
+                match &error {
+                    Error::Ended {
+                        executed: Executed::Unknown,
+                        request,
+                        ..
+                    } => {
+                        self.uncertain = Some((self.tick + 1, request.clone()));
                     }
-                    Executed::Yes => {
+                    Error::Ended {
+                        executed: Executed::Yes,
+                        ..
+                    } => {
+                        // result_too_large: the step ran; its new state is unknown here.
                         self.tick += 1;
                         self.state = None;
                     }
@@ -251,17 +296,19 @@ impl<C: Channel> LockstepClient<C> {
     }
 
     /// Continue with `client`, a new session to the same owner, after a step that is possibly
-    /// executed. Returns Yes if that step ran and No if it did not. Fails if the owner's tick is
-    /// neither, for example because another client stepped it.
+    /// executed. Returns Yes if that step ran and No if it did not and never will. Fails if the
+    /// owner's tick is neither, for example because another client stepped it.
     pub fn recover(&mut self, mut client: Client<C>) -> Result<Executed, Error> {
-        let Some(uncertain) = self.uncertain else {
+        let Some((uncertain, request)) = self.uncertain.clone() else {
             return Err(Error::Usage("no step is possibly executed".into()));
         };
         if !client.opened() {
             client.open()?;
         }
-        let (tick, state) = granted(&client)?;
-        let verdict = if tick == uncertain {
+        // The new session took over the ticks (profile, rule 5.2), so the step of the old
+        // session that is possibly executed has run, with this identity, or never will.
+        let (tick, state, last) = granted(&client)?;
+        let verdict = if tick == uncertain && request.is_some() && last == request {
             Executed::Yes
         } else if tick + 1 == uncertain {
             Executed::No

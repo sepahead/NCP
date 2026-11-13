@@ -100,3 +100,35 @@ Revision 3 of the specification (13 November 2026) changes the session rules (de
 | --- | --- | --- |
 | CREBAIN | The native simulation and its closed loop (`src-tauri/crates/ncp-simulation`, Rust, pinned at `3b51a1b`) and the NEST controller (`integrations/ncp2-nest-controller`, Python) | Moves to revision 3 with a new pin |
 | Prisoma, Galadriel, Haldir, Engram | NCP 1 surfaces (section 1) | Move directly to revision 3, in the order of section 3 |
+
+## 7. From revision 3 to revision 4 of NCP 2
+
+Revision 4 (13 November 2026) closes the findings of the design record, [section 13](NCP-2-DESIGN.md#13-revision-4). A consumer of revision 3 moves its pin and, where it uses the interfaces below, its code.
+
+### What changes on the wire
+
+- A response that names no request (`bad_frame`, `shutdown`) carries `{"session": S, "kept": K}` when the owner holds a session. A client trusts it only when both match; on Zenoh it ignores it.
+- A request of another protocol version gets `rejected` with `wrong_protocol`, whatever its other members.
+- An array shape has at most 32 dimensions.
+- A client refuses an `open` response without a valid nonce, so an owner of revision 2 cannot open a session with it.
+- Lockstep profile revision 2: the feature parameters and `ncp.tick` carry `request`; only the last session that asked for the feature can step.
+
+### Python (`ncp`)
+
+| Revision 3 | Revision 4 |
+| --- | --- |
+| `ncp.Ended` | Also `request`: the identity of the request that `executed` is about |
+| `ncp.LockstepClient.uncertain`: the tick | `(tick, request identity)` |
+| `ncp.Lockstep(handler, ops, tick=..., state=...)` | Also `request=`: the identity that produced a restored tick; `holder` names the session that can step |
+| `ncp.TlsConfig` for a client without `server_name` | A client needs `server_name`: `ValueError` otherwise |
+| `ncp_zenoh.Server(session, service, make_owner)` | Also `key=`: the server checks every frame with it; each owner needs the same key |
+
+### Rust (`ncp`)
+
+| Revision 3 | Revision 4 |
+| --- | --- |
+| `Error::Ended { code, executed, detail, body }` | Also `request: Option<String>` |
+| `LockstepClient::uncertain: Option<u64>` | `Option<(u64, Option<String>)>` |
+| `lockstep::Clock { tick, state }` | Also `request` and `holder` |
+| `ncp_zenoh::ServeOptions`, which was `Copy` | Also `key: Option<Key>`; `Clone`, no longer `Copy` |
+| — | `messages::foreign`, `frame::elements`, `frame::MAX_RANK` |

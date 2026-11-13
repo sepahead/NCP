@@ -1,7 +1,7 @@
 {
   "schema": "sepahead.agent-index.v1",
   "repository": "sepahead/NCP",
-  "summary": "Neuro-Cybernetic Protocol: NCP 2 (release candidate, revision 3 of spec/NCP-2.md; Python and Rust SDKs, optional Zenoh binding, Lean models, model checks, and vectors) and the NCP 1 surfaces that stay until their consumers move: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
+  "summary": "Neuro-Cybernetic Protocol: NCP 2 (release candidate, revision 4 of spec/NCP-2.md; Python and Rust SDKs, optional Zenoh binding, Lean models, model checks, and vectors) and the NCP 1 surfaces that stay until their consumers move: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
   "entry_documents": [
     {"path": "AGENTS.md", "role": "operating contract for agents"},
     {"path": "README.md", "role": "overview"},

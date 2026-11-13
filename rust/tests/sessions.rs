@@ -1170,8 +1170,9 @@ impl Handler for World {
         Ok(())
     }
     fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
-        if request.op == "echo" {
-            self.position += request.body["dx"].as_i64().unwrap_or(0);
+        self.position += request.body["dx"].as_i64().unwrap_or(0);
+        if request.op == "fail" {
+            return Err("the world failed half way".into()); // after it changed its state
         }
         Ok(json!({"position": self.position}).into())
     }
@@ -1224,7 +1225,9 @@ fn lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_r
         let error = outcome.expect_err("the step's answer is lost");
         if lose_response {
             assert_eq!(error.executed(), Executed::Unknown);
-            assert_eq!(stepper.uncertain, Some(2));
+            let (tick, identity) = stepper.uncertain.clone().expect("possibly executed");
+            assert_eq!(tick, 2);
+            assert!(identity.is_some());
             let fresh = Client::new(
                 Memory {
                     owner: Owner::new(contract(), lockstep.share()),
@@ -1246,4 +1249,218 @@ fn lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_r
             assert_eq!(lockstep.clock().tick, 1);
         }
     }
+}
+
+/// A channel that holds back the requests once the connection breaks, as a slow network can.
+struct Held<H: Handler> {
+    owner: Owner<H>,
+    inbox: VecDeque<Vec<u8>>,
+    held: Vec<Vec<u8>>,
+    broken: bool,
+}
+
+impl<H: Handler> Channel for Held<H> {
+    fn lossy(&self) -> bool {
+        false
+    }
+    fn local(&self) -> bool {
+        true
+    }
+    fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
+        if self.broken {
+            self.held.push(frame_bytes.to_vec());
+            return Err(std::io::Error::other("the connection broke"));
+        }
+        let response = self
+            .owner
+            .handle(frame_bytes.to_vec())
+            .map_err(std::io::Error::other)?;
+        self.inbox.push_back(response.to_vec());
+        Ok(())
+    }
+    fn receive(&mut self, _bound: usize) -> Result<Vec<u8>, ChannelError> {
+        self.inbox.pop_front().ok_or(ChannelError::Timeout)
+    }
+}
+
+fn held_session(lockstep: &Lockstep<World>, feature: bool) -> Client<Held<Lockstep<World>>> {
+    let mut features = Map::new();
+    if feature {
+        features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    }
+    Client::new(
+        Held {
+            owner: Owner::new(contract(), lockstep.share()),
+            inbox: VecDeque::new(),
+            held: Vec::new(),
+            broken: false,
+        },
+        &contract(),
+    )
+    .with_features(features)
+    .with_observer(quiet())
+}
+
+/// The outcome, code, and detail of an owner's response.
+fn answer(response: &[u8]) -> (String, String, String) {
+    let message = frame::decode(response.to_vec(), MAX_BOUND)
+        .expect("response")
+        .message;
+    let text = |v: &Value| v.as_str().unwrap_or_default().to_owned();
+    (
+        text(&message["outcome"]),
+        text(&message["code"]),
+        text(&message["body"]["detail"]),
+    )
+}
+
+#[test]
+fn a_session_that_takes_over_the_ticks_fences_the_steps_of_earlier_sessions() {
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo", "fail"]);
+    let mut stepper = LockstepClient::new(held_session(&lockstep, true)).expect("lockstep");
+    stepper.step("echo", json!({"dx": 2}), &[]).expect("step");
+    // The connection breaks while the second step is on its way.
+    stepper.client().channel_mut().broken = true;
+    let error = stepper
+        .step("echo", json!({"dx": 1}), &[])
+        .expect_err("the connection broke");
+    assert_eq!(error.executed(), Executed::Unknown);
+    assert_eq!(stepper.uncertain.as_ref().map(|u| u.0), Some(2));
+    let held = std::mem::take(&mut stepper.client().channel_mut().held);
+    let mut old = std::mem::replace(
+        &mut stepper.client().channel_mut().owner,
+        Owner::new(contract(), lockstep.share()),
+    );
+    // Recovery opens a new session, which takes over the ticks: the step did not run.
+    assert_eq!(
+        stepper
+            .recover(held_session(&lockstep, true))
+            .expect("recover"),
+        Executed::No
+    );
+    assert_eq!(stepper.tick, 1);
+    // The delayed request reaches the old session after the recovery: it never runs.
+    let (outcome, code, detail) = answer(&old.handle(held[0].clone()).expect("a response"));
+    assert_eq!(
+        (outcome.as_str(), code.as_str()),
+        ("declined", "body_invalid")
+    );
+    assert!(detail.contains("does not hold the ticks"), "{detail}");
+    assert_eq!(lockstep.clock().tick, 1);
+    let result = stepper
+        .step("echo", json!({"dx": 10}), &[])
+        .expect("the step again, in the new session");
+    assert_eq!(result.message["body"]["position"], 12);
+    // A session that did not ask for the feature cannot step.
+    let mut plain = held_session(&lockstep, false);
+    plain.open().expect("open");
+    let refused = plain.call(
+        "echo",
+        json!({"dx": 1, "ncp.tick": {"tick": 3, "state": "p12"}}),
+        &[],
+    );
+    assert!(
+        matches!(&refused, Err(Error::Declined { detail, .. }) if detail.contains("does not hold the ticks")),
+        "{refused:?}"
+    );
+}
+
+#[test]
+fn a_lockstep_step_whose_application_fails_counts_as_executed() {
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo", "fail"]);
+    let mut stepper = LockstepClient::new(held_session(&lockstep, true)).expect("lockstep");
+    let error = stepper
+        .step("fail", json!({"dx": 4}), &[])
+        .expect_err("the application failed");
+    assert_eq!(
+        (error.code(), error.executed()),
+        (Some("owner_failure"), Executed::Unknown)
+    );
+    assert_eq!(lockstep.clock().tick, 1);
+    // The world moved before it failed, so the recovery must say that the step ran.
+    assert_eq!(
+        stepper
+            .recover(held_session(&lockstep, true))
+            .expect("recover"),
+        Executed::Yes
+    );
+    assert_eq!((stepper.tick, stepper.state.as_deref()), (1, Some("p4")));
+}
+
+#[test]
+fn a_recovery_that_finds_the_step_of_another_session_gives_no_verdict() {
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let mut first = LockstepClient::new(held_session(&lockstep, true)).expect("first");
+    first.client().channel_mut().broken = true;
+    first
+        .step("echo", json!({"dx": 1}), &[])
+        .expect_err("the connection broke");
+    // Another client takes over the ticks and makes the step with the same tick.
+    let mut second = LockstepClient::new(held_session(&lockstep, true)).expect("second");
+    second
+        .step("echo", json!({"dx": 5}), &[])
+        .expect("the other step");
+    let verdict = first.recover(held_session(&lockstep, true));
+    assert!(matches!(verdict, Err(Error::Usage(_))), "{verdict:?}");
+    assert!(first.uncertain.is_some());
+}
+
+#[test]
+fn a_takeover_waits_for_a_checked_step_and_reads_its_tick() {
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let contract = contract();
+    let mut features = Map::new();
+    features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    let mut first = lockstep.share();
+    first
+        .open(&OpenInfo {
+            session: "first",
+            contract: &contract,
+            run: None,
+            features: &features,
+        })
+        .expect("open");
+    let body = json!({"dx": 3, "ncp.tick": {"tick": 1, "state": null}});
+    let decoded = frame::Decoded {
+        message: json!({}),
+        arrays: Vec::new(),
+        identity: "r1".into(),
+        frame: Arc::new(Vec::new()),
+    };
+    let request = Request {
+        op: "echo",
+        body: &body,
+        seq: 1,
+        session: "first",
+        identity: "r1",
+        contract: &contract,
+        run: None,
+        features: &features,
+        decoded: &decoded,
+    };
+    first.validate(&request).expect("the step is checked");
+    // A session that takes over the ticks now waits until the checked step has run.
+    let mut second = lockstep.share();
+    let waiting = std::thread::spawn(move || {
+        let contract = Contract::from_bytes(CONTRACT.to_vec()).expect("contract");
+        let mut features = Map::new();
+        features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+        second
+            .open(&OpenInfo {
+                session: "second",
+                contract: &contract,
+                run: None,
+                features: &features,
+            })
+            .expect("open")[ncp::lockstep::FEATURE]
+            .clone()
+    });
+    std::thread::sleep(Duration::from_millis(100));
+    assert!(!waiting.is_finished(), "the takeover did not wait");
+    first.execute(&request).expect("the step runs");
+    assert_eq!(
+        waiting.join().expect("the takeover"),
+        json!({"tick": 1, "state": "p3", "request": "r1"})
+    );
+    assert_eq!(lockstep.clock().holder.as_deref(), Some("second"));
 }

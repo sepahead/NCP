@@ -9,7 +9,7 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 
 ## NCP 2
 
-The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 3
+The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 4
 of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
 
 - **The SDKs are not proved.** The Lean proofs cover models of the owner and of a client. The
@@ -20,10 +20,12 @@ of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
   checked there, not proved.
 - **One author.** The same author wrote both SDKs. No independent implementation exists.
 - **Evidence of revision 2.** The benchmarks and the fault campaign ran with revision 2 of the SDKs
-  on one macOS laptop. They have not run again for revision 3, not on Linux, and not with the Zenoh
-  binding.
+  on one macOS laptop. They have not run again for revisions 3 and 4, not on Linux, and not with the
+  Zenoh binding.
 - **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. Windows is
-  not tested.
+  not tested. On a system without `/dev/urandom`, such as Windows, the Rust SDK derives nonces and
+  session identifiers from the process's random hash keys, a counter, and the time, which is not
+  the cryptographically secure generator that rule 7.1.5 requires.
 - **Recovery.** A session does not survive a restart of its owner; the last request is then
   possibly executed. The lockstep profile tells a client whether its last step ran, for an owner
   that keeps its state.

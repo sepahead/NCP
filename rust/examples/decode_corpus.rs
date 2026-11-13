@@ -3,7 +3,7 @@
 //! big-endian length, and that many frame bytes. For each entry, prints one JSON line:
 //! {"ok":false,"error":...} or {"ok":true,"identity":...,"message":...,"arrays":[hex...]}, and,
 //! for a decoded frame, the result of the member checks of section 6 under "shapes".
-use ncp::messages::{check_request, check_response, check_stream_message};
+use ncp::messages::{check_request, check_response, check_stream_message, foreign};
 use serde_json::json;
 use std::io::{BufWriter, Write};
 
@@ -31,6 +31,7 @@ fn main() -> std::io::Result<()> {
                     "request": check_request(&decoded.message).is_ok(),
                     "response": check_response(&decoded.message).is_ok(),
                     "stream": check_stream_message(&decoded.message).is_ok(),
+                    "foreign": foreign(&decoded.message),
                 });
                 json!({"ok": true, "identity": decoded.identity, "message": decoded.message,
                        "arrays": arrays, "shapes": shapes})

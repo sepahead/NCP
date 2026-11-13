@@ -218,6 +218,8 @@ def iterate(path: str | os.PathLike[str], *, key: bytes | None = None) -> tuple[
         magic = handle.read(8)
         if magic == MAGIC_V1:
             out = Transcript(1, None, [])
+            if key is not None:
+                out.problems.append("a key was given, but the transcript is not authenticated")
             records = _records(handle, 1, None, b"", out, False)
         elif magic == MAGIC:
             length = handle.read(LENGTH.size)
@@ -232,6 +234,8 @@ def iterate(path: str | os.PathLike[str], *, key: bytes | None = None) -> tuple[
                 raise FrameError("transcript header members")
             out = Transcript(2, header, [])
             keyed = header["chain"] == "hmac-sha256"
+            if key is not None and not keyed:
+                out.problems.append("a key was given, but the transcript is not authenticated")
             if keyed and key is None:
                 out.problems.append("the chain and the frames are authenticated: verify them with the key")
                 records = _records(handle, 2, None, magic + length + text, out, False)
@@ -309,13 +313,16 @@ class Report:
 
 
 def verify(path: str | os.PathLike[str], *, key: bytes | None = None) -> Report:
-    """Verify every exchange session and stream of a transcript (section 10.3)."""
+    """Verify every exchange session and stream of a transcript (section 10.3). With `key`, the
+    transcript must be authenticated with it."""
     out, records = iterate(path, key=key)
     report = Report(out.version, out.header)
-    pending: dict[str, tuple[int, str, str]] = {}  # session -> (seq, request identity, op)
+    # session -> (seq, request identity, op, whether the request follows the session's order)
+    pending: dict[str, tuple[int, str, str, bool]] = {}
     last: dict[str, str] = {}  # session -> identity of the last kept response
     next_seq: dict[str, int] = {}
     seen: dict[str, set[str]] = {}  # session -> identities of its requests
+    answers: dict[str, str] = {}  # request identity -> identity of its kept response
     streams: dict[str, tuple[int, str, bool]] = {}  # stream -> (seq, identity, ended)
     previous_time = -1
     for index, record in enumerate(records):
@@ -346,7 +353,7 @@ def verify(path: str | os.PathLike[str], *, key: bytes | None = None) -> Report:
         if what == "request":
             _request(report, index, record, decoded, pending, last, next_seq, seen)
         elif what == "response":
-            _response(report, index, record, decoded, pending, last, next_seq, seen)
+            _response(report, index, record, decoded, pending, last, next_seq, seen, answers)
         elif what == "stream":
             _stream(report, decoded, streams)
         else:
@@ -357,7 +364,7 @@ def verify(path: str | os.PathLike[str], *, key: bytes | None = None) -> Report:
         report.problems.append("no end record: the recorder did not close the transcript")
     if out.truncated_at is not None:
         report.problems.append(f"the transcript is truncated at offset {out.truncated_at}")
-    for session, (seq, _, _) in pending.items():
+    for session, (seq, _, _, _) in pending.items():
         report.sessions[session].problems.append(f"seq {seq}: no response")
     return report
 
@@ -366,12 +373,21 @@ def _keyed(out: Transcript) -> bool:
     return out.header is not None and out.header.get("chain") == "hmac-sha256"
 
 
+def _admits(message: dict[str, Any]) -> bool:
+    """Whether a response answers an admitted request, so that its owner keeps it: every outcome
+    except `rejected`, and `ended` with `session_expired` (rule 7.3.3) or `shutdown` (rule
+    7.3.10)."""
+    if message["outcome"] == "rejected":
+        return False
+    return not (message["outcome"] == "ended" and message["code"] in ("session_expired", "shutdown"))
+
+
 def _request(
     report: Report,
     index: int,
     record: Record,
     decoded: F.Decoded,
-    pending: dict[str, tuple[int, str, str]],
+    pending: dict[str, tuple[int, str, str, bool]],
     last: dict[str, str],
     next_seq: dict[str, int],
     seen: dict[str, set[str]],
@@ -395,15 +411,20 @@ def _request(
         entry.repeats += 1  # a delayed copy of an earlier request
         return
     expected = next_seq.get(session, 0)
+    disorder = []
     if seq != expected:
-        entry.problems.append(f"seq {seq}: expected {expected}")
+        disorder.append(f"seq {seq}: expected {expected}")
     if seq == 0:
         if message["op"] != "open" or message["ack"] is not None:
-            entry.problems.append("seq 0 is not an open without ack")
+            disorder.append("seq 0 is not an open without ack")
     elif message["ack"] != last.get(session):
-        entry.problems.append(f"seq {seq}: ack does not name the previous response")
+        disorder.append(f"seq {seq}: ack does not name the previous response")
+    if role == "client":
+        entry.problems.extend(disorder)  # the recorder's own request
+    # An owner receives what a client sends; it must not admit a request out of order, and
+    # _response checks that.
     requests.add(decoded.identity)
-    pending[session] = (seq, decoded.identity, message["op"])
+    pending[session] = (seq, decoded.identity, message["op"], not disorder)
 
 
 def _response(
@@ -411,10 +432,11 @@ def _response(
     index: int,
     record: Record,
     decoded: F.Decoded,
-    pending: dict[str, tuple[int, str, str]],
+    pending: dict[str, tuple[int, str, str, bool]],
     last: dict[str, str],
     next_seq: dict[str, int],
     seen: dict[str, set[str]],
+    answers: dict[str, str],
 ) -> None:
     message = decoded.message
     session = message["session"]
@@ -436,13 +458,19 @@ def _response(
     expected_kind = RECEIVED if entry.role == "client" else SENT
     if record.kind != expected_kind:
         entry.problems.append(f"record {index}: a response in the direction of the other role")
+    admits = _admits(message)
+    earlier = answers.get(message["request"])
+    if admits and earlier is not None and earlier != decoded.identity:
+        # The owner sends a kept response again byte for byte (rule 7.3.5).
+        entry.problems.append(f"seq {message['seq']}: two different responses to one admitted request")
+        return
     if session not in pending:
         if last.get(session) == decoded.identity or message["request"] in seen.get(session, ()):
             entry.repeats += 1  # a copy of a kept response, or a response to a copy of a request
         else:
             entry.problems.append(f"seq {message['seq']}: response without request")
         return
-    seq, request_id, op = pending[session]
+    seq, request_id, op, in_order = pending[session]
     if message["seq"] != seq or message["request"] != request_id:
         if message["request"] in seen.get(session, ()):
             entry.repeats += 1  # the response to an earlier copy
@@ -451,6 +479,10 @@ def _response(
         return
     del pending[session]
     outcome = message["outcome"]
+    if admits and not in_order and entry.role == "owner":
+        entry.problems.append(f"seq {seq}: the owner admitted a request out of order")
+    if admits:
+        answers[request_id] = decoded.identity
     if outcome == "rejected":
         entry.rejected += 1
         seen[session].discard(request_id)  # a corrected request may follow with the same seq

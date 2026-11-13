@@ -1,6 +1,6 @@
 # NCP 2 specification
 
-Status: NCP 2.0, release candidate, revision 3 of 13 November 2026.
+Status: NCP 2.0, release candidate, revision 4 of 13 November 2026.
 The tag `v2.0.0` freezes this text. After the tag, section 19 lists errata. An erratum corrects the text and changes no behavior.
 This document is normative. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119 and RFC 8174 when, and only when, they appear in all capitals.
 The [design record](../docs/design/NCP-2-DESIGN.md) gives the reasons for each decision. [`ncp2-rules.json`](ncp2-rules.json) states the codes and outcomes of this document as data, and a check keeps the SDKs, the Lean model, and this text equal to it.
@@ -95,8 +95,8 @@ An **array** is a JSON value of this form:
 ```
 
 - `dtype` is one of `u8`, `i8`, `u16`, `i16`, `u32`, `i32`, `u64`, `i64`, `f32`, `f64`. Elements are little-endian.
-- `shape` is an array of zero or more integers, each 0 or larger. Elements are in row-major order. An empty shape is one element.
-- `att` is the index of the attachment that holds the elements. Its length MUST equal the product of the shape and the element size.
+- `shape` is an array of 0 to 32 integers, each 0 or larger. Elements are in row-major order. The number of elements is 0 if a dimension is 0, and otherwise the exact product of the dimensions; an empty shape is one element.
+- `att` is the index of the attachment that holds the elements. Its length MUST equal the number of elements times the element size.
 - Each attachment MUST belong to exactly one array of the frame.
 
 Because each attachment starts at a multiple of 8 from the start of the frame, a receiver can read arrays in place.
@@ -105,7 +105,7 @@ Because each attachment starts at a multiple of 8 from the start of the frame, a
 
 A code is a string of 1 to 64 characters from `a`–`z` and `_`.
 An operation name is a string of 1 to 64 characters from `a`–`z`, `0`–`9`, `_`, `.`, and `-` that starts with a letter.
-A receiver MUST treat a message with a missing member, an extra member, or a member of the wrong type as a bad frame.
+A receiver MUST treat a message with a missing member, an extra member, or a member of the wrong type or format as a bad frame, except for a request of another protocol version (section 6.1).
 
 ### 6.1 Request
 
@@ -120,6 +120,8 @@ A request is an object with exactly these members (`att` is optional):
 | `ack` | `null` for `open`. Otherwise the identity of the last response that the client accepted with outcome `ok` or `declined`. |
 | `body` | Any JSON value. |
 | `att` | The attachment lengths (section 5). |
+
+A request of another protocol version is a message whose `ncp` is a non-negative integer other than 2, whose `session` is a session identifier, and whose `seq` is a sequence number. It is not a bad frame, whatever its other members: the owner rejects it with `wrong_protocol` (section 7.3, rule 2), and the response names its `session`, its `seq`, and its identity.
 
 ### 6.2 Response
 
@@ -136,7 +138,7 @@ A response is an object with exactly these members (`att` is optional):
 | `body` | Any JSON value for `ok`. An object with optional detail members for the other outcomes. |
 | `att` | The attachment lengths (section 5). |
 
-`session`, `seq`, and `request` are all `null` only in a response with outcome `ended` that names no request: the bad-frame response and the shutdown response of the byte-stream binding (section 9.1). Every other response names its request with all three.
+`session`, `seq`, and `request` are all `null` only in a response with outcome `ended` that names no request: the bad-frame response and the shutdown response of the byte-stream binding (section 9.1). Its body binds it to the owner's chain: when the owner holds a session, the body is `{"session": S, "kept": K}`, where `S` is that session and `K` the identity of the owner's kept response; otherwise, the body is an empty object. Every other response names its request with all three.
 
 ### 6.3 Stream message
 
@@ -186,11 +188,13 @@ A stream message is an object with exactly these members (`att` is optional):
    | `nonce` | 32 lowercase hexadecimal characters that the owner chooses at random for this opening. |
    | `features` | An object with the features of the request that the owner enables, each with the owner's parameters. |
 
-   The owner MUST choose each nonce from at least 128 random bits. Two openings MUST NOT share a nonce, also across restarts of the owner. The identity of the `open` response is the root of the session's hash chain, so different nonces make the chains of two openings disjoint (section 7.7, property 1).
+   The owner MUST choose each nonce from at least 128 bits of a cryptographically secure random generator. Two openings MUST NOT share a nonce, also across restarts of the owner. An owner therefore MUST NOT restore the state of an opening (section 7.2), for example from a snapshot: after a restart, it holds no session. The identity of the `open` response is the root of the session's hash chain, so different nonces make the chains of two openings disjoint (section 7.7, property 1).
    An owner enables only features that it knows and that the request lists. A client MUST NOT use a feature that the response does not list.
    A client MUST ignore members of this body that it does not know. Later versions can add members.
+   A client MUST check that `bound` is from 65,536 to the bound that it requested, that `nonce` has the form above, and that `features`, if present, is an object. Otherwise the session ends, and the `open` request is possibly executed. An owner of an earlier revision, which sends no nonce, therefore opens no session with a client of this revision.
 6. After the `open` response, both sides use the session bound for all frames of the session.
 7. A client that sends `open` again after a time limit sends the same frame, so that every copy names the same session.
+8. An opening is not at most once: a delayed copy of `open` can open the session again after the owner lost it (rule 7.6.4). What an owner does when it accepts `open` must therefore be safe to repeat.
 
 ### 7.2 Owner state
 
@@ -229,7 +233,7 @@ The owner handles one frame of a session at a time, in arrival order, with these
     - If the application finds the body invalid before it changes any state, respond `declined` with `body_invalid`. The body can say why in its member `detail`.
     - If the application fails while it checks the body, respond `ended` with `owner_failure`.
     - Otherwise call the application. If it returns a result, respond `ok` with the result. If it raises an error, respond `ended` with `owner_failure`.
-    - If the `ok` response would exceed the session bound, respond `ended` with `result_too_large` and the body `{"size": S, "bound": B}`, where `S` is the frame size that the response would need. If its JSON region would exceed 1,048,576 bytes, respond `ended` with `result_too_large` and the body `{"json": J, "limit": 1048576}`, where `J` is the size of the JSON region that the response would need.
+    - If the JSON region of the `ok` response would exceed 1,048,576 bytes, respond `ended` with `result_too_large` and the body `{"json": J, "limit": 1048576}`, where `J` is the size of the JSON region that the response would need. Otherwise, if the `ok` response would exceed the session bound, respond `ended` with `result_too_large` and the body `{"size": S, "bound": B}`, where `S` is the frame size that the response would need.
 13. Keep the response as `kept`. If the outcome is `ended`, or the operation is `close`, set `ended` to true.
 
 A `rejected` response changes no state, and the owner does not keep it.
@@ -246,21 +250,21 @@ The owner keeps every response to an admitted request, whatever its outcome. Eve
 
 ### 7.5 Codes
 
-| Code | Outcome | The request executed |
-| --- | --- | --- |
-| `wrong_protocol`, `not_open`, `already_open`, `wrong_session`, `seq_gap`, `seq_conflict`, `ack_missing`, `ack_mismatch`, `session_ended` | `rejected` | No: the owner did not admit this frame. |
-| `body_invalid`, `contract_mismatch`, `bound_unacceptable`, `refused` | `rejected`, in reply to `open` | No: the owner opened no session in reply to this frame. |
-| `seq_stale` | `rejected` | Not by this frame. An earlier copy may have executed: a delayed copy of an admitted request gets this code once a later request is admitted. |
-| `unknown_op`, `body_invalid` | `declined` | No, and never. |
-| `result_too_large` | `ended` | Yes. |
-| `owner_failure` | `ended` | Unknown. |
-| `session_expired` | `ended` | Unknown: the owner does not hold the session. |
-| `shutdown` | `ended` | No: the owner stopped before it admitted the request, and it never admits it. |
-| `bad_frame` | `ended` | No: the owner found the frame bad and executed nothing. |
+| Code | Outcome | What the owner knows | The client's verdict (section 7.6) |
+| --- | --- | --- | --- |
+| `wrong_protocol`, `not_open`, `already_open`, `wrong_session`, `seq_gap`, `seq_conflict`, `ack_missing`, `ack_mismatch`, `session_ended` | `rejected` | This frame was not admitted. | For `open`: no session is open. For another request: the session ends, and the request is possibly executed (rule 4). |
+| `body_invalid`, `contract_mismatch`, `bound_unacceptable`, `refused` | `rejected`, in reply to `open` | No session was opened in reply to this frame. | No session is open (rule 4). |
+| `seq_stale` | `rejected` | Not executed by this frame. An earlier copy may have executed: a delayed copy of an admitted request gets this code once a later request is admitted. | The session ends, and the request is possibly executed (rule 4). |
+| `unknown_op`, `body_invalid` | `declined` | Not executed, and never will be. | Not executed (rule 3). The session goes on. |
+| `result_too_large` | `ended` | Executed. | Executed (rule 5). |
+| `owner_failure` | `ended` | Unknown. | Possibly executed (rule 5). |
+| `session_expired` | `ended` | Unknown: the owner does not hold the session. | Possibly executed (rule 5). |
+| `shutdown` | `ended` | Not executed: the owner stopped before it admitted the request, and it never admits it. | Not executed. A response that names no request counts only if it binds to the client's chain (rule 2). |
+| `bad_frame` | `ended` | Not executed: the owner found the frame bad and executed nothing. | Not executed, if the response binds to the client's chain; otherwise possibly executed (rule 2). |
 
 The code `body_invalid` has two outcomes. It is `rejected` in reply to `open` and `declined` in reply to any other request.
 
-The column "The request executed" states what the owner knows about the frame in its current state. An owner that lost a session, by a restart or by expiry, knows nothing about the requests of the lost opening. A client therefore treats a `rejected` response to a request other than `open` as the end of the session, with the request possibly executed (rule 7.6.4).
+The column "What the owner knows" states what the owner knows about the frame in its current state. An owner that lost a session, by a restart or by expiry, knows nothing about the requests of the lost opening. A client therefore treats a `rejected` response to a request other than `open` as the end of the session, with the request possibly executed (rule 7.6.4). `spec/ncp2-rules.json` holds both columns as data: `executed` and `client`.
 
 Later versions of this specification can add codes. A receiver MUST accept a code that it does not know and act on the outcome. After `rejected`, the frame was not admitted. After `declined`, the request never executes. After `ended`, the request is possibly executed.
 
@@ -268,10 +272,10 @@ Later versions of this specification can add codes. A receiver MUST accept a cod
 
 1. The client sends one request at a time. It keeps the frame bytes of the request until it accepts a response.
 2. A response belongs to the request if `ncp` is 2 and `session`, `seq`, and `request` match the request.
-   - On the byte-stream binding, any other frame is a protocol error. The session ends, and the request is possibly executed. A frame with outcome `ended`, the code `bad_frame` or `shutdown`, and `session` `null` ends the session as section 7.5 says.
-   - On the Zenoh binding, the client ignores any other frame.
+   - On the byte-stream binding, any other frame is a protocol error. The session ends, and the request is possibly executed. A response that names no request (section 6.2) also ends the session. The request did not execute only if the response has the code `bad_frame` or `shutdown` and its body names the client's session and, as `kept`, the identity of the response that the request acknowledges. Otherwise the request is possibly executed: such a frame can be replayed from another connection, also when frames are authenticated.
+   - On the Zenoh binding, the client ignores any other frame, also a response that names no request.
 3. After an `ok` or a `declined` response, the client sets `seq` of its next request to the `seq` of this response plus 1, and `ack` to the identity of this response.
-4. After a `rejected` response to `open`, no session is open. The client MAY send a corrected `open`. A client that follows these rules receives `rejected` for another request only when the owner holds another opening of the session: the owner lost the session, and a delayed copy of the `open` request opened it again. An earlier copy of the request may have executed in the lost opening. After a `rejected` response to a request other than `open`, the client MUST therefore end the session and treat the request as possibly executed.
+4. After a `rejected` response to `open`, no session is open. The client MAY send the same `open` again, or a corrected `open`; it SHOULD give a corrected `open` a new session identifier, so that a delayed copy of the first `open` cannot open the session with other parameters. A client that follows these rules receives `rejected` for another request only when the owner's state of the session differs from the client's. For example, the owner lost the session and a delayed copy of the `open` request opened it again, or another program sent requests with the client's session identifier. An earlier copy of the request may have executed in a lost opening. After a `rejected` response to a request other than `open`, the client MUST therefore end the session and treat the request as possibly executed.
 5. After an `ended` response, the session is over. After `owner_failure`, `session_expired`, or a code that the client does not know, the client MUST treat the request as possibly executed.
 6. On a binding that can lose frames (section 9.2), the client MAY send the same request frame again after a time limit. The owner sends the kept response again (rule 7.3.5).
 7. If the client cannot get a response, it MUST treat the request as possibly executed and end the session. This applies when the time limit passes after the last copy of the request, and when the binding closes.
@@ -281,9 +285,9 @@ Later versions of this specification can add codes. A receiver MUST accept a cod
 These properties hold under four assumptions:
 
 - **A1.** A receiver detects every changed frame: it compares digests, or the binding delivers the bytes unchanged.
-- **A2.** No third party sends frames with valid digests: frames are authenticated (section 13.2), or the binding admits only the two endpoints.
+- **A2.** No third party makes frames with valid digests: frames are authenticated (section 13.2), or the binding admits only the two endpoints. Authentication does not prevent the replay of a frame that an endpoint made; the rules therefore bind every response that a client trusts to its request (rule 7.6.2) or to the owner's chain (section 6.2).
 - **A3.** No two different frames of the runs share a digest.
-- **A4.** No two openings share a nonce.
+- **A4.** No two openings share a nonce: owners draw nonces from a cryptographically secure random generator, and never restore the state of an opening (rule 7.1.5).
 
 Under these assumptions, for every network that loses, repeats, delays, or reorders frames, and with crashes and restarts of the owner and the client and with the expiry of sessions:
 
@@ -292,29 +296,30 @@ Under these assumptions, for every network that loses, repeats, delays, or reord
 3. **Acknowledged.** An owner admits request `n + 1` only after the client acknowledged response `n` by its identity.
 4. **ok is true.** A response that the client accepts as `ok` is the response to its own request, from one execution.
 5. **declined is final.** A request that the owner declined never executes. A request that got `shutdown` is never admitted. A stopped owner admits no request.
-6. **rejected changes nothing.** A `rejected` response changes no state. Except after `seq_stale`, the opening that rejects a request has not admitted it. A client that follows section 7.6 receives `rejected` for a request other than `open` only after the owner lost the session and a delayed copy of `open` opened it again.
-7. **The client is told the truth.** Each verdict of a client that follows section 7.6 is true when the client reaches it, and it stays true. The verdict is "executed" after `ok` and `result_too_large`, "not executed" after `declined`, `shutdown`, and `bad_frame`, and "possibly executed" after all other `ended` codes, after `rejected` in reply to a request other than `open`, and after local failures. At most one request of a session is possibly executed, and it is the last request of the session.
+6. **rejected changes nothing.** A `rejected` response changes no state. Except after `seq_stale`, the opening that rejects a request has not admitted it. A client that follows section 7.6 receives `rejected` for a request other than `open` only after the owner lost the session and a delayed copy of `open` opened it again, or after another program used its session identifier.
+7. **The client is told the truth.** Each verdict of a client that follows section 7.6 is true when the client reaches it, and it stays true. The verdict is "executed" after `ok` and `result_too_large`, "not executed" after `declined`, `shutdown`, and `bad_frame`, and "possibly executed" after all other `ended` codes, after `rejected` in reply to a request other than `open`, and after local failures. A response that names no request gives "not executed" only with the code `bad_frame` or `shutdown` and a body that binds it to the client's chain (rule 7.6.2), and "possibly executed" otherwise. At most one request of a session is possibly executed, and it is the last request of the session.
 8. **One hash chain.** Each admitted request names the identity of the response before it, and each response names the identity of its request. The identity of the last response commits to every admitted request and response of the session.
 
-[`formal/`](../formal/README.md) states which of these properties the Lean proofs establish, for which part of the system, and under which assumptions. [`model/`](../model/README.md) checks all eight properties against the reference SDKs in every reachable state of bounded runs.
+[`formal/`](../formal/README.md) states which of these properties the Lean proofs establish, for which part of the system, and under which assumptions. [`model/`](../model/README.md) checks all eight properties against the reference SDKs in every reachable state of bounded runs. Both include restarts of the owner and the expiry of sessions. Neither models a crash of the client: a client that crashes keeps no verdict, and properties 1 to 3, 5, 6, and 8 do not depend on the client.
 
 ## 8. Streams
 
 1. A publisher numbers the messages of a stream from 1. It sets `prev` to the identity of its previous message, and `contract` to the identity of the stream's contract.
 2. A publisher instance MUST use a stream identifier that no other publisher instance uses, also after a restart. The reference SDKs append `/` and 16 random hexadecimal characters to the name that the application gives.
-3. A subscriber keeps, for each stream, the `seq` and the identity of the last message that it accepted.
-4. A subscriber applies a bound to each stream frame. The stream's contract states its largest frame.
-5. If the subscriber has no state for the stream, it accepts the message. If `seq` is 1, it reports `accepted`. If `seq` is greater than 1, it reports `joined`: it knows nothing about the earlier messages.
-6. If `seq` is the last accepted `seq` plus 1 and `prev` matches, the subscriber accepts the message and reports `accepted`.
-7. If `seq` is larger than the last accepted `seq` plus 1, the subscriber accepts the message and reports `accepted` with the number of lost messages.
-8. If `seq` is the last accepted `seq` plus 1 and `prev` does not match, the subscriber MUST NOT accept the message. It reports `broken_chain`.
-9. If `seq` is the last accepted `seq` and the identity differs, the subscriber MUST NOT accept the message. It reports `conflict`: two publishers share the identifier, or the message changed.
-10. Otherwise, if `seq` is not larger than the last accepted `seq`, the subscriber drops the message as a `repeat`.
-11. A subscriber that receives a message with an unknown `contract` MUST NOT accept it. It reports `unknown_contract`.
-12. A message whose body is an object with the member `ncp.end` ends the stream. The subscriber accepts it as rule 5, 6, or 7 says and reports the end. After the end, the subscriber reports every message of the stream as a `repeat` if its `seq` is not larger than the last accepted `seq`, and as a `conflict` otherwise.
+3. A subscriber keeps, for each stream, the `seq` and the identity of the last message that it accepted, and whether that message ended the stream. A subscriber MAY keep this state for a bounded number of streams. It then forgets the stream that it used least recently, and treats a later message of that stream as a message of a stream without state (rule 6).
+4. A subscriber applies a bound to each stream frame. The contract describes the largest frame of each stream type (section 11). NCP does not say which stream type of the contract a message belongs to: the application chooses the bound, for example the largest frame of all the stream types that the subscriber accepts.
+5. A subscriber that receives a message with an unknown `contract` MUST NOT accept it. It reports `unknown_contract`. The subscriber applies this rule before rules 6 to 12.
+6. If the subscriber has no state for the stream, it accepts the message. If `seq` is 1, it reports `accepted`. If `seq` is greater than 1, it reports `joined`: it knows nothing about the earlier messages.
+7. If `seq` is the last accepted `seq` plus 1 and `prev` matches, the subscriber accepts the message and reports `accepted`.
+8. If `seq` is larger than the last accepted `seq` plus 1, the subscriber accepts the message and reports `accepted` with the number of lost messages.
+9. If `seq` is the last accepted `seq` plus 1 and `prev` does not match, the subscriber MUST NOT accept the message. It reports `broken_chain`.
+10. If `seq` is the last accepted `seq` and the identity differs, the subscriber MUST NOT accept the message. It reports `conflict`: two publishers share the identifier, or the message changed.
+11. Otherwise, if `seq` is not larger than the last accepted `seq`, the subscriber drops the message as a `repeat`. This includes a message that arrives after a later message of its stream: the subscriber counted it as lost when it accepted the later one, and cannot tell it from a repeat.
+12. A message whose body is an object with the member `ncp.end` ends the stream. The subscriber accepts it as rule 6, 7, or 8 says and reports the end. After the end, rules 10 and 11 still apply; instead of rules 7 to 9, the subscriber reports every message with a larger `seq` as a `conflict`.
 
 Streams give no delivery guarantee. Freshness and rate limits belong to the stream's contract.
 A subscriber sees the loss of the last messages of a stream only at a later message or at the end message. A publisher whose subscribers must detect such a loss sends messages at least as often as its contract states.
+A key (section 13.2) shows that a holder of the key made a message, not that the message is new: anyone can send the messages of an old stream again. A subscriber without state for that stream accepts the first of them as `joined`. An application that must refuse old streams uses a new key for each run, or accepts only the stream identifiers that the publishers of the run announce, for example in an exchange.
 
 ## 9. Bindings
 
@@ -322,15 +327,15 @@ A subscriber sees the loss of the last messages of a stream only at a later mess
 
 The byte-stream binding sends frames back to back over one reliable, ordered byte stream: a pair of pipes, a Unix domain socket, or a TCP connection.
 
-1. One connection carries at most one session.
+1. One connection carries at most one session. A session belongs to its connection: on another connection, a request of the session meets an owner that does not hold it, and gets the response of rule 7.3.3.
 2. A receiver reads the 12-byte header, checks it (section 3), and then reads the rest of the frame.
-3. **Bad-frame rule:** if a receiver gets a bad frame, it sends, where it can, a response with `session`, `seq`, and `request` set to `null`, outcome `ended`, and code `bad_frame`, and then closes the connection.
+3. **Bad-frame rule:** if a receiver gets a bad frame, it sends, where it can, a response that names no request (section 6.2), with outcome `ended`, code `bad_frame`, and the body that binds it to its chain, and then closes the connection.
 4. On a pipe pair, the owner reads frames from its standard input and writes frames to its standard output. It MUST NOT write anything else to its standard output.
 5. An owner that listens on a Unix domain socket SHOULD create it in a directory that only the users of the session can access. On one machine, a Unix domain socket is the preferred connection between programs that the owner does not start.
 6. A TCP endpoint MUST set `TCP_NODELAY`. By default, a TCP endpoint MUST listen on and connect to loopback addresses only. Other addresses require an explicit option. On networks that are not trusted, use TLS (section 13.3), a secure tunnel, or the Zenoh binding with TLS.
 7. If the connection closes, the session ends. A request without a response is possibly executed.
 8. An implementation SHOULD set the send and receive buffers of a socket to at least 1 MiB. Small default buffers, such as the 8 KiB of a Unix domain socket on macOS, multiply the time that a large frame takes.
-9. **Shutdown:** an owner MAY stop a session. It then reads no further frame, sends a response with `session`, `seq`, and `request` set to `null`, outcome `ended`, and code `shutdown`, and closes the connection. It MUST have answered every request that it read. A request that the client sent and that has no response was therefore not admitted.
+9. **Shutdown:** an owner MAY stop a session. It then reads no further frame, sends a response that names no request (section 6.2), with outcome `ended`, code `shutdown`, and the body that binds it to its chain, and closes the connection. It MUST have answered every request that it read. A request that the client sent and that has no response was therefore not admitted.
 10. **Streams:** one connection, or one file, MAY carry the frames of one or more streams in one direction, back to back. The receiver applies section 8 to each frame. After a bad frame, the receiver closes the connection.
 
 ### 9.2 Zenoh binding
@@ -343,9 +348,10 @@ The Zenoh binding carries the same frame bytes as Zenoh payloads. It is optional
 4. The client accepts only the reply that matches its request (rule 7.6.2). If no reply arrives in time, it sends the same request frame again.
 5. Each owner MUST use its own service key. Service keys and stream keys contain no wildcards.
 6. Deployments on networks that are not trusted MUST use TLS with client certificates and Zenoh access control on both sides. The owner's side admits only the clients of the service. The client's side admits only the owner as the one that may declare the queryable and reply on the service key.
-7. An owner serves one session for each session identifier. It MAY forget a session that has sent no request for a time, counted from the owner's last response to it, that the owner documents. That time MUST exceed the longest time that a client of the service waits for a response, all copies included. A request of a forgotten session gets the response of rule 7.3.3.
+7. An owner serves one session for each session identifier. It MAY forget a session that has no request in progress and has sent no request for a time, counted from the owner's last response to it, that the owner documents. The reference servers never forget a session with a request in progress. That time MUST exceed the longest time that a client of the service waits for a response, all copies included. A request of a forgotten session gets the response of rule 7.3.3.
 8. An owner SHOULD execute the requests of different sessions independently, so that a long step of one session does not delay the other sessions.
-9. **Shutdown:** an owner that stops answers a copy of a kept request with the kept response, an `open` with `rejected` and `refused`, and every other request as rule 7.3.10 says. It then undeclares the queryable.
+9. **Shutdown:** an owner that stops handles each further frame with rules 7.3.1 to 7.3.9 as usual, so a copy of a kept request gets the kept response, and the other checks reject or respond as they say. It answers an `open` with `rejected` and `refused`. It responds `ended` with `shutdown` only to a request that rule 7.3.10 would otherwise let it admit, and it never admits that request later. It then undeclares the queryable.
+10. An owner checks each frame as section 3 says, with its key in an authenticated session (section 13.2), before it reads the message, also to find the session of the frame. A frame of a session that the owner does not hold has the handshake bound of 65,536 bytes: a larger one is a bad frame. The responses that the owner makes without a session, under rule 7.3.2 and rule 7.3.3, carry the key of the owner.
 
 ## 10. Transcripts
 
@@ -373,7 +379,7 @@ Then follow the records. Each record has this layout:
 | frame length | The frame bytes. |
 | 32 | Chain value. |
 
-The chain value of the first record uses `c₀ = D(magic ‖ L ‖ header)`. The chain value of record `i` is `cᵢ = D(cᵢ₋₁ ‖ kind ‖ time ‖ length ‖ d)`, where `d` is the digest field of the frame. For an end record, `d` is the number of earlier records as 8 bytes, unsigned, big-endian. `D` is SHA-256, or HMAC-SHA-256 with the session key when `chain` is `hmac-sha256`.
+The chain value of the first record uses `c₀ = D(magic ‖ L ‖ header)`. The chain value of record `i` is `cᵢ = D(cᵢ₋₁ ‖ kind ‖ time ‖ length ‖ d)`, where `d` is the last 32 bytes of the record's frame bytes: the digest field of a frame. A record of fewer than 32 bytes, which cannot be a frame, uses all its bytes as `d`. For an end record, `d` is the number of earlier records as 8 bytes, unsigned, big-endian. `D` is SHA-256, or HMAC-SHA-256 with the session key when `chain` is `hmac-sha256`.
 An end record is the last record of a transcript that its recorder closed.
 
 ### 10.2 Recording
@@ -386,10 +392,15 @@ A transcript therefore holds every request that a peer may have executed, also w
 A verifier MUST check, and report each failure:
 
 - the digest of every frame, and the chain value of every record;
-- for each exchange session: the sequence numbers, the hash chain of property 7.7.8, and the direction of every frame (a client sends requests and receives responses, and an owner receives requests and sends responses);
+- for each exchange session, the direction of every frame: a client sends requests and receives responses, and an owner receives requests and sends responses;
+- in a client's transcript, that the client sends its requests in order: each `seq` one more than that of the last request that the owner admitted, with `ack` naming the response to it (property 7.7.8);
+- in an owner's transcript, that the owner admits no request out of that order: its response to such a request is `rejected`, or `ended` with `session_expired` or `shutdown`. A received request out of order is not a failure by itself, because the client sent it;
+- that two responses to one request are the same bytes, unless one of them is `rejected`, or `ended` with `session_expired` or `shutdown`: an owner sends a kept response again byte for byte (section 7.3, rule 5);
 - that the times do not decrease;
 - the streams of section 8, with any contract;
 - frames that are not NCP messages.
+
+A verifier that is given a key MUST report a failure for a transcript that is not authenticated with that key: a transcript of version 1, or one whose `chain` is not `hmac-sha256`.
 
 A verifier reports a record that ends before its length as a truncated transcript and verifies every record before it.
 A session is **complete** if the transcript has its `open` request, a response to every request, and the `ok` response to `close`.
@@ -455,6 +466,9 @@ Two values are equal if they have the same JSON type and the same value. An inte
 | Operation name, feature name, code | 64 characters |
 | Stream identifier | 256 characters |
 | Features in an `open` request | 32 |
+| Member `run` of an `open` request | 256 characters |
+| Member `detail` of a response, as the reference owners write it | 256 characters |
+| Dimensions of an array shape | 32 |
 | Transcript header | 4096 bytes |
 
 ## 13. Security
@@ -479,12 +493,12 @@ Two values are equal if they have the same JSON type and the same value. An inte
 Two endpoints that share a secret key `K` of at least 32 bytes MAY authenticate every frame of a binding:
 
 1. The digest field of every frame holds HMAC-SHA-256 with the key `K` over the bytes before it (RFC 2104), instead of SHA-256.
-2. A receiver configured with `K` verifies every frame with `K`. It treats every other frame as a bad frame. It MUST NOT turn off the comparison.
+2. A receiver configured with `K` verifies every frame with `K`. It treats every other frame as a bad frame. It MUST NOT turn off the comparison, and it MUST compare authentication codes in a time that does not depend on where they differ.
 3. Identities, acknowledgements, and hash chains use the authentication codes as the identities of the frames.
 4. A transcript of authenticated frames uses `hmac-sha256` for its chain, with the same key. Only a holder of `K` can verify it, and only a holder of `K` can make one that verifies.
 5. Each endpoint gets `K` out of band, for example from a file that only its user can read. NCP does not exchange keys.
 
-Authenticated frames protect from end to end against every party without the key, also across Zenoh routers. They do not hide the content of frames. A sender and a receiver of a session cannot prove to a third party which of them made a frame, because both hold `K`.
+Authenticated frames protect from end to end against every party without the key, also across Zenoh routers. They do not prevent the replay of a frame that an endpoint made: the rules bind each response that a client trusts to its request or to the owner's chain, and a request replayed to another session or opening fails the checks of rules 7.3.4 to 7.3.9. They do not hide the content of frames. A sender and a receiver of a session cannot prove to a third party which of them made a frame, because both hold `K`.
 
 ### 13.3 TLS for TCP
 
@@ -492,7 +506,7 @@ A TCP endpoint MAY use TLS 1.3 with certificates on both sides. The server MUST 
 
 ## 14. Conformance
 
-An implementation conforms if it passes the vectors in [`conformance/`](../conformance/README.md) for the parts that it implements: frames, arrays, owner rules, client rules, streams, bindings, transcripts, contracts and schemas, authenticated frames, and the profiles.
+An implementation conforms if it passes the vectors in [`conformance/`](../conformance/README.md) for the parts that it implements: frames, arrays, owner rules, client rules, streams, transcripts, contracts and schemas, and authenticated frames. The bindings and the profiles have no vectors yet; the tests of the SDKs check them.
 The vectors give exact inputs and the expected outcome, code, verdict, and state. [`conformance/requirements.json`](../conformance/requirements.json) maps each MUST and MUST NOT of this document to the vectors that test it.
 The command `python -m ncp conformance` runs the vectors against another implementation's decoder and owner programs.
 

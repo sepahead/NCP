@@ -1,10 +1,10 @@
 # NCP 2.0.0 release record
 
-Status: prepared on 11 November 2026, and rebuilt on 13 November 2026 for revision 3 of the specification. The tag and the publication of the packages are owner actions; this record lists what they publish.
+Status: prepared on 11 November 2026, and rebuilt on 13 November 2026 for revision 4 of the specification. The tag and the publication of the packages are owner actions; this record lists what they publish.
 
 ## What 2.0.0 is
 
-- The [NCP 2 specification](../../spec/NCP-2.md), release candidate, revision 3, with the [rounds profile](../../spec/NCP-2-ROUNDS.md) and the [lockstep profile](../../spec/NCP-2-LOCKSTEP.md).
+- The [NCP 2 specification](../../spec/NCP-2.md), release candidate, revision 4, with the [rounds profile](../../spec/NCP-2-ROUNDS.md) and revision 2 of the [lockstep profile](../../spec/NCP-2-LOCKSTEP.md).
 - `sepahead-ncp` 2.0.0, the Python SDK (module `ncp`), standard library only: [`python/`](../../python/README.md).
 - `sepahead-ncp-core` 2.0.0, the Rust SDK (library `ncp`): [`rust/`](../../rust/README.md).
 - `sepahead-ncp-zenoh` 2.0.0, the optional Zenoh binding for Python and for Rust: [`bindings/zenoh/`](../../bindings/zenoh/README.md).
@@ -17,11 +17,11 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 65,315 | `c180cff546638bad3d1c0c096800e2a3e9f40ecea6ff263d08112cd8d4abae3f` |
-| `sepahead_ncp-2.0.0-py3-none-any.whl` | 99,436 | `7930fb77bf517bc8c8c8262c3bb03610c78963de4e09a1f6a0e80108476eb004` |
-| `sepahead_ncp-2.0.0.tar.gz` | 95,140 | `ec3746daeb464561d646b38cf017b0216c504cdcdd23991b20f04831b5bf9178` |
-| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 13,351 | `cb9c9cf96a74a4aed1416b21ac32ff28b0b35b72d64a14a94534da5cfe470b33` |
-| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 12,241 | `618dcdd8b43be55dd6561f8cbda14ca5d897744ef59df5c8738b5dd6e3159ce8` |
+| `sepahead-ncp-core-2.0.0.crate` | 67,425 | `a5b5b51043503261564ee7ec151d59494a37ef9c5eb089f8ce29f91faa37f158` |
+| `sepahead_ncp-2.0.0-py3-none-any.whl` | 105,098 | `16e17887c6b42b72915e97c7f6bce7fbc5f56209f5d823a74a4b921b239aae9d` |
+| `sepahead_ncp-2.0.0.tar.gz` | 100,696 | `18303e60fc8dea8e5d9e6dac02cf310b8c5f25db676e1056830b5fdea81425d1` |
+| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 13,566 | `b43b29951d4475dace7595f12086df2f95e78d8087bd5cf8fb3b4dc08cd87814` |
+| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 12,463 | `cfa76ffcdc77578425552be4efe6261195ca0b7e1266ac94514f004d951a6811` |
 
 The Python package now ships the conformance vectors (`ncp/vectors.json`), which `python -m ncp conformance` reads; they make up most of its size.
 

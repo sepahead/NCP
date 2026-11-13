@@ -14,8 +14,9 @@ The packages are version 2.0.0, like the rest of NCP 2.0, which is prepared for 
 - One service serves many sessions, one owner for each session identifier. A session that sends no request for 10 minutes after its last response is forgotten. A request with `seq` greater than 0 of a session that the service does not hold, because it forgot the session or restarted, gets `ended` with the code `session_expired`, so the client treats it as possibly executed (rule 9.2.7). The time must exceed the longest time that a client waits for a response, all repeats included: 4 s with the defaults. Above 4,096 live sessions (`max_sessions`), an `open` gets `rejected` with the code `refused`.
 - Streams travel as Zenoh publications on `ncp/s/<name>`. A subscriber checks them with the core SDK's `Subscriber`, which reports lost, repeated, and changed messages.
 - Service and stream names are Zenoh keys without wildcards: chunks of letters, digits, `_`, `.`, and `-`, separated by `/`.
+- The server checks the digest of each frame, or its authentication code with the server's key, before it reads the message or routes it to a session (section 3, rule 5). A frame of a session that the server does not hold has the handshake bound of 64 KiB (rule 9.2.10); a larger one gets no reply.
 - The server runs each session in its own thread (rule 9.2.8). A long step of one session does not delay the other sessions of the same service, and the [rounds profile](../../spec/NCP-2-ROUNDS.md) can use the server. Within one session, the server handles the requests in their order of arrival, one at a time. A session with a request in progress is never forgotten.
-- `stop(grace)` stops the server as rule 9.2.9 says: a copy of a kept request still gets the kept response, an `open` gets `rejected` with `refused`, and every other request gets `ended` with `shutdown`, never admitted. After `grace` seconds, the server undeclares the service.
+- `stop(grace)` stops the server as rule 9.2.9 says: the checks of rules 7.3.1 to 7.3.9 still apply, so a copy of a kept request gets the kept response; an `open` gets `rejected` with `refused`; and a request that the owner would otherwise admit gets `ended` with `shutdown`, and is never admitted. After `grace` seconds, the server undeclares the service.
 - A step that takes longer than the client's time limit is not a failure: the client sends the request again, and the owner answers the repeat with its kept response once the step has run. The client gives up after its last repeat, 4 s after the first send with the defaults, so give a client of long steps a longer limit, for example `ZenohChannel(session, service, timeout=30)` in Python or `.with_timeout(Duration::from_secs(30))` in Rust.
 
 ## Use it
@@ -91,7 +92,7 @@ access_control: {
 }
 ```
 
-NCP checks the integrity of every message; Zenoh's TLS and access control decide who may send them. For authentication of every frame by NCP itself, give both sides the same key (specification section 13.2).
+NCP checks the integrity of every message; Zenoh's TLS and access control decide who may send them. For authentication of every frame by NCP itself, give both sides the same key (specification section 13.2): the client (`ncp.Client(..., key=K)`, `Client::with_key`), the server (`Server(..., key=K)` in Python, `ServeOptions { key: Some(K), .. }` in Rust), and each owner that the server makes (`ncp.Owner(..., key=K)`, `Owner::with_key`). The server checks the authentication code of each request before it reads the message, and authenticates the responses that it makes itself. It drops an `open` for an owner whose key differs from its own.
 
 ## Tests
 

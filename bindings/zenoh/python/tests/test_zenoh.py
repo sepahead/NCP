@@ -341,7 +341,7 @@ class Direct:
         self.then_restart = None
 
     def send(self, frame: bytes) -> None:
-        seq = F.decode(frame, F.MAX_BOUND).message["seq"]
+        seq = F.decode(frame, F.MAX_BOUND, check_digest=False).message["seq"]  # also a keyed frame
         if seq == self.lose_reply_of:
             self.lose_reply_of = None
             lost: queue.SimpleQueue = queue.SimpleQueue()
@@ -442,6 +442,86 @@ class RoutingTests(unittest.TestCase):
         deadline = time.monotonic() + 5
         while server.sessions and time.monotonic() < deadline:
             time.sleep(0.01)
+        self.assertEqual(server.sessions, 0)
+
+
+class KeyedRoutingTests(unittest.TestCase):
+    """A server with a key (section 13.2), driven directly: it checks each frame's authentication
+    code before it reads the message, and authenticates the responses that it makes itself."""
+
+    KEY = bytes(range(32))
+
+    def setUp(self) -> None:
+        self.counts: dict = {}
+        self.servers: list = []
+
+    def tearDown(self) -> None:
+        for server in self.servers:
+            server.stop(0.0)
+
+    def server(self, *, owner_key: bytes | None = KEY, server_key: bytes | None = KEY):
+        def make_owner() -> ncp.Owner:
+            return ncp.Owner(CONTRACT, Gate(self.counts), observer=QUIET, key=owner_key)
+
+        server = ncp_zenoh.Server(None, "test/keyed", make_owner, observer=QUIET, key=server_key)
+        self.servers.append(server)
+        return server
+
+    def client(self, server, **options) -> ncp.Client:
+        options = {"key": self.KEY, **options}
+        return ncp.Client(Direct(server), CONTRACT, timeout=0.2, retries=1, observer=QUIET, **options)
+
+    def route(self, server, frame: bytes) -> list[bytes]:
+        replies: queue.SimpleQueue = queue.SimpleQueue()
+        server._on_query(FakeQuery(frame, replies))
+        try:
+            return [replies.get(timeout=1)]
+        except queue.Empty:
+            return []
+
+    def test_a_keyed_session_runs_and_frames_without_the_key_get_no_reply(self) -> None:
+        server = self.server()
+        client = self.client(server)
+        client.open()
+        self.assertEqual(client.call("echo", {"k": 1}).body, {"k": 1})
+        state = client.state
+        request = {"ncp": 2, "session": state.session, "seq": 2, "op": "echo", "ack": state.ack, "body": {"k": 2}}
+        self.assertEqual(self.route(server, F.encode(request)), [])  # a digest, not the key's code
+        self.assertEqual(self.route(server, F.encode(request, key=bytes(32))), [])  # another key
+        self.assertNotIn(2, self.counts)
+        self.assertEqual(client.call("echo", {"k": 3}).body, {"k": 3})  # the session goes on
+        client.close()
+
+    def test_the_responses_of_the_server_itself_carry_the_key(self) -> None:
+        server = self.server()
+        unknown = {"ncp": 2, "session": str(uuid.uuid4()), "seq": 1, "op": "echo", "ack": "0" * 64, "body": {}}
+        (reply,) = self.route(server, F.encode(unknown, key=self.KEY))
+        message = F.decode(reply, F.MAX_BOUND, key=self.KEY).message
+        self.assertEqual((message["outcome"], message["code"]), ("ended", "session_expired"))
+        with self.assertRaises(F.FrameError):
+            F.decode(reply, F.MAX_BOUND)  # not a plain digest
+
+    def test_an_owner_without_the_servers_key_gets_no_session(self) -> None:
+        server = self.server(owner_key=None)
+        with self.assertRaises(ncp.CallError):
+            self.client(server).open()
+        self.assertEqual(server.sessions, 0)
+
+    def test_a_large_frame_of_a_session_the_server_does_not_hold_is_dropped(self) -> None:
+        server = self.server()
+        client = self.client(server, bound=F.DEFAULT_BOUND)
+        client.open()  # the server now holds a session with a bound above the handshake bound
+        large = {"ncp": 2, "session": str(uuid.uuid4()), "seq": 1, "op": "echo", "ack": "0" * 64,
+                 "body": {"x": "y" * F.HANDSHAKE_BOUND}}
+        self.assertEqual(self.route(server, F.encode(large, key=self.KEY)), [])
+        self.assertEqual(client.call("echo", {"x": "y" * F.HANDSHAKE_BOUND}).body["x"], "y" * F.HANDSHAKE_BOUND)
+
+    def test_a_request_of_another_protocol_version_gets_wrong_protocol(self) -> None:
+        server = self.server()
+        later = {"ncp": 3, "session": str(uuid.uuid4()), "seq": 0, "later": [1]}
+        (reply,) = self.route(server, F.encode(later, key=self.KEY))
+        message = F.decode(reply, F.MAX_BOUND, key=self.KEY).message
+        self.assertEqual((message["outcome"], message["code"]), ("rejected", "wrong_protocol"))
         self.assertEqual(server.sessions, 0)
 
 

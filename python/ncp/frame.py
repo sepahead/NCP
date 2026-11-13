@@ -29,6 +29,7 @@ MAX_JSON = 1_048_576
 MAX_DEPTH = 64
 MAX_INTEGER = 2**53 - 1
 MAX_ATTACHMENTS = 1024
+MAX_RANK = 32  # dimensions of an array shape (section 5)
 MIN_KEY = 32
 ARRAY_KEY = "ncp.array"
 # dtype -> (struct code for one element, element size, numpy dtype string)
@@ -90,11 +91,12 @@ class Array:
         if type(dtype) is not str or dtype not in DTYPES:
             raise FrameError(f"unknown dtype {dtype!r}")
         shape = tuple(shape)
-        count = 1
+        if len(shape) > MAX_RANK:
+            raise FrameError("array rank")
         for n in shape:
             if type(n) is not int or not 0 <= n <= MAX_INTEGER:
                 raise FrameError("array shape")
-            count *= n
+        count = 0 if 0 in shape else math.prod(shape)  # section 5: a dimension 0 gives 0 elements
         view = memoryview(data)
         if view.format != "B" or view.ndim != 1:
             view = view.cast("B")

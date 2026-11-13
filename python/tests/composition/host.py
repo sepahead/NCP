@@ -32,6 +32,9 @@ sys.path.insert(0, str(HERE))
 from modules import CONTRACTS, NEURONS, RECORD_CONTRACT  # noqa: E402
 
 TIME_LIMIT_S = 1.0
+# The limit for `open`, which includes the start of the module's process; on a loaded computer, 40
+# runs in parallel can take longer than one step's limit to start.
+START_LIMIT_S = 30.0
 ERRORS = (ncp.CallError,)
 
 
@@ -66,8 +69,9 @@ def main() -> None:
         channel = ncp.spawn(
             [sys.executable, "-s", str(modules), name, str(seed)], tap=tap, env=env, capture_stderr=True
         )
-        client = ncp.Client(channel, CONTRACTS[name], timeout=TIME_LIMIT_S)
+        client = ncp.Client(channel, CONTRACTS[name], timeout=START_LIMIT_S)
         client.open()
+        client.timeout = TIME_LIMIT_S  # each step
         clients[name], processes[name] = client, channel.process
     publisher = recorder = None
     if "recorder" in optional_set:

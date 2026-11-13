@@ -6,7 +6,7 @@ This directory holds the conformance material of two protocol generations.
 
 | File | Content |
 | --- | --- |
-| [`vectors.json`](vectors.json) | The vectors of [NCP 2](../spec/NCP-2.md), revision 3: 60 frames, 33 messages, 4 authenticated frames, 8 owner scenarios, 14 client cases, 17 stream cases, 13 transcripts, 21 contracts, and 35 schema cases, each with its expected result. |
+| [`vectors.json`](vectors.json) | The vectors of [NCP 2](../spec/NCP-2.md), revision 4: 63 frames, 39 messages, 4 authenticated frames, 8 owner scenarios, 16 client cases, 17 stream cases, 19 transcripts, 21 contracts, and 35 schema cases, each with its expected result. |
 | [`generate.py`](generate.py) | Writes `vectors.json` and the package copy `python/ncp/vectors.json`. The vectors are generated. Do not edit them. |
 | [`requirements.json`](requirements.json) | Each normative line of the specification, with the vectors, tests, model checks, and Lean claims that test it. [`check_ncp2_requirements.py`](../scripts/check_ncp2_requirements.py) requires an entry for each line and checks each reference. |
 | [`fuzz.py`](fuzz.py) | Differential fuzzing: the Python decoder and message checks against another implementation. |

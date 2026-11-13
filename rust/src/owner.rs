@@ -12,7 +12,7 @@ use crate::frame::{
     MAX_BOUND,
 };
 use crate::messages::{
-    check_request, detail, is_identity, is_name, MAX_FEATURES, MAX_RUN, PROTOCOL,
+    check_request, detail, foreign, is_identity, is_name, MAX_FEATURES, MAX_RUN, PROTOCOL,
 };
 use serde_json::{json, Map, Value};
 use std::fmt;
@@ -281,7 +281,10 @@ pub fn step<H: Handler + ?Sized>(
     handler: &mut H,
 ) -> Result<(OwnerState, Arc<Vec<u8>>, Note), FrameError> {
     let request = &decoded.message;
-    check_request(request)?;
+    if !foreign(request) {
+        // A request of another protocol version gets wrong_protocol below.
+        check_request(request)?;
+    }
     let request_id = decoded.identity.as_str();
     let session = request["session"].as_str().unwrap_or_default();
     let seq = request["seq"].as_u64().unwrap_or_default();

@@ -173,6 +173,17 @@ pub fn kind(message: &Value) -> &'static str {
     }
 }
 
+/// Whether a message is a request of another protocol version (section 6.1): `ncp` is a
+/// non-negative integer other than 2, `session` is a session identifier, and `seq` is a sequence
+/// number. It is not a bad frame, whatever its other members: the owner rejects it with
+/// `wrong_protocol` (rule 7.3.2).
+pub fn foreign(message: &Value) -> bool {
+    is_counter(&message["ncp"])
+        && message["ncp"] != PROTOCOL
+        && message["session"].as_str().is_some_and(is_session)
+        && is_counter(&message["seq"])
+}
+
 /// Fail unless the message has the request form of section 6.1.
 pub fn check_request(message: &Value) -> Result<(), FrameError> {
     let object = message
@@ -251,18 +262,25 @@ pub fn detail(text: &str) -> String {
 
 /// The response of the byte-stream binding that names no request (section 6.2): the bad-frame
 /// response (rule 9.1.3) and the shutdown response (rule 9.1.9).
-pub fn nameless_response(code: &str, key: Option<&Key>) -> Vec<u8> {
+///
+/// Its body binds it to the owner's chain: `chain` is the session that the owner holds and the
+/// identity of its kept response; without a session, the body is an empty object.
+pub fn nameless_response(code: &str, key: Option<&Key>, chain: Option<(&str, &str)>) -> Vec<u8> {
+    let body = match chain {
+        Some((session, kept)) => json!({"session": session, "kept": kept}),
+        None => json!({}),
+    };
     let message = json!({"ncp": PROTOCOL, "session": null, "seq": null, "request": null,
-                         "outcome": "ended", "code": code, "body": {}});
+                         "outcome": "ended", "code": code, "body": body});
     frame::encode_with(&message, &[], key, None).unwrap_or_default()
 }
 
 /// The response a byte-stream owner sends for a bad frame before it closes (rule 9.1.3).
-pub fn bad_frame_response(key: Option<&Key>) -> Vec<u8> {
-    nameless_response("bad_frame", key)
+pub fn bad_frame_response(key: Option<&Key>, chain: Option<(&str, &str)>) -> Vec<u8> {
+    nameless_response("bad_frame", key, chain)
 }
 
 /// The response a byte-stream owner sends when it stops a session (rule 9.1.9).
-pub fn shutdown_response(key: Option<&Key>) -> Vec<u8> {
-    nameless_response("shutdown", key)
+pub fn shutdown_response(key: Option<&Key>, chain: Option<(&str, &str)>) -> Vec<u8> {
+    nameless_response("shutdown", key, chain)
 }

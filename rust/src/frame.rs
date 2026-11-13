@@ -29,6 +29,17 @@ pub const MAX_DEPTH: usize = 64;
 pub const MAX_INTEGER: u64 = (1 << 53) - 1;
 /// Most attachments in a frame.
 pub const MAX_ATTACHMENTS: usize = 1024;
+/// The largest number of dimensions of an array shape (section 5).
+pub const MAX_RANK: usize = 32;
+
+/// The number of elements of a shape (section 5): 0 if a dimension is 0, otherwise the exact
+/// product of the dimensions, or None if it exceeds `u64`, which no attachment can hold.
+pub fn elements(shape: &[u64]) -> Option<u64> {
+    if shape.contains(&0) {
+        return Some(0);
+    }
+    shape.iter().try_fold(1u64, |acc, &n| acc.checked_mul(n))
+}
 /// The member name of an array reference.
 pub const ARRAY_KEY: &str = "ncp.array";
 
@@ -262,8 +273,10 @@ macro_rules! from_slice {
 impl Array {
     /// An array from raw little-endian bytes. Fails if the length does not fit the shape.
     pub fn new(dtype: Dtype, shape: Vec<u64>, data: Vec<u8>) -> Result<Array, FrameError> {
-        let count = shape.iter().try_fold(1u64, |acc, &n| acc.checked_mul(n));
-        match count.and_then(|c| c.checked_mul(dtype.size() as u64)) {
+        if shape.len() > MAX_RANK {
+            return bad("array rank");
+        }
+        match elements(&shape).and_then(|c| c.checked_mul(dtype.size() as u64)) {
             Some(bytes) if bytes == data.len() as u64 => Ok(Array { dtype, shape, data }),
             _ => bad("array length differs from shape and dtype"),
         }
@@ -457,10 +470,7 @@ fn check_references(message: &Value, arrays: &[Array]) -> Result<(), FrameError>
             return bad("each array needs exactly one reference in the message");
         }
         used[index] = true;
-        let count = shape
-            .iter()
-            .try_fold(1u64, |acc, &n| acc.checked_mul(n))
-            .and_then(|c| c.checked_mul(dtype.size() as u64));
+        let count = elements(&shape).and_then(|c| c.checked_mul(dtype.size() as u64));
         if dtype != array.dtype || shape != array.shape || count != Some(array.data.len() as u64) {
             return bad("array reference differs from the array");
         }
@@ -865,10 +875,7 @@ fn bind_arrays(
         if index >= lengths.len() || arrays[index].is_some() {
             return bad("array attachment index");
         }
-        let expected = shape
-            .iter()
-            .try_fold(1u64, |acc, &n| acc.checked_mul(n))
-            .and_then(|count| count.checked_mul(dtype.size() as u64));
+        let expected = elements(&shape).and_then(|count| count.checked_mul(dtype.size() as u64));
         if expected != Some(lengths[index] as u64) {
             return bad("array length differs from shape and dtype");
         }
@@ -907,6 +914,7 @@ fn collect_references(
                 let shape = spec
                     .get("shape")
                     .and_then(Value::as_array)
+                    .filter(|items| items.len() <= MAX_RANK)
                     .and_then(|items| {
                         items
                             .iter()

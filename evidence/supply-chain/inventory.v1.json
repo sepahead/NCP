@@ -397,7 +397,7 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/README.md",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "751876ab4945e18987281ea5282310d87fd7819bd3f1994a8df907c9e085c2c4",
+      "sha256": "0b9c2956a8dd50ff60e1db9d4ffc4be5fd7338fe0ac20b30ddc7b918545818ee",
       "size_bytes": 6497
     },
     {
@@ -1637,16 +1637,16 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/fuzz.py",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "0506c44be3dc29b65b686a2055ff6fca0342035aa69efd2c933a0948e3e04e86",
-      "size_bytes": 16108
+      "sha256": "f9a832f1f488700423358383c223c1a0c3fad0ab08fb20623b3c24fed2979ce7",
+      "size_bytes": 16242
     },
     {
       "classification": "conformance-fixture",
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/generate.py",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "ba4e2766b100a5551a2f83748d800b69041dca5f7bc5b86de929780e98d9b1c9",
-      "size_bytes": 54259
+      "sha256": "936f76cdf2277f4b2724061ad0cd006aa436c99bc971dcc67c7ce04c4fb39172",
+      "size_bytes": 60204
     },
     {
       "classification": "conformance-fixture",
@@ -1693,8 +1693,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/requirements.json",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "551f2cc9b9dae3b56d19be7a106d68d0b4f93df4313650fdee3bc62226b6b352",
-      "size_bytes": 32431
+      "sha256": "d16a25b3e81d15c428273a1128a1f189eab2d009c786ca5784cbff2c35ba21aa",
+      "size_bytes": 35516
     },
     {
       "classification": "conformance-fixture",
@@ -1709,8 +1709,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/vectors.json",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "8f6a2841d64d1c58ea449f2bec8505428ec82f4558967f4b9ec3a18b75437410",
-      "size_bytes": 537161
+      "sha256": "d875e00761d59617d1bcf66f6ba0b5e3cb184daffffb137759a3e98f4c44d2ce",
+      "size_bytes": 587121
     },
     {
       "classification": "conformance-fixture",

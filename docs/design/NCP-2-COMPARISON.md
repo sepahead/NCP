@@ -1,6 +1,6 @@
 # NCP 2 compared with other tools
 
-Status: 13 November 2026, for revision 3 of the [NCP 2 specification](../../spec/NCP-2.md).
+Status: 13 November 2026, for revision 4 of the [NCP 2 specification](../../spec/NCP-2.md).
 This document compares NCP 2 with the tools that a closed-loop experiment can use instead. The guarantees table covers tools that exchange requests between processes; co-simulation standards such as DCP, HELICS, and HLA appear where they are stronger. It lists what NCP 2 adds and what it lacks. Each statement about another tool names its primary source, listed at the end. Tools change: check a source before you rely on a statement.
 
 ## What a coupling of independent programs needs

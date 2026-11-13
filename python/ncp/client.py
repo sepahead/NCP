@@ -65,11 +65,15 @@ class Rejected(CallError):
 class Ended(CallError):
     """The session ended. `executed` says whether the last request executed: YES, NO, or UNKNOWN
     (spec section 7.7, property 7). `code` is the owner's code, or a local code: `local.timeout`,
-    `local.closed`, `local.protocol`, or `local.bad_frame`."""
+    `local.closed`, `local.protocol`, or `local.bad_frame`. `request` is the identity of the
+    request that `executed` is about, or None if no request was outstanding."""
 
-    def __init__(self, code: str, executed: Executed, body: Any = None, detail: str = "") -> None:
+    def __init__(
+        self, code: str, executed: Executed, body: Any = None, detail: str = "", request: str | None = None
+    ) -> None:
         super().__init__(f"{code} (executed: {executed.value})" + (f": {detail}" if detail else ""))
         self.code, self.executed, self.body, self.detail = code, executed, body if body is not None else {}, detail
+        self.request = request
 
 
 class UsageError(ValueError):
@@ -174,10 +178,24 @@ def request(
 LOST_SESSION = "the owner rejected a request other than open: it holds another opening of the session (rule 7.6.4)"
 
 
+def _bound(state: ClientState, body: Any) -> bool:
+    """Whether a nameless response is bound to the chain of the outstanding request (rule 7.6.2):
+    it names the client's session and the kept response that the request acknowledges. Only then
+    did the request not execute; a nameless frame can be replayed from another connection, also
+    when frames are authenticated."""
+    return (
+        state.ack is not None
+        and type(body) is dict
+        and body.get("session") == state.session
+        and body.get("kept") == state.ack
+    )
+
+
 def _end(state: ClientState, code: str, verdict: Executed, body: Any = None, text: str = "") -> tuple[
     ClientState, Ended
 ]:
-    return replace(state, pending=None, ended=True), Ended(code, verdict, body, text)
+    request = state.pending.identity if state.pending is not None else None
+    return replace(state, pending=None, ended=True), Ended(code, verdict, body, text, request)
 
 
 def receive(
@@ -205,8 +223,11 @@ def receive(
             return state, None
         return _end(state, "local.bad_frame", Executed.UNKNOWN, text=str(error))
     if message["session"] is None:  # a response that names no request (section 6.2)
-        code = message["code"]
-        return _end(state, code, executed(code), message["body"])
+        if lossy:
+            return state, None  # rule 7.6.2: only the byte-stream binding sends it
+        code, body = message["code"], message["body"]
+        verdict = Executed.NO if code in ("bad_frame", "shutdown") and _bound(state, body) else Executed.UNKNOWN
+        return _end(state, code, verdict, body)
     if not (
         message["ncp"] == PROTOCOL
         and message["session"] == state.session

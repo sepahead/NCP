@@ -47,7 +47,7 @@ So the owner's claims do not depend on the client or on the network.
 | `Commitment` | Equal identities of the last responses of two histories imply equal histories. | 7.7, property 8; assumption A3 |
 | `OkIsOwnExecution` | An `ok` response that names a request is the response of exactly one execution of it. | 7.7, property 4 |
 | `DeclinedIsFinal` | A request that the owner declined never executes, after any further inputs. | 7.7, property 5 |
-| `ShutdownIsFinal` | A request that got `shutdown` is never admitted, after any further inputs. | 7.7, property 5 |
+| `ShutdownIsFinal` | A request that got `shutdown` is never admitted by the same run of the owner, after any further inputs. Across a restart, the request names a chain that no later opening continues, as in `OpeningsDisjoint`; no claim states this. | 7.7, property 5 |
 | `HistoryFromInputs` | The owner admits only requests that it received. | 7.3 |
 | `FaultFreeProgress` | Over a network without faults, a client that follows section 7.6 gets `open` and every valid call executed, in order. | 7.3, 7.6 |
 | `UnknownIsLast` | A client that follows section 7.6 has at most one verdict "possibly executed" in a session, and it is the last. | 7.7, property 7 |

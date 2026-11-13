@@ -20,6 +20,9 @@ optional: it needs `eclipse-zenoh`, and the NCP 2 core package `ncp` never impor
 - The server keeps one owner for each session and runs each session in its own thread, so a long
   step of one session does not delay the others (rules 9.2.7 and 9.2.8). It forgets a session
   after a time without requests, and it stops as rule 9.2.9 says.
+- The server checks the digest of each frame, or its authentication code with the server's key
+  (section 13.2), before it reads the message (section 3, rule 5). A frame of a session that the
+  server does not hold has the handshake bound.
 """
 
 from __future__ import annotations
@@ -36,7 +39,7 @@ import ncp
 import zenoh
 from ncp import events as E
 from ncp import frame as F
-from ncp.messages import check_request
+from ncp.messages import check_request, foreign
 from ncp.transcript import RECEIVED, SENT, Tap
 
 __all__ = [
@@ -128,45 +131,6 @@ class ZenohChannel:
         pass
 
 
-def _peek(frame: bytes) -> tuple[Any, Any, Any]:
-    """The session, op, and seq of a request frame, read from its JSON region only. Raises
-    ValueError for a frame that cannot be a request. The owner checks the whole frame."""
-    if len(frame) < F.OVERHEAD or len(frame) > F.MAX_BOUND or frame[:4] != F.MAGIC:
-        raise ValueError("not a frame")
-    _, json_length, attachment_length = F.HEADER.unpack_from(frame)
-    if json_length > F.MAX_JSON or F.OVERHEAD + json_length + attachment_length != len(frame):
-        raise ValueError("frame length")
-    try:
-        message = json.loads(frame[F.HEADER_BYTES : F.HEADER_BYTES + json_length])
-    except RecursionError as error:  # CPython's parser recurses once for each nesting level
-        raise ValueError("nesting depth") from error
-    if type(message) is not dict:
-        raise ValueError("not an object")
-    return message.get("session"), message.get("op"), message.get("seq")
-
-
-def _answer(frame: bytes, outcome: str, code: str, bound: int) -> bytes | None:
-    """A response that the server makes itself, without an owner of the session, or None for a
-    bad frame. A request that is not of protocol 2 gets `wrong_protocol` (rule 7.3.2)."""
-    try:
-        decoded = F.decode(frame, bound)
-        check_request(decoded.message)
-    except F.FrameError:
-        return None
-    request = decoded.message
-    if request["ncp"] != ncp.PROTOCOL:
-        outcome, code = "rejected", "wrong_protocol"
-    return F.encode(
-        {
-            "ncp": ncp.PROTOCOL,
-            "session": request["session"],
-            "seq": request["seq"],
-            "request": decoded.identity,
-            "outcome": outcome,
-            "code": code,
-            "body": {},
-        }
-    )
 
 
 class _Worker:
@@ -174,7 +138,7 @@ class _Worker:
 
     def __init__(self, server: Server, session: str, owner: ncp.Owner) -> None:
         self.server, self.session, self.owner = server, session, owner
-        self.queries: queue.SimpleQueue[zenoh.Query | None] = queue.SimpleQueue()
+        self.queries: queue.SimpleQueue[tuple[zenoh.Query, F.Decoded] | None] = queue.SimpleQueue()
         self.lock = threading.Lock()  # one step of the owner at a time; stop() waits for it
         self.waiting = 0  # queries queued or in progress; guarded by the server's lock
         self.last = time.monotonic()  # the time of the last response; guarded by the server's lock
@@ -183,21 +147,26 @@ class _Worker:
     def _run(self) -> None:
         server = self.server
         while True:
-            query = self.queries.get()
-            if query is None:
+            item = self.queries.get()
+            if item is None:
                 break
+            query, decoded = item
             response = None
             try:
-                payload = query.payload
-                if payload is not None:
-                    with self.lock:
-                        response = self.owner.handle(payload.to_bytes())
+                with self.lock:
+                    # The server checked the frame with the largest bound of its sessions; a frame
+                    # above this session's bound is a bad frame (rule 9.2.3).
+                    if len(decoded.frame) <= self.owner.bound:
+                        response = self.owner.handle_decoded(decoded)
+                    bound = self.owner.bound
             except F.FrameError:
-                response = None  # rule 9.2.3: a bad frame gets no reply
+                response, bound = None, F.HANDSHAKE_BOUND  # rule 9.2.3: a bad frame gets no reply
             except Exception as error:  # noqa: BLE001 - one query must not stop the session
+                bound = F.HANDSHAKE_BOUND
                 server.observer.event(E.Event("server_error", "server", self.session, detail="query dropped", error=error))
             server._reply(query, response)
             with server.lock:
+                server.largest = max(server.largest, bound)
                 self.waiting -= 1
                 self.last = time.monotonic()
                 if self.owner.session is None and self.waiting == 0:
@@ -215,6 +184,11 @@ class Server:
     `session_expired`: possibly executed (rule 9.2.7). Above `max_sessions` sessions, an `open`
     gets `rejected` with `refused`.
 
+    `key` authenticates every frame (section 13.2): the server checks the authentication code of
+    each request before it reads the message, and authenticates the responses that it makes
+    itself. Each owner that `make_owner` returns must have the same key, or none if the server has
+    none; the server drops an `open` for an owner with another key.
+
     `start()` declares the service; `stop(grace)` stops it as rule 9.2.9 says. Use it as a
     context manager to do both.
     """
@@ -228,10 +202,15 @@ class Server:
         expire_after_s: float = 600.0,
         max_sessions: int = 4096,
         observer: Any = None,
+        key: bytes | None = None,
     ) -> None:
         if expire_after_s <= 0 or max_sessions < 1:
             raise ValueError("expire_after_s must be positive and max_sessions at least 1")
         self.zenoh_session, self.key, self.make_owner = session, exchange_key(service), make_owner
+        self.frame_key = F.check_key(key)
+        # The largest bound of a session that the server holds or held: the bound for the first
+        # check of a frame, before the server knows its session.
+        self.largest = F.HANDSHAKE_BOUND
         self.expire_after_s, self.max_sessions = expire_after_s, max_sessions
         self.observer = observer if observer is not None else E.DEFAULT
         self.lock = threading.Lock()
@@ -283,49 +262,77 @@ class Server:
         except Exception as error:  # noqa: BLE001 - the session is over anyway
             self.observer.event(E.Event("server_error", "server", worker.session, detail="close failed", error=error))
 
+    def _answer(self, decoded: F.Decoded, outcome: str, code: str) -> bytes:
+        """A response that the server makes itself, without an owner of the session, with the
+        server's key. A request of another protocol version gets `wrong_protocol` (rule 7.3.2)."""
+        request = decoded.message
+        if request["ncp"] != ncp.PROTOCOL:
+            outcome, code = "rejected", "wrong_protocol"
+        message = {
+            "ncp": ncp.PROTOCOL,
+            "session": request["session"],
+            "seq": request["seq"],
+            "request": decoded.identity,
+            "outcome": outcome,
+            "code": code,
+            "body": {},
+        }
+        return F.encode(message, key=self.frame_key)
+
     def _on_query(self, query: zenoh.Query) -> None:
-        """Route one query to its session's thread, or answer it here (rules 7.3.3 and 9.2.7).
-        Runs in a thread of Zenoh, so it never waits for an owner."""
+        """Route one query to its session's thread, or answer it here (rules 7.3.2, 7.3.3, and
+        9.2.7). Runs in a thread of Zenoh, so it never waits for an owner.
+
+        The server checks the digest, or the authentication code with its key, before it reads
+        the message (section 3, rule 5), with the largest bound of its sessions; a frame of a
+        session that it does not hold has the handshake bound."""
+        payload = query.payload
+        frame = b"" if payload is None else payload.to_bytes()
+        with self.lock:
+            limit = self.largest
         try:
-            payload = query.payload
-            frame = b"" if payload is None else payload.to_bytes()
-            session, op, seq = _peek(frame)
-        except (ValueError, UnicodeDecodeError):
+            decoded = F.decode(frame, limit, key=self.frame_key)
+            message = decoded.message
+            other = foreign(message)
+            if not other:
+                check_request(message)
+        except F.FrameError:
             self._reply(query, None)  # rule 9.2.3
             return
-        if type(session) is not str:
-            self._reply(query, None)
-            return
+        session, op, seq = message["session"], message.get("op"), message["seq"]
+        small = len(frame) <= F.HANDSHAKE_BOUND
         with self.lock:
             worker = self.workers.get(session)
-            if worker is None and op == "open" and seq == 0 and not self.stopping and len(self.workers) < self.max_sessions:
-                try:  # check the whole frame before the application makes an owner for it
-                    check_request(F.decode(frame, F.HANDSHAKE_BOUND).message)
-                    worker = _Worker(self, session, self.make_owner())
-                except F.FrameError:
-                    worker = None
+            opens = op == "open" and seq == 0 and not other and small
+            if worker is None and opens and not self.stopping and len(self.workers) < self.max_sessions:
+                try:
+                    owner = self.make_owner()
+                    if owner.config.key != self.frame_key:
+                        raise ValueError("the owner's key is not the server's key")
+                    worker = _Worker(self, session, owner)
                 except Exception as error:  # noqa: BLE001 - a defect of the factory drops the query
                     self.observer.event(E.Event("server_error", "server", session, detail="the owner factory failed", error=error))
                     self._reply(query, None)
                     return
-                else:
-                    self.workers[session] = worker
-                    worker.thread.start()
+                self.workers[session] = worker
+                worker.thread.start()
             if worker is not None:
                 worker.waiting += 1
-                worker.queries.put(query)
+                worker.queries.put((query, decoded))
                 return
             stopping, full = self.stopping, len(self.workers) >= self.max_sessions
-        if type(seq) is int and seq > 0:
-            # A session that this server does not hold: it forgot it, it restarted, or it never
-            # served it. An earlier copy of the request may have executed (rule 9.2.7).
-            response = _answer(frame, "ended", "session_expired", F.MAX_BOUND)
+        if not small:
+            response = None  # above the handshake bound of a session that the server does not hold
+        elif other or seq > 0:
+            # seq > 0: a session that this server does not hold: it forgot it, it restarted, or it
+            # never served it. An earlier copy of the request may have executed (rule 9.2.7).
+            response = self._answer(decoded, "ended", "session_expired")
         elif op != "open":
-            response = _answer(frame, "rejected", "not_open", F.HANDSHAKE_BOUND)
+            response = self._answer(decoded, "rejected", "not_open")
         elif stopping or full:
-            response = _answer(frame, "rejected", "refused", F.HANDSHAKE_BOUND)
+            response = self._answer(decoded, "rejected", "refused")
         else:
-            response = None  # a bad open frame
+            response = None
         self._reply(query, response)
 
     def _expire(self) -> None:
@@ -342,10 +349,12 @@ class Server:
                 self._finish(worker, "expired")
 
     def stop(self, grace: float = 1.0) -> None:
-        """Stop as rule 9.2.9 says: every owner stops, so a copy of a kept request still gets the
-        kept response, an `open` gets `rejected` with `refused`, and every other request gets
-        `ended` with `shutdown`. After `grace` seconds, the server undeclares the queryable and
-        ends the threads of the sessions, once they have answered their queries."""
+        """Stop as rule 9.2.9 says: every owner stops. Rules 7.3.1 to 7.3.9 still apply, so a copy
+        of a kept request gets the kept response and the other checks reject as usual; an `open`
+        gets `rejected` with `refused`; a request that the owner would otherwise admit gets
+        `ended` with `shutdown`, and is never admitted. After `grace` seconds, the server
+        undeclares the queryable and ends the threads of the sessions, once they have answered
+        their queries."""
         with self.lock:
             if self.stopping:
                 return

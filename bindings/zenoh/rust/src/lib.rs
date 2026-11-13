@@ -24,10 +24,13 @@
 //! - On networks that are not trusted, the Zenoh sessions MUST use TLS with client certificates
 //!   and Zenoh access control on both sides (rule 9.2.6). [`secure_config`] writes the TLS part
 //!   of such a configuration; the README shows the access control.
+//! - A server checks the digest of each frame, or its authentication code with the key of
+//!   [`ServeOptions::key`] (section 13.2), before it reads the message (section 3, rule 5). A
+//!   frame of a session that the server does not hold has the handshake bound.
 #![forbid(unsafe_code)]
 
-use ncp::frame::{self, HANDSHAKE_BOUND, HEADER_BYTES, MAGIC, MAX_BOUND, MAX_JSON};
-use ncp::messages::check_request;
+use ncp::frame::{self, Decoded, Key, Verify, HANDSHAKE_BOUND};
+use ncp::messages::{check_request, foreign};
 use ncp::transcript::{RECEIVED, SENT};
 use ncp::{Channel, ChannelError, Handler, Owner, Tap, PROTOCOL};
 use serde_json::{json, Value};
@@ -51,8 +54,6 @@ pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(1);
 /// How long Zenoh keeps a query open for a late reply. [`ncp::Client`] drops a reply that does
 /// not match its current request.
 const QUERY_TIMEOUT: Duration = Duration::from_secs(10);
-/// The frame overhead: header and digest.
-const OVERHEAD: usize = HEADER_BYTES + frame::DIGEST_BYTES;
 
 /// A failure of the binding: a name that is not a plain Zenoh key, or an error of Zenoh.
 #[derive(Debug)]
@@ -200,7 +201,7 @@ impl Channel for ZenohChannel {
 }
 
 /// Options of a [`Server`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ServeOptions {
     /// A session without a request for this long, counted from its last response, is forgotten
     /// (rule 9.2.7). A session with a request in progress is never forgotten.
@@ -208,6 +209,11 @@ pub struct ServeOptions {
     /// Above this many sessions, an `open` is answered with `rejected` and the code `refused`
     /// (rule 7.1.4).
     pub max_sessions: usize,
+    /// The key that authenticates every frame (section 13.2), if any. The server checks the
+    /// authentication code of each request before it reads the message, and authenticates the
+    /// responses that it makes itself. Each owner that the factory returns must have the same key,
+    /// or none if the server has none; the server drops an `open` for an owner with another key.
+    pub key: Option<Key>,
 }
 
 impl Default for ServeOptions {
@@ -215,46 +221,9 @@ impl Default for ServeOptions {
         ServeOptions {
             expire_after: Duration::from_secs(600),
             max_sessions: 4096,
+            key: None,
         }
     }
-}
-
-/// The session, op, and seq of a request frame, read from its JSON region only. None for a
-/// frame that cannot be a request. The owner checks the whole frame.
-fn peek(frame: &[u8]) -> Option<(String, Value, Value)> {
-    if frame.len() < OVERHEAD || frame.len() > MAX_BOUND || frame[..4] != MAGIC {
-        return None;
-    }
-    let length = |at: usize| u32::from_be_bytes(frame[at..at + 4].try_into().unwrap_or([0; 4]));
-    let (json_length, attachments) = (length(4) as usize, length(8) as usize);
-    if json_length > MAX_JSON
-        || OVERHEAD
-            .checked_add(json_length)?
-            .checked_add(attachments)?
-            != frame.len()
-    {
-        return None;
-    }
-    let message: Value =
-        serde_json::from_slice(&frame[HEADER_BYTES..HEADER_BYTES + json_length]).ok()?;
-    let session = message.get("session")?.as_str()?.to_owned();
-    Some((session, message["op"].clone(), message["seq"].clone()))
-}
-
-/// A response that the server makes itself, without an owner of the session, or None for a bad
-/// frame. A request that is not of protocol 2 gets `wrong_protocol` (rule 7.3.2).
-fn answer(frame: Vec<u8>, outcome: &str, code: &str, bound: usize) -> Option<Vec<u8>> {
-    let decoded = frame::decode(frame, bound).ok()?;
-    check_request(&decoded.message).ok()?;
-    let request = &decoded.message;
-    let (outcome, code) = if request["ncp"] != PROTOCOL {
-        ("rejected", "wrong_protocol")
-    } else {
-        (outcome, code)
-    };
-    let response = json!({"ncp": PROTOCOL, "session": request["session"], "seq": request["seq"],
-                          "request": decoded.identity, "outcome": outcome, "code": code, "body": {}});
-    frame::encode(&response, &[]).ok()
 }
 
 /// Reply to a query, if there is a response, and complete it. The client may have gone; the
@@ -274,7 +243,7 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 
 /// One session: its owner, the channel to its thread, and what the expiry needs.
 struct Worker<H: Handler> {
-    sender: Sender<Query>,
+    sender: Sender<(Query, Decoded)>,
     owner: Arc<Mutex<Owner<H>>>,
     waiting: usize,
     last: Instant,
@@ -284,6 +253,9 @@ struct Worker<H: Handler> {
 struct Table<H: Handler> {
     workers: HashMap<String, Worker<H>>,
     stopping: bool,
+    /// The largest bound of a session that the server holds or held: the bound for the first
+    /// check of a frame, before the server knows its session.
+    largest: usize,
 }
 
 type Factory<H> = dyn Fn() -> Owner<H> + Send + Sync;
@@ -297,28 +269,65 @@ struct Shared<H: Handler> {
 }
 
 impl<H: Handler + Send + 'static> Shared<H> {
-    /// Route one query to its session's thread, or answer it here (rules 7.3.3 and 9.2.7). Runs
-    /// in a thread of Zenoh, so it never waits for an owner.
+    /// A response that the server makes itself, without an owner of the session, with the
+    /// server's key. A request of another protocol version gets `wrong_protocol` (rule 7.3.2).
+    fn answer(&self, decoded: &Decoded, outcome: &str, code: &str) -> Option<Vec<u8>> {
+        let request = &decoded.message;
+        let (outcome, code) = if request["ncp"] != PROTOCOL {
+            ("rejected", "wrong_protocol")
+        } else {
+            (outcome, code)
+        };
+        let response = json!({"ncp": PROTOCOL, "session": request["session"], "seq": request["seq"],
+                              "request": decoded.identity, "outcome": outcome, "code": code, "body": {}});
+        frame::encode_with(&response, &[], self.options.key.as_ref(), None).ok()
+    }
+
+    /// Route one query to its session's thread, or answer it here (rules 7.3.2, 7.3.3, and
+    /// 9.2.7). Runs in a thread of Zenoh, so it never waits for an owner.
+    ///
+    /// The server checks the digest, or the authentication code with its key, before it reads the
+    /// message (section 3, rule 5), with the largest bound of its sessions; a frame of a session
+    /// that it does not hold has the handshake bound.
     fn route(self: &Arc<Self>, query: Query) {
         let Some(frame_bytes) = query.payload().map(|p| p.to_bytes().into_owned()) else {
             return reply(&self.key, query, None);
         };
-        let Some((session, op, seq)) = peek(&frame_bytes) else {
+        let size = frame_bytes.len();
+        let limit = lock(&self.table).largest;
+        let verify = self
+            .options
+            .key
+            .as_ref()
+            .map_or(Verify::Digest, Verify::Key);
+        let Ok(decoded) = frame::decode_verified(frame_bytes, limit, verify) else {
             return reply(&self.key, query, None); // rule 9.2.3
         };
+        let other = foreign(&decoded.message);
+        if !other && check_request(&decoded.message).is_err() {
+            return reply(&self.key, query, None); // rule 9.2.3
+        }
+        let session = decoded.message["session"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned();
+        let (op, seq) = (
+            decoded.message["op"].clone(),
+            decoded.message["seq"].clone(),
+        );
+        let small = size <= HANDSHAKE_BOUND;
         let mut table = lock(&self.table);
         if !table.workers.contains_key(&session)
             && op == "open"
             && seq == 0
+            && !other
+            && small
             && !table.stopping
             && table.workers.len() < self.options.max_sessions
         {
-            // Check the whole frame before the application makes an owner for it.
-            let whole = frame::decode(frame_bytes.clone(), HANDSHAKE_BOUND)
-                .ok()
-                .is_some_and(|decoded| check_request(&decoded.message).is_ok());
-            if whole {
-                let owner = Arc::new(Mutex::new((self.make_owner)()));
+            let owner = (self.make_owner)();
+            if owner.key() == self.options.key.as_ref() {
+                let owner = Arc::new(Mutex::new(owner));
                 let (sender, receiver) = mpsc::channel();
                 let thread = {
                     let (shared, session, owner) = (self.clone(), session.clone(), owner.clone());
@@ -339,10 +348,11 @@ impl<H: Handler + Send + 'static> Shared<H> {
                     );
                 }
             }
+            // Otherwise the owner's key is not the server's key: the open gets no reply.
         }
         if let Some(worker) = table.workers.get_mut(&session) {
             worker.waiting += 1;
-            let _ = worker.sender.send(query);
+            let _ = worker.sender.send((query, decoded));
             return;
         }
         let (stopping, full) = (
@@ -350,32 +360,42 @@ impl<H: Handler + Send + 'static> Shared<H> {
             table.workers.len() >= self.options.max_sessions,
         );
         drop(table);
-        let response = if seq.as_u64().is_some_and(|seq| seq > 0) {
-            // A session that this server does not hold: it forgot it, it restarted, or it never
-            // served it. An earlier copy of the request may have executed (rule 9.2.7).
-            answer(frame_bytes, "ended", "session_expired", MAX_BOUND)
+        let response = if !small {
+            None // above the handshake bound of a session that the server does not hold
+        } else if other || seq.as_u64().is_some_and(|seq| seq > 0) {
+            // seq > 0: a session that this server does not hold: it forgot it, it restarted, or
+            // it never served it. An earlier copy of the request may have executed (rule 9.2.7).
+            self.answer(&decoded, "ended", "session_expired")
         } else if op != "open" {
-            answer(frame_bytes, "rejected", "not_open", HANDSHAKE_BOUND)
+            self.answer(&decoded, "rejected", "not_open")
         } else if stopping || full {
-            answer(frame_bytes, "rejected", "refused", HANDSHAKE_BOUND)
+            self.answer(&decoded, "rejected", "refused")
         } else {
-            None // a bad open frame
+            None
         };
         reply(&self.key, query, response);
     }
 
     /// The thread of one session: handle its queries in order, one at a time.
-    fn serve(&self, session: &str, owner: &Mutex<Owner<H>>, queries: &Receiver<Query>) {
-        while let Ok(query) = queries.recv() {
-            let response = query.payload().and_then(|payload| {
+    fn serve(&self, session: &str, owner: &Mutex<Owner<H>>, queries: &Receiver<(Query, Decoded)>) {
+        while let Ok((query, decoded)) = queries.recv() {
+            let (response, bound) = {
                 let mut owner = lock(owner);
-                owner
-                    .handle(payload.to_bytes().into_owned())
-                    .ok()
-                    .map(|response| response.to_vec())
-            });
+                // The server checked the frame with the largest bound of its sessions; a frame
+                // above this session's bound is a bad frame (rule 9.2.3).
+                let response = if decoded.frame.len() <= owner.bound() {
+                    owner
+                        .handle_decoded(&decoded)
+                        .ok()
+                        .map(|response| response.to_vec())
+                } else {
+                    None
+                };
+                (response, owner.bound())
+            };
             reply(&self.key, query, response);
             let mut table = lock(&self.table);
+            table.largest = table.largest.max(bound);
             let forget = match table.workers.get_mut(session) {
                 Some(worker) => {
                     worker.waiting -= 1;
@@ -489,6 +509,7 @@ impl<H: Handler + Send + 'static> Server<H> {
             table: Mutex::new(Table {
                 workers: HashMap::new(),
                 stopping: false,
+                largest: HANDSHAKE_BOUND,
             }),
             done: (Mutex::new(false), Condvar::new()),
         });
@@ -518,10 +539,11 @@ impl<H: Handler + Send + 'static> Server<H> {
         lock(&self.shared.table).workers.len()
     }
 
-    /// Stop as rule 9.2.9 says: every owner stops, so a copy of a kept request still gets the
-    /// kept response, an `open` gets `rejected` with `refused`, and every other request gets
-    /// `ended` with `shutdown`. After `grace`, the server undeclares the queryable and ends the
-    /// threads of the sessions, once they have answered their queries.
+    /// Stop as rule 9.2.9 says: every owner stops. Rules 7.3.1 to 7.3.9 still apply, so a copy of
+    /// a kept request gets the kept response and the other checks reject as usual; an `open`
+    /// gets `rejected` with `refused`; a request that the owner would otherwise admit gets
+    /// `ended` with `shutdown`, and is never admitted. After `grace`, the server undeclares the
+    /// queryable and ends the threads of the sessions, once they have answered their queries.
     pub fn stop(mut self, grace: Duration) {
         self.shutdown(grace);
     }

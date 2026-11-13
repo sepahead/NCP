@@ -4,7 +4,7 @@
 use ncp::client::{self, ClientState, RequestOptions, TimeoutAction};
 use ncp::contract::{check, compile_schema};
 use ncp::frame::{self, Array, Dtype, Key, Verify, HANDSHAKE_BOUND, MAX_BOUND};
-use ncp::messages::{check_request, check_response, check_stream_message};
+use ncp::messages::{check_request, check_response, check_stream_message, foreign};
 use ncp::{
     declined, AppError, Contract, Delivery, Error, Handler, Invalid, Owner, Reply, Request,
     Subscriber,
@@ -105,11 +105,11 @@ fn messages() {
             .expect("decodes")
             .message;
         let accepted = match case["kind"].as_str() {
-            Some("request") => check_request(&message),
-            Some("response") => check_response(&message),
-            _ => check_stream_message(&message),
-        }
-        .is_ok();
+            Some("request") => check_request(&message).is_ok(),
+            Some("response") => check_response(&message).is_ok(),
+            Some("foreign") => foreign(&message),
+            _ => check_stream_message(&message).is_ok(),
+        };
         if accepted != case["valid"].as_bool().expect("valid") {
             failures.push(format!("{}: {accepted}", case["name"]));
         }
@@ -316,8 +316,26 @@ fn owner_scenarios() {
                 } else {
                     all["session"].as_str().unwrap_or_default().to_owned()
                 };
-                let message = json!({"ncp": step.get("ncp").cloned().unwrap_or(json!(2)), "session": session,
-                                     "seq": step["seq"], "op": step["op"], "ack": ack, "body": body});
+                let mut message = json!({"ncp": step.get("ncp").cloned().unwrap_or(json!(2)), "session": session,
+                                         "seq": step["seq"], "op": step["op"], "ack": ack, "body": body});
+                if let Value::Object(members) = &mut message {
+                    for member in step
+                        .get("drop")
+                        .and_then(Value::as_array)
+                        .into_iter()
+                        .flatten()
+                    {
+                        members.remove(member.as_str().unwrap_or_default());
+                    }
+                    for (name, value) in step
+                        .get("extra")
+                        .and_then(Value::as_object)
+                        .into_iter()
+                        .flatten()
+                    {
+                        members.insert(name.clone(), value.clone());
+                    }
+                }
                 frame::encode(&message, &arrays).expect("encode")
             };
             let response = owner
@@ -446,6 +464,12 @@ fn reply(state: &ClientState, spec: &Value, to: &str) -> Vec<u8> {
             message["session"] = Value::Null;
             message["seq"] = Value::Null;
             message["request"] = Value::Null;
+        }
+        "nameless_bound" => {
+            message["session"] = Value::Null;
+            message["seq"] = Value::Null;
+            message["request"] = Value::Null;
+            message["body"] = json!({"session": state.session, "kept": state.ack});
         }
         _ => {}
     }

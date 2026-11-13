@@ -1,5 +1,6 @@
 //! Tests of the Zenoh binding (specification, section 9.2), with two Zenoh sessions in one process.
 //! The TLS tests need the `openssl` command; they are skipped without it.
+use ncp::frame::{Key, Verify};
 use ncp::{
     events, frame, AppError, Array, Channel, ChannelError, Client, Contract, Delivery, Error,
     Executed, Handler, Invalid, Owner, Reply, Request,
@@ -88,14 +89,28 @@ struct Service {
     counts: Counts,
     server: Option<Server<Counting>>,
     linked: bool,
+    /// The server's key, if any.
+    key: Option<Key>,
 }
 
 impl Service {
+    /// A service whose owners have the server's key.
     fn start(
         name: String,
         owner_config: Config,
         client_config: Config,
         options: ServeOptions,
+    ) -> Service {
+        let owner_key = options.key.clone();
+        Service::start_with(name, owner_config, client_config, options, owner_key)
+    }
+
+    fn start_with(
+        name: String,
+        owner_config: Config,
+        client_config: Config,
+        options: ServeOptions,
+        owner_key: Option<Key>,
     ) -> Service {
         let owner = zenoh::open(owner_config).wait().unwrap();
         let client = zenoh::open(client_config).wait().unwrap();
@@ -104,15 +119,20 @@ impl Service {
             let counts = counts.clone();
             let contract = Contract::from_bytes(CONTRACT.to_vec()).unwrap();
             move || {
-                Owner::new(
+                let owner = Owner::new(
                     contract.clone(),
                     Counting {
                         counts: counts.clone(),
                     },
                 )
-                .with_observer(Arc::new(events::Silent))
+                .with_observer(Arc::new(events::Silent));
+                match &owner_key {
+                    Some(key) => owner.with_key(key.clone()),
+                    None => owner,
+                }
             }
         };
+        let key = options.key.clone();
         let server = Server::declare(&owner, &name, make_owner, options).unwrap();
         let linked = wait_for_peer(&client, Duration::from_secs(3));
         Service {
@@ -122,16 +142,23 @@ impl Service {
             counts,
             server: Some(server),
             linked,
+            key,
         }
     }
 
     fn plain(options: ServeOptions) -> Service {
+        let owner_key = options.key.clone();
+        Service::plain_with(options, owner_key)
+    }
+
+    fn plain_with(options: ServeOptions, owner_key: Option<Key>) -> Service {
         let endpoint = format!("tcp/127.0.0.1:{}", free_port());
-        let service = Service::start(
+        let service = Service::start_with(
             new_name(),
             plain(&[&endpoint], &[]),
             plain(&[], &[&endpoint]),
             options,
+            owner_key,
         );
         assert!(
             service.linked && service.answers(),
@@ -148,7 +175,7 @@ impl Service {
         while Instant::now() < deadline {
             let probe = json!({"ncp": 2, "session": ncp::random_session(), "seq": 1, "op": "echo",
                                "ack": "0".repeat(64), "body": {}});
-            let frame_bytes = frame::encode(&probe, &[]).unwrap();
+            let frame_bytes = frame::encode_with(&probe, &[], self.key.as_ref(), None).unwrap();
             if !self
                 .raw_within(frame_bytes, Duration::from_millis(300))
                 .is_empty()
@@ -220,6 +247,69 @@ fn new_name() -> String {
 
 fn counts(pairs: &[(i64, u32)]) -> HashMap<i64, u32> {
     pairs.iter().copied().collect()
+}
+
+fn keyed(key: &Key) -> ServeOptions {
+    ServeOptions {
+        key: Some(key.clone()),
+        ..ServeOptions::default()
+    }
+}
+
+#[test]
+fn a_keyed_service_checks_the_key_before_it_reads_a_frame() {
+    let key = Key::new((0u8..32).collect()).unwrap();
+    let service = Service::plain(keyed(&key));
+    let mut client = service.client(service.channel()).with_key(key.clone());
+    client.open().unwrap();
+    let one = client.call("echo", json!({"k": 1}), &[]).unwrap();
+    assert_eq!(one.message["body"], json!({"k": 1}));
+    // The next request without the key's code, and with another key: no reply (rule 9.2.3).
+    let state = client.state().clone();
+    let request = json!({"ncp": 2, "session": state.session, "seq": 2, "op": "echo",
+                         "ack": state.ack, "body": {"k": 2}});
+    assert!(service
+        .raw(frame::encode(&request, &[]).unwrap())
+        .is_empty());
+    let other = Key::new(vec![7; 32]).unwrap();
+    let foreign_key = frame::encode_with(&request, &[], Some(&other), None).unwrap();
+    assert!(service.raw(foreign_key).is_empty());
+    assert_eq!(service.counts(), counts(&[(1, 1)]));
+    // The responses that the server makes itself carry the key.
+    let unknown = json!({"ncp": 2, "session": ncp::random_session(), "seq": 1, "op": "echo",
+                         "ack": "0".repeat(64), "body": {}});
+    let replies = service.raw(frame::encode_with(&unknown, &[], Some(&key), None).unwrap());
+    assert_eq!(replies.len(), 1);
+    let message = frame::decode_verified(replies[0].clone(), ncp::MAX_BOUND, Verify::Key(&key))
+        .unwrap()
+        .message;
+    assert_eq!(
+        (message["outcome"].clone(), message["code"].clone()),
+        (json!("ended"), json!("session_expired"))
+    );
+    assert!(frame::decode(replies[0].clone(), ncp::MAX_BOUND).is_err());
+    // A request of another protocol version gets wrong_protocol (rule 7.3.2).
+    let later = json!({"ncp": 3, "session": ncp::random_session(), "seq": 0, "later": [1]});
+    let replies = service.raw(frame::encode_with(&later, &[], Some(&key), None).unwrap());
+    let message = frame::decode_verified(replies[0].clone(), ncp::MAX_BOUND, Verify::Key(&key))
+        .unwrap()
+        .message;
+    assert_eq!(
+        (message["outcome"].clone(), message["code"].clone()),
+        (json!("rejected"), json!("wrong_protocol"))
+    );
+    let three = client.call("echo", json!({"k": 3}), &[]).unwrap();
+    assert_eq!(three.message["body"], json!({"k": 3}));
+    client.close().unwrap();
+}
+
+#[test]
+fn an_owner_without_the_servers_key_gets_no_session() {
+    let key = Key::new((0u8..32).collect()).unwrap();
+    let service = Service::plain_with(keyed(&key), None);
+    let mut client = service.client(service.channel()).with_key(key);
+    assert!(client.open().is_err());
+    assert_eq!(service.server.as_ref().unwrap().sessions(), 0);
 }
 
 #[test]

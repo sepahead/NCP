@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NCP 2.0 release candidate, revision 4 (13 November 2026; tag and publication follow)
+
+An advisory review of revision 3 by a language model (read-only, not certification evidence) found
+thirteen issues, two of them critical. Revision 4 closes all of them; the frame format stays.
+[`docs/design/NCP-2-DESIGN.md`](docs/design/NCP-2-DESIGN.md#13-revision-4) gives each decision with
+its finding and its check, and
+[`docs/design/NCP-2-MIGRATION.md`](docs/design/NCP-2-MIGRATION.md#7-from-revision-3-to-revision-4-of-ncp-2)
+lists the changes for consumers.
+
+- **Breaking: responses that name no request are bound to the owner's chain.** `bad_frame` and
+  `shutdown` were constant, so under a shared key a party on the path could replay one from another
+  connection, and the client concluded "not executed" for a request that had executed. Their body now
+  names the owner's session and kept response; a client trusts them only when both match, and a client
+  on Zenoh ignores them. The model check replays such responses, with a twelfth mutant.
+- **Breaking: lockstep profile revision 2.** A delayed step of an old session could execute after a
+  recovery had read the tick before it. An `open` with the feature now takes over the ticks and fences
+  every earlier session, the tick names the request that produced it, and a step counts as executed
+  once its application runs, also if it then fails.
+- **Breaking:** a request of another protocol version gets `wrong_protocol` whatever its other members;
+  array shapes have at most 32 dimensions and an exact number of elements; a client refuses an `open`
+  response without a valid nonce.
+- The Zenoh servers take a key, check every frame before they read it, apply the handshake bound to
+  sessions that they do not hold, and authenticate their own responses (rule 9.2.10). Rule 9.2.9 says
+  that the other checks come before `shutdown`.
+- Transcript verification (section 10.3): two different responses to one admitted request fail, an
+  owner's transcript with correct rejections passes, a verifier given a key refuses a transcript without
+  one, and the chain of a record shorter than a digest is defined. Six new transcript vectors.
+- Table 7.5 and `spec/ncp2-rules.json` separate what the owner knows from the client's verdict; the
+  rules check also compares the limits of section 12 with the text.
+- Section 8 states the stream rules in the order of the SDKs, allows bounded state, and states that a
+  key does not prevent the replay of old streams.
+- Claims at their scope: the proof row of the design record, `ShutdownIsFinal`, client crashes,
+  conformance of the profiles, and the rounds profile under keys.
+- Smaller rules: nonces from a cryptographically secure generator and no restore of an opening; an
+  `open` that is safe to repeat; a corrected `open` with a new session identifier; no expiry of a
+  session with a request in progress; authentication codes compared in constant time; a Python TLS
+  client needs the server's name.
+- Interfaces: `Ended.request` and `Error::Ended { request, .. }` name the request that a verdict is
+  about; `ncp_zenoh.Server(..., key=)` and `ServeOptions::key`; `messages.foreign` and
+  `messages::foreign`; `frame::MAX_RANK`.
+- Vectors: 63 frames, 39 messages, 16 client cases, and 19 transcripts. The requirement map covers 84
+  lines.
+
 ### NCP 2.0 release candidate, revision 3 (13 November 2026; tag and publication follow)
 
 A review questioned the rules of revision 2 from first principles, and an exhaustive check of the

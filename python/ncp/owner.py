@@ -24,6 +24,7 @@ from .messages import (
     MAX_RUN,
     PROTOCOL,
     check_request,
+    foreign,
     detail,
     is_identity,
     is_name,
@@ -174,9 +175,10 @@ def step(
     Otherwise return the new state, the response frame, and a note of what happened.
     """
     request = decoded.message
-    check_request(request)
+    if not foreign(request):  # a request of another protocol version gets wrong_protocol below
+        check_request(request)
     request_id = decoded.identity
-    session, seq, op = request["session"], request["seq"], request["op"]
+    session, seq, op = request["session"], request["seq"], request.get("op")
     key = config.key
 
     def reply(outcome: str, code: str | None, body: Any, limit: int | None = None) -> bytes:

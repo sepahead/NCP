@@ -373,6 +373,7 @@ def python_result(frame: bytes, bound: int) -> dict:
             "request": shape(M.check_request, decoded.message),
             "response": shape(M.check_response, decoded.message),
             "stream": shape(M.check_stream_message, decoded.message),
+            "foreign": M.foreign(decoded.message),
         },
     }
 
@@ -409,7 +410,7 @@ def main() -> int:
         print(f"the decoder printed {len(lines)} lines for {len(frames)} frames")
         return 1
     accepted = differences = 0
-    forms = {"request": 0, "response": 0, "stream": 0}
+    forms = {"request": 0, "response": 0, "stream": 0, "foreign": 0}
     for index, (frame, bound, line) in enumerate(zip(frames, bounds, lines, strict=True)):
         other = json.loads(line)
         mine = python_result(frame, bound)
@@ -440,7 +441,8 @@ def main() -> int:
                     out.write(frame)
     print(
         f"fuzz: {len(frames)} frames, {accepted} accepted by Python ({forms['request']} requests, "
-        f"{forms['response']} responses, {forms['stream']} stream messages), {differences} differences"
+        f"{forms['response']} responses, {forms['stream']} stream messages, {forms['foreign']} requests of "
+        f"another protocol version), {differences} differences"
     )
     return 1 if differences else 0
 

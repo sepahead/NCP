@@ -158,10 +158,12 @@
     },
     {
       "section": "5",
-      "text": "- `att` is the index of the attachment that holds the elements. Its length MUST equal the product of the shape and the element size.",
+      "text": "- `att` is the index of the attachment that holds the elements. Its length MUST equal the number of elements times the element size.",
       "covered_by": [
         "vectors:frames:array length mismatch",
-        "vectors:frames:arrays of every dtype"
+        "vectors:frames:arrays of every dtype",
+        "vectors:frames:a dimension 0 makes the number of elements 0, also beside large dimensions",
+        "vectors:frames:a shape of 33 dimensions"
       ]
     },
     {
@@ -174,15 +176,17 @@
     },
     {
       "section": "6",
-      "text": "A receiver MUST treat a message with a missing member, an extra member, or a member of the wrong type as a bad frame.",
+      "text": "A receiver MUST treat a message with a missing member, an extra member, or a member of the wrong type or format as a bad frame, except for a request of another protocol version (section 6.1).",
       "covered_by": [
         "vectors:messages",
-        "fuzz"
+        "fuzz",
+        "vectors:messages:protocol 3 with other members",
+        "vectors:scenarios:open rules"
       ]
     },
     {
       "section": "7.1",
-      "text": "The owner MUST choose each nonce from at least 128 random bits. Two openings MUST NOT share a nonce, also across restarts of the owner. The identity of the `open` response is the root of the session's hash chain, so different nonces make the chains of two openings disjoint (section 7.7, property 1).",
+      "text": "The owner MUST choose each nonce from at least 128 bits of a cryptographically secure random generator. Two openings MUST NOT share a nonce, also across restarts of the owner. An owner therefore MUST NOT restore the state of an opening (section 7.2), for example from a snapshot: after a restart, it holds no session. The identity of the `open` response is the root of the session's hash chain, so different nonces make the chains of two openings disjoint (section 7.7, property 1).",
       "covered_by": [
         "test:python:test_each_opening_has_its_own_nonce",
         "test:rust:each_opening_has_its_own_nonce",
@@ -209,13 +213,21 @@
       ]
     },
     {
+      "section": "7.1",
+      "text": "A client MUST check that `bound` is from 65,536 to the bound that it requested, that `nonce` has the form above, and that `features`, if present, is an object. Otherwise the session ends, and the `open` request is possibly executed. An owner of an earlier revision, which sends no nonce, therefore opens no session with a client of this revision.",
+      "covered_by": [
+        "vectors:clients:open responses that break section 7.1"
+      ]
+    },
+    {
       "section": "7.3.1",
       "text": "1. If the frame is bad (sections 3 to 6), apply the binding's bad-frame rule (section 9). Stop.",
       "covered_by": [
         "test:python:test_bad_frame_rule_and_slow_sender",
         "test:python:test_bad_frame_response_form",
         "test:rust:a_bad_frame_ends_a_tcp_connection",
-        "vectors:clients:a nameless response ends the session"
+        "vectors:clients:a nameless response bound to the chain of the request",
+        "vectors:clients:a nameless response that is not bound to the chain: possibly executed"
       ]
     },
     {
@@ -368,7 +380,8 @@
       "covered_by": [
         "vectors:clients:a frame that does not belong to the request, on a byte stream",
         "vectors:clients:a frame that does not belong to the request, on a lossy binding",
-        "vectors:clients:a nameless response ends the session",
+        "vectors:clients:a nameless response bound to the chain of the request",
+        "vectors:clients:a nameless response that is not bound to the chain: possibly executed",
         "model:simulate:P4"
       ]
     },
@@ -383,7 +396,7 @@
     },
     {
       "section": "7.6.4",
-      "text": "4. After a `rejected` response to `open`, no session is open. The client MAY send a corrected `open`. A client that follows these rules receives `rejected` for another request only when the owner holds another opening of the session: the owner lost the session, and a delayed copy of the `open` request opened it again. An earlier copy of the request may have executed in the lost opening. After a `rejected` response to a request other than `open`, the client MUST therefore end the session and treat the request as possibly executed.",
+      "text": "4. After a `rejected` response to `open`, no session is open. The client MAY send the same `open` again, or a corrected `open`; it SHOULD give a corrected `open` a new session identifier, so that a delayed copy of the first `open` cannot open the session with other parameters. A client that follows these rules receives `rejected` for another request only when the owner's state of the session differs from the client's. For example, the owner lost the session and a delayed copy of the `open` request opened it again, or another program sent requests with the client's session identifier. An earlier copy of the request may have executed in a lost opening. After a `rejected` response to a request other than `open`, the client MUST therefore end the session and treat the request as possibly executed.",
       "covered_by": [
         "vectors:clients:a rejection of a request other than open ends the session, possibly executed",
         "vectors:clients:a rejected open leaves no session; the same open can follow",
@@ -440,7 +453,7 @@
     },
     {
       "section": "8.3",
-      "text": "3. A subscriber keeps, for each stream, the `seq` and the identity of the last message that it accepted.",
+      "text": "3. A subscriber keeps, for each stream, the `seq` and the identity of the last message that it accepted, and whether that message ended the stream. A subscriber MAY keep this state for a bounded number of streams. It then forgets the stream that it used least recently, and treats a later message of that stream as a message of a stream without state (rule 6).",
       "covered_by": [
         "vectors:streams:repeat",
         "test:python:test_the_subscriber_keeps_a_bounded_number_of_streams"
@@ -448,7 +461,7 @@
     },
     {
       "section": "8.4",
-      "text": "4. A subscriber applies a bound to each stream frame. The stream's contract states its largest frame.",
+      "text": "4. A subscriber applies a bound to each stream frame. The contract describes the largest frame of each stream type (section 11). NCP does not say which stream type of the contract a message belongs to: the application chooses the bound, for example the largest frame of all the stream types that the subscriber accepts.",
       "covered_by": [
         "test:python:test_the_subscriber_applies_its_bound_to_each_frame",
         "test:rust:the_subscriber_applies_its_bound_to_each_frame"
@@ -456,58 +469,58 @@
     },
     {
       "section": "8.5",
-      "text": "5. If the subscriber has no state for the stream, it accepts the message. If `seq` is 1, it reports `accepted`. If `seq` is greater than 1, it reports `joined`: it knows nothing about the earlier messages.",
+      "text": "5. A subscriber that receives a message with an unknown `contract` MUST NOT accept it. It reports `unknown_contract`. The subscriber applies this rule before rules 6 to 12.",
+      "covered_by": [
+        "vectors:streams:unknown_contract"
+      ]
+    },
+    {
+      "section": "8.6",
+      "text": "6. If the subscriber has no state for the stream, it accepts the message. If `seq` is 1, it reports `accepted`. If `seq` is greater than 1, it reports `joined`: it knows nothing about the earlier messages.",
       "covered_by": [
         "vectors:streams:joined",
         "test:python:test_a_late_subscriber_joins_and_an_end_message_ends"
       ]
     },
     {
-      "section": "8.6",
-      "text": "6. If `seq` is the last accepted `seq` plus 1 and `prev` matches, the subscriber accepts the message and reports `accepted`.",
+      "section": "8.7",
+      "text": "7. If `seq` is the last accepted `seq` plus 1 and `prev` matches, the subscriber accepts the message and reports `accepted`.",
       "covered_by": [
         "vectors:streams:accepted"
       ]
     },
     {
-      "section": "8.7",
-      "text": "7. If `seq` is larger than the last accepted `seq` plus 1, the subscriber accepts the message and reports `accepted` with the number of lost messages.",
+      "section": "8.8",
+      "text": "8. If `seq` is larger than the last accepted `seq` plus 1, the subscriber accepts the message and reports `accepted` with the number of lost messages.",
       "covered_by": [
         "vectors:streams:accepted",
         "test:python:test_subscriber_rules"
       ]
     },
     {
-      "section": "8.8",
-      "text": "8. If `seq` is the last accepted `seq` plus 1 and `prev` does not match, the subscriber MUST NOT accept the message. It reports `broken_chain`.",
+      "section": "8.9",
+      "text": "9. If `seq` is the last accepted `seq` plus 1 and `prev` does not match, the subscriber MUST NOT accept the message. It reports `broken_chain`.",
       "covered_by": [
         "vectors:streams:broken_chain"
       ]
     },
     {
-      "section": "8.9",
-      "text": "9. If `seq` is the last accepted `seq` and the identity differs, the subscriber MUST NOT accept the message. It reports `conflict`: two publishers share the identifier, or the message changed.",
+      "section": "8.10",
+      "text": "10. If `seq` is the last accepted `seq` and the identity differs, the subscriber MUST NOT accept the message. It reports `conflict`: two publishers share the identifier, or the message changed.",
       "covered_by": [
         "vectors:streams:conflict"
       ]
     },
     {
-      "section": "8.10",
-      "text": "10. Otherwise, if `seq` is not larger than the last accepted `seq`, the subscriber drops the message as a `repeat`.",
+      "section": "8.11",
+      "text": "11. Otherwise, if `seq` is not larger than the last accepted `seq`, the subscriber drops the message as a `repeat`. This includes a message that arrives after a later message of its stream: the subscriber counted it as lost when it accepted the later one, and cannot tell it from a repeat.",
       "covered_by": [
         "vectors:streams:repeat"
       ]
     },
     {
-      "section": "8.11",
-      "text": "11. A subscriber that receives a message with an unknown `contract` MUST NOT accept it. It reports `unknown_contract`.",
-      "covered_by": [
-        "vectors:streams:unknown_contract"
-      ]
-    },
-    {
       "section": "8.12",
-      "text": "12. A message whose body is an object with the member `ncp.end` ends the stream. The subscriber accepts it as rule 5, 6, or 7 says and reports the end. After the end, the subscriber reports every message of the stream as a `repeat` if its `seq` is not larger than the last accepted `seq`, and as a `conflict` otherwise.",
+      "text": "12. A message whose body is an object with the member `ncp.end` ends the stream. The subscriber accepts it as rule 6, 7, or 8 says and reports the end. After the end, rules 10 and 11 still apply; instead of rules 7 to 9, the subscriber reports every message with a larger `seq` as a `conflict`.",
       "covered_by": [
         "vectors:streams:accepted",
         "test:python:test_a_late_subscriber_joins_and_an_end_message_ends"
@@ -545,11 +558,12 @@
     },
     {
       "section": "9.1",
-      "text": "9. **Shutdown:** an owner MAY stop a session. It then reads no further frame, sends a response with `session`, `seq`, and `request` set to `null`, outcome `ended`, and code `shutdown`, and closes the connection. It MUST have answered every request that it read. A request that the client sent and that has no response was therefore not admitted.",
+      "text": "9. **Shutdown:** an owner MAY stop a session. It then reads no further frame, sends a response that names no request (section 6.2), with outcome `ended`, code `shutdown`, and the body that binds it to its chain, and closes the connection. It MUST have answered every request that it read. A request that the client sent and that has no response was therefore not admitted.",
       "covered_by": [
         "test:python:test_stop_ends_each_session_with_the_shutdown_response",
         "test:rust:a_full_server_refuses_an_open_and_stop_sends_the_shutdown_response",
-        "vectors:clients:a nameless response ends the session",
+        "vectors:clients:a nameless response bound to the chain of the request",
+        "vectors:clients:a nameless response that is not bound to the chain: possibly executed",
         "model:simulate:P5"
       ]
     },
@@ -570,7 +584,7 @@
     },
     {
       "section": "9.2",
-      "text": "7. An owner serves one session for each session identifier. It MAY forget a session that has sent no request for a time, counted from the owner's last response to it, that the owner documents. That time MUST exceed the longest time that a client of the service waits for a response, all copies included. A request of a forgotten session gets the response of rule 7.3.3.",
+      "text": "7. An owner serves one session for each session identifier. It MAY forget a session that has no request in progress and has sent no request for a time, counted from the owner's last response to it, that the owner documents. The reference servers never forget a session with a request in progress. That time MUST exceed the longest time that a client of the service waits for a response, all copies included. A request of a forgotten session gets the response of rule 7.3.3.",
       "covered_by": [
         "test:zenoh-python:test_a_forgotten_session_ends_with_session_expired",
         "test:zenoh-python:test_a_step_longer_than_the_expiry_time_keeps_its_session",
@@ -603,6 +617,14 @@
         "vectors:transcripts",
         "test:python:test_changed_truncated_and_torn_transcripts",
         "test:rust:transcripts_detect_tampering"
+      ]
+    },
+    {
+      "section": "10.3",
+      "text": "A verifier that is given a key MUST report a failure for a transcript that is not authenticated with that key: a transcript of version 1, or one whose `chain` is not `hmac-sha256`.",
+      "covered_by": [
+        "vectors:transcripts:without a key, verified with a key",
+        "vectors:transcripts:version 1, verified with a key"
       ]
     },
     {
@@ -723,12 +745,14 @@
     },
     {
       "section": "13.2",
-      "text": "2. A receiver configured with `K` verifies every frame with `K`. It treats every other frame as a bad frame. It MUST NOT turn off the comparison.",
+      "text": "2. A receiver configured with `K` verifies every frame with `K`. It treats every other frame as a bad frame. It MUST NOT turn off the comparison, and it MUST compare authentication codes in a time that does not depend on where they differ.",
       "covered_by": [
         "vectors:auth",
         "test:python:test_authenticated_frames",
         "test:python:test_authenticated_session",
-        "test:rust:a_keyed_transcript_and_an_authenticated_session"
+        "test:rust:a_keyed_transcript_and_an_authenticated_session",
+        "test:zenoh-python:test_a_keyed_session_runs_and_frames_without_the_key_get_no_reply",
+        "test:zenoh-rust:a_keyed_service_checks_the_key_before_it_reads_a_frame"
       ]
     },
     {

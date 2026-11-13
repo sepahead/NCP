@@ -65,10 +65,16 @@ def main() -> int:
     codes = rules["codes"]
     rejected = {c["code"] for c in codes if c["outcome"] == "rejected"}
     declined = {c["code"] for c in codes if c["outcome"] == "declined"}
-    ended = {c["code"]: c["executed"] for c in codes if c["outcome"] == "ended"}
+    ended = {c["code"]: c["client"] for c in codes if c["outcome"] == "ended"}  # the client's verdicts
     local = {c["code"] for c in rules["local_codes"]}
     limits = rules["limits"]
     expect(set(rules["outcomes"]) == set(M.OUTCOMES), "the outcomes of the data differ from python/ncp/messages.py")
+    for entry in codes:  # rules 7.6.3 and 7.6.4: the client's verdicts that follow from the outcome
+        if entry["outcome"] == "rejected":
+            want = "no" if entry.get("open") else "unknown"
+            expect(entry["client"] == want, f"the client's verdict on {entry['code']} must be {want} (rule 7.6.4)")
+        elif entry["outcome"] == "declined":
+            expect(entry["client"] == "no", f"the client's verdict on {entry['code']} must be no (rule 7.6.3)")
 
     # 1. The specification's codes table.
     spec = (ROOT / "spec" / "NCP-2.md").read_text(encoding="utf-8")
@@ -85,6 +91,36 @@ def main() -> int:
                f"spec 7.5: the code {entry['code']} has no row with the outcome {entry['outcome']}")
     expect(set(seen) == {c["code"] for c in codes}, f"spec 7.5 names other codes: {sorted(set(seen) ^ {c['code'] for c in codes})}")
 
+    # The specification's table of limits, section 12.
+    labels = {
+        "Bound before `open` completes": "handshake_bound",
+        "Largest session bound": "max_bound",
+        "Default session bound in the reference SDKs": "default_bound",
+        "JSON region": "max_json",
+        "JSON nesting": "max_depth",
+        "Integer magnitude": "max_integer",
+        "Attachments in a frame": "max_attachments",
+        "Operation name, feature name, code": "max_name",
+        "Stream identifier": "max_stream_identifier",
+        "Features in an `open` request": "max_features",
+        "Member `run` of an `open` request": "max_run",
+        "Member `detail` of a response, as the reference owners write it": "max_detail",
+        "Dimensions of an array shape": "max_rank",
+        "Transcript header": "max_transcript_header",
+    }
+    section = spec.split("## 12. Limits", 1)[1].split("\n## ", 1)[0]
+    stated: dict[str, int] = {}
+    for line in section.split("\n"):
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 2 or cells[0] in ("Limit", "---"):
+            continue
+        if cells[0] not in labels:
+            expect(False, f"spec 12 has a limit that the data does not name: {cells[0]}")
+            continue
+        number = 2**53 - 1 if cells[1].startswith("2^53") else int(re.match(r"[0-9,]+", cells[1]).group(0).replace(",", ""))
+        stated[labels[cells[0]]] = number
+    expect(stated == limits, f"spec 12 states other limits than the data: {sorted(set(stated.items()) ^ set(limits.items()))}")
+
     # 2. Python.
     expect(set(M.REJECTION_CODES) == rejected, "python REJECTION_CODES differ from the data")
     expect(set(M.DECLINE_CODES) == declined, "python DECLINE_CODES differ from the data")
@@ -95,6 +131,7 @@ def main() -> int:
         "max_json": F.MAX_JSON, "max_depth": F.MAX_DEPTH, "max_integer": F.MAX_INTEGER,
         "max_attachments": F.MAX_ATTACHMENTS, "max_name": M.MAX_NAME, "max_features": M.MAX_FEATURES,
         "max_transcript_header": T.MAX_HEADER, "max_run": M.MAX_RUN, "max_detail": M.MAX_DETAIL,
+        "max_rank": F.MAX_RANK,
     }
     for name, value in python_limits.items():
         expect(limits[name] == value, f"python limit {name} is {value}, the data says {limits[name]}")
@@ -118,6 +155,7 @@ def main() -> int:
         "max_attachments": rust_number(frame, "MAX_ATTACHMENTS"), "max_name": rust_number(messages, "MAX_NAME"),
         "max_features": rust_number(messages, "MAX_FEATURES"), "max_transcript_header": rust_number(transcript, "MAX_HEADER"),
         "max_run": rust_number(messages, "MAX_RUN"), "max_detail": rust_number(messages, "MAX_DETAIL"),
+        "max_rank": rust_number(frame, "MAX_RANK"),
     }
     for name, value in rust_limits.items():
         expect(limits[name] == value, f"rust limit {name} is {value}, the data says {limits[name]}")

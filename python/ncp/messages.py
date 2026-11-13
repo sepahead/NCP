@@ -124,6 +124,15 @@ def _counter(value: Any) -> bool:
     return type(value) is int and value >= 0
 
 
+def foreign(message: dict[str, Any]) -> bool:
+    """Whether a message is a request of another protocol version (section 6.1): `ncp` is a
+    non-negative integer other than 2, `session` is a session identifier, and `seq` is a sequence
+    number. It is not a bad frame, whatever its other members: the owner rejects it with
+    `wrong_protocol` (rule 7.3.2)."""
+    ncp = message.get("ncp")
+    return _counter(ncp) and ncp != PROTOCOL and is_session(message.get("session")) and _counter(message.get("seq"))
+
+
 def check_request(message: dict[str, Any]) -> None:
     """Raise FrameError unless the message has the request form of section 6.1."""
     if message.keys() - {"att"} != _REQUEST_MEMBERS:
@@ -195,9 +204,14 @@ def detail(text: Any) -> str:
     return text.encode("utf-8", "replace").decode("utf-8")[:MAX_DETAIL]
 
 
-def nameless_response(code: str, *, key: bytes | None = None) -> bytes:
+def nameless_response(
+    code: str, *, key: bytes | None = None, session: str | None = None, kept: str | None = None
+) -> bytes:
     """The response of the byte-stream binding that names no request (section 6.2): the bad-frame
-    response (rule 9.1.3) and the shutdown response (rule 9.1.9)."""
+    response (rule 9.1.3) and the shutdown response (rule 9.1.9). Its body binds it to the
+    owner's chain: the session that the owner holds and the identity of its kept response, or an
+    empty object when the owner holds no session."""
+    body = {"session": session, "kept": kept} if session is not None and kept is not None else {}
     return F.encode(
         {
             "ncp": PROTOCOL,
@@ -206,17 +220,22 @@ def nameless_response(code: str, *, key: bytes | None = None) -> bytes:
             "request": None,
             "outcome": "ended",
             "code": code,
-            "body": {},
+            "body": body,
         },
         key=key,
     )
 
 
-def bad_frame_response(*, key: bytes | None = None) -> bytes:
+def bad_frame_response(*, key: bytes | None = None, session: str | None = None, kept: str | None = None) -> bytes:
     """The response a byte-stream owner sends for a bad frame before it closes (rule 9.1.3)."""
-    return nameless_response("bad_frame", key=key)
+    return nameless_response("bad_frame", key=key, session=session, kept=kept)
 
 
-def shutdown_response(*, key: bytes | None = None) -> bytes:
+def shutdown_response(*, key: bytes | None = None, session: str | None = None, kept: str | None = None) -> bytes:
     """The response a byte-stream owner sends when it stops a session (rule 9.1.9)."""
-    return nameless_response("shutdown", key=key)
+    return nameless_response("shutdown", key=key, session=session, kept=kept)
+
+
+def nameless_binding(session: str | None, kept: str | None) -> dict[str, str]:
+    """The members that bind a nameless response to an owner's chain, as keyword arguments."""
+    return {"session": session, "kept": kept} if session is not None and kept is not None else {}

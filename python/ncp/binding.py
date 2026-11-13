@@ -21,7 +21,7 @@ from typing import Any
 from . import events as E
 from . import frame as F
 from .frame import FrameError
-from .messages import bad_frame_response, shutdown_response
+from .messages import bad_frame_response, nameless_binding, shutdown_response
 from .owner import Owner, refuse
 from .transcript import RECEIVED, SENT, Tap
 
@@ -262,7 +262,7 @@ class TlsConfig:
 
     `ca` is the file of the certificate authority that signs both sides. `cert` and `key` are
     this side's certificate chain and private key. A client checks that the server's certificate
-    names `server_name`; without it, the client checks the certificate but not the name.
+    names `server_name`, which a client therefore needs (section 13.3); a server does not use it.
     """
 
     ca: str
@@ -279,13 +279,21 @@ class TlsConfig:
         return context
 
     def client_context(self) -> ssl.SSLContext:
+        if not self.server_name:
+            raise ValueError("a TLS client needs server_name: the client checks the server's name (section 13.3)")
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.minimum_version = ssl.TLSVersion.TLSv1_3
         context.load_cert_chain(self.cert, self.key)
         context.load_verify_locations(self.ca)
-        context.check_hostname = self.server_name is not None
+        context.check_hostname = True
         context.verify_mode = ssl.CERT_REQUIRED
         return context
+
+
+def _chain(owner: Owner) -> dict[str, str]:
+    """The members that bind a nameless response to the owner's chain (section 6.2)."""
+    state = owner.state
+    return nameless_binding(state.session, state.kept.identity if state.kept is not None else None)
 
 
 def serve(
@@ -311,28 +319,28 @@ def serve(
         while True:
             if stop is not None and stop.is_set():
                 how = "shutdown"
-                _try_send(channel, shutdown_response(key=key))
+                _try_send(channel, shutdown_response(key=key, **_chain(owner)))
                 return how
             try:
                 frame = channel.receive(owner.bound, None, frame_timeout, idle_timeout)
             except IdleTimeout:
                 how = "shutdown"
-                _try_send(channel, shutdown_response(key=key))
+                _try_send(channel, shutdown_response(key=key, **_chain(owner)))
                 return how
             except (FrameError, TimeoutError):
                 how = "bad_frame"
-                _try_send(channel, bad_frame_response(key=key))
+                _try_send(channel, bad_frame_response(key=key, **_chain(owner)))
                 return how
             except (ChannelClosed, OSError):
                 if stop is not None and stop.is_set():
                     how = "shutdown"
-                    _try_send(channel, shutdown_response(key=key))
+                    _try_send(channel, shutdown_response(key=key, **_chain(owner)))
                 return how
             try:
                 response = owner.handle(frame)
             except FrameError:
                 how = "bad_frame"
-                _try_send(channel, bad_frame_response(key=key))
+                _try_send(channel, bad_frame_response(key=key, **_chain(owner)))
                 return how
             channel.send(response)
             if owner.closed:
@@ -390,14 +398,16 @@ def connect_tcp(
 ) -> StreamChannel:
     """Connect to a TCP owner. Remote addresses need `allow_remote` (rule 9.1.6); `tls` uses TLS
     with certificates on both sides (section 13.3)."""
+    context = tls.client_context() if tls is not None else None  # before any connection
+    name = tls.server_name if tls is not None else None
     last: OSError | None = None
     for family, kind, protocol, _, address in _resolve(host, port, allow_remote):
         sock = socket.socket(family, kind, protocol)
         try:
             sock.settimeout(timeout)
             sock.connect(address)
-            if tls is not None:
-                sock = tls.client_context().wrap_socket(sock, server_hostname=tls.server_name)
+            if context is not None:
+                sock = context.wrap_socket(sock, server_hostname=name)
             sock.settimeout(None)
             return StreamChannel.from_socket(sock, tap=tap)
         except OSError as error:
