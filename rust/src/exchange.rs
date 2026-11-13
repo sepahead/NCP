@@ -13,7 +13,7 @@ pub const IMPLEMENTATION: &str = concat!("ncp-rust/", env!("CARGO_PKG_VERSION"))
 
 /// The rejection codes of this version (spec section 7.5). Later versions can add codes; a
 /// receiver handles an unknown code by its outcome.
-pub const REJECTION_CODES: [&str; 14] = [
+pub const REJECTION_CODES: [&str; 15] = [
     "wrong_protocol",
     "not_open",
     "already_open",
@@ -27,6 +27,7 @@ pub const REJECTION_CODES: [&str; 14] = [
     "body_invalid",
     "contract_mismatch",
     "bound_unacceptable",
+    "refused",
     "session_ended",
 ];
 /// The ending codes of this version (spec section 7.5).
@@ -462,7 +463,9 @@ pub fn bad_frame_response() -> Vec<u8> {
 #[derive(Debug)]
 pub enum Error {
     /// The frame executed nothing and changed no state. Except after `seq_stale`, the owner has
-    /// never executed the request (spec section 7.5).
+    /// never executed the request (spec section 7.5), and the request will not execute later:
+    /// the client returns [`Error::Ended`] with executed "unknown" instead for `not_open`, and for
+    /// `body_invalid` after it sent the request more than once (spec section 7.6, rules 8 and 9).
     Rejected {
         /// The rejection code.
         code: String,
@@ -769,6 +772,17 @@ impl<C: Channel> Client<C> {
                     self.ended = true;
                 }
                 Ok(decoded)
+            }
+            // not_open: the owner does not hold the session, for example after a restart, so an
+            // earlier copy of the request may have executed (spec section 7.6, rule 8).
+            // body_invalid after a repeat: another copy of the request can still arrive and
+            // execute if the application's verdict changes (rule 9).
+            "rejected" if code == "not_open" || (code == "body_invalid" && attempt > 1) => {
+                self.ended = true;
+                Err(Error::Ended {
+                    code,
+                    executed: "unknown",
+                })
             }
             "rejected" => Err(Error::Rejected {
                 code,

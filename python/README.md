@@ -1,6 +1,6 @@
 # NCP 2 for Python
 
-The reference SDK of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md): exactly-once exchanges and hash-chained streams between independent programs.
+The reference SDK of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md): at-most-once exchanges with a known or possibly-executed outcome, and hash-chained streams between independent programs.
 It uses only the Python standard library.
 
 - Distribution name: `sepahead-ncp`. Import name: `ncp`.

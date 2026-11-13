@@ -41,6 +41,8 @@ The owner keeps the number of the last round that closed (0 at the start), the s
 2. Otherwise the owner accepts the request: it binds the member to the session, if the member was not bound, and adds the request to the round. A round opens when the owner accepts its first request.
 3. A round closes when it has a request of every member that is not excluded, or when the deadline has passed since it opened, whichever comes first. A request that the owner accepted belongs to its round: the owner MUST NOT close a round between accepting a request and adding it.
 4. When round K closes, every member that is not excluded and has no request in round K is excluded from every later round.
+The owner MUST be able to accept requests of other sessions while requests of the open round wait for it to close. A server that handles one request at a time for all sessions, such as the Zenoh servers of the reference SDKs 2.0.0, cannot serve this profile.
+
 5. The owner then applies the requests of round K once, in member order, and responds to each of them with `ok`. The body of each response is an object: the application's result for that member, with the member `ncp.round_record`:
 
    | Member | Value |

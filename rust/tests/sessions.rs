@@ -1221,3 +1221,41 @@ fn a_tap_keeps_its_records_when_the_program_dies() {
         assert_eq!(records, expected, "{name}");
     }
 }
+
+#[test]
+fn not_open_after_open_leaves_the_request_possibly_executed() {
+    // Spec section 7.6, rule 8: an owner that no longer holds the session may have run it.
+    let mut client = scripted(vec![("rejected", Some("not_open"), json!({}))]);
+    match client.call("echo", json!({"n": 1}), &[]) {
+        Err(Error::Ended { code, executed }) => {
+            assert_eq!((code.as_str(), executed), ("not_open", "unknown"))
+        }
+        other => panic!("unexpected: {other:?}"),
+    }
+    assert!(
+        client.call("echo", json!({"n": 2}), &[]).is_err(),
+        "the session ended"
+    );
+}
+
+#[test]
+fn a_repeated_request_rejected_as_invalid_is_possibly_executed() {
+    // Spec section 7.6, rule 9: another copy of the request can still arrive and execute.
+    let executed = Arc::new(AtomicUsize::new(0));
+    let mut client = memory(
+        Echo {
+            executed: executed.clone(),
+        },
+        true,
+        0,
+    );
+    client.open().expect("open");
+    client.channel_mut().drop_responses = 1; // the first copy's response is lost
+    match client.call("echo", json!({"invalid": true}), &[]) {
+        Err(Error::Ended { code, executed }) => {
+            assert_eq!((code.as_str(), executed), ("body_invalid", "unknown"))
+        }
+        other => panic!("unexpected: {other:?}"),
+    }
+    assert_eq!(executed.load(Ordering::SeqCst), 0);
+}

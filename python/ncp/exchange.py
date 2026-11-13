@@ -33,6 +33,7 @@ REJECTION_CODES = frozenset(
         "body_invalid",
         "contract_mismatch",
         "bound_unacceptable",
+        "refused",
         "session_ended",
     }
 )
@@ -219,6 +220,7 @@ class Owner:
             return reject("ack_mismatch")
         if op == "open":
             return reject("already_open")
+        validation_failed = False
         if op != "close":
             if op not in self.operations:
                 return reject("unknown_op")
@@ -226,11 +228,18 @@ class Owner:
                 self.handler.validate(op, request["body"])
             except BodyInvalid as error:
                 return reject("body_invalid", error.detail or None)
+            except Exception:  # noqa: BLE001 - treated as a failure of the step, below
+                validation_failed = True
         self.kept = None
         self.high = seq
         if op == "close":
             response = reply("ok", None, {})
             self.ended = self.closed = True
+        elif validation_failed:
+            # The application failed while it checked the request. It answers as for a failure
+            # during execution: the session ends and the request is possibly executed.
+            response = reply("ended", "owner_failure", {})
+            self.ended = True
         else:
             try:
                 result = self.handler.execute(op, request["body"])
@@ -309,7 +318,9 @@ def bad_frame_response() -> bytes:
 
 class Rejected(Exception):
     """The frame executed nothing and changed no state. Except after `seq_stale`, the owner has
-    never executed the request (spec section 7.5)."""
+    never executed the request (spec section 7.5), and the request will not execute later: the
+    client raises Ended with executed "unknown" instead for `not_open`, and for `body_invalid`
+    after it sent the request more than once (spec section 7.6, rules 8 and 9)."""
 
     def __init__(self, code: str, body: Any) -> None:
         super().__init__(code)
@@ -495,7 +506,15 @@ class Client:
                 self.ended = True
             return Result(message["body"], decoded.identity, decoded.arrays, message["request"])
         if outcome == "rejected":
-            raise Rejected(message["code"], message["body"])
+            code = message["code"]
+            if code == "not_open" or (code == "body_invalid" and attempt > 1):
+                # not_open: the owner does not hold the session, for example after a restart,
+                # so an earlier copy of the request may have executed (spec section 7.6, rule 8).
+                # body_invalid after a repeat: another copy of the request can still arrive and
+                # execute if the application's verdict changes (rule 9).
+                self.ended = True
+                raise Ended(code, "unknown", message["body"])
+            raise Rejected(code, message["body"])
         self.ended = True
         raise Ended(message["code"], executed(message["code"]), message["body"])
 

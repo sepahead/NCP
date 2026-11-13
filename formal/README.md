@@ -9,7 +9,7 @@ It uses only Lean's core library. The proofs run before release and add nothing 
 The digest function `H` is a parameter, and `step` compares identities where the rules do.
 The application's behavior at each step, its verdict on the body of a call and its result (a value, an error, or a result too large for the session), is an input of that step, so the proofs cover every application, also one whose verdict depends on its own state.
 
-The theorems hold for every sequence of requests, in any number of steps. A request can come from any client, through any network, after any fault, so the owner's properties do not depend on the client or on the network.
+The theorems hold for every sequence of requests, in any number of steps. A request can come from any client, through any network, after any fault of the network or of the client, so the owner's properties do not depend on the client or on the network. They are statements about one owner instance: an owner that restarts is a new owner, and specification rules 9.1.7 and 9.2.7 make the client treat its last request as possibly executed.
 
 | Theorem | File | Statement | Specification |
 | --- | --- | --- | --- |

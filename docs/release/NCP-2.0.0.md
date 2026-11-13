@@ -17,11 +17,11 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 36,557 | `74c71dfc590bb6e141b0a4c72e32ae459e947ff41eeccc65ffdb189c32a09113` |
-| `sepahead_ncp-2.0.0-py3-none-any.whl` | 34,759 | `96f70b8cbeed036188f61f187944d7bc952298fe11e1af39bd0a6fc3a972fbdb` |
-| `sepahead_ncp-2.0.0.tar.gz` | 33,648 | `fd0be4d4c906253948f8677d4a15cff7d3c6f72d07207d63fe1633929b1046e6` |
-| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 11,699 | `09d6676f848b4e041f579d7ab4ab1ffbac3b5e96d74651db91abc68d930dbc65` |
-| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 10,595 | `516999aeb26f3906955d452229c50cd691f1b7aecc2d99ef8b05d327a4730463` |
+| `sepahead-ncp-core-2.0.0.crate` | 36,774 | `cadd5452d4796b8334c2773aec770d5942863f87476c8da6d84ce78a9bbd4667` |
+| `sepahead_ncp-2.0.0-py3-none-any.whl` | 35,120 | `6a71251d7b47e975dc599ceb056fc54a94e6211c525d0ae5d140a9e3915c31e9` |
+| `sepahead_ncp-2.0.0.tar.gz` | 34,020 | `3b2616bb902246093ae82128b5c7aca6f126faa50306c6c5befa64979e82f890` |
+| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 11,885 | `03a6ef046666265475cf0b005a64a99884ef1370b63c758e5b7fb2b229a950f6` |
+| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 10,774 | `67714abe3247b3b365af7752e45115d05f1e4b00bc7ceb44a844be2812392f68` |
 
 - With the same tools (see below), a rebuild from any commit with the same package files and lockfiles gives the same five files; a third build, run separately, gave the same checksums.
 - The crate archive was made from a copy outside Git. `cargo publish` from the tagged commit adds `.cargo_vcs_info.json`, with the commit, so the published archive differs from this one by that file.

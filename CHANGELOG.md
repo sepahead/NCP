@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2.0.0 (prepared for release; tag and publication follow)
 
+- Two independent advisory reviews of the specification found two ways in which a client of the
+  Zenoh binding could learn something false; both are corrected without a change of the frame bytes:
+  - After an owner restart, the repeat of a request that had executed was answered `not_open`,
+    which the codes table defined as "did not execute". Rule 9.2.7 now answers a request with `seq`
+    greater than 0 of a session that the owner does not hold, because it forgot the session or
+    restarted, with `ended` and `session_expired` (possibly executed). The Zenoh servers drop their
+    bounded list of forgotten sessions, whose eviction caused the same false answer. Client rule
+    7.6.8 also treats `not_open` to a request other than `open` as possibly executed.
+  - A request rejected with `body_invalid` could still execute when another copy of the same frame,
+    sent again after a timeout, arrived after other sessions had changed the application's verdict.
+    Client rule 7.6.9: a client that sent a request frame more than once treats such a rejection as
+    possibly executed and ends the session. Section 7.7 now states that the properties concern one
+    owner instance; no Lean statement changes.
+- A failure of the application while it checks a body now ends the session with `owner_failure`, as a
+  failure during execution does (rule 7.3.11); it no longer escapes the owner. The Python Zenoh server
+  no longer stops for every session on a deeply nested payload or on any error of one query.
+- The Zenoh servers refuse an `open` above `max_sessions` live sessions (4,096 by default) with the new
+  rejection code `refused` (rule 7.1.4); 2.0 clients handle an unknown code by its outcome.
+- The rounds profile states that a server handling one request at a time for all sessions, such as
+  the 2.0.0 Zenoh servers, cannot serve it. README, design record, package READMEs, and diagrams now
+  say "at most once" with a known or possibly-executed outcome where they said "exactly once", correct
+  two red-team rows, and describe the CREBAIN controllers as spiking populations that carry a
+  proportional-derivative signal computed in Python.
 - The specification is final (`spec/NCP-2.md`, with the rounds profile `spec/NCP-2-ROUNDS.md`), and the
   packages are version 2.0.0: `sepahead-ncp` (Python), `sepahead-ncp-core` (Rust), and the Zenoh
   binding `sepahead-ncp-zenoh` for both. The Rust crates can be published; the Python packages are

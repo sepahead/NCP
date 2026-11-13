@@ -1,6 +1,6 @@
 # NCP 2 for Rust
 
-The Rust core of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md): exactly-once exchanges and hash-chained streams between independent programs.
+The Rust core of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md): at-most-once exchanges with a known or possibly-executed outcome, and hash-chained streams between independent programs.
 
 - Crate name: `sepahead-ncp-core`. Library name: `ncp`.
 - Rust 1.88 or later. No `unsafe` code.

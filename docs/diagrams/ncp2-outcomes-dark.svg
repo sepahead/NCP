@@ -53,8 +53,8 @@
 <text x="1096.7" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">ended</text>
 <text x="1096.7" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">The session is over</text>
 <text x="1096.7" y="306" class="r" font-size="25" fill="#ECE5D5">The session cannot continue. The code</text>
-<text x="1096.7" y="339" class="r" font-size="25" fill="#ECE5D5">says whether the request ran: yes, no,</text>
-<text x="1096.7" y="372" class="r" font-size="25" fill="#ECE5D5">or possibly. The client opens a new</text>
+<text x="1096.7" y="339" class="r" font-size="25" fill="#ECE5D5">says whether the request ran or</text>
+<text x="1096.7" y="372" class="r" font-size="25" fill="#ECE5D5">possibly ran. The client opens a new</text>
 <text x="1096.7" y="405" class="r" font-size="25" fill="#ECE5D5">session if it needs one.</text>
 <text x="52" y="493" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">WHEN SOMETHING GOES WRONG</text>
 <text x="78" y="579" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A message is damaged</text>

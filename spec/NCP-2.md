@@ -153,7 +153,7 @@ A receiver MUST treat a message with a missing member, an extra member, or a mem
    | `run` | Optional. A string of up to 256 characters that names the run. |
 
 3. Until the owner sends the `open` response, both sides use the bound 65,536.
-4. The owner checks the request in this order. If `ack` is not `null`, or the body is not an object with the members above and their types, it rejects with `body_invalid`. If the application or the contract differs from its own, it rejects with `contract_mismatch`. If `bound` is outside the range, it rejects with `bound_unacceptable`. After a rejection it stays without a session.
+4. The owner checks the request in this order. If `ack` is not `null`, or the body is not an object with the members above and their types, it rejects with `body_invalid`. If the application or the contract differs from its own, it rejects with `contract_mismatch`. If `bound` is outside the range, it rejects with `bound_unacceptable`. The owner MAY also refuse the session for a reason of its own, such as a limit on open sessions, with the code `refused`. After a rejection it stays without a session.
 5. Otherwise the owner accepts the session. Its `ok` response has this body:
 
    | Member | Value |
@@ -190,7 +190,7 @@ The owner handles one frame at a time, in arrival order, with these steps in thi
 8. If `ended` is true, reject with `session_ended`. Stop.
 9. If `ack` is `null`, reject with `ack_missing`. If `ack` differs from the identity of `kept`, reject with `ack_mismatch`. Stop.
 10. If `op` is `open`, reject with `already_open`. Stop.
-11. If `op` is not `close` and the contract has no such operation, reject with `unknown_op`. If the application finds the body invalid before it changes any state, reject with `body_invalid`. Stop.
+11. If `op` is not `close` and the contract has no such operation, reject with `unknown_op`. If the application finds the body invalid before it changes any state, reject with `body_invalid`. Stop. If the application fails while it checks the body, continue with rule 12 and respond `ended` with `owner_failure`, as for a failure in rule 13.
 12. Release `kept`. Set `high` to `seq`.
 13. Execute the request:
     - For `close`, end the session and respond `ok` with an empty object as body. The owner ignores the body of `close`.
@@ -198,25 +198,25 @@ The owner handles one frame at a time, in arrival order, with these steps in thi
     - If the `ok` response would exceed the session bound, respond `ended` with `result_too_large` and the body `{"size": S, "bound": B}`, where `S` is the frame size that the response would need.
 14. Keep the response as `kept`. If the outcome is `ended`, or the operation is `close`, set `ended` to true.
 
-A `rejected` response changes no state. The owner does not keep it, and the same request gets the same rejection again.
+A `rejected` response changes no state, and the owner does not keep it. The owner checks a later copy of the same request again by the same rules, so the copy gets the same rejection unless the application's verdict on its body (rule 11) has changed.
 
 ### 7.4 Outcomes
 
 | Outcome | Meaning | The session |
 | --- | --- | --- |
 | `ok` | The owner executed the request once. The body is the result. | Continues, unless the operation was `close`. |
-| `rejected` | This frame executed nothing and changed no state. Except after `seq_stale`, the owner has never executed the request (section 7.5). | Continues. The client can send a corrected request with the same `seq`. |
+| `rejected` | This frame executed nothing and changed no state. Except after `seq_stale`, the owner has never executed the request (section 7.5). | Continues. The client can send a corrected request with the same `seq`, except after rules 7.6.8 and 7.6.9. |
 | `ended` | The session cannot continue. The code tells whether the request executed. | Ends. |
 
 ### 7.5 Codes
 
 | Code | Outcome | The request executed |
 | --- | --- | --- |
-| `wrong_protocol`, `not_open`, `already_open`, `wrong_session`, `seq_gap`, `seq_conflict`, `ack_missing`, `ack_mismatch`, `unknown_op`, `body_invalid`, `contract_mismatch`, `bound_unacceptable`, `session_ended` | `rejected` | No |
+| `wrong_protocol`, `not_open`, `already_open`, `wrong_session`, `seq_gap`, `seq_conflict`, `ack_missing`, `ack_mismatch`, `unknown_op`, `body_invalid`, `contract_mismatch`, `bound_unacceptable`, `refused`, `session_ended` | `rejected` | No, by the owner that answered. For `not_open` to a request other than `open`, an earlier instance of the owner may have executed it (rule 7.6.8). |
 | `seq_stale` | `rejected` | Not by this frame. An earlier copy of the request may have executed: a delayed copy of an executed request gets this code once a later request has executed. |
 | `result_too_large` | `ended` | Yes |
 | `owner_failure` | `ended` | Unknown |
-| `session_expired` | `ended` | Unknown: the owner forgot the session (rule 9.2.7) |
+| `session_expired` | `ended` | Unknown: the owner does not hold the session; it forgot it or restarted (rule 9.2.7) |
 | `bad_frame`, `shutdown` | `ended` | No request is named |
 
 For `contract_mismatch` and `bound_unacceptable`, the owner responds to `open` and stays without a session.
@@ -232,16 +232,18 @@ Later versions of this specification can add codes. A receiver MUST accept a cod
 5. After an `ended` response, the session is over. For `owner_failure`, the client MUST treat the request as possibly executed.
 6. On a binding that can lose frames (section 9.2), the client MAY send the same request frame again after a timeout. The owner sends the kept response again (rule 7.3.5).
 7. If the client cannot get a response, it MUST treat the request as possibly executed and end the session.
+8. A `rejected` response with the code `not_open` to a request other than `open` means that the owner does not hold the session, for example because it restarted. The client MUST treat the request as possibly executed and end the session.
+9. On a binding that repeats frames (section 9.2), a client that sent a request frame more than once and receives `rejected` with the code `body_invalid` MUST treat the request as possibly executed and end the session: another copy of the frame can still arrive and execute if the application's verdict changes. A request frame that the client sent once gets a final rejection.
 
 ### 7.7 Properties
 
-These rules give the following properties. The Lean proofs in `formal/` establish, for every sequence of requests and so for any client and network, properties 1 to 3, the owner's side of property 5, and property 6 if no two frames of the session share an identity. They establish property 4 for every network that loses, repeats, delays, or reorders frames, if changed frames are detected, no third party sends frames with valid digests, and no other request that reaches the owner has the identity of the client's request. They also show that the owner executes every request of a client that follows section 7.6 when no frame is lost or changed, so the other properties do not hold merely because nothing executes. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
+These rules give the following properties. The Lean proofs in `formal/` establish, for every sequence of requests and so for any client and network, properties 1 to 3, the owner's side of property 5, and property 6 if no two frames of the session share an identity. They establish property 4 for every network that loses, repeats, delays, or reorders frames, if changed frames are detected, no third party sends frames with valid digests, and no other request that reaches the owner has the identity of the client's request. They also show that the owner executes every request of a client that follows section 7.6 when no frame is lost or changed, so the other properties do not hold merely because nothing executes. The properties are stated for one owner instance. An owner that restarts is a new owner: on the byte-stream binding the connection closes (rule 9.1.7), and on the Zenoh binding the new owner answers `session_expired` (rule 9.2.7); in both cases the client learns that the request is possibly executed. The model check in `model/` tests all six in every reachable state of bounded runs with lost, repeated, delayed, and changed frames, and with crashes of either side:
 
 1. The owner executes each request at most once.
 2. The owner executes requests in sequence order, without gaps.
 3. The owner executes request `n + 1` only after the client acknowledged response `n` by its identity.
 4. A response that the client accepts as `ok` is the response to its own request, from one execution.
-5. A request that the client learns was `rejected`, with any code except `seq_stale`, did not execute. A client that follows section 7.6 never receives `seq_stale` for its current request: that would need a later request to have executed.
+5. When the owner sends a `rejected` response with any code except `seq_stale`, it has not executed the request. A client that follows section 7.6 treats a rejection as final only where the request then never executes: on the byte-stream binding, and on the Zenoh binding except under rules 7.6.8 and 7.6.9. A client that follows section 7.6 never receives `seq_stale` for its current request: that would need a later request to have executed.
 6. In a complete transcript, each request names the identity of the response before it, and each response names the identity of its request. The session is one hash chain, so the identity of the last response commits to every accepted request and response of the session.
 
 ## 8. Streams
@@ -281,7 +283,7 @@ The Zenoh binding carries the same frame bytes as Zenoh payloads. It is optional
 4. The client accepts only the reply that matches its request (rule 7.6.2). If no reply arrives in time, it sends the same request frame again.
 5. Each owner MUST use its own service key. Service keys and stream keys contain no wildcards.
 6. Deployments on networks that are not trusted MUST use TLS with client certificates and Zenoh access control.
-7. An owner serves one session for each session identifier. It MAY forget a session that has sent no request for a time, counted from the owner's last response to it, that the owner documents; that time MUST exceed the longest time that a client of the service waits for a response, all repeats included. The owner then answers every later request of the forgotten session with outcome `ended` and the code `session_expired`: the request is possibly executed. It answers a request of a session that it never served with `not_open`.
+7. An owner serves one session for each session identifier. It MAY forget a session that has sent no request for a time, counted from the owner's last response to it, that the owner documents; that time MUST exceed the longest time that a client of the service waits for a response, all repeats included. The owner answers a request with `seq` greater than 0 of a session that it does not hold, because it forgot the session, because it restarted, or because it never served the session, with outcome `ended` and the code `session_expired`: the request is possibly executed. It answers a request with `seq` 0 as section 7.1 and rule 7.3.3 say.
 
 ## 10. Transcripts
 

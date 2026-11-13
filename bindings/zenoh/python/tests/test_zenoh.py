@@ -223,11 +223,16 @@ class ExchangeTests(unittest.TestCase):
         second.close()
         self.assertEqual(self.service.counts, {1: 1, 2: 1, 3: 1})
 
-    def test_a_request_of_an_unknown_session_is_rejected_with_not_open(self) -> None:
-        frame = F.encode({"ncp": 2, "session": str(uuid.uuid4()), "seq": 1, "op": "echo", "ack": "0" * 64, "body": {}})
-        (reply,) = self.service.raw(frame)
-        message = F.decode(reply, F.MAX_BOUND).message
-        self.assertEqual((message["outcome"], message["code"]), ("rejected", "not_open"))
+    def test_a_request_of_a_session_the_owner_does_not_hold(self) -> None:
+        # seq > 0: the owner may have forgotten the session or restarted, so the request is
+        # possibly executed (rule 9.2.7); seq 0 without open: not_open.
+        for seq, op, expected in ((1, "echo", ("ended", "session_expired")), (0, "echo", ("rejected", "not_open"))):
+            with self.subTest(seq=seq):
+                ack = "0" * 64 if seq else None
+                frame = F.encode({"ncp": 2, "session": str(uuid.uuid4()), "seq": seq, "op": op, "ack": ack, "body": {}})
+                (reply,) = self.service.raw(frame)
+                message = F.decode(reply, F.MAX_BOUND).message
+                self.assertEqual((message["outcome"], message["code"]), expected)
 
     def test_a_failing_handler_ends_the_session_possibly_executed(self) -> None:
         client = self.service.client()
@@ -235,6 +240,114 @@ class ExchangeTests(unittest.TestCase):
         with self.assertRaises(ncp.Ended) as caught:
             client.call("fail", {})
         self.assertEqual((caught.exception.code, caught.exception.executed), ("owner_failure", "unknown"))
+
+
+class Gate(Counting):
+    """Counting, with a validation that rejects `{"bad": true}` and fails on `{"boom": true}`."""
+
+    def validate(self, op, body):
+        if isinstance(body, dict) and body.get("bad"):
+            raise ncp.BodyInvalid("bad")
+        if isinstance(body, dict) and body.get("boom"):
+            raise KeyError("boom")
+        return super().validate(op, body)
+
+
+class Direct:
+    """A lossy channel straight into a session table, without a network: it can lose the reply of
+    one request and replace the table, as an owner restart does."""
+
+    lossy = True
+
+    def __init__(self, table) -> None:
+        self.table, self.replies = table, []
+        self.lose_reply_of: int | None = None
+        self.then_restart = None
+
+    def send(self, frame: bytes) -> None:
+        reply = self.table.respond(frame)
+        seq = F.decode(frame, F.MAX_BOUND).message["seq"]
+        if seq == self.lose_reply_of:
+            self.lose_reply_of = None
+            if self.then_restart is not None:
+                self.table, self.then_restart = self.then_restart(), None
+            return
+        if reply is not None:
+            self.replies.append(reply)
+
+    def receive(self, bound: int, timeout: float | None) -> bytes:
+        if not self.replies:
+            raise TimeoutError
+        return self.replies.pop(0)
+
+
+class SessionTableTests(unittest.TestCase):
+    """The session table of the Python server, driven directly."""
+
+    def setUp(self) -> None:
+        self.counts: dict = {}
+
+    def table(self, max_sessions: int = 4096):
+        def make_owner() -> ncp.Owner:
+            return ncp.Owner(CONTRACT.application, CONTRACT.identity, Gate(self.counts), CONTRACT.operations)
+
+        return ncp_zenoh._Sessions(make_owner, 600.0, max_sessions)
+
+    def client(self, channel) -> ncp.Client:
+        return ncp.Client(channel, application=CONTRACT.application, contract=CONTRACT.identity, timeout=0.01)
+
+    def test_after_a_restart_an_executed_request_is_possibly_executed(self) -> None:
+        channel = Direct(self.table())
+        client = self.client(channel)
+        client.open()
+        channel.lose_reply_of, channel.then_restart = 1, self.table
+        with self.assertRaises(ncp.Ended) as caught:
+            client.call("echo", {"k": 1})
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("session_expired", "unknown"))
+        self.assertEqual(self.counts, {1: 1})  # it did run, and the client was not told otherwise
+
+    def test_a_repeated_request_rejected_as_invalid_is_possibly_executed(self) -> None:
+        channel = Direct(self.table())
+        client = self.client(channel)
+        client.open()
+        channel.lose_reply_of = 1  # the first copy's reply is lost, the client sends the frame again
+        with self.assertRaises(ncp.Ended) as caught:
+            client.call("echo", {"bad": True})
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("body_invalid", "unknown"))
+
+    def test_a_request_rejected_once_stays_rejected(self) -> None:
+        client = self.client(Direct(self.table()))
+        client.open()
+        with self.assertRaises(ncp.Rejected) as caught:
+            client.call("echo", {"bad": True})
+        self.assertEqual(caught.exception.code, "body_invalid")
+        self.assertEqual(client.call("echo", {"k": 2}).body, {"k": 2})  # the corrected request
+
+    def test_a_failing_validation_ends_only_its_own_session(self) -> None:
+        table = self.table()
+        failing, healthy = self.client(Direct(table)), self.client(Direct(table))
+        failing.open()
+        healthy.open()
+        with self.assertRaises(ncp.Ended) as caught:
+            failing.call("echo", {"boom": True})
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("owner_failure", "unknown"))
+        self.assertEqual(healthy.call("echo", {"k": 3}).body, {"k": 3})
+
+    def test_a_deeply_nested_payload_is_dropped(self) -> None:
+        table = self.table()
+        region = b"[" * 1_000_000
+        frame = F.HEADER.pack(F.MAGIC, len(region), 0) + region + bytes(32)
+        self.assertIsNone(table.respond(frame))
+        client = self.client(Direct(table))
+        client.open()
+        self.assertEqual(client.call("echo", {"k": 4}).body, {"k": 4})
+
+    def test_above_the_limit_an_open_is_refused(self) -> None:
+        table = self.table(max_sessions=1)
+        self.client(Direct(table)).open()
+        with self.assertRaises(ncp.Rejected) as caught:
+            self.client(Direct(table)).open()
+        self.assertEqual(caught.exception.code, "refused")
 
 
 class ExpiryTests(unittest.TestCase):

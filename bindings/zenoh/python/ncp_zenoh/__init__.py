@@ -24,9 +24,9 @@ from __future__ import annotations
 import json
 import queue
 import re
+import sys
 import threading
 import time
-from collections import OrderedDict
 from collections.abc import Callable, Iterable
 from typing import Any
 
@@ -120,16 +120,6 @@ class ZenohChannel:
         return frame
 
 
-class _Refuser:
-    """The handler of an owner that never opens: it answers `not_open` for an unknown session."""
-
-    def validate(self, op: str, body: Any) -> None:
-        raise ncp.BodyInvalid("no session")
-
-    def execute(self, op: str, body: Any) -> Any:
-        raise RuntimeError("no session")
-
-
 def _peek(frame: bytes) -> tuple[Any, Any, Any]:
     """The session, op, and seq of a request frame, read from its JSON region only. Raises
     ValueError for a frame that cannot be a request. The owner checks the whole frame."""
@@ -138,41 +128,45 @@ def _peek(frame: bytes) -> tuple[Any, Any, Any]:
     _, json_length, attachment_length = F.HEADER.unpack_from(frame)
     if F.OVERHEAD + json_length + attachment_length != len(frame):
         raise ValueError("frame length")
-    message = json.loads(frame[F.HEADER_BYTES : F.HEADER_BYTES + json_length])
+    try:
+        message = json.loads(frame[F.HEADER_BYTES : F.HEADER_BYTES + json_length])
+    except RecursionError as error:  # CPython's parser recurses once for each nesting level
+        raise ValueError("nesting depth") from error
     if type(message) is not dict:
         raise ValueError("not an object")
     return message.get("session"), message.get("op"), message.get("seq")
 
 
-def _expired(frame: bytes) -> bytes | None:
-    """The `ended` response with the code `session_expired` to a request of a forgotten session,
-    or None for a bad frame."""
+def _answer(frame: bytes, outcome: str, code: str, bound: int) -> bytes | None:
+    """A response that the server makes itself, without an owner of the session, or None for a
+    bad frame. A request that is not of protocol 2 gets `wrong_protocol` (rule 7.3.2)."""
     try:
-        decoded = F.decode(frame, F.MAX_BOUND)
+        decoded = F.decode(frame, bound)
         check_request(decoded.message)
     except F.FrameError:
         return None
     request = decoded.message
+    if request["ncp"] != ncp.PROTOCOL:
+        outcome, code = "rejected", "wrong_protocol"
     return F.encode(
         {
             "ncp": ncp.PROTOCOL,
             "session": request["session"],
             "seq": request["seq"],
             "request": decoded.identity,
-            "outcome": "ended",
-            "code": "session_expired",
+            "outcome": outcome,
+            "code": code,
             "body": {},
         }
     )
 
 
 class _Sessions:
-    """The owners of one service, one for each session, and the sessions that it forgot."""
+    """The owners of one service, one for each session."""
 
-    def __init__(self, make_owner: Callable[[], ncp.Owner], expire_after_s: float, remember: int) -> None:
-        self.make_owner, self.expire_after_s, self.remember = make_owner, expire_after_s, remember
+    def __init__(self, make_owner: Callable[[], ncp.Owner], expire_after_s: float, max_sessions: int) -> None:
+        self.make_owner, self.expire_after_s, self.max_sessions = make_owner, expire_after_s, max_sessions
         self.owners: dict[str, tuple[ncp.Owner, float]] = {}
-        self.forgotten: OrderedDict[str, None] = OrderedDict()
 
     def respond(self, frame: bytes) -> bytes | None:
         """The response frame to one request frame, or None for a bad frame (rule 9.2.3)."""
@@ -184,21 +178,20 @@ class _Sessions:
             return None
         if session in self.owners:
             owner = self.owners[session][0]
-        elif session in self.forgotten:
-            return _expired(frame)
-        elif op == "open" and seq == 0:
+        elif type(seq) is int and seq > 0:
+            # A session that this owner does not hold: it forgot it, it restarted, or it never
+            # served it. An earlier copy of the request may have executed (rule 9.2.7).
+            return _answer(frame, "ended", "session_expired", F.MAX_BOUND)
+        elif op != "open":
+            return _answer(frame, "rejected", "not_open", F.HANDSHAKE_BOUND)
+        elif len(self.owners) >= self.max_sessions:
+            return _answer(frame, "rejected", "refused", F.HANDSHAKE_BOUND)
+        else:
             try:  # check the whole frame before the application makes an owner for it
                 check_request(F.decode(frame, F.HANDSHAKE_BOUND).message)
             except F.FrameError:
                 return None
             owner = self.make_owner()
-        else:
-            owner = ncp.Owner("ncp", "0" * 64, _Refuser(), ())
-            owner.bound = F.MAX_BOUND  # read a request of any size, to answer not_open
-            try:
-                return owner.handle(frame)
-            except F.FrameError:
-                return None
         try:
             response = owner.handle(frame)
         except F.FrameError:
@@ -213,9 +206,6 @@ class _Sessions:
         for session, (_, last) in list(self.owners.items()):
             if now - last >= self.expire_after_s:
                 del self.owners[session]
-                self.forgotten[session] = None
-        while len(self.forgotten) > self.remember:
-            self.forgotten.popitem(last=False)
 
 
 def serve(
@@ -226,21 +216,22 @@ def serve(
     stop: threading.Event | None = None,
     ready: threading.Event | None = None,
     expire_after_s: float = 600.0,
-    remember: int = 100_000,
+    max_sessions: int = 4096,
 ) -> None:
     """Serve exchange sessions on `ncp/x/<service>` until `stop` is set.
 
     `make_owner` returns a new `ncp.Owner` for each new session. The caller's thread handles the
     queries in their order of arrival, one at a time, so a long step of one session delays the
-    others. A session without a request for `expire_after_s` seconds is forgotten (rule 9.2.7):
-    its later requests are answered with `ended` and the code `session_expired`, possibly
-    executed. The identifiers of up to `remember` forgotten sessions are kept for this. `ready` is
-    set once the service is declared.
+    others. A session without a request for `expire_after_s` seconds is forgotten. A request
+    with `seq` greater than 0 of a session that the service does not hold, because it forgot the
+    session or restarted, is answered with `ended` and the code `session_expired`: possibly
+    executed (rule 9.2.7). Above `max_sessions` live sessions, an `open` is answered with
+    `rejected` and the code `refused`. `ready` is set once the service is declared.
     """
     key = exchange_key(service)
     incoming: queue.SimpleQueue[zenoh.Query] = queue.SimpleQueue()
     queryable = session.declare_queryable(key, incoming.put, complete=True)
-    sessions = _Sessions(make_owner, expire_after_s, remember)
+    sessions = _Sessions(make_owner, expire_after_s, max_sessions)
     if ready is not None:
         ready.set()
     try:
@@ -251,7 +242,13 @@ def serve(
             except queue.Empty:
                 continue
             payload = query.payload
-            response = None if payload is None else sessions.respond(payload.to_bytes())
+            try:
+                response = None if payload is None else sessions.respond(payload.to_bytes())
+            except Exception as error:  # noqa: BLE001 - one query must not stop the service
+                # A defect while answering one query drops that query (rule 9.2.3); the
+                # client repeats it or ends its session as possibly executed.
+                print(f"ncp_zenoh: dropped a query: {error!r}", file=sys.stderr)
+                response = None
             if response is not None:
                 query.reply(key, response)
             query.drop()  # the query is complete: the client stops waiting for more replies

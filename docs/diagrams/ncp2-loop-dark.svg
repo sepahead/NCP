@@ -1,91 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1029" viewBox="0 0 1600 1029" role="img" aria-labelledby="ncp2-loop-title ncp2-loop-desc">
-<title id="ncp2-loop-title">Neural networks fly simulated drones over NCP 2</title>
-<desc id="ncp2-loop-desc">A loop host runs NEST network controllers and CREBAIN worlds, each with its own NCP 2 session. Networks flew five drones in two worlds to within 2.6 cm of their targets, and the check confirmed all 2,400 controller responses. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1059" viewBox="0 0 1600 1059" role="img" aria-labelledby="ncp2-loop-title ncp2-loop-desc">
+<title id="ncp2-loop-title">Spiking controllers in NEST fly simulated drones over NCP 2</title>
+<desc id="ncp2-loop-desc">A loop host runs spiking controllers in NEST and CREBAIN worlds, each with its own NCP 2 session. Three controllers flew five drones in two worlds to within 2.6 cm of their targets, and the check confirmed all 2,400 controller responses. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
 <style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
 <marker id="ncp2-loop-arrow-lapis" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#8DB2D8"/></marker>
 <marker id="ncp2-loop-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#6FC1BD"/></marker>
 <pattern id="ncp2-loop-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="1029" fill="#131D26"/>
+<rect width="1600" height="1059" fill="#131D26"/>
 <path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="156" width="345.3" height="304" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<rect x="52" y="156" width="345.3" height="334" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
 <path d="M52 170 L52 170 Q52 156 66 156 L383.3 156 Q397.3 156 397.3 170 L397.3 170 Z" fill="#6FC1BD"/>
-<path d="M78 268 L371.3 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="627.3" y="156" width="345.3" height="304" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M78 298 L371.3 298" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="627.3" y="156" width="345.3" height="334" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
 <path d="M627.3 170 L627.3 170 Q627.3 156 641.3 156 L958.7 156 Q972.7 156 972.7 170 L972.7 170 Z" fill="#8DB2D8"/>
-<path d="M653.3 268 L946.7 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="1202.7" y="156" width="345.3" height="304" rx="14" fill="#1A2631" stroke="#E2B75A" stroke-width="3"/>
+<path d="M653.3 298 L946.7 298" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1202.7" y="156" width="345.3" height="334" rx="14" fill="#1A2631" stroke="#E2B75A" stroke-width="3"/>
 <path d="M1202.7 170 L1202.7 170 Q1202.7 156 1216.7 156 L1534 156 Q1548 156 1548 170 L1548 170 Z" fill="#E2B75A"/>
-<path d="M1228.7 268 L1522 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="520" width="477.3" height="305" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
-<path d="M52 534 L52 534 Q52 520 66 520 L515.3 520 Q529.3 520 529.3 534 L529.3 534 Z" fill="#6FC1BD"/>
-<circle cx="90" cy="571" r="21.2" fill="#6FC1BD"/>
-<path d="M78 600 L503.3 600" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="561.3" y="520" width="477.3" height="305" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
-<path d="M561.3 534 L561.3 534 Q561.3 520 575.3 520 L1024.7 520 Q1038.7 520 1038.7 534 L1038.7 534 Z" fill="#8DB2D8"/>
-<circle cx="599.3" cy="571" r="21.2" fill="#8DB2D8"/>
-<path d="M587.3 600 L1012.7 600" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="1070.7" y="520" width="477.3" height="305" rx="14" fill="#1A2631" stroke="#E2B75A" stroke-width="3"/>
-<path d="M1070.7 534 L1070.7 534 Q1070.7 520 1084.7 520 L1534 520 Q1548 520 1548 534 L1548 534 Z" fill="#E2B75A"/>
-<circle cx="1108.7" cy="571" r="21.2" fill="#E2B75A"/>
-<path d="M1096.7 600 L1522 600" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="859" width="1496" height="130" rx="10" fill="#1E3240"/>
-<rect x="52" y="859" width="10" height="130" rx="5" fill="#D8AA45"/>
-<path d="M627.3 247.2 L397.3 247.2" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-loop-arrow-lapis)"/>
-<path d="M397.3 374.9 L627.3 374.9" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-loop-arrow-turquoise)"/>
-<path d="M972.7 374.9 L1202.7 374.9" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-loop-arrow-turquoise)"/>
-<path d="M1202.7 247.2 L972.7 247.2" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-loop-arrow-lapis)"/>
+<path d="M1228.7 298 L1522 298" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="550" width="477.3" height="305" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M52 564 L52 564 Q52 550 66 550 L515.3 550 Q529.3 550 529.3 564 L529.3 564 Z" fill="#6FC1BD"/>
+<circle cx="90" cy="601" r="21.2" fill="#6FC1BD"/>
+<path d="M78 630 L503.3 630" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="561.3" y="550" width="477.3" height="305" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M561.3 564 L561.3 564 Q561.3 550 575.3 550 L1024.7 550 Q1038.7 550 1038.7 564 L1038.7 564 Z" fill="#8DB2D8"/>
+<circle cx="599.3" cy="601" r="21.2" fill="#8DB2D8"/>
+<path d="M587.3 630 L1012.7 630" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1070.7" y="550" width="477.3" height="305" rx="14" fill="#1A2631" stroke="#E2B75A" stroke-width="3"/>
+<path d="M1070.7 564 L1070.7 564 Q1070.7 550 1084.7 550 L1534 550 Q1548 550 1548 564 L1548 564 Z" fill="#E2B75A"/>
+<circle cx="1108.7" cy="601" r="21.2" fill="#E2B75A"/>
+<path d="M1096.7 630 L1522 630" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="889" width="1496" height="130" rx="10" fill="#1E3240"/>
+<rect x="52" y="889" width="10" height="130" rx="5" fill="#D8AA45"/>
+<path d="M627.3 256.2 L397.3 256.2" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-loop-arrow-lapis)"/>
+<path d="M397.3 396.5 L627.3 396.5" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-loop-arrow-turquoise)"/>
+<path d="M972.7 396.5 L1202.7 396.5" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-loop-arrow-turquoise)"/>
+<path d="M1202.7 256.2 L972.7 256.2" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-loop-arrow-lapis)"/>
 <text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">NCP 2 CLOSED LOOP</text>
-<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Neural networks fly simulated drones, step by step</text>
+<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Spiking controllers in NEST fly simulated drones, step by step</text>
 <text x="78" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Controllers</text>
-<text x="78" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">NEST networks</text>
-<text x="78" y="306" class="r" font-size="25" fill="#ECE5D5">N programs, one session</text>
-<text x="78" y="339" class="r" font-size="25" fill="#ECE5D5">each. Each receives the</text>
-<text x="78" y="372" class="r" font-size="25" fill="#ECE5D5">latest estimate of its</text>
-<text x="78" y="405" class="r" font-size="25" fill="#ECE5D5">drones and proposes their</text>
-<text x="78" y="438" class="r" font-size="25" fill="#ECE5D5">accelerations.</text>
+<text x="78" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Spiking neurons in</text>
+<text x="78" y="278" class="s" font-size="25" fill="#6FC1BD" font-weight="600">NEST</text>
+<text x="78" y="336" class="r" font-size="25" fill="#ECE5D5">N programs, one session</text>
+<text x="78" y="369" class="r" font-size="25" fill="#ECE5D5">each. Each receives the</text>
+<text x="78" y="402" class="r" font-size="25" fill="#ECE5D5">latest estimate of its</text>
+<text x="78" y="435" class="r" font-size="25" fill="#ECE5D5">drones and proposes their</text>
+<text x="78" y="468" class="r" font-size="25" fill="#ECE5D5">accelerations.</text>
 <text x="653.3" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Loop host</text>
 <text x="653.3" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">crebain-ncp-loop</text>
-<text x="653.3" y="306" class="r" font-size="25" fill="#ECE5D5">First all controllers, at the</text>
-<text x="653.3" y="339" class="r" font-size="25" fill="#ECE5D5">same time, then all</text>
-<text x="653.3" y="372" class="r" font-size="25" fill="#ECE5D5">worlds. One transcript for</text>
-<text x="653.3" y="405" class="r" font-size="25" fill="#ECE5D5">each session.</text>
+<text x="653.3" y="336" class="r" font-size="25" fill="#ECE5D5">First all controllers, at the</text>
+<text x="653.3" y="369" class="r" font-size="25" fill="#ECE5D5">same time, then all</text>
+<text x="653.3" y="402" class="r" font-size="25" fill="#ECE5D5">worlds. One transcript for</text>
+<text x="653.3" y="435" class="r" font-size="25" fill="#ECE5D5">each session.</text>
 <text x="1228.7" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Worlds</text>
 <text x="1228.7" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">CREBAIN simulator</text>
-<text x="1228.7" y="306" class="r" font-size="25" fill="#ECE5D5">K programs with 1 to 3</text>
-<text x="1228.7" y="339" class="r" font-size="25" fill="#ECE5D5">drones each. A world</text>
-<text x="1228.7" y="372" class="r" font-size="25" fill="#ECE5D5">refuses actions computed</text>
-<text x="1228.7" y="405" class="r" font-size="25" fill="#ECE5D5">from another state.</text>
-<text x="413.3" y="193.2" class="s" font-size="24" fill="#AAB7BE" font-weight="600">estimate,</text>
-<text x="413.3" y="221.2" class="s" font-size="24" fill="#AAB7BE" font-weight="600">state digest</text>
-<text x="413.3" y="416.9" class="s" font-size="24" fill="#AAB7BE" font-weight="600">accelerations,</text>
-<text x="413.3" y="444.9" class="s" font-size="24" fill="#AAB7BE" font-weight="600">response</text>
-<text x="988.7" y="193.2" class="s" font-size="24" fill="#AAB7BE" font-weight="600">estimate,</text>
-<text x="988.7" y="221.2" class="s" font-size="24" fill="#AAB7BE" font-weight="600">state digest</text>
-<text x="988.7" y="416.9" class="s" font-size="24" fill="#AAB7BE" font-weight="600">accelerations,</text>
-<text x="988.7" y="444.9" class="s" font-size="24" fill="#AAB7BE" font-weight="600">identities</text>
-<text x="90" y="579.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
-<text x="122" y="580" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Drones reach their targets</text>
-<text x="78" y="638" class="r" font-size="25" fill="#ECE5D5">One network flew one drone, and</text>
-<text x="78" y="671" class="r" font-size="25" fill="#ECE5D5">three networks flew five drones in two</text>
-<text x="78" y="704" class="r" font-size="25" fill="#ECE5D5">worlds. Each drone started 7.3 to</text>
-<text x="78" y="737" class="r" font-size="25" fill="#ECE5D5">15.6 m from its target and ended</text>
-<text x="78" y="770" class="r" font-size="25" fill="#ECE5D5">within 2.6 cm, after 600 steps of</text>
-<text x="78" y="803" class="r" font-size="25" fill="#ECE5D5">20 ms.</text>
-<text x="599.3" y="579.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
-<text x="631.3" y="580" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Every action checked</text>
-<text x="587.3" y="638" class="r" font-size="25" fill="#ECE5D5">The offline check confirmed all 2,400</text>
-<text x="587.3" y="671" class="r" font-size="25" fill="#ECE5D5">controller responses: each applied</text>
-<text x="587.3" y="704" class="r" font-size="25" fill="#ECE5D5">once, from the state it answered, to</text>
-<text x="587.3" y="737" class="r" font-size="25" fill="#ECE5D5">the drones it named.</text>
-<text x="1108.7" y="579.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
-<text x="1140.7" y="580" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The same again</text>
-<text x="1096.7" y="638" class="r" font-size="25" fill="#ECE5D5">A second run gave the same results,</text>
-<text x="1096.7" y="671" class="r" font-size="25" fill="#ECE5D5">final states included. NEST ran on</text>
-<text x="1096.7" y="704" class="r" font-size="25" fill="#ECE5D5">one thread with a fixed seed.</text>
-<text x="84" y="897" class="s" font-size="24" fill="#AAB7BE" font-weight="600">LIMITS</text>
-<text x="84" y="935" class="r" font-size="25" fill="#ECE5D5">Simulated drones and a minimal spiking controller of integrate-and-fire populations, run with NEST 3.10 on one laptop on</text>
-<text x="84" y="968" class="r" font-size="25" fill="#ECE5D5">12 November 2026. No physical drone, safety, or real-time claim; an Engram network can implement the same controller contract.</text>
+<text x="1228.7" y="336" class="r" font-size="25" fill="#ECE5D5">K programs with 1 to 3</text>
+<text x="1228.7" y="369" class="r" font-size="25" fill="#ECE5D5">drones each. A world</text>
+<text x="1228.7" y="402" class="r" font-size="25" fill="#ECE5D5">refuses actions computed</text>
+<text x="1228.7" y="435" class="r" font-size="25" fill="#ECE5D5">from another state.</text>
+<text x="413.3" y="202.2" class="s" font-size="24" fill="#AAB7BE" font-weight="600">estimate,</text>
+<text x="413.3" y="230.2" class="s" font-size="24" fill="#AAB7BE" font-weight="600">state digest</text>
+<text x="413.3" y="438.5" class="s" font-size="24" fill="#AAB7BE" font-weight="600">accelerations,</text>
+<text x="413.3" y="466.5" class="s" font-size="24" fill="#AAB7BE" font-weight="600">response</text>
+<text x="988.7" y="202.2" class="s" font-size="24" fill="#AAB7BE" font-weight="600">estimate,</text>
+<text x="988.7" y="230.2" class="s" font-size="24" fill="#AAB7BE" font-weight="600">state digest</text>
+<text x="988.7" y="438.5" class="s" font-size="24" fill="#AAB7BE" font-weight="600">accelerations,</text>
+<text x="988.7" y="466.5" class="s" font-size="24" fill="#AAB7BE" font-weight="600">identities</text>
+<text x="90" y="609.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="122" y="610" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Drones reach their targets</text>
+<text x="78" y="668" class="r" font-size="25" fill="#ECE5D5">One controller flew one drone, and</text>
+<text x="78" y="701" class="r" font-size="25" fill="#ECE5D5">three controllers flew five drones in</text>
+<text x="78" y="734" class="r" font-size="25" fill="#ECE5D5">two worlds. Each drone started 7.3 to</text>
+<text x="78" y="767" class="r" font-size="25" fill="#ECE5D5">15.6 m from its target and ended</text>
+<text x="78" y="800" class="r" font-size="25" fill="#ECE5D5">within 2.6 cm, after 600 steps of</text>
+<text x="78" y="833" class="r" font-size="25" fill="#ECE5D5">20 ms.</text>
+<text x="599.3" y="609.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="631.3" y="610" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Every action checked</text>
+<text x="587.3" y="668" class="r" font-size="25" fill="#ECE5D5">The offline check confirmed all 2,400</text>
+<text x="587.3" y="701" class="r" font-size="25" fill="#ECE5D5">controller responses: each applied</text>
+<text x="587.3" y="734" class="r" font-size="25" fill="#ECE5D5">once, from the state it answered, to</text>
+<text x="587.3" y="767" class="r" font-size="25" fill="#ECE5D5">the drones it named.</text>
+<text x="1108.7" y="609.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="1140.7" y="610" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The same again</text>
+<text x="1096.7" y="668" class="r" font-size="25" fill="#ECE5D5">A second run gave the same results,</text>
+<text x="1096.7" y="701" class="r" font-size="25" fill="#ECE5D5">final states included. NEST ran on</text>
+<text x="1096.7" y="734" class="r" font-size="25" fill="#ECE5D5">one thread with a fixed seed.</text>
+<text x="84" y="927" class="s" font-size="24" fill="#AAB7BE" font-weight="600">LIMITS</text>
+<text x="84" y="965" class="r" font-size="25" fill="#ECE5D5">Simulated drones and a minimal spiking controller of integrate-and-fire populations, run with NEST 3.10 on one laptop on</text>
+<text x="84" y="998" class="r" font-size="25" fill="#ECE5D5">12 November 2026. No physical drone, safety, or real-time claim; an Engram network can implement the same controller contract.</text>
 </svg>

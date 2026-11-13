@@ -387,6 +387,41 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "body_invalid")
         self.assertEqual(client.call("echo", {"ok": 1}).body, {"ok": 1})
 
+    def test_not_open_after_open_leaves_the_request_possibly_executed(self) -> None:
+        # Spec section 7.6, rule 8: an owner that no longer holds the session may have run it.
+        client = ncp.Client(
+            _ScriptedChannel([("ok", None, {"bound": F.HANDSHAKE_BOUND}), ("rejected", "not_open", {})]),
+            application="echo",
+            contract=CONTRACT.identity,
+            bound=F.HANDSHAKE_BOUND,
+        )
+        client.open()
+        with self.assertRaises(ncp.Ended) as caught:
+            client.call("echo", {"n": 1})
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("not_open", "unknown"))
+        self.assertTrue(client.ended)
+
+    def test_a_repeated_request_rejected_as_invalid_is_possibly_executed(self) -> None:
+        # Spec section 7.6, rule 9: another copy of the request can still arrive and execute.
+        channel = _MemoryChannel(make_owner(), drop_responses={2})
+        client = ncp.Client(channel, application="echo", contract=CONTRACT.identity, retries=3)
+        client.open()
+        with self.assertRaises(ncp.Ended) as caught:
+            client.call("echo", {"invalid": True})
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("body_invalid", "unknown"))
+
+    def test_a_failing_validation_ends_the_session_as_a_failing_execution(self) -> None:
+        class Failing(Echo):
+            def validate(self, op, body):
+                raise KeyError("a defect in the application")
+
+        owner = ncp.Owner("echo", CONTRACT.identity, Failing(), CONTRACT.operations)
+        client = ncp.Client(_MemoryChannel(owner), application="echo", contract=CONTRACT.identity)
+        client.open()
+        with self.assertRaises(ncp.Ended) as caught:
+            client.call("echo", {"n": 1})
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("owner_failure", "unknown"))
+
     def test_owner_failure(self) -> None:
         client = ncp.Client(_MemoryChannel(make_owner()), application="echo", contract=CONTRACT.identity)
         client.open()

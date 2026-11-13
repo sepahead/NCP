@@ -3526,8 +3526,8 @@ def ncp2_outcomes() -> Canvas:
                 title="ended",
                 subtitle="The session is over",
                 accent="pomegranate",
-                body="The session cannot continue. The code says whether the request ran: yes, "
-                "no, or possibly. The client opens a new session if it needs one.",
+                body="The session cannot continue. The code says whether the request ran or "
+                "possibly ran. The client opens a new session if it needs one.",
             ),
         ],
     )
@@ -3712,22 +3712,22 @@ def ncp2_bindings() -> Canvas:
 
 
 def ncp2_loop() -> Canvas:
-    """NEST networks fly CREBAIN drones over NCP 2, with the result of 12 November 2026."""
+    """Spiking controllers in NEST fly CREBAIN drones over NCP 2, with the result of 12 November 2026."""
     c = Canvas(
         "ncp2-loop",
         WIDTH,
         1500,
-        "Neural networks fly simulated drones over NCP 2",
-        "A loop host runs NEST network controllers and CREBAIN worlds, each with its own NCP 2 session. Networks flew five drones in two worlds to within 2.6 cm of their targets, and the check confirmed all 2,400 controller responses. "
+        "Spiking controllers in NEST fly simulated drones over NCP 2",
+        "A loop host runs spiking controllers in NEST and CREBAIN worlds, each with its own NCP 2 session. Three controllers flew five drones in two worlds to within 2.6 cm of their targets, and the check confirmed all 2,400 controller responses. "
         f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
     )
-    y = header(c, "NCP 2 CLOSED LOOP", "Neural networks fly simulated drones, step by step")
+    y = header(c, "NCP 2 CLOSED LOOP", "Spiking controllers in NEST fly simulated drones, step by step")
     gap = 230
     row = card_row(
         c,
         y + 10,
         [
-            dict(name="loop-controllers", title="Controllers", subtitle="NEST networks", accent="turquoise",
+            dict(name="loop-controllers", title="Controllers", subtitle="Spiking neurons in NEST", accent="turquoise",
                  body="N programs, one session each. Each receives the latest estimate of its drones "
                  "and proposes their accelerations."),
             dict(name="loop-host", title="Loop host", subtitle="crebain-ncp-loop",
@@ -3758,7 +3758,7 @@ def ncp2_loop() -> Canvas:
         host.bottom + 60,
         [
             dict(name="loop-result-drones", number="1", title="Drones reach their targets", accent="turquoise",
-                 body="One network flew one drone, and three networks flew five drones in two "
+                 body="One controller flew one drone, and three controllers flew five drones in two "
                  "worlds. Each drone started 7.3 to 15.6\u00a0m from its target and ended within 2.6\u00a0cm, "
                  "after 600 steps of 20\u00a0ms."),
             dict(name="loop-result-check", number="2", title="Every action checked", accent="lapis",

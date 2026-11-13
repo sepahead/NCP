@@ -14,8 +14,10 @@
 //!   whose `lossy` is true, and the owner answers a repeated request with its kept response
 //!   (rule 7.3.5), so the request still runs at most once.
 //! - Each owner uses its own service key (rule 9.2.5).
-//! - A server forgets a session after a time without requests and answers its later requests
-//!   with `ended` and the code `session_expired`, possibly executed (rule 9.2.7).
+//! - A server forgets a session after a time without requests. It answers a request with `seq`
+//!   greater than 0 of a session that it does not hold, because it forgot the session or
+//!   restarted, with `ended` and the code `session_expired`, possibly executed (rule 9.2.7), and
+//!   refuses an `open` above [`ServeOptions::max_sessions`] live sessions with the code `refused`.
 //! - On networks that are not trusted, the Zenoh sessions MUST use TLS with client certificates
 //!   and Zenoh access control (rule 9.2.6). [`secure_config`] writes the TLS part of such a
 //!   configuration; the README shows the access control.
@@ -26,7 +28,7 @@ use ncp::frame::{self, HANDSHAKE_BOUND, HEADER_BYTES, MAGIC, MAX_BOUND};
 use ncp::transcript::{RECEIVED, SENT};
 use ncp::{Channel, Error, Handler, Owner, Tap, PROTOCOL};
 use serde_json::{json, Value};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::HashMap;
 use std::fmt;
 use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -202,16 +204,16 @@ impl Channel for ZenohChannel {
 pub struct ServeOptions {
     /// A session without a request for this long is forgotten (rule 9.2.7).
     pub expire_after: Duration,
-    /// The identifiers of up to this many forgotten sessions are kept, so that their later
-    /// requests get `session_expired`.
-    pub remember: usize,
+    /// Above this many live sessions, an `open` is answered with `rejected` and the code
+    /// `refused` (rule 7.1.4).
+    pub max_sessions: usize,
 }
 
 impl Default for ServeOptions {
     fn default() -> ServeOptions {
         ServeOptions {
             expire_after: Duration::from_secs(600),
-            remember: 100_000,
+            max_sessions: 4096,
         }
     }
 }
@@ -237,18 +239,16 @@ fn peek(frame: &[u8]) -> Option<(String, Value, Value)> {
     Some((session, message["op"].clone(), message["seq"].clone()))
 }
 
-/// A response that the server makes itself: `rejected` with `wrong_protocol` or `not_open` for
-/// an unknown session, or `ended` with `session_expired` for a forgotten one. None for a bad frame.
-fn answer(frame: Vec<u8>, expired: bool) -> Option<Vec<u8>> {
-    let decoded = frame::decode(frame, MAX_BOUND).ok()?;
+/// A response that the server makes itself, without an owner of the session, or None for a bad
+/// frame. A request that is not of protocol 2 gets `wrong_protocol` (rule 7.3.2).
+fn answer(frame: Vec<u8>, outcome: &str, code: &str, bound: usize) -> Option<Vec<u8>> {
+    let decoded = frame::decode(frame, bound).ok()?;
     check_request(&decoded.message).ok()?;
     let request = &decoded.message;
     let (outcome, code) = if request["ncp"] != PROTOCOL {
         ("rejected", "wrong_protocol")
-    } else if expired {
-        ("ended", "session_expired")
     } else {
-        ("rejected", "not_open")
+        (outcome, code)
     };
     let response = json!({"ncp": PROTOCOL, "session": request["session"], "seq": request["seq"],
                           "request": decoded.identity, "outcome": outcome, "code": code, "body": {}});
@@ -260,11 +260,9 @@ fn accepted(response: &[u8]) -> bool {
     frame::decode(response.to_vec(), MAX_BOUND).is_ok_and(|d| d.message["outcome"] == "ok")
 }
 
-/// The owners of one service, one for each session, and the sessions that it forgot.
+/// The owners of one service, one for each session.
 struct Sessions<H: Handler> {
     owners: HashMap<String, (Owner<H>, Instant)>,
-    forgotten: HashSet<String>,
-    order: VecDeque<String>,
     options: ServeOptions,
 }
 
@@ -281,10 +279,18 @@ impl<H: Handler> Sessions<H> {
             *last = Instant::now();
             return Some(response.to_vec());
         }
-        if self.forgotten.contains(&session) {
-            return answer(frame, true);
+        if seq.as_u64().is_some_and(|seq| seq > 0) {
+            // A session that this owner does not hold: it forgot it, it restarted, or it never
+            // served it. An earlier copy of the request may have executed (rule 9.2.7).
+            return answer(frame, "ended", "session_expired", MAX_BOUND);
         }
-        if op == "open" && seq == 0 {
+        if op != "open" {
+            return answer(frame, "rejected", "not_open", HANDSHAKE_BOUND);
+        }
+        if self.owners.len() >= self.options.max_sessions {
+            return answer(frame, "rejected", "refused", HANDSHAKE_BOUND);
+        }
+        if seq == 0 {
             // Check the whole frame before the application makes an owner for it.
             let decoded = frame::decode(frame.clone(), HANDSHAKE_BOUND).ok()?;
             check_request(&decoded.message).ok()?;
@@ -295,7 +301,7 @@ impl<H: Handler> Sessions<H> {
             }
             return Some(response.to_vec());
         }
-        answer(frame, false)
+        None
     }
 
     fn expire(&mut self, now: Instant) {
@@ -308,14 +314,6 @@ impl<H: Handler> Sessions<H> {
             .collect();
         for session in stale {
             self.owners.remove(&session);
-            if self.forgotten.insert(session.clone()) {
-                self.order.push_back(session);
-            }
-        }
-        while self.order.len() > self.options.remember {
-            if let Some(oldest) = self.order.pop_front() {
-                self.forgotten.remove(&oldest);
-            }
         }
     }
 }
@@ -361,8 +359,6 @@ impl<H: Handler, F: FnMut() -> Owner<H>> Server<H, F> {
             queryable,
             sessions: Sessions {
                 owners: HashMap::new(),
-                forgotten: HashSet::new(),
-                order: VecDeque::new(),
                 options,
             },
             make_owner,

@@ -12,7 +12,7 @@
 
 NCP couples programs that different people write and run, such as a simulated brain and a simulated body, so that they can work together in steps.
 One program, the client, asks another, the owner, to do a step.
-NCP makes sure that no step runs twice, that the client learns whether each step ran, that damaged messages are detected, and that a record can show exactly what was sent and in which order.
+NCP makes sure that no step runs twice, that the client learns whether each step ran or, after a failure, that it possibly ran, that damaged messages are detected, and that a record can show exactly what was sent and in which order.
 Each application describes its own steps and data in a contract.
 
 ## NCP 2
@@ -28,8 +28,8 @@ The [specification](spec/NCP-2.md) is the exact definition, and the [design reco
 
 | Measured on one laptop | NCP 2 | NCP 1.0.1 | Record |
 | --- | --- | --- | --- |
-| One call with a small result, Rust to Rust | 9.1 µs | 37.9 µs | [Comparison benchmark](benchmarks/comparison/README.md) |
-| One call with a small result, Python to Python | 38.6 µs | 457.8 µs | [Comparison benchmark](benchmarks/comparison/README.md) |
+| One call with a small result, Rust to Rust | 9.0 µs | 36.1 µs | [Comparison benchmark](benchmarks/comparison/README.md#results-of-protocol-2) |
+| One call with a small result, Python to Python | 38.8 µs | 469 µs | [Comparison benchmark](benchmarks/comparison/README.md#results-of-protocol-2) |
 | Time added to each 1 ms step of a NEST network, Rust client | 23 to 32 µs | 228 to 248 µs | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-protocol-5) |
 | Spikes compared with NEST's recorder | All 42,026,126 exact, in 96 trials with up to 10,000 neurons | All exact in 72 trials with 1000 neurons | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-content-protocol-2) |
 | Fault trials with real programs, over pipes, Unix domain sockets, and TCP | 8,730 trials: no wrong result, no step run twice, no false report of a step | 3,816 trials over pipes: no wrong result | [Fault campaign](benchmarks/fault-campaign/README.md#results-of-protocol-5) |
@@ -120,14 +120,15 @@ MUSIC, the MPI library with which NEST exchanges spikes with other simulators, n
 - 64 agents in rounds on one Python owner took 2.6 ms per round.
 - An owner in the first process of an MPI program added 4 to 11 µs to a call with 1 to 8 processes, up to 1,788 spikes.
 
-### Neural networks fly simulated drones
+### Spiking controllers in NEST fly simulated drones
 
-CREBAIN's [closed-loop host](https://github.com/sepahead/crebain/blob/main/docs/NATIVE_NCP_SIMULATION.md) runs controllers, such as spiking networks in NEST, and simulated drone worlds, each with its own NCP 2 session.
-On 12 November 2026, one network flew one drone, and three networks flew five drones in two worlds, to within 2.6 cm of their targets in 600 steps of 20 ms; an offline check of the transcripts confirmed all 2,400 controller responses, and a second run gave the same results ([evidence](https://github.com/sepahead/crebain/blob/main/integrations/ncp2-nest-controller/README.md)).
+CREBAIN's [closed-loop host](https://github.com/sepahead/crebain/blob/main/docs/NATIVE_NCP_SIMULATION.md) runs controllers and simulated drone worlds, each with its own NCP 2 session.
+Each controller here simulates spiking neurons in NEST: unconnected integrate-and-fire populations carry a proportional-derivative signal, computed in Python, as firing rates, and their spike counts give the accelerations.
+On 12 November 2026, one controller flew one drone, and three controllers flew five drones in two worlds, to within 2.6 cm of their targets in 600 steps of 20 ms; an offline check of the transcripts confirmed all 2,400 controller responses, and a second run of the one-drone loop gave the same results. The run tests the coupling, not neural control ([evidence](https://github.com/sepahead/crebain/blob/main/integrations/ncp2-nest-controller/README.md)).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/ncp2-loop-dark.svg">
-  <img src="docs/diagrams/ncp2-loop-light.svg" alt="Three cards joined by arrows: NEST network controllers, the loop host crebain-ncp-loop, and CREBAIN worlds with one to three drones each. Below them, three results: the drones reached their targets, all 2,400 controller responses were checked, and a second run gave the same results. A note lists the limits.">
+  <img src="docs/diagrams/ncp2-loop-light.svg" alt="Three cards joined by arrows: spiking controllers in NEST, the loop host crebain-ncp-loop, and CREBAIN worlds with one to three drones each. Below them, three results: the drones reached their targets, all 2,400 controller responses were checked, and a second run gave the same results. A note lists the limits.">
 </picture>
 
 ### What these results do not show

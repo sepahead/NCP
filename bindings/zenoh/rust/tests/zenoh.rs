@@ -329,26 +329,55 @@ fn a_lost_reply_or_query_still_runs_each_step_once() {
 }
 
 #[test]
-fn a_bad_frame_gets_no_reply_and_an_unknown_session_gets_not_open() {
+fn a_bad_frame_gets_no_reply_and_a_session_the_owner_does_not_hold_is_possibly_executed() {
     let service = Service::plain(ServeOptions::default());
-    let request = |session: &str| {
-        let message = json!({"ncp": 2, "session": session, "seq": 1, "op": "echo",
-                             "ack": "0".repeat(64), "body": {"k": 9}});
+    let request = |session: &str, seq: u64| {
+        let ack = if seq == 0 {
+            json!(null)
+        } else {
+            json!("0".repeat(64))
+        };
+        let message = json!({"ncp": 2, "session": session, "seq": seq, "op": "echo",
+                             "ack": ack, "body": {"k": 9}});
         frame::encode(&message, &[]).unwrap()
     };
-    let mut bad = request(&ncp::random_session());
+    let mut bad = request(&ncp::random_session(), 1);
     bad[20] ^= 0x01;
     assert!(service.raw(bad).is_empty());
-    let replies = service.raw(request(&ncp::random_session()));
-    assert_eq!(replies.len(), 1);
-    let message = frame::decode(replies[0].clone(), ncp::MAX_BOUND)
-        .unwrap()
-        .message;
-    assert_eq!(
-        (message["outcome"].clone(), message["code"].clone()),
-        (json!("rejected"), json!("not_open"))
-    );
+    // seq > 0: the owner may have forgotten the session or restarted (rule 9.2.7).
+    for (seq, expected) in [
+        (1, ("ended", "session_expired")),
+        (0, ("rejected", "not_open")),
+    ] {
+        let replies = service.raw(request(&ncp::random_session(), seq));
+        assert_eq!(replies.len(), 1, "seq {seq}");
+        let message = frame::decode(replies[0].clone(), ncp::MAX_BOUND)
+            .unwrap()
+            .message;
+        assert_eq!(
+            (message["outcome"].clone(), message["code"].clone()),
+            (json!(expected.0), json!(expected.1)),
+            "seq {seq}"
+        );
+    }
     assert!(service.counts().is_empty());
+}
+
+#[test]
+fn above_the_limit_an_open_is_refused() {
+    let options = ServeOptions {
+        max_sessions: 1,
+        ..ServeOptions::default()
+    };
+    let service = Service::plain(options);
+    let mut first = service.client(service.channel());
+    first.open().unwrap();
+    let mut second = service.client(service.channel());
+    match second.open() {
+        Err(Error::Rejected { code, .. }) => assert_eq!(code, "refused"),
+        other => panic!("unexpected: {other:?}"),
+    }
+    first.close().unwrap();
 }
 
 #[test]

@@ -9,7 +9,7 @@ Research on closed loops couples programs that different people write and run: a
 Each program keeps its own process, language, dependencies, and failures.
 The coupling must:
 
-1. run each step exactly once, also when a response is lost and the request is sent again;
+1. run each step at most once, also when a response is lost and the request is sent again, and exactly once when a request sent again reaches the same owner;
 2. detect damaged, foreign, repeated, reordered, and missing messages;
 3. give a known outcome for every fault and never accept a wrong result;
 4. move bulk data, such as spikes and images, without unbounded memory;
@@ -100,15 +100,15 @@ Each row names an assumption of NCP 1, the question, and the decision.
 | Damaged frame | Digest mismatch: bad frame. A receiver that turned off the comparison on a local binding (specification 3.4) does not detect it while the session runs; the transcript verifier does. |
 | Peer that computes valid digests for false content | Not prevented by NCP. Bindings authenticate peers (operating system, TLS); applications add signed authority. |
 | Memory exhaustion by length fields | Lengths are checked against the bound before allocation |
-| Slow sender | Per-frame time limits in the bindings |
+| Slow sender | An optional per-frame time limit (`frame_timeout` in Python; a read timeout on the stream in Rust); the servers apply none by default |
 | Lost framing on a byte stream | Magic check; the connection closes |
 | Parser differences | Duplicate names, large integers, unpaired surrogates, and deep nesting are rejected in both languages |
 | Owner that sends a stale response | The client checks `request` and `seq` |
-| Two owners on one Zenoh key | Each owner has its own key; the client checks the session |
+| Two owners on one Zenoh key | Prevented by rule 9.2.5 and Zenoh access control; NCP does not detect it |
 | A crash during a step | `owner_failure` or a closed connection: the client treats the step as possibly executed and ends the session |
 | Result larger than the bound | `result_too_large` says that the step executed; the client can raise the bound for the next run |
 | Lost stream messages | Reported as a gap with the count |
-| Changed or inserted stream message | Broken chain: not accepted |
+| Changed stream message, or one inserted with the expected `seq` | Broken chain: not accepted. A message inserted with a larger `seq` is accepted and reported as a gap; integrity against insertion rests on the binding's authentication (section 13) |
 
 ## 7. Test strategy
 
@@ -183,7 +183,7 @@ Each step leaves every project working.
 
 ## 11. Coordination across sessions
 
-NCP 2 makes each session exactly-once and verifiable. Applications build coordination between sessions on these properties.
+NCP 2 makes each request of a session run at most once, with a known or possibly-executed outcome, and each session verifiable. Applications build coordination between sessions on these properties.
 This section states the limits, what NCP gives, the patterns that work with NCP 2 as specified, and the profiles that are planned or deferred.
 
 ### 11.1 Limits that no protocol removes
@@ -208,7 +208,7 @@ This section states the limits, what NCP gives, the patterns that work with NCP 
 | Many clients, one owner (N → 1) | One owner process serves one session for each connection. The application decides how requests from different sessions combine. |
 | Many to many (N → N) | Sessions for commands, streams for sensors and telemetry. Across computers, the Zenoh binding routes and discovers. |
 | Order across sessions | An owner that serves many sessions executes their requests in an order that its application controls. For a replayable order, the application makes the order deterministic (rounds, section 11.4) instead of recording an arrival order. |
-| Atomic action across owners | Two-phase commit in the application: `prepare` (validate and hold) to every owner, then `commit` or `abort`. NCP makes each message exactly-once and each vote verifiable by its identity. The limits of section 11.1 apply. |
+| Atomic action across owners | Two-phase commit in the application: `prepare` (validate and hold) to every owner, then `commit` or `abort`. NCP makes each message run at most once and each vote verifiable by its identity. The limits of section 11.1 apply. |
 | Replicated owners | An external consensus service, such as etcd or openraft, chooses the active owner. NCP does not include consensus. |
 | Clusters | Specification section 16. |
 
