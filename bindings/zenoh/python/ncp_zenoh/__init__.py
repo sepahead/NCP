@@ -164,9 +164,12 @@ class _Worker:
             except Exception as error:  # noqa: BLE001 - one query must not stop the session
                 bound = F.HANDSHAKE_BOUND
                 server.observer.event(E.Event("server_error", "server", self.session, detail="query dropped", error=error))
+            with server.lock:
+                # Before the reply: a client can send a frame of the new session bound as soon as
+                # it has the `open` response.
+                server.largest = max(server.largest, bound)
             server._reply(query, response)
             with server.lock:
-                server.largest = max(server.largest, bound)
                 self.waiting -= 1
                 self.last = time.monotonic()
                 if self.owner.session is None and self.waiting == 0:

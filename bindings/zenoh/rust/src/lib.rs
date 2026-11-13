@@ -393,9 +393,14 @@ impl<H: Handler + Send + 'static> Shared<H> {
                 };
                 (response, owner.bound())
             };
+            {
+                // Before the reply: a client can send a frame of the new session bound as soon as
+                // it has the `open` response.
+                let mut table = lock(&self.table);
+                table.largest = table.largest.max(bound);
+            }
             reply(&self.key, query, response);
             let mut table = lock(&self.table);
-            table.largest = table.largest.max(bound);
             let forget = match table.workers.get_mut(session) {
                 Some(worker) => {
                     worker.waiting -= 1;

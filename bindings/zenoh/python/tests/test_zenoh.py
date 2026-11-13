@@ -468,8 +468,8 @@ class KeyedRoutingTests(unittest.TestCase):
         return server
 
     def client(self, server, **options) -> ncp.Client:
-        options = {"key": self.KEY, **options}
-        return ncp.Client(Direct(server), CONTRACT, timeout=0.2, retries=1, observer=QUIET, **options)
+        options = {"key": self.KEY, "timeout": 0.2, "retries": 1, **options}
+        return ncp.Client(Direct(server), CONTRACT, observer=QUIET, **options)
 
     def route(self, server, frame: bytes) -> list[bytes]:
         replies: queue.SimpleQueue = queue.SimpleQueue()
@@ -515,6 +515,32 @@ class KeyedRoutingTests(unittest.TestCase):
                  "body": {"x": "y" * F.HANDSHAKE_BOUND}}
         self.assertEqual(self.route(server, F.encode(large, key=self.KEY)), [])
         self.assertEqual(client.call("echo", {"x": "y" * F.HANDSHAKE_BOUND}).body["x"], "y" * F.HANDSHAKE_BOUND)
+
+    def test_the_server_raises_its_bound_before_it_answers_open(self) -> None:
+        # A client can send a frame of the session bound as soon as it has the `open` response,
+        # so the server must check frames against that bound before it sends the response.
+        server = self.server()
+        at_reply: list[int] = []
+
+        class Recording(FakeQuery):
+            def reply(self, key: str, payload: bytes) -> None:
+                at_reply.append(server.largest)
+                super().reply(key, payload)
+
+        session = str(uuid.uuid4())
+        opening = F.encode({"ncp": 2, "session": session, "seq": 0, "op": "open", "ack": None,
+                            "body": {"application": "echo", "contract": CONTRACT.identity, "bound": F.DEFAULT_BOUND}},
+                           key=self.KEY)
+        replies: queue.SimpleQueue = queue.SimpleQueue()
+        server._on_query(Recording(opening, replies))
+        opened = F.decode(replies.get(timeout=5), F.MAX_BOUND, key=self.KEY)
+        self.assertEqual((opened.message["outcome"], opened.message["body"]["bound"]), ("ok", F.DEFAULT_BOUND))
+        self.assertEqual(at_reply, [F.DEFAULT_BOUND])
+        large = {"x": "y" * (2 * F.HANDSHAKE_BOUND)}
+        step = F.encode({"ncp": 2, "session": session, "seq": 1, "op": "echo", "ack": opened.identity, "body": large},
+                        key=self.KEY)
+        (reply,) = self.route(server, step)
+        self.assertEqual(F.decode(reply, F.MAX_BOUND, key=self.KEY).message["body"], large)
 
     def test_a_request_of_another_protocol_version_gets_wrong_protocol(self) -> None:
         server = self.server()

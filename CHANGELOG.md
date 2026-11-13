@@ -29,8 +29,9 @@ lists the changes for consumers.
   array shapes have at most 32 dimensions and an exact number of elements; a client refuses an `open`
   response without a valid nonce.
 - The Zenoh servers take a key, check every frame before they read it, apply the handshake bound to
-  sessions that they do not hold, and authenticate their own responses (rule 9.2.10). Rule 9.2.9 says
-  that the other checks come before `shutdown`.
+  sessions that they do not hold, and authenticate their own responses (rule 9.2.10). They raise the
+  bound of a new session before they answer its `open`, so a large first request is never dropped.
+  Rule 9.2.9 says that the other checks come before `shutdown`.
 - Transcript verification (section 10.3): two different responses to one admitted request fail, an
   owner's transcript with correct rejections passes, a verifier given a key refuses a transcript without
   one, and the chain of a record shorter than a digest is defined. Six new transcript vectors.

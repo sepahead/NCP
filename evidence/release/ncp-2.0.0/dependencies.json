@@ -13,12 +13,12 @@
    "sha256": "18303e60fc8dea8e5d9e6dac02cf310b8c5f25db676e1056830b5fdea81425d1"
   },
   "sepahead_ncp_zenoh-2.0.0-py3-none-any.whl": {
-   "bytes": 13566,
-   "sha256": "b43b29951d4475dace7595f12086df2f95e78d8087bd5cf8fb3b4dc08cd87814"
+   "bytes": 13613,
+   "sha256": "f0d120d6fa8d94afa047ac5dc81b40e58cf6c2e91197803c83db5533419504c8"
   },
   "sepahead_ncp_zenoh-2.0.0.tar.gz": {
-   "bytes": 12463,
-   "sha256": "cfa76ffcdc77578425552be4efe6261195ca0b7e1266ac94514f004d951a6811"
+   "bytes": 12506,
+   "sha256": "2fd58008722a2121b49338ceef384630d626f860e4dc0229109d687d520481ae"
   }
  },
  "pending": {
