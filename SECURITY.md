@@ -13,6 +13,31 @@ Report vulnerabilities through the repository's enabled
 Do not include credentials, private keys, sensitive plant data, or exploit details
 in a public issue.
 
+## NCP 2
+
+The rest of this document states the requirements of the NCP 1.0 candidate. Section 13 of the
+[NCP 2 specification](spec/NCP-2.md) states the security rules of NCP 2, a release candidate:
+
+- **Integrity.** Every frame carries the SHA-256 digest of its bytes, and a receiver compares it
+  before it parses the frame. A digest is not an authentication code: anyone who can send frames
+  can compute it.
+- **Authentication.** With a key of at least 32 bytes that both sides share, every frame carries an
+  HMAC-SHA-256 in place of the digest (section 13.2). A receiver with a key rejects every other
+  frame and never turns the comparison off. A shared key does not tell the two sides apart, and
+  its distribution and rotation belong to the deployment.
+- **Peers.** Pipes and Unix domain sockets rely on the access control of the operating system; the
+  servers of the SDKs create their sockets with mode 0600. TCP endpoints use loopback addresses
+  only, unless an explicit option allows others. On networks that are not trusted, use TLS with
+  certificates on both sides, or the Zenoh binding with mutual TLS and access control on both
+  sides (rule 9.2.6).
+- **Resources.** Lengths are checked against the bound before allocation; a JSON region holds at
+  most 1 MiB, 64 levels of nesting, and 1,024 attachments; the servers limit the number of
+  sessions, the time of a frame, and, as an option, the idle time of a session.
+- **Authority.** NCP 2 does not grant authority over physical machines. The body stays the final
+  actuator authority, and commands to physical machines need their own signed authority.
+- **Not run.** No external security review of NCP 2, and no test on a network beyond the loopback
+  interface.
+
 ## Threat boundary
 
 NCP assumes a network attacker may read, inject, replay, reorder, delay, duplicate,

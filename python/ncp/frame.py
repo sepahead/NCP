@@ -1,13 +1,15 @@
 """Frames: the unit of transfer (specification sections 3 to 5).
 
 A frame is a 12-byte header, a JSON region padded to a multiple of 8, aligned binary
-attachments, and the SHA-256 digest of everything before it. Identities are digests of
-exact bytes, so NCP needs no canonical encoding.
+attachments, and the digest of everything before it. The digest is SHA-256, or HMAC-SHA-256
+with a shared key in an authenticated session (section 13.2). Identities are digests of exact
+bytes, so NCP needs no canonical encoding.
 """
 
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import math
 import re
@@ -23,9 +25,11 @@ OVERHEAD = HEADER_BYTES + DIGEST_BYTES
 HANDSHAKE_BOUND = 65_536
 MAX_BOUND = 67_108_864
 DEFAULT_BOUND = 1_048_576
+MAX_JSON = 1_048_576
 MAX_DEPTH = 64
 MAX_INTEGER = 2**53 - 1
 MAX_ATTACHMENTS = 1024
+MIN_KEY = 32
 ARRAY_KEY = "ncp.array"
 # dtype -> (struct code for one element, element size, numpy dtype string)
 DTYPES = {
@@ -49,6 +53,28 @@ _SURROGATE = re.compile("[\ud800-\udfff]")
 
 class FrameError(ValueError):
     """A frame that violates sections 3 to 6. The receiver treats it as a bad frame."""
+
+
+class TooLarge(FrameError):
+    """A message that does not fit the limits of section 3: `size` bytes against `limit`.
+    `json` is True when the JSON region, not the whole frame, is too large."""
+
+    def __init__(self, message: str, size: int, limit: int, *, json: bool = False) -> None:
+        super().__init__(message)
+        self.size, self.limit, self.json = size, limit, json
+
+
+def check_key(key: bytes | None) -> bytes | None:
+    """Return `key` if it is a usable key of section 13.2, or None for no key."""
+    if key is None:
+        return None
+    if type(key) is not bytes or len(key) < MIN_KEY:
+        raise ValueError(f"an authentication key is at least {MIN_KEY} bytes")
+    return key
+
+
+def _digest(key: bytes | None) -> Any:
+    return hashlib.sha256() if key is None else hmac.new(key, digestmod=hashlib.sha256)
 
 
 class Array:
@@ -115,11 +141,13 @@ class Array:
         return f"Array({self.dtype!r}, {self.shape!r}, <{len(self.data)} bytes>)"
 
 
-def encode(message: dict[str, Any]) -> bytes:
+def encode(message: dict[str, Any], *, key: bytes | None = None, limit: int | None = None) -> bytes:
     """Encode one message as a frame. Arrays in the message become attachments.
 
     Arrays are `Array` objects or numpy arrays anywhere in the message. The encoder sets the
-    `att` member; the caller must not set it.
+    `att` member; the caller must not set it. With `key`, the digest field is the HMAC-SHA-256
+    of the frame (section 13.2). With `limit`, a frame longer than `limit` bytes raises TooLarge
+    before the frame is built.
     """
     if type(message) is not dict:
         raise FrameError("the message is not a dict")
@@ -157,11 +185,15 @@ def encode(message: dict[str, Any]) -> bytes:
                 + "]}"
             )
         payload = text.encode("utf-8")
-    except (TypeError, ValueError, UnicodeEncodeError) as error:
+    except (TypeError, ValueError, UnicodeEncodeError, RecursionError) as error:
         if isinstance(error, FrameError):
             raise
         raise FrameError(f"cannot encode the message: {error}") from error
     padding = _PADDING[(HEADER_BYTES + len(payload)) % 8]
+    if len(payload) + len(padding) > MAX_JSON:
+        raise TooLarge(
+            "the JSON region exceeds 1 MiB; carry bulk data in arrays", len(payload) + len(padding), MAX_JSON, json=True
+        )
     parts: list[Any] = [b"", payload, padding]
     attachment_bytes = 0
     for index, item in enumerate(found):
@@ -171,8 +203,11 @@ def encode(message: dict[str, Any]) -> bytes:
             attachment_bytes += pad
         parts.append(item.data)
         attachment_bytes += len(item.data)
+    size = OVERHEAD + len(payload) + len(padding) + attachment_bytes
+    if limit is not None and size > limit:
+        raise TooLarge(f"a frame of {size} bytes exceeds the limit of {limit}", size, limit)
     parts[0] = HEADER.pack(MAGIC, len(payload) + len(padding), attachment_bytes)
-    digest = hashlib.sha256()
+    digest = _digest(check_key(key))
     for part in parts:
         digest.update(part)
     parts.append(digest.digest())
@@ -191,8 +226,10 @@ def remaining_length(header: bytes | bytearray | memoryview, bound: int) -> int:
     magic, json_length, attachment_length = HEADER.unpack_from(header)
     if magic != MAGIC:
         raise FrameError("magic")
-    if json_length < 2 or (HEADER_BYTES + json_length) % 8:
+    if json_length < 4 or (HEADER_BYTES + json_length) % 8:
         raise FrameError("json region length")
+    if json_length > MAX_JSON:
+        raise FrameError("the JSON region exceeds 1 MiB")
     if OVERHEAD + json_length + attachment_length > bound:
         raise FrameError("frame exceeds the bound")
     return json_length + attachment_length + DIGEST_BYTES
@@ -256,13 +293,83 @@ def _integer(text: str) -> int:
     raise FrameError("integer magnitude")
 
 
-def decode(frame: bytes | bytearray | memoryview, bound: int, *, check_digest: bool = True) -> Decoded:
+def _json_text(region: memoryview) -> str:
+    """The JSON text of a JSON region, after the checks of section 3, rule 4."""
+    length = len(region)
+    if length == 0 or region[0] != 0x7B:
+        raise FrameError("the JSON region must start with {")
+    end = length
+    while end > 0 and length - end < 8 and region[end - 1] == 0x20:
+        end -= 1
+    if end == 0 or region[end - 1] != 0x7D:
+        raise FrameError("the JSON region must end with } and at most seven spaces")
+    try:
+        return str(region[:end], "utf-8")
+    except UnicodeDecodeError as error:
+        raise FrameError("json region is not UTF-8") from error
+
+
+def _parse(text: str, pairs: Any) -> Any:
+    """Parse JSON text with the rules of section 4, except nesting and number ranges, which the
+    callers check on the result."""
+    if text.startswith("﻿"):
+        raise FrameError("byte order mark")
+    try:
+        value = json.loads(text, object_pairs_hook=pairs, parse_constant=_reject_constant)
+    except FrameError:
+        raise
+    except (ValueError, RecursionError) as error:
+        raise FrameError("json") from error
+    if "-0" in text and _NEGATIVE_ZERO.search(text):
+        # -0 written as an integer decodes to 0. Parse again with a callback to tell it apart
+        # from the same characters in a string; this is rare, so the usual path stays fast.
+        try:
+            json.loads(text, parse_int=_integer, parse_constant=_reject_constant)
+        except RecursionError as error:  # pragma: no cover - the first parse succeeded
+            raise FrameError("json") from error
+    # json.loads joins escaped surrogate pairs and the UTF-8 decoder refuses encoded surrogates,
+    # so a surrogate left in a decoded string comes from an unpaired escape.
+    if "\\u" in text and _SURROGATE_ESCAPE.search(text) and _has_surrogate(value):
+        raise FrameError("unpaired surrogate")
+    return value
+
+
+def loads(data: bytes | bytearray | memoryview | str) -> Any:
+    """Parse one JSON document with the rules of section 4, for example a contract (section 11).
+    Arrays of section 5 are not bound: an `ncp.array` member stays a plain object."""
+    if isinstance(data, str):
+        text = data
+    else:
+        try:
+            text = str(memoryview(data), "utf-8")
+        except UnicodeDecodeError as error:
+            raise FrameError("the document is not UTF-8") from error
+
+    def pairs(items: list[tuple[str, Any]]) -> Any:
+        result = dict(items)
+        if len(result) != len(items):
+            raise FrameError("duplicate member name")
+        return result
+
+    value = _parse(text, pairs)
+    _check_decoded(value)
+    return value
+
+
+def decode(
+    frame: bytes | bytearray | memoryview, bound: int, *, check_digest: bool = True, key: bytes | None = None
+) -> Decoded:
     """Check and decode one complete frame. Raise FrameError for a bad frame.
 
+    With `key`, the digest field must be the HMAC-SHA-256 of the frame (section 13.2).
     With `check_digest=False`, the decoder does not compare the digest field with the frame
     bytes, and the identity is the digest field as received. Use it only on a pipe pair or a Unix
-    domain socket with no other program between the two endpoints (spec section 3, rule 4).
+    domain socket with no other program between the two endpoints (spec section 3, rule 5), and
+    never with a key.
     """
+    key = check_key(key)
+    if key is not None and not check_digest:
+        raise ValueError("an authenticated session always compares digests (section 13.2)")
     view = memoryview(frame)
     rest = remaining_length(view, bound)
     if len(view) != HEADER_BYTES + rest:
@@ -270,17 +377,14 @@ def decode(frame: bytes | bytearray | memoryview, bound: int, *, check_digest: b
     _, json_length, attachment_length = HEADER.unpack_from(view)
     end = HEADER_BYTES + json_length + attachment_length
     if check_digest:
-        digest = hashlib.sha256(view[:end]).digest()
-        if digest != view[end:]:
-            raise FrameError("digest")
+        digest = _digest(key)
+        digest.update(view[:end])
+        computed = digest.digest()
+        if not hmac.compare_digest(computed, view[end:]):
+            raise FrameError("digest" if key is None else "authentication code")
     else:
-        digest = bytes(view[end:])
-    try:
-        text = str(view[HEADER_BYTES : HEADER_BYTES + json_length], "utf-8")
-    except UnicodeDecodeError as error:
-        raise FrameError("json region is not UTF-8") from error
-    if text.startswith("\ufeff"):
-        raise FrameError("byte order mark")
+        computed = bytes(view[end:])
+    text = _json_text(view[HEADER_BYTES : HEADER_BYTES + json_length])
     arrays_found: list[Array] = []
 
     def pairs(items: list[tuple[str, Any]]) -> Any:
@@ -299,30 +403,23 @@ def decode(frame: bytes | bytearray | memoryview, bound: int, *, check_digest: b
             return placeholder
         return result
 
-    try:
-        message = json.loads(text, object_pairs_hook=pairs, parse_constant=_reject_constant)
-    except FrameError:
-        raise
-    except (ValueError, RecursionError) as error:
-        raise FrameError("json") from error
+    message = _parse(text, pairs)
     if type(message) is not dict:
         raise FrameError("json value is not an object")
     _check_decoded(message)
-    if "-0" in text and _NEGATIVE_ZERO.search(text):
-        # -0 written as an integer decodes to 0. Parse again with a callback to tell it apart
-        # from the same characters in a string; this is rare, so the usual path stays fast.
-        json.loads(text, parse_int=_integer, parse_constant=_reject_constant)
-    # json.loads joins escaped surrogate pairs and the UTF-8 decoder refuses encoded surrogates,
-    # so a surrogate left in a decoded string comes from an unpaired escape.
-    if "\\u" in text and _SURROGATE_ESCAPE.search(text) and _has_surrogate(message):
-        raise FrameError("unpaired surrogate")
     arrays = _bind_arrays(message, arrays_found, view[HEADER_BYTES + json_length : end], attachment_length)
-    return Decoded(message, arrays, digest.hex(), frame)
+    return Decoded(message, arrays, computed.hex(), frame)
 
 
-def _check_decoded(message: dict[str, Any]) -> None:
+def _check_decoded(message: Any) -> None:
     """The rules of section 4 that json.loads does not check: integer magnitude, finite numbers,
     and nesting depth, counting the three levels of each array reference."""
+    if type(message) not in (dict, list):
+        if type(message) is int and not -MAX_INTEGER <= message <= MAX_INTEGER:
+            raise FrameError("integer magnitude")
+        if type(message) is float and not math.isfinite(message):
+            raise FrameError("number outside the binary64 range")
+        return
     isfinite = math.isfinite
     stack: list[tuple[Any, int]] = [(message, 1)]
     while stack:

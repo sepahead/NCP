@@ -37,7 +37,11 @@ import ncp  # noqa: E402
 SEED = 20261103
 STEPS = 40
 SUBSETS = ("", "monitor", "recorder", "monitor,recorder")
-EXPECTED = {"kill": "ended:closed:unknown", "stall": "ended:timeout:unknown", "raise": "ended:owner_failure:unknown"}
+EXPECTED = {
+    "kill": "ended:local.closed:unknown",
+    "stall": "ended:local.timeout:unknown",
+    "raise": "ended:owner_failure:unknown",
+}
 
 
 def plan() -> list[tuple[str, str]]:
@@ -54,7 +58,7 @@ def plan() -> list[tuple[str, str]]:
 
 
 def bodies(path: Path) -> list[str]:
-    """The bodies of a transcript's frames, in order, with arrays as lists."""
+    """The bodies of a transcript's frames after the open exchange, in order, with arrays as lists."""
 
     def plain(value):
         if isinstance(value, ncp.Array):
@@ -66,10 +70,11 @@ def bodies(path: Path) -> list[str]:
         return value
 
     out = []
-    for record in ncp.transcript.read(path):
+    for record in ncp.transcript.read(path).records:
         decoded = ncp.decode(record.frame, ncp.MAX_BOUND)
         message = decoded.message
-        if message.get("op") in ("open", "close") or message.get("body") == {}:
+        # The open exchange differs between runs by design: each opening has a random nonce.
+        if message.get("seq") == 0 or message.get("op") == "close" or message.get("body") == {}:
             continue
         out.append(json.dumps(plain(message["body"]), sort_keys=True))
     return out
@@ -156,13 +161,16 @@ class CompositionTests(unittest.TestCase):
         for _, subset, fault, report in self.each("none"):
             for path in report["work"].glob("*.ncpt"):
                 with self.subTest(subset=subset, fault=fault, transcript=path.name):
-                    sessions = ncp.verify_transcript(path)
-                    self.assertTrue(all(s.complete and not s.problems for s in sessions.values()), sessions)
+                    report = ncp.verify_transcript(path)
+                    self.assertTrue(report.ok, report)
+                    self.assertTrue(all(s.complete for s in report.sessions.values()), report)
         for _, subset, fault, report in self.each("fault"):
             module, kind, step = fault.split(":")
             for path in report["work"].glob("*.ncpt"):
                 with self.subTest(subset=subset, fault=fault, transcript=path.name):
-                    (session,) = ncp.verify_transcript(path).values()
+                    report = ncp.verify_transcript(path)
+                    self.assertEqual((report.closed, report.chain_ok, report.problems), (True, True, []))
+                    (session,) = report.sessions.values()
                     unanswered = path.stem == module and kind in ("kill", "stall")
                     self.assertEqual(session.problems, [f"seq {step}: no response"] if unanswered else [])
 

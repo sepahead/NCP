@@ -14,27 +14,30 @@
 //!   whose `lossy` is true, and the owner answers a repeated request with its kept response
 //!   (rule 7.3.5), so the request still runs at most once.
 //! - Each owner uses its own service key (rule 9.2.5).
-//! - A server forgets a session after a time without requests. It answers a request with `seq`
-//!   greater than 0 of a session that it does not hold, because it forgot the session or
-//!   restarted, with `ended` and the code `session_expired`, possibly executed (rule 9.2.7), and
-//!   refuses an `open` above [`ServeOptions::max_sessions`] live sessions with the code `refused`.
+//! - A server keeps one [`Owner`] for each session and runs each session in its own thread, so a
+//!   long step of one session does not delay the others (rules 9.2.7 and 9.2.8). It forgets a
+//!   session after a time without requests, and answers a request with `seq` greater than 0 of a
+//!   session that it does not hold, because it forgot the session or restarted, with `ended` and
+//!   the code `session_expired`, possibly executed. It refuses an `open` above
+//!   [`ServeOptions::max_sessions`] sessions with the code `refused`, and stops as rule 9.2.9
+//!   says ([`Server::stop`]).
 //! - On networks that are not trusted, the Zenoh sessions MUST use TLS with client certificates
-//!   and Zenoh access control (rule 9.2.6). [`secure_config`] writes the TLS part of such a
-//!   configuration; the README shows the access control.
+//!   and Zenoh access control on both sides (rule 9.2.6). [`secure_config`] writes the TLS part
+//!   of such a configuration; the README shows the access control.
 #![forbid(unsafe_code)]
 
-use ncp::exchange::check_request;
-use ncp::frame::{self, HANDSHAKE_BOUND, HEADER_BYTES, MAGIC, MAX_BOUND};
+use ncp::frame::{self, HANDSHAKE_BOUND, HEADER_BYTES, MAGIC, MAX_BOUND, MAX_JSON};
+use ncp::messages::check_request;
 use ncp::transcript::{RECEIVED, SENT};
-use ncp::{Channel, Error, Handler, Owner, Tap, PROTOCOL};
+use ncp::{Channel, ChannelError, Handler, Owner, Tap, PROTOCOL};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::fmt;
 use std::io;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
-use zenoh::handlers::FifoChannelHandler;
 use zenoh::pubsub::{Publisher, Subscriber};
 use zenoh::query::{Query, Queryable};
 use zenoh::{Config, Session, Wait};
@@ -179,19 +182,16 @@ impl Channel for ZenohChannel {
             .map_err(|error| io::Error::other(error.to_string()))
     }
 
-    fn receive(&mut self, _bound: usize) -> Result<Vec<u8>, Error> {
+    fn receive(&mut self, _bound: usize) -> Result<Vec<u8>, ChannelError> {
         match self.replies.recv_timeout(self.timeout) {
             Ok(frame) => {
                 if let Some(tap) = &self.tap {
-                    tap.record(RECEIVED, &frame)?;
+                    tap.record(RECEIVED, &frame).map_err(ChannelError::Closed)?;
                 }
                 Ok(frame)
             }
-            Err(RecvTimeoutError::Timeout) => Err(Error::Io(io::Error::new(
-                io::ErrorKind::TimedOut,
-                "no reply from the owner",
-            ))),
-            Err(RecvTimeoutError::Disconnected) => Err(Error::Io(io::Error::new(
+            Err(RecvTimeoutError::Timeout) => Err(ChannelError::Timeout),
+            Err(RecvTimeoutError::Disconnected) => Err(ChannelError::Closed(io::Error::new(
                 io::ErrorKind::BrokenPipe,
                 "the reply channel closed",
             ))),
@@ -202,10 +202,11 @@ impl Channel for ZenohChannel {
 /// Options of a [`Server`].
 #[derive(Debug, Clone, Copy)]
 pub struct ServeOptions {
-    /// A session without a request for this long is forgotten (rule 9.2.7).
+    /// A session without a request for this long, counted from its last response, is forgotten
+    /// (rule 9.2.7). A session with a request in progress is never forgotten.
     pub expire_after: Duration,
-    /// Above this many live sessions, an `open` is answered with `rejected` and the code
-    /// `refused` (rule 7.1.4).
+    /// Above this many sessions, an `open` is answered with `rejected` and the code `refused`
+    /// (rule 7.1.4).
     pub max_sessions: usize,
 }
 
@@ -226,10 +227,11 @@ fn peek(frame: &[u8]) -> Option<(String, Value, Value)> {
     }
     let length = |at: usize| u32::from_be_bytes(frame[at..at + 4].try_into().unwrap_or([0; 4]));
     let (json_length, attachments) = (length(4) as usize, length(8) as usize);
-    if OVERHEAD
-        .checked_add(json_length)?
-        .checked_add(attachments)?
-        != frame.len()
+    if json_length > MAX_JSON
+        || OVERHEAD
+            .checked_add(json_length)?
+            .checked_add(attachments)?
+            != frame.len()
     {
         return None;
     }
@@ -255,146 +257,313 @@ fn answer(frame: Vec<u8>, outcome: &str, code: &str, bound: usize) -> Option<Vec
     frame::encode(&response, &[]).ok()
 }
 
-/// Whether a response frame has the outcome `ok`.
-fn accepted(response: &[u8]) -> bool {
-    frame::decode(response.to_vec(), MAX_BOUND).is_ok_and(|d| d.message["outcome"] == "ok")
-}
-
-/// The owners of one service, one for each session.
-struct Sessions<H: Handler> {
-    owners: HashMap<String, (Owner<H>, Instant)>,
-    options: ServeOptions,
-}
-
-impl<H: Handler> Sessions<H> {
-    /// Idle time counts from each response, so a long step does not expire its own session.
-    fn respond(
-        &mut self,
-        frame: Vec<u8>,
-        make_owner: &mut dyn FnMut() -> Owner<H>,
-    ) -> Option<Vec<u8>> {
-        let (session, op, seq) = peek(&frame)?;
-        if let Some((owner, last)) = self.owners.get_mut(&session) {
-            let response = owner.handle(frame).ok()?;
-            *last = Instant::now();
-            return Some(response.to_vec());
-        }
-        if seq.as_u64().is_some_and(|seq| seq > 0) {
-            // A session that this owner does not hold: it forgot it, it restarted, or it never
-            // served it. An earlier copy of the request may have executed (rule 9.2.7).
-            return answer(frame, "ended", "session_expired", MAX_BOUND);
-        }
-        if op != "open" {
-            return answer(frame, "rejected", "not_open", HANDSHAKE_BOUND);
-        }
-        if self.owners.len() >= self.options.max_sessions {
-            return answer(frame, "rejected", "refused", HANDSHAKE_BOUND);
-        }
-        if seq == 0 {
-            // Check the whole frame before the application makes an owner for it.
-            let decoded = frame::decode(frame.clone(), HANDSHAKE_BOUND).ok()?;
-            check_request(&decoded.message).ok()?;
-            let mut owner = make_owner();
-            let response = owner.handle(frame).ok()?;
-            if accepted(&response) {
-                self.owners.insert(session, (owner, Instant::now()));
-            }
-            return Some(response.to_vec());
-        }
-        None
+/// Reply to a query, if there is a response, and complete it. The client may have gone; the
+/// reply then has no reader.
+fn reply(key: &str, query: Query, response: Option<Vec<u8>>) {
+    if let Some(response) = response {
+        let _ = query.reply(key, response).wait();
     }
-
-    fn expire(&mut self, now: Instant) {
-        let expire_after = self.options.expire_after;
-        let stale: Vec<String> = self
-            .owners
-            .iter()
-            .filter(|(_, (_, last))| now.duration_since(*last) >= expire_after)
-            .map(|(session, _)| session.clone())
-            .collect();
-        for session in stale {
-            self.owners.remove(&session);
-        }
-    }
+    drop(query); // dropping the query tells the client that no more replies come
 }
 
-/// An owner service on `ncp/x/<service>`: one [`Owner`] for each session.
-///
-/// [`Server::declare`] declares the service, so clients can reach it once it returns.
-/// [`Server::run`] then handles the queries in their order of arrival, one at a time, on the
-/// caller's thread: a long step of one session delays the others.
-pub struct Server<H: Handler, F: FnMut() -> Owner<H>> {
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// One session: its owner, the channel to its thread, and what the expiry needs.
+struct Worker<H: Handler> {
+    sender: Sender<Query>,
+    owner: Arc<Mutex<Owner<H>>>,
+    waiting: usize,
+    last: Instant,
+    thread: Option<JoinHandle<()>>,
+}
+
+struct Table<H: Handler> {
+    workers: HashMap<String, Worker<H>>,
+    stopping: bool,
+}
+
+type Factory<H> = dyn Fn() -> Owner<H> + Send + Sync;
+
+struct Shared<H: Handler> {
     key: String,
-    queryable: Queryable<FifoChannelHandler<Query>>,
-    sessions: Sessions<H>,
-    make_owner: F,
+    make_owner: Box<Factory<H>>,
+    options: ServeOptions,
+    table: Mutex<Table<H>>,
+    done: (Mutex<bool>, Condvar),
 }
 
-impl<H: Handler, F: FnMut() -> Owner<H>> fmt::Debug for Server<H, F> {
+impl<H: Handler + Send + 'static> Shared<H> {
+    /// Route one query to its session's thread, or answer it here (rules 7.3.3 and 9.2.7). Runs
+    /// in a thread of Zenoh, so it never waits for an owner.
+    fn route(self: &Arc<Self>, query: Query) {
+        let Some(frame_bytes) = query.payload().map(|p| p.to_bytes().into_owned()) else {
+            return reply(&self.key, query, None);
+        };
+        let Some((session, op, seq)) = peek(&frame_bytes) else {
+            return reply(&self.key, query, None); // rule 9.2.3
+        };
+        let mut table = lock(&self.table);
+        if !table.workers.contains_key(&session)
+            && op == "open"
+            && seq == 0
+            && !table.stopping
+            && table.workers.len() < self.options.max_sessions
+        {
+            // Check the whole frame before the application makes an owner for it.
+            let whole = frame::decode(frame_bytes.clone(), HANDSHAKE_BOUND)
+                .ok()
+                .is_some_and(|decoded| check_request(&decoded.message).is_ok());
+            if whole {
+                let owner = Arc::new(Mutex::new((self.make_owner)()));
+                let (sender, receiver) = mpsc::channel();
+                let thread = {
+                    let (shared, session, owner) = (self.clone(), session.clone(), owner.clone());
+                    std::thread::Builder::new()
+                        .name(format!("ncp-zenoh {}", &session[..session.len().min(8)]))
+                        .spawn(move || shared.serve(&session, &owner, &receiver))
+                };
+                if let Ok(thread) = thread {
+                    table.workers.insert(
+                        session.clone(),
+                        Worker {
+                            sender,
+                            owner,
+                            waiting: 0,
+                            last: Instant::now(),
+                            thread: Some(thread),
+                        },
+                    );
+                }
+            }
+        }
+        if let Some(worker) = table.workers.get_mut(&session) {
+            worker.waiting += 1;
+            let _ = worker.sender.send(query);
+            return;
+        }
+        let (stopping, full) = (
+            table.stopping,
+            table.workers.len() >= self.options.max_sessions,
+        );
+        drop(table);
+        let response = if seq.as_u64().is_some_and(|seq| seq > 0) {
+            // A session that this server does not hold: it forgot it, it restarted, or it never
+            // served it. An earlier copy of the request may have executed (rule 9.2.7).
+            answer(frame_bytes, "ended", "session_expired", MAX_BOUND)
+        } else if op != "open" {
+            answer(frame_bytes, "rejected", "not_open", HANDSHAKE_BOUND)
+        } else if stopping || full {
+            answer(frame_bytes, "rejected", "refused", HANDSHAKE_BOUND)
+        } else {
+            None // a bad open frame
+        };
+        reply(&self.key, query, response);
+    }
+
+    /// The thread of one session: handle its queries in order, one at a time.
+    fn serve(&self, session: &str, owner: &Mutex<Owner<H>>, queries: &Receiver<Query>) {
+        while let Ok(query) = queries.recv() {
+            let response = query.payload().and_then(|payload| {
+                let mut owner = lock(owner);
+                owner
+                    .handle(payload.to_bytes().into_owned())
+                    .ok()
+                    .map(|response| response.to_vec())
+            });
+            reply(&self.key, query, response);
+            let mut table = lock(&self.table);
+            let forget = match table.workers.get_mut(session) {
+                Some(worker) => {
+                    worker.waiting -= 1;
+                    worker.last = Instant::now();
+                    worker.waiting == 0 && lock(owner).session().is_none()
+                }
+                None => false,
+            };
+            if forget {
+                // The open was not accepted: there is no session to keep. Removing the worker
+                // drops its sender, so this loop ends.
+                table.workers.remove(session);
+            }
+        }
+    }
+
+    /// Forget the sessions without a request for `expire_after`, until the server stops.
+    fn expire(&self) {
+        let period = (self.options.expire_after / 4).min(Duration::from_secs(1));
+        loop {
+            {
+                let (done, signal) = &self.done;
+                let done = lock(done);
+                let (done, _) = signal
+                    .wait_timeout(done, period)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                if *done {
+                    return;
+                }
+            }
+            let now = Instant::now();
+            let expired: Vec<Worker<H>> = {
+                let mut table = lock(&self.table);
+                let stale: Vec<String> = table
+                    .workers
+                    .iter()
+                    .filter(|(_, w)| {
+                        w.waiting == 0 && now.duration_since(w.last) >= self.options.expire_after
+                    })
+                    .map(|(session, _)| session.clone())
+                    .collect();
+                stale
+                    .iter()
+                    .filter_map(|session| table.workers.remove(session))
+                    .collect()
+            };
+            for worker in expired {
+                finish(worker, "expired");
+            }
+        }
+    }
+}
+
+/// End a session's thread and tell the application, once, that the session ended.
+fn finish<H: Handler>(worker: Worker<H>, reason: &str) {
+    let Worker {
+        sender,
+        owner,
+        thread,
+        ..
+    } = worker;
+    drop(sender);
+    if let Some(thread) = thread {
+        let _ = thread.join();
+    }
+    lock(&owner).finish(reason);
+}
+
+/// An owner service on `ncp/x/<service>`: one [`Owner`] for each session, each in its own thread.
+///
+/// [`Server::declare`] declares the service, so clients can reach it once it returns. A long
+/// step of one session does not delay the others (rule 9.2.8). [`Server::stop`] stops the
+/// service as rule 9.2.9 says; dropping the server stops it without a grace time.
+pub struct Server<H: Handler + Send + 'static> {
+    shared: Arc<Shared<H>>,
+    queryable: Option<Queryable<()>>,
+    janitor: Option<JoinHandle<()>>,
+}
+
+impl<H: Handler + Send + 'static> fmt::Debug for Server<H> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Server")
-            .field("key", &self.key)
-            .field("sessions", &self.sessions.owners.len())
+            .field("key", &self.shared.key)
+            .field("sessions", &self.sessions())
             .finish_non_exhaustive()
     }
 }
 
-impl<H: Handler, F: FnMut() -> Owner<H>> Server<H, F> {
+impl<H: Handler + Send + 'static> Server<H> {
     /// Declare the service `ncp/x/<service>` on `session`. `make_owner` returns a new owner for
     /// each new session.
-    pub fn declare(
+    pub fn declare<F>(
         session: &Session,
         service: &str,
         make_owner: F,
         options: ServeOptions,
-    ) -> Result<Server<H, F>, BindingError> {
+    ) -> Result<Server<H>, BindingError>
+    where
+        F: Fn() -> Owner<H> + Send + Sync + 'static,
+    {
+        if options.max_sessions == 0 || options.expire_after.is_zero() {
+            return Err(BindingError::Zenoh(
+                "max_sessions and expire_after must be positive".into(),
+            ));
+        }
         let key = exchange_key(service)?;
+        let shared = Arc::new(Shared {
+            key: key.clone(),
+            make_owner: Box::new(make_owner),
+            options,
+            table: Mutex::new(Table {
+                workers: HashMap::new(),
+                stopping: false,
+            }),
+            done: (Mutex::new(false), Condvar::new()),
+        });
+        let router = shared.clone();
         let queryable = session
-            .declare_queryable(key.clone())
+            .declare_queryable(key)
             .complete(true)
+            .callback(move |query| router.route(query))
             .wait()
             .map_err(zenoh_error)?;
-        Ok(Server {
-            key,
-            queryable,
-            sessions: Sessions {
-                owners: HashMap::new(),
-                options,
-            },
-            make_owner,
-        })
-    }
-
-    /// Handle at most one query, waiting at most `timeout` for it. Returns whether one came.
-    pub fn serve_one(&mut self, timeout: Duration) -> Result<bool, BindingError> {
-        self.sessions.expire(Instant::now());
-        let Some(query) = self.queryable.recv_timeout(timeout).map_err(zenoh_error)? else {
-            return Ok(false);
+        let janitor = {
+            let shared = shared.clone();
+            std::thread::Builder::new()
+                .name("ncp-zenoh expiry".into())
+                .spawn(move || shared.expire())
+                .map_err(zenoh_error)?
         };
-        let response = query.payload().and_then(|payload| {
-            self.sessions
-                .respond(payload.to_bytes().into_owned(), &mut self.make_owner)
-        });
-        if let Some(response) = response {
-            query
-                .reply(&self.key, response)
-                .wait()
-                .map_err(zenoh_error)?;
-        }
-        Ok(true) // dropping the query tells the client that no more replies come
-    }
-
-    /// Handle queries until `stop` is set.
-    pub fn run(&mut self, stop: &AtomicBool) -> Result<(), BindingError> {
-        while !stop.load(Ordering::Acquire) {
-            self.serve_one(Duration::from_millis(50))?;
-        }
-        Ok(())
+        Ok(Server {
+            shared,
+            queryable: Some(queryable),
+            janitor: Some(janitor),
+        })
     }
 
     /// The number of sessions whose state the server keeps.
     pub fn sessions(&self) -> usize {
-        self.sessions.owners.len()
+        lock(&self.shared.table).workers.len()
+    }
+
+    /// Stop as rule 9.2.9 says: every owner stops, so a copy of a kept request still gets the
+    /// kept response, an `open` gets `rejected` with `refused`, and every other request gets
+    /// `ended` with `shutdown`. After `grace`, the server undeclares the queryable and ends the
+    /// threads of the sessions, once they have answered their queries.
+    pub fn stop(mut self, grace: Duration) {
+        self.shutdown(grace);
+    }
+
+    fn shutdown(&mut self, grace: Duration) {
+        let owners: Vec<Arc<Mutex<Owner<H>>>> = {
+            let mut table = lock(&self.shared.table);
+            if table.stopping {
+                return;
+            }
+            table.stopping = true;
+            table.workers.values().map(|w| w.owner.clone()).collect()
+        };
+        for owner in owners {
+            lock(&owner).stop(); // waits for a step in progress, so the stop is never lost
+        }
+        std::thread::sleep(grace);
+        if let Some(queryable) = self.queryable.take() {
+            let _ = queryable.undeclare().wait();
+        }
+        {
+            let (done, signal) = &self.shared.done;
+            *lock(done) = true;
+            signal.notify_all();
+        }
+        if let Some(janitor) = self.janitor.take() {
+            let _ = janitor.join();
+        }
+        let workers: Vec<Worker<H>> = lock(&self.shared.table)
+            .workers
+            .drain()
+            .map(|(_, worker)| worker)
+            .collect();
+        for worker in workers {
+            finish(worker, "shutdown");
+        }
+    }
+}
+
+impl<H: Handler + Send + 'static> Drop for Server<H> {
+    fn drop(&mut self) {
+        self.shutdown(Duration::ZERO);
     }
 }
 

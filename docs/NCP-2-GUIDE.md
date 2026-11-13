@@ -2,7 +2,7 @@
 
 This guide explains NCP 2 for readers without a background in protocols.
 The [specification](../spec/NCP-2.md) is the exact definition; where this guide and the specification differ, the specification is correct.
-NCP 2.0.0 is prepared for release: the specification is final, and the tag and the publication of the packages follow.
+NCP 2.0 is a release candidate: revision 3 of the specification. The tag and the publication of the packages follow.
 
 ## What NCP is for
 
@@ -45,11 +45,14 @@ The identity of the last response commits to every message of the session, as th
 | Outcome | Meaning | What happens next |
 | --- | --- | --- |
 | `ok` | The owner ran the request once. The body is the result. | The session continues. |
-| `rejected` | The owner ran nothing for this message, and nothing changed. A code says why, for example a wrong sequence number or an unknown operation. | The client can send a corrected request. |
-| `ended` | The session cannot continue. The code says whether the request ran. | The client opens a new session if it needs one. |
+| `declined` | The owner kept the request and did not run it, for example because the application found its body invalid, or the contract has no such operation. It never runs. | The session continues. |
+| `rejected` | Only for `open`: the owner opened no session, for example because the contract does not match. | The client can send a corrected `open`. |
+| `ended` | The session cannot continue. The code says whether the request ran, did not run, or possibly ran. | The client opens a new session if it needs one. |
 
-"Possibly executed" means that the client cannot know whether the step ran: the owner failed during the step, or the connection broke before the response arrived.
+"Possibly executed" means that the client cannot know whether the step ran: the owner failed during the step, the connection broke before the response arrived, or the owner forgot the session.
 In a session, at most one call can be in this state, and it is always the last one.
+
+A client that follows the rules gets `rejected` for a request other than `open` only in one case: the owner lost the session, by a restart or by expiry, and a delayed copy of the `open` request opened it again. An earlier copy of the request may have run before the loss, so the client ends the session and treats the request as possibly executed.
 
 ## When something goes wrong
 
@@ -60,6 +63,8 @@ In a session, at most one call can be in this state, and it is always the last o
 | A message arrives twice | The owner recognizes the copy and sends its kept response again. | The same result; the step ran once. |
 | An old copy arrives late | The owner rejects it, because a later request has already run. | Nothing runs again. |
 | The owner fails during a step | It answers `ended` with the code `owner_failure`. | The step possibly ran. |
+| The owner restarts, or forgets an idle session | It answers a later request with `ended` and the code `session_expired`. Each opening has its own random nonce, so no copy of a request from before the restart can run again. | The request possibly ran. |
+| The owner stops | It answers `ended` with the code `shutdown`, and never runs the request. | The request did not run. |
 | The connection breaks | The session ends. | The request without a response possibly ran. |
 | A result is larger than the session allows | The owner answers `ended` with the code `result_too_large`, the size, and the limit. | The step ran; only its result was too large to send. |
 
@@ -108,6 +113,7 @@ Because each request names the response before it, a verifier can check the whol
 
 ## How fast it is
 
+These times were measured with revision 2 of the SDKs. Revision 3 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again.
 One call with a small result took 9.1 µs between two Rust programs and 38.6 µs between two Python programs, on one laptop.
 NCP 1.0.1 took 37.9 µs and 457.8 µs. Over all pairs of languages and sizes, NCP 2 was 4.2 to 165 times faster.
 
@@ -144,6 +150,8 @@ In both, the protocol of each measurement was fixed, with its fingerprint, befor
 | ZeroMQ, HTTP/1.1, Zenoh | Messages and queries between programs; Zenoh also across networks | In Python, 56 to 75 µs for a small call; NCP 2 took 38.6 µs | The same as for gRPC |
 | MUSIC | Spikes and other data between simulators that run in one MPI job | In this NEST build, exact spikes only with one NEST thread; with T threads, only one channel in T carried its exact spike train | Exact spikes with any number of threads, between separate processes |
 
+The [comparison document](design/NCP-2-COMPARISON.md) also lists what NCP 2 lacks, such as typed interfaces with code generation and peer authentication without a shared key, with a source for each statement.
+
 These numbers come from one laptop. With 1 MiB of data in each call, the tools without a fingerprint check were faster than NCP 2, by about the time that the check takes.
 A second run gave every other tool the same fingerprint check as NCP 2, added by the benchmark. Then NCP 2 was the fastest in every case, from an empty result to 1 MiB, in Rust and in Python.
 
@@ -154,18 +162,19 @@ A second run gave every other tool the same fingerprint check as NCP 2, added by
 
 ## How we know that it works
 
-- **Proofs.** A model of the owner's rules, written in the Lean proof assistant, has twelve proved claims for every possible sequence of requests: for example, that the owner runs each request at most once and in order ([`formal/`](../formal/README.md)). The proofs cover the model, not the program code.
-- **Model check.** A program explores every reachable state of small sessions in which messages are lost, repeated, delayed, or changed, and in which either side crashes ([`model/`](../model)).
-- **Shared tests.** The Rust and Python versions pass the same test vectors, and a test compares their answers on 200,000 random and damaged messages ([`conformance/`](../conformance)).
-- **Real faults.** In 8,730 trials with real programs, over pipes, Unix domain sockets, and TCP, with Rust and Python on both sides, a relay damaged, cut, or repeated messages, programs were killed, steps stalled, and messages were too large. No client accepted a wrong result, no owner ran a step twice, and no client was told something false about a step. Nine runs of up to 1,000,000 calls kept their memory and open files constant ([fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocol-5)).
+- **Proofs.** A model of the owner's rules and of a client that follows the client rules, written in the Lean proof assistant, has nineteen proved claims for every possible sequence of inputs: for example, that the owner runs each request at most once and in order, that two openings with different nonces share no request, and that every verdict "ran" or "did not run" of the client is true ([`formal/`](../formal/README.md)). Eleven injected defects each break the proof of the claim that forbids them. The proofs cover the models, not the program code.
+- **Model check.** A program drives the real client and owner of the Python SDK through every reachable state of small sessions, about 2.6 million states, in which messages are lost, repeated, delayed, or reordered, the owner restarts or stops, and a faulty client sends wrong requests. It checks all eight properties of the specification in every state ([`model/`](../model/README.md)). Its first run found the gap that the client rule for a rejected request now closes.
+- **The real owners against the proved model.** The Python and Rust owners give the same answer as the compiled Lean model on 20,000 random traces with copies, restarts, and stops ([`model/`](../model/README.md)).
+- **Shared tests.** The Rust and Python versions pass the same test vectors, every requirement of the specification is mapped to the checks that test it, and a test compares their answers on 200,000 random and damaged messages ([`conformance/`](../conformance/README.md)).
+- **Real faults.** In 8,730 trials with real programs, over pipes, Unix domain sockets, and TCP, with Rust and Python on both sides, a relay damaged, cut, or repeated messages, programs were killed, steps stalled, and messages were too large. No client accepted a wrong result, no owner ran a step twice, and no client was told something false about a step. Nine runs of up to 1,000,000 calls kept their memory and open files constant ([fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocol-5)). These trials ran with revision 2 of the SDKs, before the `declined` outcome and the nonce; they have not run again with revision 3.
 - **Exact data.** Coupled to NEST, both versions received exactly the spikes that NEST recorded, each neuron and time, in all 96 trials of a content test, with up to 8 threads and 10,000 neurons: 42,026,126 spikes compared ([NEST campaign](../benchmarks/nest-campaign/README.md#results-of-content-protocol-2)).
 
 ## What NCP 2 does not do
 
 - It does not check what a result means. Units, value ranges, and clocks belong to each application's contract.
-- It does not prove who sent a message. Pipes and local sockets rely on the operating system's access control. Across untrusted networks, a secure tunnel or the [Zenoh binding](../bindings/zenoh/README.md) with mutual TLS and access control is needed. Commands to physical machines need their own signed authority, which Haldir adds.
+- Without a key, it does not prove who sent a message. With a key that both sides share, every frame carries an HMAC that only a holder of the key can make. Pipes and local sockets rely on the operating system's access control. Across untrusted networks, TLS with certificates on both sides, or the [Zenoh binding](../bindings/zenoh/README.md) with mutual TLS and access control, is needed. Commands to physical machines need their own signed authority, which Haldir adds.
 - It does not make several owners agree on one decision. The [design record](design/NCP-2-DESIGN.md#11-coordination-across-sessions) explains which patterns work across sessions and which need other tools.
-- A session does not survive a crash of its owner. The client learns which call is uncertain and opens a new session.
+- A session does not survive a crash of its owner. The client learns which call is uncertain and opens a new session. For a simulation that steps through ticks, the [lockstep profile](../spec/NCP-2-LOCKSTEP.md) lets the new session tell the client whether its last step ran.
 - Streams do not guarantee delivery.
 
 ## Words used here
@@ -179,6 +188,8 @@ A second run gave every other tool the same fingerprint check as NCP 2, added by
 | Identity, fingerprint | The SHA-256 digest of a message's exact bytes. |
 | Receipt | The identity of the last response, carried by the next request. The specification calls it `ack`. |
 | Contract | A document in which an application describes its steps and data. NCP compares contracts by their identity. |
+| Declined | The owner kept the request and did not run it. It never runs. |
+| Nonce | A random value that the owner draws for each opening of a session. It makes the chains of two openings different. |
 | Possibly executed | The client cannot know whether the step ran. |
 | Transcript | A file with every message that one program sent and received. A message is written to it before it is sent, so a transcript holds every request that the other program may have carried out. A verifier checks its fingerprints and its chain. |
 
@@ -187,4 +198,5 @@ A second run gave every other tool the same fingerprint check as NCP 2, added by
 - [Specification](../spec/NCP-2.md): the exact rules.
 - [Design record](design/NCP-2-DESIGN.md): the reasons for each decision and the alternatives that were measured.
 - [What NCP 2 changes from NCP 1](design/NCP-1-SHORTCOMINGS.md): each known shortcoming of NCP 1, what NCP 2 does about it, and the work that is still open.
+- [NCP 2 compared with other tools](design/NCP-2-COMPARISON.md): what NCP 2 adds, what it lacks, and when to use another tool.
 - [Python SDK](../python/README.md) and [Rust SDK](../rust/README.md): how to use NCP 2 in a program.

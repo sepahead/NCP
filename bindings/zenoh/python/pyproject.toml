@@ -14,7 +14,7 @@ authors = [{ name = "Sepehr Mahmoudian" }]
 dependencies = ["sepahead-ncp>=2.0.0,<3", "eclipse-zenoh>=1.10.2,<2"]
 keywords = ["co-simulation", "closed-loop", "neurorobotics", "protocol", "zenoh"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering",

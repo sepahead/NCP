@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Measure the strength of the NCP 2 claims by mutating the owner model.
 
-Each mutant changes one rule in NCP2/Model.lean in a temporary copy of formal/. The mutated model
-must still compile, so that a failure comes from a proof and not from a broken edit, and the build
-of Audit.lean, which proves every claim of Statements.lean, must then fail.
+Each mutant changes one rule of the owner model (NCP2/Model.lean) or of the client model
+(NCP2/ClientModel.lean) in a temporary copy of formal/. Both files hold only definitions. The
+mutated model must still compile, so that a failure comes from a proof and not from a broken edit,
+and the build of Audit.lean, which proves every claim of Statements.lean, must then fail.
 
 A failed build does not say which claims lost their proofs: once a module fails, Lake does not
 build the modules that import it. The script therefore replaces each failing proof with `sorry` and
@@ -11,7 +12,7 @@ builds again, until the build succeeds, and then reads the axioms of every claim
 proof now uses `sorryAx` is a claim whose proof the mutant broke, and the claim that the mutant
 targets must be among them.
 
-The last mutant rejects every call. Every other claim must still prove for it, with the standard
+The last mutant declines every call. Every other claim must still prove for it, with the standard
 axioms only, and exactly the two claims that need an executed call must lose their proofs: the
 progress claim, and the example in which `seq_stale` answers a request that executed. So the
 safety claims alone allow an owner that executes nothing, and the progress claim rules it out.
@@ -32,32 +33,53 @@ from pathlib import Path
 
 FORMAL = Path(__file__).resolve().parent
 
-# (name, text in NCP2/Model.lean, replacement, claim whose proof must fail)
+# (name, model file in NCP2/, text, replacement, claim whose proof must fail)
 MUTANTS = (
-    ("skips_ack_check",
+    ("skips_ack_check", "Model",
      "      if keptId ≠ some ack then (o, reject H r .ackMismatch)",
      "      if False then (o, reject H r .ackMismatch)",
      "Acknowledged"),
-    ("accepts_gaps",
+    ("accepts_gaps", "Model",
      "  else if r.seq > o.high + 1 then (o, reject H r .seqGap)",
      "  else if False then (o, reject H r .seqGap)",
      "InOrder"),
-    ("executes_after_end",
+    ("executes_after_end", "Model",
      "  else if o.ended then (o, reject H r .sessionEnded)",
      "  else if False then (o, reject H r .sessionEnded)",
      "NothingAfterEnd"),
-    ("reexecutes_retransmission",
+    ("reexecutes_retransmission", "Model",
      "        if H (.req r) = H (.req k.request) then (o, k.response)",
-     "        if H (.req r) = H (.req k.request) then accept H o r b.result",
+     "        if H (.req r) = H (.req k.request) then admit o r (answer H app o.bound r b)",
      "AtMostOnce"),
-    ("rejection_changes_state",
+    ("rejection_changes_state", "Model",
      "    | none => (o, reject H r .ackMissing)",
      "    | none => ({ o with high := r.seq }, reject H r .ackMissing)",
      "RejectedChangesNothing"),
-    ("rejects_every_call",
-     "          else if b.valid = false then (o, reject H r .bodyInvalid)",
-     "          else if True then (o, reject H r .bodyInvalid)",
+    ("declined_not_kept", "Model",
+     "      else admit o r (answer H app o.bound r b)",
+     "      else if (answer H app o.bound r b).outcome = .declined then (o, answer H app o.bound r b)\n"
+     "      else admit o r (answer H app o.bound r b)",
+     "DeclinedIsFinal"),
+    ("ignores_stop", "Model",
+     "      else if o.stopped then (o, reply H r .ended (some .shutdown) .empty)",
+     "      else if False then (o, reply H r .ended (some .shutdown) .empty)",
+     "NothingAfterStop"),
+    ("constant_nonce", "Model",
+     "        let p := reply H r .ok none (.opened bd b.nonce)",
+     "        let p := reply H r .ok none (.opened bd 0)",
+     "OpeningsDisjoint"),
+    ("declines_every_call", "Model",
+     "    else if b.valid = false then reply H r .declined (some .bodyInvalid) .detail",
+     "    else if True then reply H r .declined (some .bodyInvalid) .detail",
      "FaultFreeProgress"),
+    ("rejected_call_continues", "ClientModel",
+     "          if r.op = .openSession then",
+     "          if True then",
+     "RejectedOnlyForOpen"),
+    ("timeout_continues", "ClientModel",
+     "    | some r => { c with pending := none, ended := true, verdicts := c.verdicts ++ [(r, .unknown, none)] }",
+     "    | some r => { c with pending := none, ended := false, verdicts := c.verdicts ++ [(r, .unknown, none)] }",
+     "UnknownIsLast"),
 )
 # Column headings of the published table, in the order of MUTANTS.
 LABELS = {
@@ -66,11 +88,16 @@ LABELS = {
     "executes_after_end": "runs after end",
     "reexecutes_retransmission": "re-executes copy",
     "rejection_changes_state": "rejection changes state",
-    "rejects_every_call": "rejects every call",
+    "declined_not_kept": "decline not kept",
+    "ignores_stop": "stop ignored",
+    "constant_nonce": "constant nonce",
+    "declines_every_call": "declines every call",
+    "rejected_call_continues": "client goes on after rejection",
+    "timeout_continues": "client goes on after time limit",
 }
 TABLE_BEGIN = "<!-- mutant-table:begin -->"
 TABLE_END = "<!-- mutant-table:end -->"
-EXECUTES_NOTHING = "rejects_every_call"
+EXECUTES_NOTHING = "declines_every_call"
 # The claims that need an executed call: for an owner that executes nothing, exactly these fail.
 NEEDS_EXECUTION = {"FaultFreeProgress", "StaleMayHaveExecuted"}
 STANDARD_AXIOMS = {"propext", "Classical.choice", "Quot.sound"}
@@ -165,19 +192,19 @@ def main() -> int:
     elif arguments:
         print("usage: mutants.py [--table | --check README.md]", file=sys.stderr)
         return 2
-    model = (FORMAL / "NCP2" / "Model.lean").read_text(encoding="utf-8")
     claims = CLAIM.findall((FORMAL / "Statements.lean").read_text(encoding="utf-8"))
     lost_by_mutant: dict[str, list[str]] = {}
     failures = 0
     with tempfile.TemporaryDirectory(prefix="ncp2-mutants-") as temporary:
-        for name, old, new, target in MUTANTS:
+        for name, module, old, new, target in MUTANTS:
+            model = (FORMAL / "NCP2" / f"{module}.lean").read_text(encoding="utf-8")
             if model.count(old) != 1:
                 print(f"mutant {name:28} anchor not found exactly once", file=sys.stderr)
                 return 2
             work = Path(temporary) / name
             shutil.copytree(FORMAL, work, ignore=shutil.ignore_patterns("mutants.py", "__pycache__"))
-            (work / "NCP2" / "Model.lean").write_text(model.replace(old, new, 1), encoding="utf-8")
-            if run(["lake", "build", "NCP2.Model"], work).returncode != 0:
+            (work / "NCP2" / f"{module}.lean").write_text(model.replace(old, new, 1), encoding="utf-8")
+            if run(["lake", "build", f"NCP2.{module}"], work).returncode != 0:
                 print(f"mutant {name:28} broke the model itself (not a valid mutant)", file=sys.stderr)
                 failures += 1
                 continue

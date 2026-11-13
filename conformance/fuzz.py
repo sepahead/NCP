@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Differential fuzzing of frame decoders: the Python reference against another decoder.
+"""Differential fuzzing of frame decoders and message checks: the Python reference against another
+implementation.
 
-Each case is a frame: a valid frame from a random message, a frame whose JSON text was edited
-at random, or a frame whose header, attachment lengths, or padding were changed. Edited frames
-get correct padding and digests, so they reach the JSON and attachment checks. Both decoders
-must accept or reject each frame alike, and accepted frames must decode to the same message
-(integers and floats kept apart), identity, and array bytes.
+Each case is a frame and a bound. A frame is a valid frame from a random message, a frame whose
+JSON text was edited at random, a frame whose header, attachment lengths, or padding were changed,
+or a frame of a request, response, or stream message with members changed at random. Edited frames
+get correct padding and digests, so they reach the JSON, attachment, and member checks. The bound
+is mostly the largest one, and sometimes just above or below the length of the frame.
+
+Both implementations must accept or reject each frame alike. For an accepted frame they must agree
+on the message (integers and floats kept apart), the identity, the array bytes, and whether the
+message has the form of a request, a response, and a stream message (section 6).
 
 Usage: fuzz.py --decoder PATH [--cases 200000] [--seed 20261023] [--save DIR]
-The decoder is a program like the Rust example `decode_corpus`: decoder CORPUS BOUND.
+The decoder is a program like the Rust example `decode_corpus`: decoder CORPUS, where each corpus
+entry is a 4-byte big-endian bound, a 4-byte big-endian length, and the frame.
 """
 
 from __future__ import annotations
@@ -26,6 +32,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "python"))
 from ncp import frame as F  # noqa: E402
+from ncp import messages as M  # noqa: E402
 
 BOUND = F.MAX_BOUND
 INTS = [0, 1, -1, 7, 2**31, -(2**31), 2**32, 2**53 - 1, -(2**53 - 1), 10**15, 123456789012345]
@@ -233,9 +240,62 @@ def array_case(rng: random.Random) -> bytes:
     return wrap(text, region)
 
 
+SESSION = "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b"
+IDENTITY = "ab" * 32
+SHAPE_VALUES = [
+    None, True, False, 0, 1, -1, 2, 3, 2**53 - 1, 1.0, 0.5, -0.0, "", "a", "A", "open", "ncp.ping", "a-b.c_d",
+    "a b", "é", "1a", "x" * 63, "x" * 64, "x" * 65, "0" * 64, "0" * 63, "0" * 65, "G" * 64, "AB" * 32,
+    SESSION, SESSION.upper(), "6f1c2e4a-9b3d-5c8e-a1f0-2d4b6c8e0a1b", "6f1c2e4a-9b3d-4c8e-71f0-2d4b6c8e0a1b",
+    "6f1c2e4a9b3d4c8ea1f02d4b6c8e0a1b", [], [1], {}, {"detail": "x"}, "ok", "declined", "rejected", "ended",
+    "OK", "seq_gap", "Seq_gap", "seq-gap", "a" * 65, "local.timeout", "shutdown", "camera/0123456789abcdef",
+    "s" * 256, "s" * 257, "a/b c", "../x",
+]
+
+
+def base_message(rng: random.Random) -> dict:
+    """A valid request, response, or stream message."""
+    kind = rng.randrange(3)
+    if kind == 0:
+        return {"ncp": 2, "session": SESSION, "seq": rng.choice([0, 1, 7]),
+                "op": rng.choice(["open", "step", "ncp.ping", "close"]), "ack": rng.choice([None, IDENTITY]),
+                "body": rng.choice([{}, {"x": 1}, [1, 2], None])}
+    if kind == 1:
+        outcome = rng.choice(M.OUTCOMES)
+        code = None if outcome == "ok" else rng.choice(["seq_gap", "body_invalid", "shutdown", "later_code"])
+        message = {"ncp": 2, "session": SESSION, "seq": 3, "request": IDENTITY, "outcome": outcome, "code": code,
+                   "body": {} if outcome != "ok" else rng.choice([{}, 1, None])}
+        if outcome == "ended" and rng.random() < 0.3:
+            message.update(session=None, seq=None, request=None)
+        return message
+    seq = rng.choice([1, 2, 9])
+    return {"ncp": 2, "stream": rng.choice(["camera/0123456789abcdef", "a", "s" * 256]), "seq": seq,
+            "prev": None if seq == 1 else IDENTITY, "contract": IDENTITY, "body": {"t": 1}}
+
+
+def message_case(rng: random.Random) -> bytes:
+    """A frame of a message whose members were changed at random: each frame is valid, so the
+    member checks of section 6 decide."""
+    message = base_message(rng)
+    for _ in range(rng.choice([0, 1, 1, 2, 3])):
+        roll = rng.random()
+        if roll < 0.6 and message:
+            message[rng.choice(list(message))] = rng.choice(SHAPE_VALUES)
+        elif roll < 0.8 and message:
+            del message[rng.choice(list(message))]
+        else:
+            message[rng.choice(["extra", "ncp", "body", "Seq", "code"])] = rng.choice(SHAPE_VALUES)
+    try:
+        return F.encode(message)
+    except F.FrameError:
+        return F.encode({"k": 1})
+
+
 def make_case(rng: random.Random) -> bytes:
-    if rng.random() < 0.2:
+    roll = rng.random()
+    if roll < 0.2:
         return array_case(rng)
+    if roll < 0.4:
+        return message_case(rng)
     arrays: list[F.Array] = []
     message = {f"k{i}": random_value(rng, 1, arrays) for i in range(rng.randrange(1, 5))}
     try:
@@ -286,9 +346,19 @@ def same(a, b) -> bool:
     return a == b
 
 
-def python_result(frame: bytes) -> dict:
+def shape(check, message) -> bool | str:
     try:
-        decoded = F.decode(frame, BOUND)
+        check(message)
+    except F.FrameError:
+        return False
+    except Exception as error:  # a crash is a finding, not a rejection
+        return f"crash: {type(error).__name__}: {error}"
+    return True
+
+
+def python_result(frame: bytes, bound: int) -> dict:
+    try:
+        decoded = F.decode(frame, bound)
     except F.FrameError as error:
         return {"ok": False, "error": str(error)}
     except Exception as error:  # a crash is a finding, not a rejection
@@ -299,7 +369,19 @@ def python_result(frame: bytes) -> dict:
         "identity": decoded.identity,
         "message": message,
         "arrays": [bytes(item.data).hex() for item in decoded.arrays],
+        "shapes": {
+            "request": shape(M.check_request, decoded.message),
+            "response": shape(M.check_response, decoded.message),
+            "stream": shape(M.check_stream_message, decoded.message),
+        },
     }
+
+
+def pick_bound(rng: random.Random, frame: bytes) -> int:
+    """Mostly the largest bound; sometimes one just around the length of the frame."""
+    if rng.random() < 0.9:
+        return BOUND
+    return max(0, len(frame) + rng.choice([-8, -1, 0, 1, 8]))
 
 
 def main() -> int:
@@ -311,12 +393,13 @@ def main() -> int:
     args = parser.parse_args()
     rng = random.Random(args.seed)
     frames = [make_case(rng) for _ in range(args.cases)]
+    bounds = [pick_bound(rng, frame) for frame in frames]
     with tempfile.NamedTemporaryFile(suffix=".corpus", delete=False) as handle:
-        for frame in frames:
-            handle.write(struct.pack(">I", len(frame)) + frame)
+        for frame, bound in zip(frames, bounds, strict=True):
+            handle.write(struct.pack(">II", bound, len(frame)) + frame)
         corpus = handle.name
     try:
-        output = subprocess.run([args.decoder, corpus, str(BOUND)], capture_output=True, check=True).stdout
+        output = subprocess.run([args.decoder, corpus], capture_output=True, check=True).stdout
     finally:
         os.unlink(corpus)
     # Split on newlines only: str.splitlines would also split at U+2028 and other characters
@@ -326,31 +409,39 @@ def main() -> int:
         print(f"the decoder printed {len(lines)} lines for {len(frames)} frames")
         return 1
     accepted = differences = 0
-    for index, (frame, line) in enumerate(zip(frames, lines, strict=True)):
+    forms = {"request": 0, "response": 0, "stream": 0}
+    for index, (frame, bound, line) in enumerate(zip(frames, bounds, lines, strict=True)):
         other = json.loads(line)
-        mine = python_result(frame)
+        mine = python_result(frame, bound)
         if mine["ok"] is True:
             accepted += 1
+            for name, valid in mine["shapes"].items():
+                forms[name] += valid is True
         agree = mine["ok"] == other["ok"] and (
             mine["ok"] is not True
             or (
                 mine["identity"] == other["identity"]
                 and mine["arrays"] == other["arrays"]
                 and same(mine["message"], other["message"])
+                and mine["shapes"] == other["shapes"]
             )
         )
         if not agree:
             differences += 1
             if differences <= 10:
                 print(
-                    f"case {index}: python {mine.get('ok')} ({mine.get('error', '')}), "
-                    f"other {other.get('ok')} ({other.get('error', '')})\n  frame {frame.hex()}"
+                    f"case {index}: bound {bound}: python {mine.get('ok')} ({mine.get('error', '')}) "
+                    f"{mine.get('shapes', '')}, other {other.get('ok')} ({other.get('error', '')}) "
+                    f"{other.get('shapes', '')}\n  frame {frame.hex()}"
                 )
             if args.save:
                 os.makedirs(args.save, exist_ok=True)
                 with open(os.path.join(args.save, f"case-{index}.bin"), "wb") as out:
                     out.write(frame)
-    print(f"fuzz: {len(frames)} frames, {accepted} accepted by Python, {differences} differences")
+    print(
+        f"fuzz: {len(frames)} frames, {accepted} accepted by Python ({forms['request']} requests, "
+        f"{forms['response']} responses, {forms['stream']} stream messages), {differences} differences"
+    )
     return 1 if differences else 0
 
 

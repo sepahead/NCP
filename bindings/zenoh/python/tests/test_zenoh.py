@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import queue
 import shutil
 import socket
 import subprocess
@@ -35,6 +36,16 @@ CONTRACT = ncp.Contract.from_bytes(
 )
 
 TIMEOUT_S = 0.5
+
+
+class Quiet:
+    """An observer that drops events: the tests inject failures on purpose."""
+
+    def event(self, event) -> None:
+        pass
+
+
+QUIET = Quiet()
 
 
 def free_port() -> int:
@@ -68,41 +79,35 @@ class Counting(Echo):
         super().__init__()
         self.counts = counts
 
-    def execute(self, op, body):
+    def execute(self, request):
+        body = request.body
         if isinstance(body, dict) and "k" in body:
             self.counts[body["k"]] = self.counts.get(body["k"], 0) + 1
-        if op == "sleep":  # a slow step
+        if request.op == "sleep":  # a slow step
             time.sleep(body["seconds"])
             return body
-        return super().execute(op, body)
+        return super().execute(request)
 
 
 class Service:
-    """An owner session that serves `ncp/x/<service>` in a thread, and a client session."""
+    """An owner session that serves `ncp/x/<service>`, and a client session."""
 
     def __init__(self, owner_config: zenoh.Config, client_config: zenoh.Config, **serve_options) -> None:
         self.counts: dict = {}
         self.name = f"test/{uuid.uuid4().hex[:8]}"
         self.owner_session = zenoh.open(owner_config)
         self.client_session = zenoh.open(client_config)
-        self.stop, ready = threading.Event(), threading.Event()
 
         def make_owner() -> ncp.Owner:
-            return ncp.Owner(CONTRACT.application, CONTRACT.identity, Counting(self.counts), CONTRACT.operations)
+            return ncp.Owner(CONTRACT, Counting(self.counts), observer=QUIET)
 
-        self.thread = threading.Thread(
-            target=ncp_zenoh.serve,
-            args=(self.owner_session, self.name, make_owner),
-            kwargs={"stop": self.stop, "ready": ready, **serve_options},
-            daemon=True,
-        )
-        self.thread.start()
-        ready.wait(5)
+        self.server = ncp_zenoh.Server(self.owner_session, self.name, make_owner, observer=QUIET, **serve_options)
+        self.server.start()
         self.linked = wait_for_peer(self.client_session)
 
     def client(self, channel: ncp_zenoh.ZenohChannel | None = None, timeout: float = TIMEOUT_S) -> ncp.Client:
         channel = channel or ncp_zenoh.ZenohChannel(self.client_session, self.name)
-        return ncp.Client(channel, application=CONTRACT.application, contract=CONTRACT.identity, timeout=timeout)
+        return ncp.Client(channel, CONTRACT, timeout=timeout, observer=QUIET)
 
     def answers(self) -> bool:
         """Wait until the service answers a request of an unknown session. A linked peer does not
@@ -120,9 +125,8 @@ class Service:
         replies = self.client_session.get(ncp_zenoh.exchange_key(self.name), payload=frame, timeout=seconds)
         return [reply.ok.payload.to_bytes() for reply in replies if reply.ok is not None]
 
-    def close(self) -> None:
-        self.stop.set()
-        self.thread.join(5)
+    def close(self, grace: float = 0.0) -> None:
+        self.server.stop(grace)
         self.client_session.close()
         self.owner_session.close()
 
@@ -134,6 +138,11 @@ def plain_service(**serve_options) -> Service:
         service.close()
         raise AssertionError("the service never answered")
     return service
+
+
+def outcome(frame: bytes) -> tuple[str, str | None]:
+    message = F.decode(frame, F.MAX_BOUND).message
+    return message["outcome"], message["code"]
 
 
 class Dropping(ncp_zenoh.ZenohChannel):
@@ -180,9 +189,11 @@ class ExchangeTests(unittest.TestCase):
         self.assertEqual(client.call("echo", {"k": 3}).body, {"k": 3})
         client.close()
         tap.close()
-        (report,) = ncp.verify_transcript(directory / "client.ncpt").values()
-        self.assertTrue(report.complete)
-        self.assertEqual(report.problems, [])
+        report = ncp.verify_transcript(directory / "client.ncpt")
+        self.assertTrue(report.ok, report)
+        (session,) = report.sessions.values()
+        self.assertTrue(session.complete)
+        self.assertEqual(session.problems, [])
         self.assertEqual(self.service.counts, {1: 1, 3: 1})
         shutil.rmtree(directory)
 
@@ -202,8 +213,9 @@ class ExchangeTests(unittest.TestCase):
     def test_a_bad_frame_gets_no_reply(self) -> None:
         client = self.service.client()
         client.open()
+        state = client.state
         good = F.encode(
-            {"ncp": 2, "session": client.session, "seq": 1, "op": "echo", "ack": client.ack, "body": {"k": 9}}
+            {"ncp": 2, "session": state.session, "seq": 1, "op": "echo", "ack": state.ack, "body": {"k": 9}}
         )
         bad = bytearray(good)
         bad[20] ^= 0x01
@@ -223,6 +235,22 @@ class ExchangeTests(unittest.TestCase):
         second.close()
         self.assertEqual(self.service.counts, {1: 1, 2: 1, 3: 1})
 
+    def test_a_long_step_does_not_delay_another_session(self) -> None:
+        # Rule 9.2.8: each session runs in its own thread.
+        slow, fast = self.service.client(timeout=5.0), self.service.client(timeout=5.0)
+        slow.open()
+        fast.open()
+        done = threading.Event()
+        thread = threading.Thread(target=lambda: (slow.call("sleep", {"k": 1, "seconds": 1.5}), done.set()))
+        thread.start()
+        time.sleep(0.2)  # the slow step is running
+        started = time.monotonic()
+        self.assertEqual(fast.call("echo", {"k": 2}).body, {"k": 2})
+        self.assertLess(time.monotonic() - started, 1.0)
+        self.assertFalse(done.is_set())
+        thread.join(5)
+        self.assertTrue(done.is_set())
+
     def test_a_request_of_a_session_the_owner_does_not_hold(self) -> None:
         # seq > 0: the owner may have forgotten the session or restarted, so the request is
         # possibly executed (rule 9.2.7); seq 0 without open: not_open.
@@ -231,123 +259,190 @@ class ExchangeTests(unittest.TestCase):
                 ack = "0" * 64 if seq else None
                 frame = F.encode({"ncp": 2, "session": str(uuid.uuid4()), "seq": seq, "op": op, "ack": ack, "body": {}})
                 (reply,) = self.service.raw(frame)
-                message = F.decode(reply, F.MAX_BOUND).message
-                self.assertEqual((message["outcome"], message["code"]), expected)
+                self.assertEqual(outcome(reply), expected)
 
     def test_a_failing_handler_ends_the_session_possibly_executed(self) -> None:
         client = self.service.client()
         client.open()
         with self.assertRaises(ncp.Ended) as caught:
             client.call("fail", {})
-        self.assertEqual((caught.exception.code, caught.exception.executed), ("owner_failure", "unknown"))
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("owner_failure", ncp.Executed.UNKNOWN))
+
+
+class StopTests(unittest.TestCase):
+    def test_a_stopping_server_answers_as_rule_9_2_9_says(self) -> None:
+        service = plain_service()
+        try:
+            session = str(uuid.uuid4())
+            open_frame = F.encode({"ncp": 2, "session": session, "seq": 0, "op": "open", "ack": None,
+                                   "body": {"application": "echo", "contract": CONTRACT.identity,
+                                            "bound": F.HANDSHAKE_BOUND}})
+            (opened,) = service.raw(open_frame)
+            step = F.encode({"ncp": 2, "session": session, "seq": 1, "op": "echo", "ack": F.identity(opened),
+                             "body": {"k": 1}})
+            (kept,) = service.raw(step)
+            self.assertEqual(outcome(kept), ("ok", None))
+            stopper = threading.Thread(target=service.server.stop, args=(1.5,))
+            stopper.start()
+            time.sleep(0.3)  # the owners have stopped; the queryable is still declared
+            self.assertEqual(service.raw(step), [kept])  # a copy of the kept request: the kept response
+            later = F.encode({"ncp": 2, "session": session, "seq": 2, "op": "echo", "ack": F.identity(kept),
+                              "body": {"k": 2}})
+            (ended,) = service.raw(later)
+            self.assertEqual(outcome(ended), ("ended", "shutdown"))
+            with self.assertRaises(ncp.Rejected) as refused:
+                service.client().open()
+            self.assertEqual(refused.exception.code, "refused")
+            stopper.join(5)
+            self.assertEqual(service.raw(step, 0.5), [])  # the service is undeclared
+            self.assertEqual(service.counts, {1: 1})
+            self.assertEqual(service.server.sessions, 0)
+        finally:
+            service.close()
+
+
+class FakeQuery:
+    """A query without a network, for the server's routing."""
+
+    def __init__(self, frame: bytes, replies: queue.SimpleQueue) -> None:
+        self.payload = zenoh.ZBytes(frame)
+        self.replies = replies
+
+    def reply(self, key: str, payload: bytes) -> None:
+        self.replies.put(bytes(payload))
+
+    def drop(self) -> None:
+        pass
 
 
 class Gate(Counting):
-    """Counting, with a validation that rejects `{"bad": true}` and fails on `{"boom": true}`."""
+    """Counting, with a validation that declines `{"bad": true}` and fails on `{"boom": true}`."""
 
-    def validate(self, op, body):
+    def validate(self, request):
+        body = request.body
         if isinstance(body, dict) and body.get("bad"):
-            raise ncp.BodyInvalid("bad")
+            raise ncp.Declined("bad")
         if isinstance(body, dict) and body.get("boom"):
             raise KeyError("boom")
-        return super().validate(op, body)
+        return super().validate(request)
 
 
 class Direct:
-    """A lossy channel straight into a session table, without a network: it can lose the reply of
-    one request and replace the table, as an owner restart does."""
+    """A lossy channel straight into a server's routing, without a network: it can lose the reply
+    of one request and replace the server, as an owner restart does."""
 
     lossy = True
+    local = False
 
-    def __init__(self, table) -> None:
-        self.table, self.replies = table, []
+    def __init__(self, server) -> None:
+        self.server = server
+        self.replies: queue.SimpleQueue = queue.SimpleQueue()
         self.lose_reply_of: int | None = None
         self.then_restart = None
 
     def send(self, frame: bytes) -> None:
-        reply = self.table.respond(frame)
         seq = F.decode(frame, F.MAX_BOUND).message["seq"]
         if seq == self.lose_reply_of:
             self.lose_reply_of = None
+            lost: queue.SimpleQueue = queue.SimpleQueue()
+            self.server._on_query(FakeQuery(frame, lost))
+            lost.get(timeout=5)  # the owner answered; the reply is lost
             if self.then_restart is not None:
-                self.table, self.then_restart = self.then_restart(), None
+                self.server, self.then_restart = self.then_restart(), None
             return
-        if reply is not None:
-            self.replies.append(reply)
+        self.server._on_query(FakeQuery(frame, self.replies))
 
     def receive(self, bound: int, timeout: float | None) -> bytes:
-        if not self.replies:
-            raise TimeoutError
-        return self.replies.pop(0)
+        try:
+            return self.replies.get(timeout=0.5)
+        except queue.Empty:
+            raise TimeoutError from None
+
+    def close(self) -> None:
+        pass
 
 
-class SessionTableTests(unittest.TestCase):
-    """The session table of the Python server, driven directly."""
+class RoutingTests(unittest.TestCase):
+    """The routing of the Python server, driven directly."""
 
     def setUp(self) -> None:
         self.counts: dict = {}
+        self.servers: list = []
 
-    def table(self, max_sessions: int = 4096):
+    def tearDown(self) -> None:
+        for server in self.servers:
+            server.stop(0.0)
+
+    def server(self, max_sessions: int = 4096):
         def make_owner() -> ncp.Owner:
-            return ncp.Owner(CONTRACT.application, CONTRACT.identity, Gate(self.counts), CONTRACT.operations)
+            return ncp.Owner(CONTRACT, Gate(self.counts), observer=QUIET)
 
-        return ncp_zenoh._Sessions(make_owner, 600.0, max_sessions)
+        server = ncp_zenoh.Server(None, "test/direct", make_owner, max_sessions=max_sessions, observer=QUIET)
+        self.servers.append(server)
+        return server
 
     def client(self, channel) -> ncp.Client:
-        return ncp.Client(channel, application=CONTRACT.application, contract=CONTRACT.identity, timeout=0.01)
+        return ncp.Client(channel, CONTRACT, timeout=0.2, retries=1, observer=QUIET)
 
     def test_after_a_restart_an_executed_request_is_possibly_executed(self) -> None:
-        channel = Direct(self.table())
+        channel = Direct(self.server())
         client = self.client(channel)
         client.open()
-        channel.lose_reply_of, channel.then_restart = 1, self.table
+        channel.lose_reply_of, channel.then_restart = 1, self.server
         with self.assertRaises(ncp.Ended) as caught:
             client.call("echo", {"k": 1})
-        self.assertEqual((caught.exception.code, caught.exception.executed), ("session_expired", "unknown"))
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("session_expired", ncp.Executed.UNKNOWN))
         self.assertEqual(self.counts, {1: 1})  # it did run, and the client was not told otherwise
 
-    def test_a_repeated_request_rejected_as_invalid_is_possibly_executed(self) -> None:
-        channel = Direct(self.table())
+    def test_a_repeated_declined_request_gets_the_same_answer(self) -> None:
+        channel = Direct(self.server())
         client = self.client(channel)
         client.open()
         channel.lose_reply_of = 1  # the first copy's reply is lost, the client sends the frame again
-        with self.assertRaises(ncp.Ended) as caught:
-            client.call("echo", {"bad": True})
-        self.assertEqual((caught.exception.code, caught.exception.executed), ("body_invalid", "unknown"))
-
-    def test_a_request_rejected_once_stays_rejected(self) -> None:
-        client = self.client(Direct(self.table()))
-        client.open()
-        with self.assertRaises(ncp.Rejected) as caught:
+        with self.assertRaises(ncp.Declined) as caught:
             client.call("echo", {"bad": True})
         self.assertEqual(caught.exception.code, "body_invalid")
-        self.assertEqual(client.call("echo", {"k": 2}).body, {"k": 2})  # the corrected request
+        self.assertEqual(client.call("echo", {"k": 2}).body, {"k": 2})  # the session goes on
 
     def test_a_failing_validation_ends_only_its_own_session(self) -> None:
-        table = self.table()
-        failing, healthy = self.client(Direct(table)), self.client(Direct(table))
+        server = self.server()
+        failing, healthy = self.client(Direct(server)), self.client(Direct(server))
         failing.open()
         healthy.open()
         with self.assertRaises(ncp.Ended) as caught:
             failing.call("echo", {"boom": True})
-        self.assertEqual((caught.exception.code, caught.exception.executed), ("owner_failure", "unknown"))
+        self.assertEqual((caught.exception.code, caught.exception.executed), ("owner_failure", ncp.Executed.UNKNOWN))
         self.assertEqual(healthy.call("echo", {"k": 3}).body, {"k": 3})
 
     def test_a_deeply_nested_payload_is_dropped(self) -> None:
-        table = self.table()
+        server = self.server()
         region = b"[" * 1_000_000
         frame = F.HEADER.pack(F.MAGIC, len(region), 0) + region + bytes(32)
-        self.assertIsNone(table.respond(frame))
-        client = self.client(Direct(table))
+        replies: queue.SimpleQueue = queue.SimpleQueue()
+        server._on_query(FakeQuery(frame, replies))
+        self.assertTrue(replies.empty())
+        client = self.client(Direct(server))
         client.open()
         self.assertEqual(client.call("echo", {"k": 4}).body, {"k": 4})
 
     def test_above_the_limit_an_open_is_refused(self) -> None:
-        table = self.table(max_sessions=1)
-        self.client(Direct(table)).open()
+        server = self.server(max_sessions=1)
+        self.client(Direct(server)).open()
         with self.assertRaises(ncp.Rejected) as caught:
-            self.client(Direct(table)).open()
+            self.client(Direct(server)).open()
         self.assertEqual(caught.exception.code, "refused")
+
+    def test_a_rejected_open_keeps_no_session(self) -> None:
+        server = self.server()
+        frame = F.encode({"ncp": 2, "session": str(uuid.uuid4()), "seq": 0, "op": "open", "ack": None,
+                          "body": {"application": "echo", "contract": "0" * 64, "bound": F.HANDSHAKE_BOUND}})
+        replies: queue.SimpleQueue = queue.SimpleQueue()
+        server._on_query(FakeQuery(frame, replies))
+        self.assertEqual(outcome(replies.get(timeout=5)), ("rejected", "contract_mismatch"))
+        deadline = time.monotonic() + 5
+        while server.sessions and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertEqual(server.sessions, 0)
 
 
 class ExpiryTests(unittest.TestCase):
@@ -357,10 +452,10 @@ class ExpiryTests(unittest.TestCase):
             client = service.client()
             client.open()
             self.assertEqual(client.call("echo", {"k": 1}).body, {"k": 1})
-            time.sleep(0.6)
+            time.sleep(0.8)
             with self.assertRaises(ncp.Ended) as caught:
                 client.call("echo", {"k": 2})
-            self.assertEqual((caught.exception.code, caught.exception.executed), ("session_expired", "unknown"))
+            self.assertEqual((caught.exception.code, caught.exception.executed), ("session_expired", ncp.Executed.UNKNOWN))
             self.assertNotIn(2, service.counts)
         finally:
             service.close()
@@ -436,9 +531,7 @@ class CrossLanguageTests(unittest.TestCase):
             self.assertEqual(owner.stdout.readline().strip(), "ready")
             self.assertTrue(wait_for_peer(session))
             channel = Dropping(session, name, lose="reply", seq=2)
-            client = ncp.Client(
-                channel, application=CONTRACT.application, contract=CONTRACT.identity, timeout=TIMEOUT_S
-            )
+            client = ncp.Client(channel, CONTRACT, timeout=TIMEOUT_S, observer=QUIET)
             client.open()
             values = ncp.Array("u32", (3,), b"\x01\x00\x00\x00\x02\x00\x00\x00\x03\x00\x00\x00")
             for k in (1, 2, 3):
@@ -517,6 +610,26 @@ def access_control(config: zenoh.Config, service: str, allowed: str) -> zenoh.Co
     return config
 
 
+def client_access_control(config: zenoh.Config, service: str, owner: str) -> zenoh.Config:
+    """Rule 9.2.6, the client's side: admit only the peer whose certificate names `owner` as the one
+    that may declare the queryable of the service and reply on its key."""
+    key = ncp_zenoh.exchange_key(service)
+    rules = {
+        "enabled": True,
+        "default_permission": "deny",
+        "rules": [
+            {"id": "send-queries", "messages": ["query"], "flows": ["egress"], "permission": "allow",
+             "key_exprs": [key]},
+            {"id": "owner-replies", "messages": ["reply", "declare_queryable"], "flows": ["ingress"],
+             "permission": "allow", "key_exprs": [key]},
+        ],
+        "subjects": [{"id": "owner", "cert_common_names": [owner]}],
+        "policies": [{"rules": ["send-queries", "owner-replies"], "subjects": ["owner"]}],
+    }
+    config.insert_json5("access_control", json.dumps(rules))
+    return config
+
+
 @unittest.skipUnless(shutil.which("openssl"), "needs the openssl command")
 class TlsTests(unittest.TestCase):
     """Rule 9.2.6: mutual TLS, and access control by the client's certificate."""
@@ -534,29 +647,27 @@ class TlsTests(unittest.TestCase):
     def tearDownClass(cls) -> None:
         shutil.rmtree(cls.directory)
 
-    def service(self, client: str, ca: str = "ca", allowed: str | None = None) -> Service:
+    def service(
+        self, client: str, ca: str = "ca", allowed: str | None = None, owner: str = "owner",
+        trusted_owner: str | None = None,
+    ) -> Service:
         endpoint = f"tls/localhost:{free_port()}"
         name = f"test/{uuid.uuid4().hex[:8]}"
-        owner_config = tls(self.directory, "ca", "owner", listen=[endpoint])
+        owner_config = tls(self.directory, "ca", owner, listen=[endpoint])
         if allowed is not None:
             owner_config = access_control(owner_config, name, allowed)
+        client_config = tls(self.directory, ca, client, connect=[endpoint])
+        if trusted_owner is not None:
+            client_config = client_access_control(client_config, name, trusted_owner)
         service = Service.__new__(Service)
         service.counts, service.name = {}, name
         service.owner_session = zenoh.open(owner_config)
-        service.client_session = zenoh.open(tls(self.directory, ca, client, connect=[endpoint]))
-        service.stop, ready = threading.Event(), threading.Event()
+        service.client_session = zenoh.open(client_config)
 
         def make_owner() -> ncp.Owner:
-            return ncp.Owner(CONTRACT.application, CONTRACT.identity, Counting(service.counts), CONTRACT.operations)
+            return ncp.Owner(CONTRACT, Counting(service.counts), observer=QUIET)
 
-        service.thread = threading.Thread(
-            target=ncp_zenoh.serve,
-            args=(service.owner_session, name, make_owner),
-            kwargs={"stop": service.stop, "ready": ready},
-            daemon=True,
-        )
-        service.thread.start()
-        ready.wait(5)
+        service.server = ncp_zenoh.Server(service.owner_session, name, make_owner, observer=QUIET).start()
         service.linked = wait_for_peer(service.client_session, 3.0)
         return service
 
@@ -577,7 +688,7 @@ class TlsTests(unittest.TestCase):
             self.assertFalse(service.linked)
             with self.assertRaises(ncp.Ended) as caught:
                 service.client().open()
-            self.assertEqual(caught.exception.code, "timeout")
+            self.assertEqual(caught.exception.code, "local.timeout")
             self.assertEqual(service.counts, {})
         finally:
             service.close()
@@ -602,11 +713,37 @@ class TlsTests(unittest.TestCase):
                     else:
                         with self.assertRaises(ncp.Ended) as caught:
                             session.open()
-                        self.assertEqual(caught.exception.code, "timeout")
+                        self.assertEqual(caught.exception.code, "local.timeout")
                         self.assertEqual(service.counts, {})
                 finally:
                     service.close()
 
+
+    def test_the_client_admits_only_the_owner_it_trusts(self) -> None:
+        # The client's side of rule 9.2.6. An impostor with a certificate of the same CA declares
+        # the service. The last case is the control: without the client's access control, the
+        # impostor answers, so the refusal in the second case comes from the access control.
+        for owner, trusted, answered in (
+            ("owner", "owner", True),
+            ("client-b", "owner", False),
+            ("client-b", None, True),
+        ):
+            with self.subTest(owner=owner, trusted=trusted):
+                service = self.service("client-a", owner=owner, trusted_owner=trusted)
+                try:
+                    self.assertTrue(service.linked)
+                    session = service.client()
+                    if answered:
+                        session.open()
+                        self.assertEqual(session.call("echo", {"k": 1}).body, {"k": 1})
+                        session.close()
+                    else:
+                        with self.assertRaises(ncp.Ended) as caught:
+                            session.open()
+                        self.assertEqual(caught.exception.code, "local.timeout")
+                        self.assertEqual(service.counts, {})
+                finally:
+                    service.close()
 
 if __name__ == "__main__":
     os.environ.setdefault("RUST_LOG", "error")

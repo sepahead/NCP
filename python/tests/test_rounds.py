@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import random
 import sys
@@ -50,11 +51,11 @@ class World:
 
 
 def make_rounds(members, step, deadline=5.0) -> ncp.Rounds:
-    return ncp.Rounds("world", CONTRACT.identity, "act", members, step, deadline=deadline)
+    return ncp.Rounds(CONTRACT, "act", members, step, deadline=deadline)
 
 
 def client_for(owner: ncp.Owner) -> ncp.Client:
-    client = ncp.Client(Direct(owner), application="world", contract=CONTRACT.identity)
+    client = ncp.Client(Direct(owner), CONTRACT)
     client.open()
     return client
 
@@ -150,10 +151,10 @@ class RoundsTests(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 0.4)  # c is no longer waited for
         self.assertEqual(ncp.RoundRecord.of(results["b"], "b").missing, ())
         for number in (1, 3):
-            with self.assertRaises(ncp.Rejected) as caught:
+            with self.assertRaises(ncp.Declined) as caught:
                 c.call("act", act("c", number))
             self.assertEqual(caught.exception.code, "body_invalid")
-            self.assertIn("excluded", caught.exception.body["detail"])
+            self.assertIn("excluded", caught.exception.detail)
 
     def test_a_request_that_the_owner_accepted_before_the_deadline_is_in_the_round(self) -> None:
         # b's request is validated before the deadline and added after it: the round must wait
@@ -166,13 +167,13 @@ class RoundsTests(unittest.TestCase):
         reserved = threading.Event()
 
         class Slow:
-            def validate(self, op, body):
-                inner.validate(op, body)  # opens round 1 and reserves b's place
+            def validate(self, request):
+                inner.validate(request)  # opens round 1 and reserves b's place
                 reserved.set()
                 time.sleep(0.5)  # past the deadline, before execute adds the request
 
-            def execute(self, op, body):
-                return inner.execute(op, body)
+            def execute(self, request):
+                return inner.execute(request)
 
         slow_owner.handler = Slow()
         b = client_for(slow_owner)
@@ -186,7 +187,7 @@ class RoundsTests(unittest.TestCase):
         self.assertEqual((record.agents, record.missing), (("a", "b"), ("c",)))
         self.assertEqual(ncp.RoundRecord.of(results["b"], "b"), record)
 
-    def test_invalid_round_requests_are_rejected_and_change_nothing(self) -> None:
+    def test_invalid_round_requests_are_declined_and_change_nothing(self) -> None:
         world = World()
         rounds = make_rounds(["a", "b"], world)
         first, second = client_for(rounds.owner()), client_for(rounds.owner())
@@ -197,29 +198,31 @@ class RoundsTests(unittest.TestCase):
             (act("z", 1), "unknown agent"),
             (act("a", 2), "round 2 is not open"),
         ):
-            with self.assertRaises(ncp.Rejected) as caught:
+            with self.assertRaises(ncp.Declined) as caught:
                 first.call("act", body)
             self.assertEqual(caught.exception.code, "body_invalid")
-            self.assertIn(words, caught.exception.body["detail"])
+            self.assertIn(words, caught.exception.detail)
 
         def second_session_for_a():
             time.sleep(0.05)  # first is now waiting in round 1 as agent a
             try:
                 second.call("act", act("a", 1))
-            except ncp.Rejected as error:
-                rejection = error.body["detail"]
+            except ncp.Declined as error:
+                rejection = error.detail
             return rejection, second.call("act", act("b", 1))
 
         results = run_agents([("a", lambda: first.call("act", act("a", 1))), ("other", second_session_for_a)])
         rejection, result_b = results["other"]
         self.assertIn("another session", rejection)
         self.assertEqual(ncp.RoundRecord.of(result_b, "b").agents, ("a", "b"))
-        with self.assertRaises(ncp.Rejected) as caught:
+        with self.assertRaises(ncp.Declined) as caught:
             first.call("act", act("b", 2))
-        self.assertIn("belongs to another agent", caught.exception.body["detail"])
+        self.assertIn("belongs to another agent", caught.exception.detail)
         self.assertEqual(world.rounds, [(1, ["a", "b"])])
 
     def test_a_failed_step_ends_the_sessions_of_its_round_and_stops_the_rounds(self) -> None:
+        logging.disable(logging.CRITICAL)
+        self.addCleanup(logging.disable, logging.NOTSET)
         for broken in (
             lambda number, inputs: 1 / 0,
             lambda number, inputs: {inputs[0][0]: {}},  # no result for the second agent
@@ -233,9 +236,9 @@ class RoundsTests(unittest.TestCase):
                 self.assertEqual((results[name].code, results[name].executed), ("owner_failure", "unknown"))
             self.assertIsNotNone(rounds.error)
             late = client_for(rounds.owner())
-            with self.assertRaises(ncp.Rejected) as caught:
+            with self.assertRaises(ncp.Declined) as caught:
                 late.call("act", act("a", 2))
-            self.assertIn("step failed", caught.exception.body["detail"])
+            self.assertIn("step failed", caught.exception.detail)
 
     def test_an_agent_checks_that_the_record_lists_its_own_request(self) -> None:
         rounds = make_rounds(["a", "b"], World())
@@ -259,7 +262,7 @@ class RoundsTests(unittest.TestCase):
 
                 def agent(name):
                     def run():
-                        client = ncp.Client(ncp.connect_unix(path), application="world", contract=CONTRACT.identity)
+                        client = ncp.Client(ncp.connect_unix(path), CONTRACT)
                         client.open()
                         seen = [ncp.RoundRecord.of(client.call("act", act(name, k)), name) for k in range(1, 6)]
                         client.close()
@@ -273,6 +276,17 @@ class RoundsTests(unittest.TestCase):
         self.assertEqual(world.rounds, [(k, names) for k in range(1, 6)])
         for k in range(5):
             self.assertEqual(len({results[name][k] for name in names}), 1)
+
+    def test_a_member_whose_session_ended_may_take_a_new_session(self) -> None:
+        world = World()
+        rounds = make_rounds(["a", "b"], world)
+        first_owner = rounds.owner()
+        first, b = client_for(first_owner), client_for(rounds.owner())
+        both_act(first, b, 1)
+        first_owner.finish("lost")  # the connection of a's first session broke
+        again = client_for(rounds.owner())
+        results = both_act(again, b, 2)
+        self.assertEqual(ncp.RoundRecord.of(results["a"], "a").agents, ("a", "b"))
 
     def test_members_and_deadline_are_checked(self) -> None:
         for members in ([], ["a", "a"], [""], ["x" * 129], [1]):

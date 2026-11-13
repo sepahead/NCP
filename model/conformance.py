@@ -1,159 +1,239 @@
 #!/usr/bin/env python3
-"""Check that the real Python owner answers like the model owner (spec/NCP-2.md, section 7.3).
+"""Check that the real owners answer like the verified Lean model (spec/NCP-2.md, section 7.3).
 
-Random traces of requests drive the model owner and `ncp.Owner` side by side: correct requests,
-invalid bodies, repeats of earlier requests, stale acknowledgements, skipped and stale sequence
-numbers, application failures, and `close`. For every request, both must give the same outcome
-and code, and a repeat must return byte-identical frames.
+Random traces of inputs drive several owners side by side. The inputs are requests before and after
+`open` with every `open` verdict; correct, stale, missing, and foreign acknowledgements; stale,
+repeated, and skipped sequence numbers; other sessions and protocol versions; invalid bodies,
+failing and too large results, unknown operations, `ncp.ping`, and `close`; exact copies of earlier
+requests, as a network repeats them; stops of the owner; and restarts of the owner, after which
+copies of the requests of the earlier opening can still arrive.
 
-With --owner COMMAND..., the owner is an external program that prints "port N" or "unix PATH"
-and serves one session per connection, such as the Rust example `model_owner`.
+For every input, all owners must give the same outcome and code. A response that the reference
+gives again (the same identity) must come back as the identical bytes from each real owner. The
+application of the Python owner records what it executes: no request may execute twice, across
+restarts too (spec section 7.7, properties 1 and 2).
 
-With --self-test, the Python owner runs with each known defect of MUTANTS in turn, and every defect
-must make a trace fail.
+The owners:
+  --oracle PATH      the compiled Lean model of ../formal (`ncp2-oracle`): the reference, whose
+                     step function the Lean proofs cover
+  the Python owner   `ncp.Owner`, always
+  --owner PROGRAM    an external owner program with the command protocol of
+                     rust/examples/model_owner.rs, which drives the Rust owner state machine
 
-With --oracle PATH, the reference is the compiled Lean model of ../formal (the `ncp2-oracle`
-executable), whose step function the Lean proofs cover, instead of the Python model.
+Without --oracle, the Python owner is the reference. The run fails if the traces do not reach every
+code of section 7.5 that an owner sends.
 
-Usage: conformance.py [--traces 20000] [--seed 20261023] [--oracle PATH] [--owner COMMAND...]
+With --self-test, the Python owner runs with each known defect of MUTANTS in turn, and the traces
+must detect every defect.
+
+Usage: conformance.py [--traces 20000] [--seed 20261023] [--oracle PATH] [--self-test]
+                      [--owner PROGRAM ...]
 """
 
 from __future__ import annotations
 
 import argparse
+import collections
+import dataclasses
+import logging
 import os
 import random
 import subprocess
 import sys
-import uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "python"))
 
 import ncp  # noqa: E402
-import ncp2_model as M  # noqa: E402
 from ncp import frame as F  # noqa: E402
+
+logging.getLogger("ncp").addHandler(logging.NullHandler())
+logging.getLogger("ncp").propagate = False
 
 CONTRACT = ncp.Contract.from_bytes(
     b'{"ncp_contract":1,"application":"model","version":"1","operations":{"step":{}},"streams":{}}'
 )
+OTHER_CONTRACT = "0" * 64
+SESSIONS = {1: "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b", 2: "1b2c3d4e-5f60-4718-9a2b-3c4d5e6f7a8b"}
+OPEN_VERDICTS = ("accept", "body_invalid", "contract_mismatch", "bound_unacceptable", "refused")
+OWNER_CODES = frozenset(
+    {
+        "wrong_protocol", "not_open", "already_open", "wrong_session", "seq_stale", "seq_gap", "seq_conflict",
+        "ack_missing", "ack_mismatch", "unknown_op", "body_invalid", "contract_mismatch", "bound_unacceptable",
+        "refused", "session_ended", "result_too_large", "owner_failure", "session_expired", "shutdown",
+    }
+)
+ADMITTED_ENDINGS = frozenset({"owner_failure", "result_too_large"})
+
+
+@dataclasses.dataclass(frozen=True)
+class Req:
+    """An abstract request. `ack` names which response it acknowledges: None, "last" (the last
+    kept response), "stale" (the one before it), "first" (the first one of the trace), or "other"
+    (an identity that no owner sent)."""
+
+    seq: int
+    op: str  # open | close | ping | step | unknown
+    ack: str | None
+    bad: bool = False
+    fail: bool = False
+    big: bool = False
+    session: int = 1
+    protocol: int = 2
+    verdict: str = "accept"
 
 
 class Handler:
-    def validate(self, op, body):
-        if body.get("version") == "bad":
-            raise ncp.BodyInvalid("bad version")
+    """The harness's application. Bad bodies are declined, failing ones raise, big ones return a
+    result too large for the session, and a run named "refuse" is refused at open. It records the
+    identity of each request that it executes, across restarts of the owner."""
 
-    def execute(self, op, body):
-        if body.get("fail"):
+    def __init__(self, decline: bool = True) -> None:
+        self.decline = decline
+        self.executed: set[str] = set()
+        self.twice: list[str] = []
+
+    def open(self, info):
+        if info.run == "refuse":
+            raise ncp.Refused("refused by the harness")
+        return {}
+
+    def validate(self, request):
+        if self.decline and request.body.get("bad"):
+            raise ncp.Declined("bad body")
+
+    def execute(self, request):
+        if request.identity in self.executed:
+            self.twice.append(request.identity)
+        self.executed.add(request.identity)
+        if request.body.get("fail"):
             raise RuntimeError("injected failure")
-        return {"seq": body["seq"]}
+        if request.body.get("big"):
+            return {"blob": F.Array("u8", [70_000], bytes(70_000))}
+        return {"seq": request.body["seq"]}
 
 
-def python_owner(mutant: str | None = None):
-    owner = ncp.Owner("model", CONTRACT.identity, Handler(), CONTRACT.operations, max_bound=F.HANDSHAKE_BOUND)
-    if mutant is None:
-        return owner.handle, lambda: None
+def frame_of(event: Req, ack: str | None) -> bytes:
+    """The real request frame of an abstract request."""
+    if event.op == "open":
+        body: dict = {"application": "model", "contract": CONTRACT.identity, "bound": F.HANDSHAKE_BOUND}
+        if event.verdict == "body_invalid":
+            del body["bound"]
+        elif event.verdict == "contract_mismatch":
+            body["contract"] = OTHER_CONTRACT
+        elif event.verdict == "bound_unacceptable":
+            body["bound"] = 1000
+        elif event.verdict == "refused":
+            body["run"] = "refuse"
+    else:
+        body = {"seq": event.seq, "bad": event.bad, "fail": event.fail, "big": event.big}
+    op = {"open": "open", "close": "close", "ping": "ncp.ping", "step": "step", "unknown": "missing"}[event.op]
+    message = {"ncp": event.protocol, "session": SESSIONS[event.session], "seq": event.seq, "op": op, "ack": ack,
+               "body": body}
+    return F.encode(message)
 
-    def handle(frame: bytes) -> bytes:
-        request = F.decode(frame, F.MAX_BOUND).message
-        if owner.kept is not None and request["seq"] == owner.high + 1:
-            if mutant == "skips_ack_check" and request["ack"] is not None:
-                owner.kept = (owner.kept[0], owner.kept[1], request["ack"])
-        if mutant == "accepts_gaps" and owner.kept is not None and request["seq"] > owner.high + 1:
-            owner.high = request["seq"] - 1
-        if mutant == "forgets_kept_request" and owner.kept is not None:
-            owner.kept = ("0" * 64, owner.kept[1], owner.kept[2])
-        if mutant == "executes_after_end":
-            owner.ended = False
-        response = owner.handle(frame)
-        if mutant == "reports_stale_as_gap":
-            message = F.decode(response, F.MAX_BOUND).message
-            if message["code"] == "seq_stale":
-                message = {k: v for k, v in message.items() if k != "att"}
-                response = F.encode({**message, "code": "seq_gap"})
+
+class _Silent:
+    def event(self, event) -> None:
+        pass
+
+
+class PythonOwner:
+    """`ncp.Owner`, possibly with a known defect (see MUTANTS)."""
+
+    def __init__(self, mutant: str | None = None) -> None:
+        self.mutant = mutant
+        self.reset()
+
+    def reset(self) -> None:
+        self.handler = Handler(decline=self.mutant != "ignores_invalid")
+        self.restart()
+
+    def restart(self) -> None:
+        self.nonce = 0
+        constant = self.mutant == "constant_nonce"
+        self.owner = ncp.Owner(
+            CONTRACT, self.handler, max_bound=F.HANDSHAKE_BOUND, observer=_Silent(),
+            nonce=lambda: "0" * 32 if constant else f"{self.nonce:032x}",
+        )
+
+    def handle(self, event: Req, ack: str | None, nonce: int) -> bytes:
+        self.nonce = nonce
+        frame = frame_of(event, ack)
+        state = self.owner.state
+        m = self.mutant
+        if m and state.session is not None and state.kept is not None:
+            if m == "skips_ack_check" and event.seq == state.high + 1 and ack is not None:
+                state = dataclasses.replace(state, kept=dataclasses.replace(state.kept, identity=ack))
+            if m == "accepts_gaps" and event.seq > state.high + 1:
+                state = dataclasses.replace(state, high=event.seq - 1)
+            if m == "forgets_kept_request":
+                state = dataclasses.replace(state, kept=dataclasses.replace(state.kept, request="0" * 64))
+            if m == "executes_after_end":
+                state = dataclasses.replace(state, ended=False)
+        before = self.owner.state = state
+        response = self.owner.handle(frame)
+        message = F.decode(response, F.MAX_BOUND).message
+        plain = {k: v for k, v in message.items() if k != "att"}
+        if m == "reports_stale_as_gap" and message["code"] == "seq_stale":
+            response = F.encode({**plain, "code": "seq_gap"})
+        if m == "declined_not_kept" and message["outcome"] == "declined":
+            self.owner.state = before
+        if m == "expired_as_not_open" and message["code"] == "session_expired":
+            response = F.encode({**plain, "outcome": "rejected", "code": "not_open"})
         return response
 
-    return handle, lambda: None
+    def stop(self) -> None:
+        if self.mutant != "ignores_stop":
+            self.owner.stop()
 
+    def check(self) -> None:
+        if self.handler.twice:
+            raise AssertionError(f"the Python owner executed request {self.handler.twice[0][:16]} twice")
 
-# Known defects of an owner, each of which the traces must detect (--self-test).
-MUTANTS = ("skips_ack_check", "accepts_gaps", "forgets_kept_request", "executes_after_end", "reports_stale_as_gap")
+    def close(self) -> None:
+        pass
 
 
 class ExternalOwner:
-    """An owner program that serves one session per TCP connection."""
+    """An owner program with the command protocol of rust/examples/model_owner.rs."""
 
     def __init__(self, argv: list[str]) -> None:
-        self.process = subprocess.Popen(argv, stdout=subprocess.PIPE, text=True)
-        line = self.process.stdout.readline().split(maxsplit=1)
-        if len(line) != 2 or line[0] not in ("port", "unix"):
-            self.process.kill()
-            raise SystemExit(f"the owner printed {line!r}, not 'port N' or 'unix PATH'")
-        self.kind, self.address = line[0], line[1].strip()
+        self.name = os.path.basename(argv[0])
+        self.process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-    def __call__(self):
-        if self.kind == "unix":
-            channel = ncp.connect_unix(self.address)
-        else:
-            channel = ncp.connect_tcp("127.0.0.1", int(self.address))
+    def _command(self, data: bytes) -> None:
+        self.process.stdin.write(data)
+        self.process.stdin.flush()
 
-        def handle(frame: bytes) -> bytes:
-            channel.send(frame)
-            return channel.receive(F.MAX_BOUND, timeout=10)
+    def _read(self, size: int) -> bytes:
+        data = self.process.stdout.read(size)
+        if len(data) != size:
+            raise RuntimeError(f"{self.name} stopped")
+        return data
 
-        return handle, channel.close
+    def reset(self) -> None:
+        self._command(b"n")
+        if self._read(1) != b"k":
+            raise RuntimeError(f"{self.name} did not take a new owner")
+
+    restart = reset
 
     def stop(self) -> None:
-        self.process.terminate()
-        self.process.wait(timeout=10)
-        self.process.stdout.close()
+        self._command(b"s")
+        if self._read(1) != b"k":
+            raise RuntimeError(f"{self.name} did not take the stop")
 
+    def handle(self, event: Req, ack: str | None, nonce: int) -> bytes:
+        frame = frame_of(event, ack)
+        self._command(b"r" + len(frame).to_bytes(4, "big") + frame)
+        size = int.from_bytes(self._read(4), "big")
+        if size == 0:
+            raise RuntimeError(f"{self.name} did not take a request frame")
+        return self._read(size)
 
-class PythonModel:
-    """The reference owner of ncp2_model.py, started after `open`."""
-
-    def __init__(self, open_request: tuple) -> None:
-        self.state = (True, 0, (open_request, ("p", 0, open_request, "ok", None, M.OPEN)), False, 0)
-        self.ghost = ((), None, True)
-        self.open_id = M.OPEN
-
-    def step(self, request: tuple, fail: bool) -> tuple[str, str | None, object]:
-        steps = M.owner_step(self.state, request, self.ghost, may_fail=fail)
-        new_state, response, self.ghost, _ = steps[-1] if fail and len(steps) > 1 else steps[0]
-        self.repeat = response == self.state[2][1]
-        self.state = new_state
-        return response[3], response[4], response[5]
-
-
-class LeanModel:
-    """The compiled Lean model (formal/Oracle.lean): one process per trace."""
-
-    def __init__(self, path: str) -> None:
-        self.process = subprocess.Popen([path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-        self.kept: object = None
-        outcome, _, self.open_id = self._send("0 open - 0 0")
-        assert outcome == "ok", "the oracle refused the open request"
-        self.kept = self.open_id
-
-    def _send(self, line: str) -> tuple[str, str | None, object]:
-        self.process.stdin.write(line + "\n")
-        self.process.stdin.flush()
-        reply = self.process.stdout.readline().split()
-        if len(reply) != 3:
-            raise RuntimeError(f"the oracle answered {reply!r}")
-        outcome, code, identity = reply
-        return outcome, None if code == "-" else code, None if identity == "-" else identity
-
-    def step(self, request: tuple, fail: bool) -> tuple[str, str | None, object]:
-        _, seq, version, ack = request
-        op = "open" if version == "open" else "step"
-        result = self._send(f"{seq} {op} {'-' if ack is None else ack} {int(version == 'bad')} {int(fail)}")
-        self.repeat = result[2] is not None and result[2] == self.kept
-        if result[2] is not None:
-            self.kept = result[2]
-        return result
+    def check(self) -> None:
+        pass
 
     def close(self) -> None:
         self.process.stdin.close()
@@ -161,97 +241,210 @@ class LeanModel:
         self.process.stdout.close()
 
 
-def run_trace(rng: random.Random, length: int, new_owner=python_owner, oracle: str | None = None) -> tuple[int, int]:
-    """Return (requests compared, repeats compared). Raise AssertionError on a difference."""
-    handle, close = new_owner()
-    try:
-        return _run_trace(rng, length, handle, oracle)
-    finally:
-        close()
+class LeanOracle:
+    """The compiled Lean model."""
+
+    def __init__(self, path: str) -> None:
+        self.process = subprocess.Popen([path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+
+    def line(self, text: str) -> str:
+        self.process.stdin.write(text + "\n")
+        self.process.stdin.flush()
+        reply = self.process.stdout.readline()
+        if not reply:
+            raise RuntimeError("the oracle stopped")
+        return reply.strip()
+
+    def _expect_dash(self, text: str) -> None:
+        if self.line(text) != "-":
+            raise RuntimeError(f"the oracle did not take {text!r}")
+
+    def reset(self) -> None:
+        self._expect_dash("reset")
+
+    def restart(self) -> None:
+        self._expect_dash("restart")
+
+    def stop(self) -> None:
+        self._expect_dash("stop")
+
+    def handle(self, event: Req, ack: str | None, nonce: int) -> tuple[str, str | None, str | None]:
+        reply = self.line(
+            f"req {event.seq} {event.op} {'-' if ack is None else ack} {int(event.bad)} {int(event.fail)} "
+            f"{int(event.big)} {event.session} {event.protocol} {nonce} {event.verdict}"
+        ).split()
+        if len(reply) != 3:
+            raise RuntimeError(f"the oracle answered {reply!r}")
+        outcome, code, identity = reply
+        return outcome, None if code == "-" else code, None if identity == "-" else identity
+
+    def check(self) -> None:
+        pass
+
+    def close(self) -> None:
+        self.process.stdin.close()
+        self.process.wait(timeout=10)
+        self.process.stdout.close()
 
 
-def _run_trace(rng: random.Random, length: int, handle, oracle: str | None = None) -> tuple[int, int]:
-    session = str(uuid.uuid4())
-    open_frame = F.encode(
-        {
-            "ncp": 2,
-            "session": session,
-            "seq": 0,
-            "op": "open",
-            "ack": None,
-            "body": {"application": "model", "contract": CONTRACT.identity, "bound": F.HANDSHAKE_BOUND},
-        }
-    )
-    open_response = handle(open_frame)
-    open_request = ("q", 0, "open", None)  # distinct from any step request, as the real frames are
-    model = LeanModel(oracle) if oracle else PythonModel(open_request)
-    try:
-        return _compare(rng, length, handle, model, session, open_request, open_frame, open_response)
-    finally:
-        if oracle:
-            model.close()
+def answer(subject, event: Req, ack: str | None, nonce: int):
+    """(outcome, code, identity, frame) of a subject's response; identity is None for a rejection."""
+    if isinstance(subject, LeanOracle):
+        outcome, code, identity = subject.handle(event, ack, nonce)
+        return outcome, code, identity, None
+    response = subject.handle(event, ack, nonce)
+    message = F.decode(response, F.MAX_BOUND).message
+    identity = None if message["outcome"] == "rejected" else F.identity(response)
+    return message["outcome"], message["code"], identity, response
 
 
-def _compare(rng, length, handle, model, session, open_request, open_frame, open_response) -> tuple[int, int]:
-    real_id = {model.open_id: F.identity(open_response)}  # model response identity -> real identity
-    sent: list[tuple[tuple, bytes, bytes, bool]] = [(open_request, open_frame, open_response, False)]
-    accepted = [model.open_id]
-    compared = repeats = 0
+def resolve(choice: str | None, kept: list[str], lean: bool) -> str | None:
+    """A subject's acknowledgement for an abstract choice, from its own kept identities."""
+    if choice is None:
+        return None
+    if choice == "other":
+        return "1" if lean else "1" * 64
+    index = {"last": -1, "stale": -2, "first": 0}[choice]
+    if (index < 0 and len(kept) >= -index) or (index >= 0 and len(kept) > index):
+        return kept[index]
+    return "0" if lean else "0" * 64
+
+
+def generate(rng: random.Random, length: int, stops: bool) -> list[tuple]:
+    """A random trace of ("req", Req, nonce), ("copy", k, nonce), ("stop",), and ("restart",)
+    items. A copy repeats the k-th new request of the trace with the same bytes."""
+    trace: list[tuple] = []
+    new = 0
+    seq, opened = 0, False  # what a correct client would send next, as the generator believes
     for _ in range(length):
-        choice = rng.random()
-        if choice < 0.2 and sent:
-            request, frame, first, fail = rng.choice(sent)
+        roll = rng.random()
+        nonce = rng.getrandbits(64)
+        if stops and roll < 0.03:
+            trace.append(("stop",))
+            continue
+        if roll < 0.06:
+            trace.append(("restart",))
+            seq, opened = 0, False
+            continue
+        if new and roll < 0.22:
+            k = new - 1 if rng.random() < 0.5 else rng.randrange(new)
+            trace.append(("copy", k, nonce))
+            continue
+        if not opened:
+            pick = rng.random()
+            if pick < 0.08:
+                event = Req(0, "step", None)  # not_open
+            elif pick < 0.16:
+                event = Req(rng.randint(1, 3), "step", "last")  # session_expired
+            else:
+                verdict = "accept" if rng.random() < 0.75 else rng.choice(OPEN_VERDICTS[1:])
+                event = Req(0, "open", None, verdict=verdict)
+                opened = verdict == "accept"
+                seq = 1 if opened else 0
         else:
-            base = len([item for item in accepted]) - 1
-            seq = base + 1
-            ack = accepted[-1]
-            version: object = 0
-            fail = False
-            roll = rng.random()
-            if roll < 0.10:
-                version = "bad"
-            elif roll < 0.18:
-                seq = base + 2
-            elif roll < 0.26 and len(accepted) > 1:
-                ack = accepted[-2]
-            elif roll < 0.30:
-                ack = None
-            elif roll < 0.34:
-                seq = max(base, 1) - 1 if base else 0
-            elif roll < 0.38:
+            ack: str | None = "last"
+            current = seq
+            op, bad, fail, big = "step", False, False, False
+            session, protocol = 1, 2
+            pick = rng.random()
+            if pick < 0.06:
+                bad = True
+            elif pick < 0.10:
                 fail = True
-            # The failure flag is part of the frame's body, so it is part of the request's identity.
-            request = ("q", seq, "fail" if fail and version == 0 else version, ack)
-            op = "step"
-            body = {"seq": seq, "version": version if version == "bad" else 0, "fail": fail}
-            frame = F.encode(
-                {
-                    "ncp": 2,
-                    "session": session,
-                    "seq": seq,
-                    "op": op,
-                    "ack": None if ack is None else real_id.get(ack, "0" * 64),
-                    "body": body,
-                }
-            )
-            first = None
-        outcome, code, identity = model.step(request, fail)
-        real = handle(frame)
-        message = F.decode(real, F.MAX_BOUND).message
-        expected = (outcome, code)
-        observed = (message["outcome"], message["code"])
-        assert observed == expected, f"{request}: model {expected}, real {observed}"
-        if first is not None:
-            if expected[0] != "rejected" and real != first and model.repeat:
-                raise AssertionError(f"{request}: a repeat returned different bytes")
-            repeats += 1
-        if expected[0] in ("ok", "ended") and identity is not None:
-            real_id[identity] = F.identity(real)
-            if expected[0] == "ok" and identity not in accepted:
-                accepted.append(identity)
-            sent.append((request, frame, real, fail))
+            elif pick < 0.13:
+                big = True
+            elif pick < 0.17:
+                op = "unknown"
+            elif pick < 0.21:
+                op = "ping"
+            elif pick < 0.24:
+                op = "close"
+            elif pick < 0.27:
+                op = "open"
+            elif pick < 0.31:
+                current = seq + 1  # seq_gap
+            elif pick < 0.35:
+                ack = "stale"
+            elif pick < 0.37:
+                ack = "first"
+            elif pick < 0.40:
+                ack = None
+            elif pick < 0.43:
+                ack = "other"
+            elif pick < 0.46:
+                current = max(seq - 1, 0)  # seq_stale or seq_conflict
+            elif pick < 0.49:
+                session = 2
+            elif pick < 0.51:
+                protocol = 3
+            event = Req(current, op, ack, bad, fail, big, session, protocol)
+            if current == seq and ack == "last" and session == 1 and protocol == 2 and op != "open":
+                seq += 1  # admitted, unless the owner ended or stopped; the reference decides
+        trace.append(("req", event, nonce))
+        new += 1
+    return trace
+
+
+def run_trace(trace: list[tuple], subjects: list) -> tuple[int, collections.Counter]:
+    """Drive the subjects with one trace; the first is the reference. Return the number of inputs
+    compared and the codes that the reference gave. Raise AssertionError on a difference."""
+    for subject in subjects:
+        subject.reset()
+    codes: collections.Counter = collections.Counter()
+    kept: list[list[str]] = [[] for _ in subjects]  # each subject's kept identities, in order
+    seen: list[dict[str, bytes]] = [{} for _ in subjects]  # reference identity -> subject frame
+    sent: list[tuple[Req, list[str | None]]] = []  # each new request, with each subject's ack
+    compared = 0
+    for index, item in enumerate(trace):
+        if item[0] in ("stop", "restart"):
+            for subject in subjects:
+                getattr(subject, item[0])()
+            continue
+        if item[0] == "req":
+            event = item[1]
+            acks = [resolve(event.ack, kept[p], isinstance(s, LeanOracle)) for p, s in enumerate(subjects)]
+            sent.append((event, acks))
+        else:
+            event, acks = sent[item[1]]
+        nonce = item[2]
+        results = [answer(s, event, acks[p], nonce) for p, s in enumerate(subjects)]
+        for subject in subjects:
+            subject.check()
+        reference = results[0]
+        for position, result in enumerate(results[1:], start=1):
+            if result[:2] != reference[:2]:
+                raise AssertionError(
+                    f"input {index} {event}: reference {reference[:2]}, owner {position} {result[:2]}"
+                )
+        outcome, code, identity = reference[0], reference[1], reference[2]
+        codes[code or outcome] += 1
+        if identity is not None:
+            for position, result in enumerate(results):
+                frame = result[3]
+                if frame is not None:
+                    earlier = seen[position].setdefault(identity, frame)
+                    if earlier != frame:
+                        raise AssertionError(f"input {index} {event}: the same response came back as other bytes")
+            if outcome in ("ok", "declined") or code in ADMITTED_ENDINGS:
+                for position, result in enumerate(results):
+                    if result[2] not in kept[position]:
+                        kept[position].append(result[2])
         compared += 1
-    return compared, repeats
+    return compared, codes
+
+
+MUTANTS = (
+    "skips_ack_check",
+    "accepts_gaps",
+    "forgets_kept_request",
+    "executes_after_end",
+    "reports_stale_as_gap",
+    "declined_not_kept",
+    "ignores_stop",
+    "expired_as_not_open",
+    "constant_nonce",
+    "ignores_invalid",
+)
 
 
 def main() -> int:
@@ -260,35 +453,56 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=20261023)
     parser.add_argument("--oracle", default=None, help="the compiled Lean model (formal/.lake/build/bin/ncp2-oracle)")
     parser.add_argument("--self-test", action="store_true", help="require the traces to detect each known defect")
-    parser.add_argument("--owner", nargs=argparse.REMAINDER, help="an external owner command")
+    parser.add_argument("--owner", nargs=argparse.REMAINDER, help="an external owner program and its arguments")
     args = parser.parse_args()
+
+    def subjects_for(mutant: str | None = None) -> list:
+        subjects: list = []
+        if args.oracle:
+            subjects.append(LeanOracle(args.oracle))
+        elif mutant is not None:
+            subjects.append(PythonOwner())
+        subjects.append(PythonOwner(mutant))
+        if args.owner:
+            subjects.append(ExternalOwner(args.owner))
+        return subjects
+
+    def run(subjects: list, traces: int) -> tuple[int, collections.Counter, AssertionError | None]:
+        rng = random.Random(args.seed)
+        total, codes = 0, collections.Counter()
+        try:
+            for _ in range(traces):
+                compared, reached = run_trace(generate(rng, rng.randint(1, 16), True), subjects)
+                total += compared
+                codes.update(reached)
+        except AssertionError as error:
+            return total, codes, error
+        finally:
+            for subject in subjects:
+                subject.close()
+        return total, codes, None
+
     if args.self_test:
         missed = []
         for mutant in MUTANTS:
-            rng = random.Random(args.seed)
-            try:
-                for _ in range(args.traces):
-                    run_trace(rng, rng.randint(1, 12), lambda m=mutant: python_owner(m), args.oracle)
+            _, _, caught = run(subjects_for(mutant), args.traces)
+            print(f"mutant {mutant:22s} {'caught: ' + str(caught)[:110] if caught else 'MISSED'}")
+            if caught is None:
                 missed.append(mutant)
-                print(f"mutant {mutant:22s} MISSED")
-            except AssertionError as error:
-                print(f"mutant {mutant:22s} caught: {error}")
+        print(f"self-test: {len(MUTANTS) - len(missed)} of {len(MUTANTS)} known defects detected")
         return 1 if missed else 0
-    rng = random.Random(args.seed)
-    external = ExternalOwner(args.owner) if args.owner else None
-    new_owner = external or python_owner
-    total = repeats = 0
-    try:
-        for _ in range(args.traces):
-            compared, repeated = run_trace(rng, rng.randint(1, 12), new_owner, args.oracle)
-            total += compared
-            repeats += repeated
-    finally:
-        if external:
-            external.stop()
-    name = " ".join(os.path.basename(part) for part in args.owner[:2]) if args.owner else "the Python owner"
-    reference = "the verified Lean model" if args.oracle else "the model owner"
-    print(f"conformance: {args.traces} traces, {total} requests, {repeats} repeats; {name} answers like {reference}")
+    total, codes, error = run(subjects_for(), args.traces)
+    if error is not None:
+        print(f"conformance: FAILED: {error}")
+        return 1
+    names = ["the Python owner"] + ([os.path.basename(args.owner[0])] if args.owner else [])
+    reference = "the verified Lean model" if args.oracle else "the Python owner"
+    print(f"conformance: {args.traces} traces, {total} requests; {' and '.join(names)} answer like {reference}; "
+          f"no request executed twice; {len(codes)} outcomes and codes reached")
+    missing = sorted(OWNER_CODES - codes.keys())
+    if missing:
+        print(f"the traces never reached: {', '.join(missing)}")
+        return 1
     return 0
 
 

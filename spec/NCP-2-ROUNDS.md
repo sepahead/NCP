@@ -1,8 +1,10 @@
 # NCP 2 profile: rounds
 
-Status: a profile of NCP 2.0, final, 11 November 2026. The Python SDK 2.0.0 implements it.
+Status: a profile of NCP 2.0, release candidate, revision 2 of 13 November 2026. The Python SDK 2.0.0 implements it.
 This document is normative. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119 and RFC 8174 when, and only when, they appear in all capitals.
 It builds on the [NCP 2 specification](NCP-2.md) and changes nothing in it. The Python SDK implements it as `ncp.Rounds` (owner) and `ncp.RoundRecord` (client check).
+
+Revision 2 follows revision 3 of the specification: a request that breaks a rule of this profile is declined, not rejected, and a member whose session ends can take a new session.
 
 ## 1. Purpose
 
@@ -28,21 +30,20 @@ The result of a round then depends on its requests and not on the order in which
 
 The owner keeps the number of the last round that closed (0 at the start), the set of excluded members, and, for each member, the session that the member is bound to, if any.
 
-1. The owner rejects a request of the round operation with `body_invalid` (specification 7.3, rule 11) if any of these holds:
+1. The owner declines a request of the round operation with `body_invalid` (specification, section 7.3, rule 12) if any of these holds:
    1. the body has no `ncp.round` member as section 3 defines it;
    2. `agent` is not a member;
    3. the session is bound to another member;
    4. the member is bound to another session;
    5. the member is excluded;
    6. `round` is not the number of the last closed round plus 1;
-   7. an earlier round failed (rule 7).
+   7. an earlier round failed (rule 8);
+   8. the member already has a request in the open round.
 
-   The rejection body SHOULD say which of these held, in its `detail` member.
+   A declined request never executes, and the session goes on. The body of the response SHOULD say which of these held, in its member `detail`.
 2. Otherwise the owner accepts the request: it binds the member to the session, if the member was not bound, and adds the request to the round. A round opens when the owner accepts its first request.
 3. A round closes when it has a request of every member that is not excluded, or when the deadline has passed since it opened, whichever comes first. A request that the owner accepted belongs to its round: the owner MUST NOT close a round between accepting a request and adding it.
 4. When round K closes, every member that is not excluded and has no request in round K is excluded from every later round.
-The owner MUST be able to accept requests of other sessions while requests of the open round wait for it to close. A server that handles one request at a time for all sessions, such as the Zenoh servers of the reference SDKs 2.0.0, cannot serve this profile.
-
 5. The owner then applies the requests of round K once, in member order, and responds to each of them with `ok`. The body of each response is an object: the application's result for that member, with the member `ncp.round_record`:
 
    | Member | Value |
@@ -53,12 +54,15 @@ The owner MUST be able to accept requests of other sessions while requests of th
    | `missing` | The names of the members that rule 4 excluded when round K closed, in member order. |
 
 6. Every response of round K carries the same record.
-7. If the application fails to apply round K, the owner responds `ended` with `owner_failure` to every request of round K, and rule 1.7 rejects every later request of the round operation.
+7. When the session of a member ends, the member is no longer bound. A new session can bind it, unless the member is excluded.
+8. If the application fails to apply round K, the owner responds `ended` with `owner_failure` to every request of round K, and rule 1.7 declines every later request of the round operation.
+
+The owner MUST be able to accept requests of other sessions while requests of the open round wait for it to close. Serve each session in its own thread or task, as the Unix domain socket, TCP, and Zenoh servers of the reference SDKs do.
 
 ## 5. Client rules
 
 1. After an `ok` response to a request of the round operation, a client MUST check that `agents` in `ncp.round_record` lists its member, and that the same row of `requests` holds the identity of its request. If not, the client MUST treat the response as a protocol error.
-2. A client whose request was rejected because its member is excluded can expect no later round to apply a request of that member.
+2. A client whose request was declined because its member is excluded can expect no later round to apply a request of that member.
 
 ## 6. Properties and limits
 
@@ -66,9 +70,9 @@ The owner MUST be able to accept requests of other sessions while requests of th
 - **Agreement.** Every agent of round K receives the same record. Identities are SHA-256 digests of exact frames, so the record names exactly the requests that the round applied. With the transcripts of the sessions (specification, section 10), anyone can check that the agents received the same record and that each listed request is the one that its agent sent.
 - **Liveness.** A member that sends nothing delays the other members once, by at most the deadline. From the next round on, no round waits for it.
 - **Timing.** Whether a late request still enters a round depends on time. The records say which requests each round applied, so a run can be replayed from its records, but two runs with different timing can apply different requests.
-- **No rejoining.** An excluded member cannot take part again while the owner runs. A member that closes its session is excluded when the next round closes.
+- **New sessions, no rejoining.** A member whose session ends can continue in a new session, if it sends its next request before the round closes without it. An excluded member cannot take part again while the owner runs.
 - **Size.** The record grows with the number of members: 32 bytes and the name for each applied request. The session bound (specification, section 7.1) must hold it.
-- **Evidence.** This profile is tested in the Python SDK. It is neither model checked nor proved.
+- **Evidence.** The Python SDK tests this profile (`python/tests/test_rounds.py`). It is neither model checked nor proved.
 
 ## 7. Example
 

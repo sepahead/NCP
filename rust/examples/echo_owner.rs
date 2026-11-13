@@ -4,13 +4,14 @@
 //! echo_owner [--no-digest-check] unix PATH   one session per connection; prints "ready unix:PATH"
 //! echo_owner tcp                             one session per connection; prints "ready tcp:127.0.0.1:PORT"
 //!
-//! --no-digest-check turns off the comparison of request digests (spec section 3, rule 4).
+//! --no-digest-check turns off the comparison of request digests (spec section 3, rule 5).
 //! With NCP_EXECUTION_LOG set, each execution first appends its request body as one JSON line to
 //! that file; benchmarks/fault-campaign compares these lines with what the client learned.
-use ncp::{binding, Array, Contract, Decoded, Handler, Owner, Reply};
+use ncp::{declined, events, AppError, Array, Contract, Handler, Invalid, Owner, Reply, Request};
 use serde_json::json;
 use std::collections::HashMap;
 use std::io::Write;
+use std::sync::Arc;
 
 const CONTRACT: &[u8] = br#"{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}"#;
 
@@ -51,29 +52,25 @@ impl Default for Echo {
 }
 
 impl Handler for Echo {
-    fn validate(&mut self, op: &str, request: &Decoded) -> Result<(), String> {
-        let body = &request.message["body"];
-        if op == "echo" && body["invalid"] == true {
-            return Err("invalid requested".into());
+    fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
+        if request.op == "echo" && request.body["invalid"] == true {
+            return Err(declined("invalid requested"));
         }
-        if op == "spikes" && body["n"].as_u64().is_none_or(|n| n > 1 << 22) {
-            return Err("n must be an integer from 0 to 2^22".into());
+        if request.op == "spikes" && request.body["n"].as_u64().is_none_or(|n| n > 1 << 22) {
+            return Err(declined("n must be an integer from 0 to 2^22"));
         }
         Ok(())
     }
-    fn execute(
-        &mut self,
-        op: &str,
-        request: &Decoded,
-    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
+
+    fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
         if let Some(log) = self.log.as_mut() {
             // One write for the whole line, so that a killed owner leaves whole lines.
-            log.write_all(format!("{}\n", request.message["body"]).as_bytes())?;
+            log.write_all(format!("{}\n", request.body).as_bytes())?;
         }
-        match op {
+        match request.op {
             "fail" => Err("requested failure".into()),
             "spikes" => {
-                let n = request.message["body"]["n"].as_u64().unwrap_or(0) as usize;
+                let n = request.body["n"].as_u64().unwrap_or(0) as usize;
                 if n == 0 {
                     return Ok(json!({"count": 13}).into());
                 }
@@ -85,7 +82,7 @@ impl Handler for Echo {
                 })
             }
             _ => Ok(Reply {
-                body: request.message["body"].clone(),
+                body: request.body.clone(),
                 arrays: request.owned_arrays(),
             }),
         }
@@ -93,27 +90,13 @@ impl Handler for Echo {
 }
 
 fn owner(contract: &Contract, check_digests: bool) -> Owner<Echo> {
-    let owner = Owner::new(
-        &contract.application,
-        &contract.identity,
-        Echo::default(),
-        contract.operations.clone(),
-        ncp::MAX_BOUND,
-    );
+    let owner = Owner::new(contract.clone(), Echo::default())
+        .with_max_bound(ncp::MAX_BOUND)
+        .with_observer(Arc::new(events::Silent)); // the requested failures are expected
     if check_digests {
         owner
     } else {
         owner.without_digest_check()
-    }
-}
-
-fn serve_one<R: std::io::Read, W: std::io::Write>(
-    contract: &Contract,
-    check: bool,
-    channel: std::io::Result<ncp::StreamChannel<R, W>>,
-) {
-    if let Ok(mut channel) = channel {
-        let _ = binding::serve(&mut owner(contract, check), &mut channel);
     }
 }
 
@@ -122,35 +105,38 @@ fn main() -> std::io::Result<()> {
     let mut args: Vec<String> = std::env::args().collect();
     let check = !args.iter().any(|a| a == "--no-digest-check");
     args.retain(|a| a != "--no-digest-check");
-    match args.get(1).map(String::as_str) {
+    let mut server = match args.get(1).map(String::as_str) {
         None => {
             if let Err(error) = ncp::serve_stdio(&mut owner(&contract, check)) {
                 eprintln!("echo owner: {error}");
                 std::process::exit(1);
             }
+            return Ok(());
         }
         Some("unix") => {
-            let listener = std::os::unix::net::UnixListener::bind(&args[2])?;
+            let server = ncp::serve_unix(
+                &args[2],
+                move || owner(&contract, check),
+                ncp::Limits::default(),
+            )?;
             println!("ready unix:{}", args[2]);
-            std::io::stdout().flush()?;
-            for stream in listener.incoming() {
-                let (stream, contract) = (stream?, contract.clone());
-                std::thread::spawn(move || {
-                    serve_one(&contract, check, binding::unix_channel(stream))
-                });
-            }
+            server
         }
         Some(_) => {
-            let listener = binding::listen_tcp("127.0.0.1:0", false)?;
-            println!("ready tcp:127.0.0.1:{}", listener.local_addr()?.port());
-            std::io::stdout().flush()?;
-            for stream in listener.incoming() {
-                let (stream, contract) = (stream?, contract.clone());
-                std::thread::spawn(move || {
-                    serve_one(&contract, check, binding::tcp_channel(stream))
-                });
-            }
+            let server = ncp::serve_tcp(
+                "127.0.0.1:0",
+                false,
+                move || owner(&contract, true),
+                ncp::Limits::default(),
+            )?;
+            println!("ready tcp:{}", server.address());
+            server
         }
-    }
+    };
+    std::io::stdout().flush()?;
+    // Serve until standard input closes.
+    let mut sink = Vec::new();
+    let _ = std::io::Read::read_to_end(&mut std::io::stdin(), &mut sink);
+    server.stop(std::time::Duration::from_secs(1));
     Ok(())
 }

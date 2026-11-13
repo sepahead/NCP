@@ -178,8 +178,8 @@ def check_versions() -> str:
         exact = [d for d in project.get("dependencies", []) if "==" in d]
         if exact:
             raise SystemExit(f"{name} requires exact versions: {exact}; a library takes ranges")
-    if f'IMPLEMENTATION = "ncp-python/{version}"' not in (ROOT / "python" / "ncp" / "exchange.py").read_text():
-        raise SystemExit(f"python/ncp/exchange.py does not name ncp-python/{version}")
+    if f'IMPLEMENTATION = "ncp-python/{version}"' not in (ROOT / "python" / "ncp" / "owner.py").read_text():
+        raise SystemExit(f"python/ncp/owner.py does not name ncp-python/{version}")
     return version
 
 

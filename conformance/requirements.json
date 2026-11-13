@@ -1,0 +1,749 @@
+{
+  "ncp_requirements": 1,
+  "spec": "spec/NCP-2.md",
+  "about": "Each normative line of the specification and the checks that test it. scripts/check_ncp2_requirements.py requires one entry for each line that has MUST, MUST NOT, SHOULD, SHOULD NOT, or REQUIRED, and for each numbered rule of sections 7.3, 7.6, and 8, and checks that every reference exists.",
+  "references": {
+    "vectors:PART": "the whole part of conformance/vectors.json",
+    "vectors:PART:NAME": "the case with this name (frames, messages, auth, scenarios, clients, transcripts, contracts)",
+    "vectors:streams:STATUS": "a stream case with this status",
+    "vectors:schemas:KEYWORD": "a schema case that uses this keyword",
+    "test:python:NAME": "a test function in python/tests",
+    "test:rust:NAME": "a test function in rust/tests",
+    "model:simulate:PROPERTY": "a property that model/simulate.py checks in every reachable state",
+    "model:conformance": "the oracle traces of model/conformance.py",
+    "lean:CLAIM": "a claim of formal/Statements.lean, proved in formal/Audit.lean",
+    "fuzz": "the differential fuzzing of conformance/fuzz.py",
+    "gate:TEXT": "a step of scripts/check_ncp2.sh",
+    "test:zenoh-python:NAME": "a test function in bindings/zenoh/python/tests (scripts/check_ncp2_zenoh.sh)",
+    "test:zenoh-rust:NAME": "a test function in bindings/zenoh/rust/tests (scripts/check_ncp2_zenoh.sh)"
+  },
+  "requirements": [
+    {
+      "section": "3",
+      "text": "1. `12 + J` MUST be a multiple of 8.",
+      "covered_by": [
+        "vectors:frames:json region not aligned",
+        "test:python:test_json_padding_is_exact",
+        "fuzz"
+      ]
+    },
+    {
+      "section": "3",
+      "text": "2. The frame length, `44 + J + A`, MUST NOT exceed the receiver's bound. `J` MUST NOT exceed 1,048,576.",
+      "covered_by": [
+        "vectors:frames:exceeds the bound",
+        "vectors:frames:a JSON region of 1 MiB plus 4 bytes",
+        "vectors:frames:the largest JSON region: 1 MiB minus 4 bytes",
+        "test:python:test_bound",
+        "fuzz"
+      ]
+    },
+    {
+      "section": "3",
+      "text": "3. A receiver MUST check the magic, `J`, `A`, and the limits of rule 2 before it reads the rest of the frame.",
+      "covered_by": [
+        "vectors:frames:magic version 1",
+        "vectors:frames:exceeds the bound",
+        "test:python:test_bad_frame_rule_and_slow_sender",
+        "test:rust:a_bad_frame_ends_a_tcp_connection"
+      ]
+    },
+    {
+      "section": "3",
+      "text": "4. The JSON region MUST start with the byte `{`. It MUST end with the byte `}` and then the fewest space bytes, zero to seven, that make `12 + J` a multiple of 8.",
+      "covered_by": [
+        "vectors:frames:eight spaces of padding",
+        "vectors:frames:padding of tabs and newlines",
+        "vectors:frames:leading spaces",
+        "vectors:frames:padding of zero bytes",
+        "test:python:test_json_padding_is_exact",
+        "test:rust:the_json_padding_is_exact"
+      ]
+    },
+    {
+      "section": "3",
+      "text": "5. A receiver MUST compute the digest and compare it with the digest field before it parses the JSON region. A frame with a different digest is a bad frame.",
+      "covered_by": [
+        "vectors:frames:digest",
+        "vectors:auth:a damaged frame with the key",
+        "test:python:test_a_damaged_body_is_a_bad_frame",
+        "fuzz"
+      ]
+    },
+    {
+      "section": "3",
+      "text": "Exception: on a pipe pair or a Unix domain socket where no other program can change frames between the two endpoints, an application MAY turn off this comparison for the frames that it receives. It MUST NOT turn it off in an authenticated session (section 13.2).",
+      "covered_by": [
+        "test:python:test_the_digest_check_can_be_turned_off_on_local_links",
+        "test:rust:the_digest_check_can_be_turned_off_only_on_local_links"
+      ]
+    },
+    {
+      "section": "4",
+      "text": "The JSON region MUST contain one JSON text as defined in RFC 8259, encoded in UTF-8 without a byte order mark, whose value is an object, followed only by the padding of section 3, rule 4.",
+      "covered_by": [
+        "vectors:frames:byte order mark",
+        "vectors:frames:invalid UTF-8",
+        "vectors:frames:top-level array",
+        "vectors:frames:trailing garbage",
+        "fuzz"
+      ]
+    },
+    {
+      "section": "4",
+      "text": "A receiver MUST reject the frame as a bad frame if any of these conditions is true:",
+      "covered_by": [
+        "vectors:frames:duplicate member",
+        "vectors:frames:integer 2^53",
+        "vectors:frames:negative integer 2^53",
+        "vectors:frames:integer beyond 64 bits",
+        "vectors:frames:integer written as -0",
+        "vectors:frames:float beyond binary64",
+        "vectors:frames:NaN literal",
+        "vectors:frames:Infinity literal",
+        "vectors:frames:unpaired high surrogate",
+        "vectors:frames:unpaired low surrogate",
+        "vectors:frames:64 nested arrays inside the object (65 levels)",
+        "test:python:test_loads_applies_the_json_rules",
+        "fuzz"
+      ]
+    },
+    {
+      "section": "4",
+      "text": "A sender MUST check these conditions before it sends a frame.",
+      "covered_by": [
+        "test:python:test_encoder_refuses_frames_that_receivers_must_reject",
+        "test:rust:encoders_refuse_frames_that_receivers_must_reject"
+      ]
+    },
+    {
+      "section": "4",
+      "text": "Senders SHOULD write the compact form without spaces between tokens.",
+      "untested": "a SHOULD about the form of the text; the SDK encoders write the compact form, and no check requires it"
+    },
+    {
+      "section": "5",
+      "text": "1. If `att` is absent or an empty array, `A` MUST be 0.",
+      "covered_by": [
+        "vectors:frames:att null",
+        "vectors:frames:att without attachments",
+        "vectors:frames:attachments without att",
+        "vectors:frames:one empty array: att [0] and A = 0"
+      ]
+    },
+    {
+      "section": "5",
+      "text": "2. Attachment 0 starts at offset 0 of the region. Attachment `i + 1` starts at the first multiple of 8 at or after the end of attachment `i`. Padding bytes between attachments MUST be zero.",
+      "covered_by": [
+        "vectors:frames:nonzero padding between attachments",
+        "vectors:frames:empty attachment after an unaligned one",
+        "test:python:test_attachments_are_eight_byte_aligned_in_the_frame"
+      ]
+    },
+    {
+      "section": "5",
+      "text": "3. `A` MUST equal the end of the last attachment. The region has no trailing padding.",
+      "covered_by": [
+        "vectors:frames:trailing byte",
+        "fuzz"
+      ]
+    },
+    {
+      "section": "5",
+      "text": "4. A frame MUST NOT have more than 1024 attachments.",
+      "covered_by": [
+        "vectors:frames:1024 attachments",
+        "vectors:frames:1025 attachments"
+      ]
+    },
+    {
+      "section": "5",
+      "text": "- `att` is the index of the attachment that holds the elements. Its length MUST equal the product of the shape and the element size.",
+      "covered_by": [
+        "vectors:frames:array length mismatch",
+        "vectors:frames:arrays of every dtype"
+      ]
+    },
+    {
+      "section": "5",
+      "text": "- Each attachment MUST belong to exactly one array of the frame.",
+      "covered_by": [
+        "vectors:frames:attachment used twice",
+        "vectors:frames:attachment without array"
+      ]
+    },
+    {
+      "section": "6",
+      "text": "A receiver MUST treat a message with a missing member, an extra member, or a member of the wrong type as a bad frame.",
+      "covered_by": [
+        "vectors:messages",
+        "fuzz"
+      ]
+    },
+    {
+      "section": "7.1",
+      "text": "The owner MUST choose each nonce from at least 128 random bits. Two openings MUST NOT share a nonce, also across restarts of the owner. The identity of the `open` response is the root of the session's hash chain, so different nonces make the chains of two openings disjoint (section 7.7, property 1).",
+      "covered_by": [
+        "test:python:test_each_opening_has_its_own_nonce",
+        "test:rust:each_opening_has_its_own_nonce",
+        "lean:OpeningsDisjoint",
+        "model:simulate:P1",
+        "model:conformance"
+      ]
+    },
+    {
+      "section": "7.1",
+      "text": "An owner enables only features that it knows and that the request lists. A client MUST NOT use a feature that the response does not list.",
+      "covered_by": [
+        "test:python:test_several_contracts_and_the_handler_hooks",
+        "test:rust:several_contracts_and_the_handler_hooks",
+        "test:python:test_steps_carry_the_tick_and_the_state"
+      ]
+    },
+    {
+      "section": "7.1",
+      "text": "A client MUST ignore members of this body that it does not know. Later versions can add members.",
+      "covered_by": [
+        "test:python:test_unknown_codes_are_handled_by_outcome",
+        "test:rust:unknown_codes_are_handled_by_outcome"
+      ]
+    },
+    {
+      "section": "7.3.1",
+      "text": "1. If the frame is bad (sections 3 to 6), apply the binding's bad-frame rule (section 9). Stop.",
+      "covered_by": [
+        "test:python:test_bad_frame_rule_and_slow_sender",
+        "test:python:test_bad_frame_response_form",
+        "test:rust:a_bad_frame_ends_a_tcp_connection",
+        "vectors:clients:a nameless response ends the session"
+      ]
+    },
+    {
+      "section": "7.3.2",
+      "text": "2. If `ncp` is not 2, reject with `wrong_protocol`. Stop.",
+      "covered_by": [
+        "vectors:scenarios:protocol rejections change nothing; a declined request advances the session",
+        "lean:RejectedChangesNothing",
+        "model:conformance"
+      ]
+    },
+    {
+      "section": "7.3.3",
+      "text": "3. If the owner does not hold the session:",
+      "covered_by": [
+        "vectors:scenarios:open rules",
+        "test:python:test_without_a_session",
+        "test:python:test_session_expired_leaves_the_request_possibly_executed",
+        "model:conformance",
+        "model:simulate:P7"
+      ]
+    },
+    {
+      "section": "7.3.4",
+      "text": "4. If `session` is not the session that the owner holds, reject with `wrong_session`. Stop.",
+      "covered_by": [
+        "vectors:scenarios:protocol rejections change nothing; a declined request advances the session",
+        "model:conformance"
+      ]
+    },
+    {
+      "section": "7.3.5",
+      "text": "5. If `seq` equals `high` and `kept` exists:",
+      "covered_by": [
+        "lean:RetransmissionIdentical",
+        "test:python:test_lossy_channel_retries_without_reexecution",
+        "test:rust:a_lost_response_is_sent_again_and_executes_once",
+        "model:conformance",
+        "model:simulate:P1"
+      ]
+    },
+    {
+      "section": "7.3.6",
+      "text": "6. If `seq` is less than `high`, reject with `seq_stale`. Stop.",
+      "covered_by": [
+        "lean:StaleMayHaveExecuted",
+        "lean:RejectionMeansNotAdmitted",
+        "model:conformance"
+      ]
+    },
+    {
+      "section": "7.3.7",
+      "text": "7. If `seq` is greater than `high` + 1, reject with `seq_gap`. Stop.",
+      "covered_by": [
+        "lean:InOrder",
+        "test:python:test_sequence_and_ack_rules",
+        "model:conformance",
+        "model:simulate:P2"
+      ]
+    },
+    {
+      "section": "7.3.8",
+      "text": "8. If `ended` is true, reject with `session_ended`. Stop.",
+      "covered_by": [
+        "lean:NothingAfterEnd",
+        "vectors:scenarios:owner failure ends the session",
+        "model:conformance",
+        "model:simulate:P7"
+      ]
+    },
+    {
+      "section": "7.3.9",
+      "text": "9. If `ack` is `null`, reject with `ack_missing`. If `ack` differs from the identity of `kept`, reject with `ack_mismatch`. Stop.",
+      "covered_by": [
+        "lean:Acknowledged",
+        "test:python:test_sequence_and_ack_rules",
+        "model:conformance",
+        "model:simulate:P3"
+      ]
+    },
+    {
+      "section": "7.3.10",
+      "text": "10. If `op` is `open`, reject with `already_open`. If the owner stops (section 9.1, rule 9, and section 9.2, rule 9), respond `ended` with `shutdown`, and never admit the request later. Stop.",
+      "covered_by": [
+        "vectors:scenarios:a stopping owner admits nothing new",
+        "lean:NothingAfterStop",
+        "lean:ShutdownIsFinal",
+        "test:python:test_a_stopping_owner_admits_nothing_new",
+        "test:rust:a_stopping_owner_admits_nothing_new",
+        "model:conformance",
+        "model:simulate:P5"
+      ]
+    },
+    {
+      "section": "7.3.11",
+      "text": "11. Admit the request: release `kept`, and set `high` to `seq`.",
+      "covered_by": [
+        "lean:AtMostOnce",
+        "lean:InOrder",
+        "model:simulate:P1"
+      ]
+    },
+    {
+      "section": "7.3.12",
+      "text": "12. Execute the request:",
+      "covered_by": [
+        "vectors:scenarios:happy path, ping, and close",
+        "vectors:scenarios:owner failure ends the session",
+        "vectors:scenarios:result too large ends the session",
+        "vectors:scenarios:a declined request keeps its answer when the application would now accept it",
+        "test:python:test_result_too_large",
+        "test:python:test_close_and_ping",
+        "lean:FaultFreeProgress",
+        "lean:DeclinedIsFinal",
+        "model:conformance"
+      ]
+    },
+    {
+      "section": "7.3.13",
+      "text": "13. Keep the response as `kept`. If the outcome is `ended`, or the operation is `close`, set `ended` to true.",
+      "covered_by": [
+        "lean:RetransmissionIdentical",
+        "lean:NothingAfterEnd",
+        "vectors:scenarios:a declined request keeps its answer when the application would now accept it",
+        "test:python:test_a_declined_request_is_admitted_and_kept"
+      ]
+    },
+    {
+      "section": "7.5",
+      "text": "Later versions of this specification can add codes. A receiver MUST accept a code that it does not know and act on the outcome. After `rejected`, the frame was not admitted. After `declined`, the request never executes. After `ended`, the request is possibly executed.",
+      "covered_by": [
+        "vectors:clients:ended codes and what executed",
+        "vectors:clients:ok and declined both advance",
+        "vectors:messages:an unknown code",
+        "test:python:test_unknown_codes_are_handled_by_outcome",
+        "test:rust:unknown_codes_are_handled_by_outcome"
+      ]
+    },
+    {
+      "section": "7.6.1",
+      "text": "1. The client sends one request at a time. It keeps the frame bytes of the request until it accepts a response.",
+      "covered_by": [
+        "vectors:clients:one request at a time",
+        "test:python:test_the_machine_is_pure"
+      ]
+    },
+    {
+      "section": "7.6.2",
+      "text": "2. A response belongs to the request if `ncp` is 2 and `session`, `seq`, and `request` match the request.",
+      "covered_by": [
+        "vectors:clients:a frame that does not belong to the request, on a byte stream",
+        "vectors:clients:a frame that does not belong to the request, on a lossy binding",
+        "vectors:clients:a nameless response ends the session",
+        "model:simulate:P4"
+      ]
+    },
+    {
+      "section": "7.6.3",
+      "text": "3. After an `ok` or a `declined` response, the client sets `seq` of its next request to the `seq` of this response plus 1, and `ack` to the identity of this response.",
+      "covered_by": [
+        "vectors:clients:ok and declined both advance",
+        "lean:FaultFreeProgress",
+        "test:python:test_a_declined_request_advances_the_session"
+      ]
+    },
+    {
+      "section": "7.6.4",
+      "text": "4. After a `rejected` response to `open`, no session is open. The client MAY send a corrected `open`. A client that follows these rules receives `rejected` for another request only when the owner holds another opening of the session: the owner lost the session, and a delayed copy of the `open` request opened it again. An earlier copy of the request may have executed in the lost opening. After a `rejected` response to a request other than `open`, the client MUST therefore end the session and treat the request as possibly executed.",
+      "covered_by": [
+        "vectors:clients:a rejection of a request other than open ends the session, possibly executed",
+        "vectors:clients:a rejected open leaves no session; the same open can follow",
+        "lean:RejectedOnlyForOpen",
+        "test:python:test_a_rejected_call_ends_the_session_possibly_executed",
+        "model:simulate:P6"
+      ]
+    },
+    {
+      "section": "7.6.5",
+      "text": "5. After an `ended` response, the session is over. After `owner_failure`, `session_expired`, or a code that the client does not know, the client MUST treat the request as possibly executed.",
+      "covered_by": [
+        "vectors:clients:ended codes and what executed",
+        "lean:UnknownIsLast",
+        "lean:ClientTruthful",
+        "model:simulate:P7"
+      ]
+    },
+    {
+      "section": "7.6.6",
+      "text": "6. On a binding that can lose frames (section 9.2), the client MAY send the same request frame again after a time limit. The owner sends the kept response again (rule 7.3.5).",
+      "covered_by": [
+        "vectors:clients:time limits",
+        "test:python:test_lossy_channel_retries_without_reexecution",
+        "model:simulate:P1"
+      ]
+    },
+    {
+      "section": "7.6.7",
+      "text": "7. If the client cannot get a response, it MUST treat the request as possibly executed and end the session. This applies when the time limit passes after the last copy of the request, and when the binding closes.",
+      "covered_by": [
+        "vectors:clients:time limits",
+        "vectors:clients:a time limit on a byte stream",
+        "vectors:clients:the binding closes",
+        "test:python:test_a_closed_stream_ends_the_session_with_the_request_possibly_executed",
+        "model:simulate:P7"
+      ]
+    },
+    {
+      "section": "8.1",
+      "text": "1. A publisher numbers the messages of a stream from 1. It sets `prev` to the identity of its previous message, and `contract` to the identity of the stream's contract.",
+      "covered_by": [
+        "vectors:streams:accepted",
+        "test:python:test_subscriber_rules"
+      ]
+    },
+    {
+      "section": "8.2",
+      "text": "2. A publisher instance MUST use a stream identifier that no other publisher instance uses, also after a restart. The reference SDKs append `/` and 16 random hexadecimal characters to the name that the application gives.",
+      "covered_by": [
+        "test:python:test_a_restarted_publisher_is_a_new_stream",
+        "test:rust:streams_detect_loss_repeats_conflicts_and_forgery"
+      ]
+    },
+    {
+      "section": "8.3",
+      "text": "3. A subscriber keeps, for each stream, the `seq` and the identity of the last message that it accepted.",
+      "covered_by": [
+        "vectors:streams:repeat",
+        "test:python:test_the_subscriber_keeps_a_bounded_number_of_streams"
+      ]
+    },
+    {
+      "section": "8.4",
+      "text": "4. A subscriber applies a bound to each stream frame. The stream's contract states its largest frame.",
+      "covered_by": [
+        "test:python:test_the_subscriber_applies_its_bound_to_each_frame",
+        "test:rust:the_subscriber_applies_its_bound_to_each_frame"
+      ]
+    },
+    {
+      "section": "8.5",
+      "text": "5. If the subscriber has no state for the stream, it accepts the message. If `seq` is 1, it reports `accepted`. If `seq` is greater than 1, it reports `joined`: it knows nothing about the earlier messages.",
+      "covered_by": [
+        "vectors:streams:joined",
+        "test:python:test_a_late_subscriber_joins_and_an_end_message_ends"
+      ]
+    },
+    {
+      "section": "8.6",
+      "text": "6. If `seq` is the last accepted `seq` plus 1 and `prev` matches, the subscriber accepts the message and reports `accepted`.",
+      "covered_by": [
+        "vectors:streams:accepted"
+      ]
+    },
+    {
+      "section": "8.7",
+      "text": "7. If `seq` is larger than the last accepted `seq` plus 1, the subscriber accepts the message and reports `accepted` with the number of lost messages.",
+      "covered_by": [
+        "vectors:streams:accepted",
+        "test:python:test_subscriber_rules"
+      ]
+    },
+    {
+      "section": "8.8",
+      "text": "8. If `seq` is the last accepted `seq` plus 1 and `prev` does not match, the subscriber MUST NOT accept the message. It reports `broken_chain`.",
+      "covered_by": [
+        "vectors:streams:broken_chain"
+      ]
+    },
+    {
+      "section": "8.9",
+      "text": "9. If `seq` is the last accepted `seq` and the identity differs, the subscriber MUST NOT accept the message. It reports `conflict`: two publishers share the identifier, or the message changed.",
+      "covered_by": [
+        "vectors:streams:conflict"
+      ]
+    },
+    {
+      "section": "8.10",
+      "text": "10. Otherwise, if `seq` is not larger than the last accepted `seq`, the subscriber drops the message as a `repeat`.",
+      "covered_by": [
+        "vectors:streams:repeat"
+      ]
+    },
+    {
+      "section": "8.11",
+      "text": "11. A subscriber that receives a message with an unknown `contract` MUST NOT accept it. It reports `unknown_contract`.",
+      "covered_by": [
+        "vectors:streams:unknown_contract"
+      ]
+    },
+    {
+      "section": "8.12",
+      "text": "12. A message whose body is an object with the member `ncp.end` ends the stream. The subscriber accepts it as rule 5, 6, or 7 says and reports the end. After the end, the subscriber reports every message of the stream as a `repeat` if its `seq` is not larger than the last accepted `seq`, and as a `conflict` otherwise.",
+      "covered_by": [
+        "vectors:streams:accepted",
+        "test:python:test_a_late_subscriber_joins_and_an_end_message_ends"
+      ]
+    },
+    {
+      "section": "9.1",
+      "text": "4. On a pipe pair, the owner reads frames from its standard input and writes frames to its standard output. It MUST NOT write anything else to its standard output.",
+      "covered_by": [
+        "gate:python -m ncp conformance",
+        "test:python:test_spawn_ends_the_child_and_keeps_its_standard_error"
+      ]
+    },
+    {
+      "section": "9.1",
+      "text": "5. An owner that listens on a Unix domain socket SHOULD create it in a directory that only the users of the session can access. On one machine, a Unix domain socket is the preferred connection between programs that the owner does not start.",
+      "covered_by": [
+        "test:python:test_unix_socket_session",
+        "test:rust:a_unix_server_serves_sessions_and_removes_its_socket"
+      ]
+    },
+    {
+      "section": "9.1",
+      "text": "6. A TCP endpoint MUST set `TCP_NODELAY`. By default, a TCP endpoint MUST listen on and connect to loopback addresses only. Other addresses require an explicit option. On networks that are not trusted, use TLS (section 13.3), a secure tunnel, or the Zenoh binding with TLS.",
+      "covered_by": [
+        "test:python:test_a_tcp_connection_without_nodelay_is_not_used",
+        "test:python:test_remote_addresses_need_an_option",
+        "test:rust:remote_addresses_need_permission"
+      ]
+    },
+    {
+      "section": "9.1",
+      "text": "8. An implementation SHOULD set the send and receive buffers of a socket to at least 1 MiB. Small default buffers, such as the 8 KiB of a Unix domain socket on macOS, multiply the time that a large frame takes.",
+      "untested": "the SDKs ask for buffers of 1 MiB; the operating system can grant less, and no check reads the sizes back"
+    },
+    {
+      "section": "9.1",
+      "text": "9. **Shutdown:** an owner MAY stop a session. It then reads no further frame, sends a response with `session`, `seq`, and `request` set to `null`, outcome `ended`, and code `shutdown`, and closes the connection. It MUST have answered every request that it read. A request that the client sent and that has no response was therefore not admitted.",
+      "covered_by": [
+        "test:python:test_stop_ends_each_session_with_the_shutdown_response",
+        "test:rust:a_full_server_refuses_an_open_and_stop_sends_the_shutdown_response",
+        "vectors:clients:a nameless response ends the session",
+        "model:simulate:P5"
+      ]
+    },
+    {
+      "section": "9.2",
+      "text": "5. Each owner MUST use its own service key. Service keys and stream keys contain no wildcards.",
+      "untested": "a deployment rule; the Zenoh bindings take the key that the application gives"
+    },
+    {
+      "section": "9.2",
+      "text": "6. Deployments on networks that are not trusted MUST use TLS with client certificates and Zenoh access control on both sides. The owner's side admits only the clients of the service. The client's side admits only the owner as the one that may declare the queryable and reply on the service key.",
+      "covered_by": [
+        "test:zenoh-python:test_mutual_tls_refuses_a_client_of_another_ca",
+        "test:zenoh-python:test_access_control_admits_only_the_named_certificate",
+        "test:zenoh-python:test_the_client_admits_only_the_owner_it_trusts",
+        "test:zenoh-rust:mutual_tls_and_access_control"
+      ]
+    },
+    {
+      "section": "9.2",
+      "text": "7. An owner serves one session for each session identifier. It MAY forget a session that has sent no request for a time, counted from the owner's last response to it, that the owner documents. That time MUST exceed the longest time that a client of the service waits for a response, all copies included. A request of a forgotten session gets the response of rule 7.3.3.",
+      "covered_by": [
+        "test:zenoh-python:test_a_forgotten_session_ends_with_session_expired",
+        "test:zenoh-python:test_a_step_longer_than_the_expiry_time_keeps_its_session",
+        "test:zenoh-rust:a_forgotten_session_ends_with_session_expired",
+        "test:zenoh-rust:a_step_longer_than_the_expiry_time_keeps_its_session",
+        "model:simulate:P7"
+      ]
+    },
+    {
+      "section": "9.2",
+      "text": "8. An owner SHOULD execute the requests of different sessions independently, so that a long step of one session does not delay the other sessions.",
+      "covered_by": [
+        "test:zenoh-python:test_a_long_step_does_not_delay_another_session",
+        "test:zenoh-rust:a_long_step_does_not_delay_another_session"
+      ]
+    },
+    {
+      "section": "10.2",
+      "text": "A recorder MUST record a frame that it sends before it sends the frame, and a frame that it receives after it has received the whole frame.",
+      "covered_by": [
+        "test:python:test_a_tap_records_a_frame_before_sending_it",
+        "test:rust:a_tap_records_a_frame_before_sending_it_and_a_dropped_tap_closes",
+        "test:python:test_a_tap_keeps_its_records_when_the_program_dies"
+      ]
+    },
+    {
+      "section": "10.3",
+      "text": "A verifier MUST check, and report each failure:",
+      "covered_by": [
+        "vectors:transcripts",
+        "test:python:test_changed_truncated_and_torn_transcripts",
+        "test:rust:transcripts_detect_tampering"
+      ]
+    },
+    {
+      "section": "10.3",
+      "text": "A verifier SHOULD accept transcripts of version 1, whose files start with `4E 43 50 54 00 00 00 01`, have no header, and have records without chain values.",
+      "covered_by": [
+        "vectors:transcripts:version 1",
+        "test:python:test_version_1_transcripts_are_read"
+      ]
+    },
+    {
+      "section": "11",
+      "text": "The document MUST meet the rules of section 4. Its value MUST be an object with these members, and it MAY have others:",
+      "covered_by": [
+        "vectors:contracts"
+      ]
+    },
+    {
+      "section": "11",
+      "text": "1. Operation names and stream type names have the format of an operation name (section 6). Operation names MUST NOT be `open` or `close`, and MUST NOT start with `ncp.`.",
+      "covered_by": [
+        "vectors:contracts:operation open",
+        "vectors:contracts:operation close",
+        "vectors:contracts:operation ncp.x",
+        "vectors:contracts:operation Open!",
+        "vectors:contracts:stream type Bad"
+      ]
+    },
+    {
+      "section": "11",
+      "text": "4. An owner MUST decline a request whose body does not match the operation's `request` schema, with `body_invalid`, before it calls the application. A client MAY check a result against the `result` schema.",
+      "covered_by": [
+        "vectors:scenarios:the request schema of the contract",
+        "test:python:test_the_request_schema_of_the_contract",
+        "test:rust:the_request_schema_of_the_contract"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `enum` | An array of values. The value MUST equal one of them. |",
+      "covered_by": [
+        "vectors:schemas:enum"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `const` | A value. The value MUST equal it. |",
+      "covered_by": [
+        "vectors:schemas:const"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `minimum`, `maximum` | Numbers. A number MUST be at least, or at most, this value. |",
+      "covered_by": [
+        "vectors:schemas:minimum",
+        "vectors:schemas:maximum"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `exclusiveMinimum`, `exclusiveMaximum` | Numbers. A number MUST be greater, or less, than this value. |",
+      "covered_by": [
+        "vectors:schemas:exclusiveMinimum",
+        "vectors:schemas:exclusiveMaximum"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `minLength`, `maxLength` | Integers. A string MUST have at least, or at most, this number of Unicode code points. |",
+      "covered_by": [
+        "vectors:schemas:minLength",
+        "vectors:schemas:maxLength"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `items` | A schema. Every element of an array MUST match it. |",
+      "covered_by": [
+        "vectors:schemas:items"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `minItems`, `maxItems` | Integers. An array MUST have at least, or at most, this number of elements. |",
+      "covered_by": [
+        "vectors:schemas:minItems",
+        "vectors:schemas:maxItems"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `properties` | An object of schemas. Each member of the value with one of these names MUST match its schema. |",
+      "covered_by": [
+        "vectors:schemas:properties"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `required` | An array of member names. The value MUST have each of these members. |",
+      "covered_by": [
+        "vectors:schemas:required"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `additionalProperties` | `false`, or a schema. With `false`, the value MUST NOT have members outside `properties`. With a schema, each such member MUST match it. |",
+      "covered_by": [
+        "vectors:schemas:additionalProperties"
+      ]
+    },
+    {
+      "section": "11.1",
+      "text": "| `ncp.array` | An object with the members `dtype`, a dtype or an array of dtypes, and `shape`, an array of integers or `null`. The value MUST be an array (section 5) with one of these dtypes and a shape of the same length, equal at each integer. |",
+      "covered_by": [
+        "vectors:schemas:ncp.array"
+      ]
+    },
+    {
+      "section": "13.2",
+      "text": "2. A receiver configured with `K` verifies every frame with `K`. It treats every other frame as a bad frame. It MUST NOT turn off the comparison.",
+      "covered_by": [
+        "vectors:auth",
+        "test:python:test_authenticated_frames",
+        "test:python:test_authenticated_session",
+        "test:rust:a_keyed_transcript_and_an_authenticated_session"
+      ]
+    },
+    {
+      "section": "13.3",
+      "text": "A TCP endpoint MAY use TLS 1.3 with certificates on both sides. The server MUST require a client certificate signed by the authority that the deployment names. The client MUST check the server's certificate and name. The frames inside TLS are unchanged.",
+      "covered_by": [
+        "test:python:test_tls_with_certificates_on_both_sides"
+      ]
+    },
+    {
+      "section": "15",
+      "text": "These names are reserved for this specification, its later versions, and NCP profiles. Applications MUST NOT use them with other meanings.",
+      "covered_by": [
+        "vectors:contracts:operation ncp.x"
+      ]
+    }
+  ]
+}

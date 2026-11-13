@@ -4,9 +4,9 @@
 It needs the NCP 2 core package `sepahead-ncp` 2.x and `eclipse-zenoh` 1.10.2 or a later 1.x release; its tests use 1.10.2.
 
 - `ZenohChannel(session, service)`: a client channel for `ncp.Client`; it sends a request again when no reply arrives in time.
-- `serve(session, service, make_owner)`: serve one owner for each session on `ncp/x/<service>`.
+- `Server(session, service, make_owner).start()` and `stop(grace)`: one owner for each session on `ncp/x/<service>`, each session in its own thread; `serve(...)` runs a server until an event is set.
 - `stream_sender(session, name)` and `subscribe(session, name, on_frame)`: streams on `ncp/s/<name>`.
-- `secure_config(...)`: mutual TLS for networks that are not trusted; add Zenoh access control to it.
+- `secure_config(...)`: mutual TLS for networks that are not trusted; add Zenoh access control on both sides.
 
 The [binding's README](https://github.com/sepahead/NCP/blob/main/bindings/zenoh/README.md) explains its behavior, security, tests, and limits.
 Version 2.0.0, with NCP 2.0, which is prepared for release; the tag and the publication follow.

@@ -397,8 +397,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/README.md",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "e54dcee58c55e62d62a5fd064954a1c7338f793b2c61ecae5ea39af0ab66ffe5",
-      "size_bytes": 4976
+      "sha256": "751876ab4945e18987281ea5282310d87fd7819bd3f1994a8df907c9e085c2c4",
+      "size_bytes": 6497
     },
     {
       "classification": "frozen-release-baseline",
@@ -1637,16 +1637,16 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/fuzz.py",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "1167804340b731f078183accddc5a259d237efcf96e75b8d85576e4a99dea8bb",
-      "size_bytes": 11748
+      "sha256": "0506c44be3dc29b65b686a2055ff6fca0342035aa69efd2c933a0948e3e04e86",
+      "size_bytes": 16108
     },
     {
       "classification": "conformance-fixture",
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/generate.py",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "d7c72b921599ec4c10d1187293f212841130edcfc1dc0b3ae36d7252c6e6109c",
-      "size_bytes": 17263
+      "sha256": "ba4e2766b100a5551a2f83748d800b69041dca5f7bc5b86de929780e98d9b1c9",
+      "size_bytes": 54259
     },
     {
       "classification": "conformance-fixture",
@@ -1691,6 +1691,14 @@
     {
       "classification": "conformance-fixture",
       "license_disposition": "MIT OR Apache-2.0 repository material",
+      "path": "conformance/requirements.json",
+      "provenance": "tracked repository source or reproducible generated output",
+      "sha256": "551f2cc9b9dae3b56d19be7a106d68d0b4f93df4313650fdee3bc62226b6b352",
+      "size_bytes": 32431
+    },
+    {
+      "classification": "conformance-fixture",
+      "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/security-state-digest/v1.json",
       "provenance": "tracked repository source or reproducible generated output",
       "sha256": "a9d3319ae4113575d725b037fda93ddedcd469ddf2ef1850fc7d4ee60f8828c0",
@@ -1701,8 +1709,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/vectors.json",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "fafbfd7949bda6e7c7fe162821ac7874adb6e7ce98be31d0f457b3709c8dd6c0",
-      "size_bytes": 181420
+      "sha256": "8f6a2841d64d1c58ea449f2bec8505428ec82f4558967f4b9ec3a18b75437410",
+      "size_bytes": 537161
     },
     {
       "classification": "conformance-fixture",
@@ -2617,7 +2625,7 @@
         "scripts/diagram_font_metrics.v1.json"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "e15a045ae9fb9b9fbf2387ea0f7f4fce647a3cfcc5484cfca89e8eab65b4e521"
+      "sha256": "0c8a712111418ff422b33512c8132de3d2aaab923922871928d8d407527fe42c"
     },
     {
       "outputs": [
@@ -3043,6 +3051,21 @@
         "action": "oven-sh/setup-bun",
         "revision": "0c5077e51419868618aeaa5fe8019c62421857d6",
         "workflow": ".github/workflows/ci.yml"
+      },
+      {
+        "action": "actions/checkout",
+        "revision": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+        "workflow": ".github/workflows/ncp2-zenoh.yml"
+      },
+      {
+        "action": "actions/setup-python",
+        "revision": "ece7cb06caefa5fff74198d8649806c4678c61a1",
+        "workflow": ".github/workflows/ncp2-zenoh.yml"
+      },
+      {
+        "action": "dtolnay/rust-toolchain",
+        "revision": "4be7066ada62dd38de10e7b70166bc74ed198c30",
+        "workflow": ".github/workflows/ncp2-zenoh.yml"
       },
       {
         "action": "actions/checkout",

@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NCP 2.0 release candidate, revision 3 (13 November 2026; tag and publication follow)
+
+A review questioned the rules of revision 2 from first principles, and an exhaustive check of the
+SDKs found one more gap. Revision 3 changes the session rules and the interfaces of both SDKs; the
+frame format stays. [`docs/design/NCP-2-DESIGN.md`](docs/design/NCP-2-DESIGN.md#12-revision-3) gives
+each decision with its finding and its check, and
+[`docs/design/NCP-2-MIGRATION.md`](docs/design/NCP-2-MIGRATION.md#6-from-revision-2-to-revision-3-of-ncp-2)
+lists the changes for consumers.
+
+- **Breaking: the outcome `declined`.** A request that the application finds invalid, or that names an
+  operation that the contract lacks, is admitted and kept, and never executes. Revision 2 rejected it
+  and kept nothing, so a copy that arrived after the application changed its verdict could execute
+  although the client had been told that nothing ran. `rejected` now means "not admitted", and client
+  rules 7.6.8 and 7.6.9 are gone.
+- **Breaking: a nonce for each opening.** The `open` response carries at least 128 random bits, so an
+  owner that restarts or forgets a session can no longer be opened again into a chain that a copy of
+  an old step continues.
+- **Breaking: rule 7.6.4.** A rejection of a request other than `open` ends the session, and the
+  request is possibly executed. A delayed copy of `open` can open a lost session again, and a later
+  call then gets `ack_mismatch` or `seq_gap` although an earlier copy may have run. The exhaustive model
+  check found this case in its first run.
+- `session_expired` on every binding for a request with `seq` greater than 0 of a session that the
+  owner does not hold; `shutdown` from a stopping owner, also as a response that names no request on
+  byte streams; `ncp.ping`; `features` in `open`; optional HMAC-SHA-256 frames with a shared key;
+  contract schemas in a closed subset of JSON Schema, and several contracts of one application for one
+  owner; transcript version 2 with a chain over its records and an end record (version 1 stays
+  readable); streams with unique publisher instances, `joined`, `conflict`, an end message, a bound
+  for each frame, and a limit on the streams that a subscriber keeps.
+- The lockstep profile (`spec/NCP-2-LOCKSTEP.md`), in both SDKs. Revision 2 of the rounds profile
+  declines a request that breaks its rules and lets a member take a new session.
+- Both SDKs are rebuilt around pure state machines: the owner's `step` and the client's `request`,
+  `receive`, `time_out`, and `closed`. The blocking drivers, the servers, the Zenoh bindings, the model
+  check, and the vectors drive the same functions. New: observers of events, servers with limits for
+  sessions, frames, and idle time, TLS for TCP in Python, a channel to a child process that ends the
+  child, and the command-line tool `python -m ncp` (`verify`, `inspect`, `id`, `call`, and
+  `conformance`, which runs the vectors against another implementation's programs).
+- The Zenoh servers run each session in its own thread and stop as rule 9.2.9 says; the tests cover
+  the access control of the client's side as well as the owner's.
+- Verification: the Lean models of the owner and of a client that follows the client rules prove
+  nineteen claims, among them that openings with different nonces share no request, that a stopped
+  owner admits nothing, and that a rejection reaches a client only for `open`; eleven model mutants
+  each break the proof of the claim that they target. `model/simulate.py` replaces
+  `model/ncp2_model.py`: it drives the real Python client and owner through about 2.6 million states
+  with up to two faults and checks the eight properties in each, with eleven SDK mutants.
+  `model/conformance.py` compares the Python and Rust owners with the compiled Lean model on random
+  traces with copies, restarts, and stops. `conformance/requirements.json` maps each of the 82
+  requirement lines of the specification to its checks, and `spec/ncp2-rules.json` states the codes
+  and limits as data that a check compares with the specification, both SDKs, and the Lean model.
+  The fuzzer also compares the message checks and varies the bound. New vectors cover 1,024 and 1,025
+  attachments, and new tests the bound of a subscriber.
+- The packages are marked `Development Status :: 4 - Beta` instead of stable, and describe NCP 2 as
+  at-most-once with a truthful outcome; the Python package ships the vectors.
+- The benchmarks and the fault campaign ran with revision 2 of the SDKs; they have not run again.
+
 ### NCP 2.0.0 (prepared for release; tag and publication follow)
 
 - Two independent advisory reviews of the specification found two ways in which a client of the

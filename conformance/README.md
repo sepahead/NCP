@@ -6,12 +6,31 @@ This directory holds the conformance material of two protocol generations.
 
 | File | Content |
 | --- | --- |
-| [`vectors.json`](vectors.json) | 51 frames, 5 session scenarios, and 9 stream cases of [NCP 2](../spec/NCP-2.md), with the expected decision for each; the Python and Rust tests run them |
-| [`generate.py`](generate.py) | Writes `vectors.json`. The vectors are generated, never edited |
-| [`fuzz.py`](fuzz.py) | Differential fuzzing: the Python decoder against another decoder, such as the Rust example `decode_corpus` |
+| [`vectors.json`](vectors.json) | The vectors of [NCP 2](../spec/NCP-2.md), revision 3: 60 frames, 33 messages, 4 authenticated frames, 8 owner scenarios, 14 client cases, 17 stream cases, 13 transcripts, 21 contracts, and 35 schema cases, each with its expected result. |
+| [`generate.py`](generate.py) | Writes `vectors.json` and the package copy `python/ncp/vectors.json`. The vectors are generated. Do not edit them. |
+| [`requirements.json`](requirements.json) | Each normative line of the specification, with the vectors, tests, model checks, and Lean claims that test it. [`check_ncp2_requirements.py`](../scripts/check_ncp2_requirements.py) requires an entry for each line and checks each reference. |
+| [`fuzz.py`](fuzz.py) | Differential fuzzing: the Python decoder and message checks against another implementation. |
 
-The model owner and its conformance check of both SDK owners are in [`../model`](../model); the Lean proofs of the owner, and the oracle compiled from them, are in [`../formal`](../formal).
-[`../scripts/check_ncp2.sh`](../scripts/check_ncp2.sh) runs all of them, and CI runs that script.
+### Test another implementation
+
+1. Write a decoder program like [`decode_corpus`](../rust/examples/decode_corpus.rs). It reads a corpus file of entries: a 4-byte big-endian bound, a 4-byte big-endian length, and the frame. For each entry, it prints one line of JSON: the decoded message, its identity, its array bytes, and whether the message has the form of a request, a response, and a stream message.
+2. Write an owner program like [`conformance_owner`](../rust/examples/conformance_owner.rs). It serves one session on its standard input and output, with the contract and the handler that `vectors.json` describes.
+3. Run the vectors against both programs:
+
+   ```text
+   python -m ncp conformance --decoder PROGRAM --owner PROGRAM
+   ```
+
+4. Run the client cases against your client state machine, as [`rust/tests/conformance.rs`](../rust/tests/conformance.rs) does. They give the frames that the client receives and the verdict and state that it must reach.
+5. Fuzz your decoder against the Python one:
+
+   ```text
+   python3 conformance/fuzz.py --decoder PROGRAM --cases 200000
+   ```
+
+6. Drive your owner state machine with the oracle traces of [`../model/conformance.py`](../model/README.md), through the command protocol of [`model_owner`](../rust/examples/model_owner.rs).
+
+[`../scripts/check_ncp2.sh`](../scripts/check_ncp2.sh) runs all of these for the Rust SDK, and CI runs that script.
 
 ## NCP 1.0 candidate
 

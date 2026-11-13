@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 description = "The Zenoh binding of NCP 2: exchanges as Zenoh queries and replies, streams as publications"
 repository = "https://github.com/sepahead/NCP"
 readme = "README.md"
-keywords = ["co-simulation", "protocol", "exactly-once", "zenoh"]
+keywords = ["co-simulation", "protocol", "at-most-once", "zenoh"]
 categories = ["network-programming", "science"]
 # The tests need files from the rest of the repository; they run there, not from the package.
 exclude = ["tests/"]

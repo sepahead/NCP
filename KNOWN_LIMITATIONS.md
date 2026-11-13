@@ -7,6 +7,30 @@
 The candidate is deliberately release-blocked. None of the items below may be
 hidden by a version bump, optimistic default, model review, or local-only test.
 
+## NCP 2
+
+The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 3
+of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
+
+- **The SDKs are not proved.** The Lean proofs cover models of the owner and of a client. The
+  owners are tested against the compiled model on random traces, and both SDKs against the shared
+  vectors; these tests cover many inputs, not all ([`formal/`](formal/README.md)).
+- **Bounded model check.** The exhaustive check of the SDK client and owner covers four calls and
+  up to two faults ([`model/`](model/README.md)). Client verdicts across a restart of the owner are
+  checked there, not proved.
+- **One author.** The same author wrote both SDKs. No independent implementation exists.
+- **Evidence of revision 2.** The benchmarks and the fault campaign ran with revision 2 of the SDKs
+  on one macOS laptop. They have not run again for revision 3, not on Linux, and not with the Zenoh
+  binding.
+- **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. Windows is
+  not tested.
+- **Recovery.** A session does not survive a restart of its owner; the last request is then
+  possibly executed. The lockstep profile tells a client whether its last step ran, for an owner
+  that keeps its state.
+- **Streams** give no delivery guarantee.
+- **Not run:** an external security review, a clean-room reproduction, signatures, an SBOM and
+  provenance for the 2.0.0 artifacts, and their publication.
+
 ## Release-blocking evidence gaps
 
 - **The production-secure Zenoh identity binding is not implemented.** Profile and

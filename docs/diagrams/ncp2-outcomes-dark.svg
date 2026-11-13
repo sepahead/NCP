@@ -1,86 +1,128 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1196" viewBox="0 0 1600 1196" role="img" aria-labelledby="ncp2-outcomes-title ncp2-outcomes-desc">
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1425" viewBox="0 0 1600 1425" role="img" aria-labelledby="ncp2-outcomes-title ncp2-outcomes-desc">
 <title id="ncp2-outcomes-title">What an NCP 2 response tells the client</title>
-<desc id="ncp2-outcomes-desc">Every response is ok, rejected, or ended. Six cards show what happens to damaged, lost, repeated, and late messages, after an owner failure, and when the connection breaks. At most one call is possibly executed. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
+<desc id="ncp2-outcomes-desc">Every response is ok, declined, rejected, or ended. Eight cards show what happens to damaged, lost, repeated, and late messages, after an owner failure, a restart or a stop of the owner, and when the connection breaks. At most one call is possibly executed. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
 <style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
 <pattern id="ncp2-outcomes-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="1196" fill="#131D26"/>
+<rect width="1600" height="1425" fill="#131D26"/>
 <path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="156" width="477.3" height="271" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
-<path d="M52 170 L52 170 Q52 156 66 156 L515.3 156 Q529.3 156 529.3 170 L529.3 170 Z" fill="#6FC1BD"/>
-<path d="M78 268 L503.3 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="561.3" y="156" width="477.3" height="271" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
-<path d="M561.3 170 L561.3 170 Q561.3 156 575.3 156 L1024.7 156 Q1038.7 156 1038.7 170 L1038.7 170 Z" fill="#8DB2D8"/>
-<path d="M587.3 268 L1012.7 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="1070.7" y="156" width="477.3" height="271" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
-<path d="M1070.7 170 L1070.7 170 Q1070.7 156 1084.7 156 L1534 156 Q1548 156 1548 170 L1548 170 Z" fill="#E6A095"/>
-<path d="M1096.7 268 L1522 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="519" width="477.3" height="239" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
-<path d="M52 533 L52 533 Q52 519 66 519 L515.3 519 Q529.3 519 529.3 533 L529.3 533 Z" fill="#8DB2D8"/>
-<path d="M78 599 L503.3 599" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="561.3" y="519" width="477.3" height="239" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
-<path d="M561.3 533 L561.3 533 Q561.3 519 575.3 519 L1024.7 519 Q1038.7 519 1038.7 533 L1038.7 533 Z" fill="#8DB2D8"/>
-<path d="M587.3 599 L1012.7 599" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="1070.7" y="519" width="477.3" height="239" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
-<path d="M1070.7 533 L1070.7 533 Q1070.7 519 1084.7 519 L1534 519 Q1548 519 1548 533 L1548 533 Z" fill="#8DB2D8"/>
-<path d="M1096.7 599 L1522 599" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="786" width="477.3" height="206" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
-<path d="M52 800 L52 800 Q52 786 66 786 L515.3 786 Q529.3 786 529.3 800 L529.3 800 Z" fill="#8DB2D8"/>
-<path d="M78 866 L503.3 866" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="561.3" y="786" width="477.3" height="206" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
-<path d="M561.3 800 L561.3 800 Q561.3 786 575.3 786 L1024.7 786 Q1038.7 786 1038.7 800 L1038.7 800 Z" fill="#E6A095"/>
-<path d="M587.3 866 L1012.7 866" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="1070.7" y="786" width="477.3" height="206" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
-<path d="M1070.7 800 L1070.7 800 Q1070.7 786 1084.7 786 L1534 786 Q1548 786 1548 800 L1548 800 Z" fill="#E6A095"/>
-<path d="M1096.7 866 L1522 866" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="1026" width="1496" height="130" rx="10" fill="#1E3240"/>
-<rect x="52" y="1026" width="10" height="130" rx="5" fill="#D8AA45"/>
+<rect x="52" y="156" width="350" height="337" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M52 170 L52 170 Q52 156 66 156 L388 156 Q402 156 402 170 L402 170 Z" fill="#6FC1BD"/>
+<path d="M78 268 L376 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="434" y="156" width="350" height="337" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M434 170 L434 170 Q434 156 448 156 L770 156 Q784 156 784 170 L784 170 Z" fill="#6FC1BD"/>
+<path d="M460 268 L758 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="816" y="156" width="350" height="337" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M816 170 L816 170 Q816 156 830 156 L1152 156 Q1166 156 1166 170 L1166 170 Z" fill="#8DB2D8"/>
+<path d="M842 268 L1140 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1198" y="156" width="350" height="337" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
+<path d="M1198 170 L1198 170 Q1198 156 1212 156 L1534 156 Q1548 156 1548 170 L1548 170 Z" fill="#E6A095"/>
+<path d="M1224 268 L1522 268" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="585" width="350" height="271" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M52 599 L52 599 Q52 585 66 585 L388 585 Q402 585 402 599 L402 599 Z" fill="#8DB2D8"/>
+<path d="M78 697 L376 697" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="434" y="585" width="350" height="271" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M434 599 L434 599 Q434 585 448 585 L770 585 Q784 585 784 599 L784 599 Z" fill="#8DB2D8"/>
+<path d="M460 697 L758 697" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="816" y="585" width="350" height="271" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M816 599 L816 599 Q816 585 830 585 L1152 585 Q1166 585 1166 599 L1166 599 Z" fill="#8DB2D8"/>
+<path d="M842 697 L1140 697" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1198" y="585" width="350" height="271" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M1198 599 L1198 599 Q1198 585 1212 585 L1534 585 Q1548 585 1548 599 L1548 599 Z" fill="#8DB2D8"/>
+<path d="M1224 697 L1522 697" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="884" width="350" height="304" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
+<path d="M52 898 L52 898 Q52 884 66 884 L388 884 Q402 884 402 898 L402 898 Z" fill="#E6A095"/>
+<path d="M78 996 L376 996" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="434" y="884" width="350" height="304" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
+<path d="M434 898 L434 898 Q434 884 448 884 L770 884 Q784 884 784 898 L784 898 Z" fill="#E6A095"/>
+<path d="M460 996 L758 996" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="816" y="884" width="350" height="304" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M816 898 L816 898 Q816 884 830 884 L1152 884 Q1166 884 1166 898 L1166 898 Z" fill="#8DB2D8"/>
+<path d="M842 996 L1140 996" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="1198" y="884" width="350" height="304" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
+<path d="M1198 898 L1198 898 Q1198 884 1212 884 L1534 884 Q1548 884 1548 898 L1548 898 Z" fill="#E6A095"/>
+<path d="M1224 996 L1522 996" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="1222" width="1496" height="163" rx="10" fill="#1E3240"/>
+<rect x="52" y="1222" width="10" height="163" rx="5" fill="#D8AA45"/>
 <text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">NCP 2 OUTCOMES</text>
-<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Three outcomes tell the client exactly what happened</text>
+<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Four outcomes, and one honest unknown</text>
 <text x="78" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">ok</text>
 <text x="78" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">It ran once</text>
-<text x="78" y="306" class="r" font-size="25" fill="#ECE5D5">The owner ran the request once. The</text>
-<text x="78" y="339" class="r" font-size="25" fill="#ECE5D5">body is its result. The session</text>
-<text x="78" y="372" class="r" font-size="25" fill="#ECE5D5">continues.</text>
-<text x="587.3" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">rejected</text>
-<text x="587.3" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Nothing ran</text>
-<text x="587.3" y="306" class="r" font-size="25" fill="#ECE5D5">Nothing ran and nothing changed. A</text>
-<text x="587.3" y="339" class="r" font-size="25" fill="#ECE5D5">code says why, for example a wrong</text>
-<text x="587.3" y="372" class="r" font-size="25" fill="#ECE5D5">sequence number. The client can send</text>
-<text x="587.3" y="405" class="r" font-size="25" fill="#ECE5D5">a corrected request.</text>
-<text x="1096.7" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">ended</text>
-<text x="1096.7" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">The session is over</text>
-<text x="1096.7" y="306" class="r" font-size="25" fill="#ECE5D5">The session cannot continue. The code</text>
-<text x="1096.7" y="339" class="r" font-size="25" fill="#ECE5D5">says whether the request ran or</text>
-<text x="1096.7" y="372" class="r" font-size="25" fill="#ECE5D5">possibly ran. The client opens a new</text>
-<text x="1096.7" y="405" class="r" font-size="25" fill="#ECE5D5">session if it needs one.</text>
-<text x="52" y="493" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">WHEN SOMETHING GOES WRONG</text>
-<text x="78" y="579" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A message is damaged</text>
-<text x="78" y="637" class="r" font-size="25" fill="#ECE5D5">The receiver computes the fingerprint</text>
-<text x="78" y="670" class="r" font-size="25" fill="#ECE5D5">again and finds a difference. No</text>
-<text x="78" y="703" class="r" font-size="25" fill="#ECE5D5">damaged request runs. On a pipe or a</text>
-<text x="78" y="736" class="r" font-size="25" fill="#ECE5D5">socket, the session then ends.</text>
-<text x="587.3" y="579" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A message is lost</text>
-<text x="587.3" y="637" class="r" font-size="25" fill="#ECE5D5">The client sends the same request</text>
-<text x="587.3" y="670" class="r" font-size="25" fill="#ECE5D5">again. The owner sends its kept</text>
-<text x="587.3" y="703" class="r" font-size="25" fill="#ECE5D5">response again: the step ran once.</text>
-<text x="1096.7" y="579" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A message arrives twice</text>
-<text x="1096.7" y="637" class="r" font-size="25" fill="#ECE5D5">The owner recognizes the copy and</text>
-<text x="1096.7" y="670" class="r" font-size="25" fill="#ECE5D5">sends its kept response again. The</text>
-<text x="1096.7" y="703" class="r" font-size="25" fill="#ECE5D5">step ran once.</text>
-<text x="78" y="846" class="s" font-size="28" fill="#ECE5D5" font-weight="700">An old copy arrives late</text>
-<text x="78" y="904" class="r" font-size="25" fill="#ECE5D5">The owner rejects it, because a later</text>
-<text x="78" y="937" class="r" font-size="25" fill="#ECE5D5">request already ran. Nothing runs</text>
-<text x="78" y="970" class="r" font-size="25" fill="#ECE5D5">again.</text>
-<text x="587.3" y="846" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The owner fails in a step</text>
-<text x="587.3" y="904" class="r" font-size="25" fill="#ECE5D5">It answers ended with the code</text>
-<text x="587.3" y="937" class="r" font-size="25" fill="#ECE5D5">owner_failure. The step possibly ran.</text>
-<text x="1096.7" y="846" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The connection breaks</text>
-<text x="1096.7" y="904" class="r" font-size="25" fill="#ECE5D5">The session ends. The request without</text>
-<text x="1096.7" y="937" class="r" font-size="25" fill="#ECE5D5">a response possibly ran.</text>
-<text x="84" y="1064" class="s" font-size="24" fill="#AAB7BE" font-weight="600">POSSIBLY EXECUTED</text>
-<text x="84" y="1102" class="r" font-size="25" fill="#ECE5D5">In a session, at most one call can be possibly executed, and it is always the last one. Lean proofs cover these owner rules for every</text>
-<text x="84" y="1135" class="r" font-size="25" fill="#ECE5D5">sequence of requests, and 8,730 fault trials with real programs found no wrong result, no step run twice, and no false report.</text>
+<text x="78" y="306" class="r" font-size="25" fill="#ECE5D5">The owner ran the request</text>
+<text x="78" y="339" class="r" font-size="25" fill="#ECE5D5">once. The body is its</text>
+<text x="78" y="372" class="r" font-size="25" fill="#ECE5D5">result. The session</text>
+<text x="78" y="405" class="r" font-size="25" fill="#ECE5D5">continues.</text>
+<text x="460" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">declined</text>
+<text x="460" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">It never runs</text>
+<text x="460" y="306" class="r" font-size="25" fill="#ECE5D5">The owner kept the</text>
+<text x="460" y="339" class="r" font-size="25" fill="#ECE5D5">request and did not run it,</text>
+<text x="460" y="372" class="r" font-size="25" fill="#ECE5D5">for example a body that</text>
+<text x="460" y="405" class="r" font-size="25" fill="#ECE5D5">the application finds</text>
+<text x="460" y="438" class="r" font-size="25" fill="#ECE5D5">invalid. It never runs. The</text>
+<text x="460" y="471" class="r" font-size="25" fill="#ECE5D5">session continues.</text>
+<text x="842" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">rejected</text>
+<text x="842" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Only for open</text>
+<text x="842" y="306" class="r" font-size="25" fill="#ECE5D5">The owner opened no</text>
+<text x="842" y="339" class="r" font-size="25" fill="#ECE5D5">session for this open, for</text>
+<text x="842" y="372" class="r" font-size="25" fill="#ECE5D5">example a wrong contract.</text>
+<text x="842" y="405" class="r" font-size="25" fill="#ECE5D5">For any other request, the</text>
+<text x="842" y="438" class="r" font-size="25" fill="#ECE5D5">client ends the session.</text>
+<text x="1224" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">ended</text>
+<text x="1224" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">The session is over</text>
+<text x="1224" y="306" class="r" font-size="25" fill="#ECE5D5">The session cannot</text>
+<text x="1224" y="339" class="r" font-size="25" fill="#ECE5D5">continue. The code says</text>
+<text x="1224" y="372" class="r" font-size="25" fill="#ECE5D5">whether the request ran,</text>
+<text x="1224" y="405" class="r" font-size="25" fill="#ECE5D5">did not run, or possibly</text>
+<text x="1224" y="438" class="r" font-size="25" fill="#ECE5D5">ran.</text>
+<text x="52" y="559" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">WHEN SOMETHING GOES WRONG</text>
+<text x="78" y="645" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A message is</text>
+<text x="78" y="677" class="s" font-size="28" fill="#ECE5D5" font-weight="700">damaged</text>
+<text x="78" y="735" class="r" font-size="25" fill="#ECE5D5">The receiver computes the</text>
+<text x="78" y="768" class="r" font-size="25" fill="#ECE5D5">fingerprint again and finds</text>
+<text x="78" y="801" class="r" font-size="25" fill="#ECE5D5">a difference. No damaged</text>
+<text x="78" y="834" class="r" font-size="25" fill="#ECE5D5">request runs.</text>
+<text x="460" y="645" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A message is lost</text>
+<text x="460" y="735" class="r" font-size="25" fill="#ECE5D5">The client sends the same</text>
+<text x="460" y="768" class="r" font-size="25" fill="#ECE5D5">request again. The owner</text>
+<text x="460" y="801" class="r" font-size="25" fill="#ECE5D5">sends its kept response</text>
+<text x="460" y="834" class="r" font-size="25" fill="#ECE5D5">again: the step ran once.</text>
+<text x="842" y="645" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A message arrives</text>
+<text x="842" y="677" class="s" font-size="28" fill="#ECE5D5" font-weight="700">twice</text>
+<text x="842" y="735" class="r" font-size="25" fill="#ECE5D5">The owner recognizes the</text>
+<text x="842" y="768" class="r" font-size="25" fill="#ECE5D5">copy and sends its kept</text>
+<text x="842" y="801" class="r" font-size="25" fill="#ECE5D5">response again. The step</text>
+<text x="842" y="834" class="r" font-size="25" fill="#ECE5D5">ran once.</text>
+<text x="1224" y="645" class="s" font-size="28" fill="#ECE5D5" font-weight="700">An old copy arrives</text>
+<text x="1224" y="677" class="s" font-size="28" fill="#ECE5D5" font-weight="700">late</text>
+<text x="1224" y="735" class="r" font-size="25" fill="#ECE5D5">The owner rejects it,</text>
+<text x="1224" y="768" class="r" font-size="25" fill="#ECE5D5">because a later request</text>
+<text x="1224" y="801" class="r" font-size="25" fill="#ECE5D5">already ran. Nothing runs</text>
+<text x="1224" y="834" class="r" font-size="25" fill="#ECE5D5">again.</text>
+<text x="78" y="944" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The owner fails in a</text>
+<text x="78" y="976" class="s" font-size="28" fill="#ECE5D5" font-weight="700">step</text>
+<text x="78" y="1034" class="r" font-size="25" fill="#ECE5D5">It answers ended with the</text>
+<text x="78" y="1067" class="r" font-size="25" fill="#ECE5D5">code owner_failure. The</text>
+<text x="78" y="1100" class="r" font-size="25" fill="#ECE5D5">step possibly ran.</text>
+<text x="460" y="944" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The owner restarts</text>
+<text x="460" y="1034" class="r" font-size="25" fill="#ECE5D5">A later request gets</text>
+<text x="460" y="1067" class="r" font-size="25" fill="#ECE5D5">session_expired: it</text>
+<text x="460" y="1100" class="r" font-size="25" fill="#ECE5D5">possibly ran. A new</text>
+<text x="460" y="1133" class="r" font-size="25" fill="#ECE5D5">opening has a new nonce,</text>
+<text x="460" y="1166" class="r" font-size="25" fill="#ECE5D5">so no old copy runs again.</text>
+<text x="842" y="944" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The owner stops</text>
+<text x="842" y="1034" class="r" font-size="25" fill="#ECE5D5">It answers ended with the</text>
+<text x="842" y="1067" class="r" font-size="25" fill="#ECE5D5">code shutdown. The</text>
+<text x="842" y="1100" class="r" font-size="25" fill="#ECE5D5">request did not run, and it</text>
+<text x="842" y="1133" class="r" font-size="25" fill="#ECE5D5">never will.</text>
+<text x="1224" y="944" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The connection</text>
+<text x="1224" y="976" class="s" font-size="28" fill="#ECE5D5" font-weight="700">breaks</text>
+<text x="1224" y="1034" class="r" font-size="25" fill="#ECE5D5">The session ends. The</text>
+<text x="1224" y="1067" class="r" font-size="25" fill="#ECE5D5">request without a response</text>
+<text x="1224" y="1100" class="r" font-size="25" fill="#ECE5D5">possibly ran.</text>
+<text x="84" y="1260" class="s" font-size="24" fill="#AAB7BE" font-weight="600">POSSIBLY EXECUTED</text>
+<text x="84" y="1298" class="r" font-size="25" fill="#ECE5D5">In a session, at most one call can be possibly executed, and it is always the last one. Lean proofs cover these rules for a model of</text>
+<text x="84" y="1331" class="r" font-size="25" fill="#ECE5D5">the owner and the client, and an exhaustive check of the real SDKs with up to two faults, in 2.6 million states, found no false</text>
+<text x="84" y="1364" class="r" font-size="25" fill="#ECE5D5">report.</text>
 </svg>

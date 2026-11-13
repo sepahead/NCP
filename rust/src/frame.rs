@@ -18,6 +18,11 @@ pub const HANDSHAKE_BOUND: usize = 65_536;
 pub const MAX_BOUND: usize = 67_108_864;
 /// The default session bound of the reference SDKs.
 pub const DEFAULT_BOUND: usize = 1_048_576;
+/// The largest JSON region (section 3, rule 2). Because `12 + J` is a multiple of 8, the
+/// largest JSON region that a frame can have is 4 bytes less.
+pub const MAX_JSON: usize = 1_048_576;
+/// The shortest key of an authenticated session (section 13.2).
+pub const MIN_KEY: usize = 32;
 /// Deepest nesting of objects and arrays, the top object included.
 pub const MAX_DEPTH: usize = 64;
 /// Largest integer magnitude.
@@ -30,6 +35,128 @@ pub const ARRAY_KEY: &str = "ncp.array";
 /// A frame that violates sections 3 to 6. The receiver treats it as a bad frame.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FrameError(pub String);
+
+/// A message that does not fit the limits of section 3: `size` bytes against `limit`. `json` is
+/// true when the JSON region, not the whole frame, is too large.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TooLarge {
+    /// The bytes that the frame or its JSON region would need.
+    pub size: usize,
+    /// The limit.
+    pub limit: usize,
+    /// Whether the JSON region is too large.
+    pub json: bool,
+}
+
+/// Why a message cannot be encoded.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EncodeError {
+    /// The message breaks a rule of sections 4 to 6.
+    Invalid(FrameError),
+    /// The frame would exceed a limit.
+    TooLarge(TooLarge),
+}
+
+impl fmt::Display for EncodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EncodeError::Invalid(error) => write!(f, "{error}"),
+            EncodeError::TooLarge(t) if t.json => {
+                write!(f, "the JSON region of {} bytes exceeds {}", t.size, t.limit)
+            }
+            EncodeError::TooLarge(t) => {
+                write!(f, "a frame of {} bytes exceeds {}", t.size, t.limit)
+            }
+        }
+    }
+}
+
+impl std::error::Error for EncodeError {}
+
+impl From<EncodeError> for FrameError {
+    fn from(error: EncodeError) -> FrameError {
+        match error {
+            EncodeError::Invalid(error) => error,
+            other => FrameError(other.to_string()),
+        }
+    }
+}
+
+/// A shared secret key of an authenticated session (section 13.2): at least 32 bytes.
+#[derive(Clone, PartialEq, Eq)]
+pub struct Key(Vec<u8>);
+
+impl Key {
+    /// A key from its bytes. Fails for fewer than 32 bytes.
+    pub fn new(bytes: Vec<u8>) -> Result<Key, FrameError> {
+        if bytes.len() < MIN_KEY {
+            return bad("an authentication key is at least 32 bytes");
+        }
+        Ok(Key(bytes))
+    }
+
+    /// The key's bytes.
+    pub fn bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
+
+impl fmt::Debug for Key {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Key(..)")
+    }
+}
+
+/// How a receiver checks the digest field (section 3, rule 5, and section 13.2).
+#[derive(Debug, Clone, Copy)]
+pub enum Verify<'a> {
+    /// Compare the SHA-256 digest.
+    Digest,
+    /// Do not compare: only on a pipe pair or a Unix domain socket with no other program between
+    /// the endpoints, and never in an authenticated session.
+    Trust,
+    /// Compare the HMAC-SHA-256 with the key.
+    Key(&'a Key),
+}
+
+/// HMAC-SHA-256 (RFC 2104) over the concatenation of `parts`.
+pub fn hmac_sha256(key: &[u8], parts: &[&[u8]]) -> [u8; 32] {
+    const BLOCK: usize = 64;
+    let mut block = [0u8; BLOCK];
+    if key.len() > BLOCK {
+        block[..32].copy_from_slice(&Sha256::digest(key));
+    } else {
+        block[..key.len()].copy_from_slice(key);
+    }
+    let mut inner = Sha256::new();
+    inner.update(block.map(|b| b ^ 0x36));
+    for part in parts {
+        inner.update(part);
+    }
+    let mut outer = Sha256::new();
+    outer.update(block.map(|b| b ^ 0x5c));
+    outer.update(inner.finalize());
+    outer.finalize().into()
+}
+
+/// The digest field for the bytes `parts`: SHA-256, or HMAC-SHA-256 with `key`.
+pub fn digest_of(key: Option<&Key>, parts: &[&[u8]]) -> [u8; 32] {
+    match key {
+        Some(key) => hmac_sha256(key.bytes(), parts),
+        None => {
+            let mut digest = Sha256::new();
+            for part in parts {
+                digest.update(part);
+            }
+            digest.finalize().into()
+        }
+    }
+}
+
+/// Equality of two digests in a time that does not depend on where they differ.
+pub fn same_digest(a: &[u8], b: &[u8]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
 
 impl fmt::Display for FrameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -165,13 +292,10 @@ impl Array {
     }
 }
 
-/// The identity of a frame: its digest field as 64 lowercase hexadecimal characters.
-///
-/// # Panics
-///
-/// If `frame` is shorter than the digest field. Every frame is longer.
+/// The identity of a frame: its digest field as 64 lowercase hexadecimal characters. For bytes
+/// shorter than a digest field, which no frame is, the hexadecimal of all of them.
 pub fn identity(frame: &[u8]) -> String {
-    hex(&frame[frame.len() - DIGEST_BYTES..])
+    hex(&frame[frame.len().saturating_sub(DIGEST_BYTES)..])
 }
 
 /// Lowercase hexadecimal of bytes.
@@ -189,19 +313,31 @@ pub fn hex(bytes: &[u8]) -> String {
 /// `att` from `arrays`, whose references the caller placed in the message with
 /// [`Array::reference`].
 pub fn encode(message: &Value, arrays: &[Array]) -> Result<Vec<u8>, FrameError> {
+    encode_with(message, arrays, None, None).map_err(FrameError::from)
+}
+
+/// As [`encode`], with the authentication key of section 13.2, if any, and a limit on the frame
+/// size: a frame larger than `limit` gives [`EncodeError::TooLarge`] before it is built.
+pub fn encode_with(
+    message: &Value,
+    arrays: &[Array],
+    key: Option<&Key>,
+    limit: Option<usize>,
+) -> Result<Vec<u8>, EncodeError> {
+    let invalid = |reason: &str| EncodeError::Invalid(FrameError(reason.to_owned()));
     let object = match message {
         Value::Object(object) => object,
-        _ => return bad("message is not an object"),
+        _ => return Err(invalid("message is not an object")),
     };
     if object.contains_key("att") {
-        return bad("the encoder sets att");
+        return Err(invalid("the encoder sets att"));
     }
     if arrays.len() > MAX_ATTACHMENTS {
-        return bad("too many attachments");
+        return Err(invalid("too many attachments"));
     }
-    check_tree(message, 1)?;
-    check_references(message, arrays)?;
-    let mut text = serde_json::to_vec(message).map_err(|e| FrameError(e.to_string()))?;
+    check_tree(message, 1).map_err(EncodeError::Invalid)?;
+    check_references(message, arrays).map_err(EncodeError::Invalid)?;
+    let mut text = serde_json::to_vec(message).map_err(|e| invalid(&e.to_string()))?;
     if !arrays.is_empty() {
         text.pop(); // the closing brace of the object
         if !object.is_empty() {
@@ -218,6 +354,13 @@ pub fn encode(message: &Value, arrays: &[Array]) -> Result<Vec<u8>, FrameError> 
     }
     let padding = (8 - (HEADER_BYTES + text.len()) % 8) % 8;
     let json_length = text.len() + padding;
+    if json_length > MAX_JSON {
+        return Err(EncodeError::TooLarge(TooLarge {
+            size: json_length,
+            limit: MAX_JSON,
+            json: true,
+        }));
+    }
     let mut attachment_length = 0usize;
     for (index, array) in arrays.iter().enumerate() {
         if index > 0 {
@@ -226,8 +369,21 @@ pub fn encode(message: &Value, arrays: &[Array]) -> Result<Vec<u8>, FrameError> 
         attachment_length += array.data.len();
     }
     let total = HEADER_BYTES + json_length + attachment_length + DIGEST_BYTES;
-    if json_length > u32::MAX as usize || attachment_length > u32::MAX as usize {
-        return bad("frame too large");
+    if attachment_length > u32::MAX as usize {
+        return Err(EncodeError::TooLarge(TooLarge {
+            size: total,
+            limit: u32::MAX as usize,
+            json: false,
+        }));
+    }
+    if let Some(limit) = limit {
+        if total > limit {
+            return Err(EncodeError::TooLarge(TooLarge {
+                size: total,
+                limit,
+                json: false,
+            }));
+        }
     }
     let mut frame = Vec::with_capacity(total);
     frame.extend_from_slice(&MAGIC);
@@ -243,7 +399,7 @@ pub fn encode(message: &Value, arrays: &[Array]) -> Result<Vec<u8>, FrameError> 
         }
         frame.extend_from_slice(&array.data);
     }
-    let digest = Sha256::digest(&frame);
+    let digest = digest_of(key, &[&frame]);
     frame.extend_from_slice(&digest);
     Ok(frame)
 }
@@ -323,8 +479,11 @@ pub fn remaining_length(header: &[u8], bound: usize) -> Result<usize, FrameError
     let json_length = u32::from_be_bytes([header[4], header[5], header[6], header[7]]) as usize;
     let attachment_length =
         u32::from_be_bytes([header[8], header[9], header[10], header[11]]) as usize;
-    if json_length < 2 || !(HEADER_BYTES + json_length).is_multiple_of(8) {
+    if json_length < 4 || !(HEADER_BYTES + json_length).is_multiple_of(8) {
         return bad("json region length");
+    }
+    if json_length > MAX_JSON {
+        return bad("the JSON region exceeds 1 MiB");
     }
     if HEADER_BYTES + DIGEST_BYTES + json_length + attachment_length > bound {
         return bad("frame exceeds the bound");
@@ -413,16 +572,49 @@ impl Decoded {
 
 /// Check and decode one complete frame. Fails with FrameError for a bad frame.
 pub fn decode(frame: Vec<u8>, bound: usize) -> Result<Decoded, FrameError> {
-    decode_with(frame, bound, true)
+    decode_verified(frame, bound, Verify::Digest)
 }
 
 /// As [`decode`]. With `check_digest` false, the digest field is not compared with the frame
 /// bytes, and the identity is the digest field as received. Use it only on a pipe pair or a
-/// Unix domain socket with no other program between the two endpoints (spec section 3, rule 4).
+/// Unix domain socket with no other program between the two endpoints (spec section 3, rule 5).
 pub fn decode_with(
     frame: Vec<u8>,
     bound: usize,
     check_digest: bool,
+) -> Result<Decoded, FrameError> {
+    decode_verified(
+        frame,
+        bound,
+        if check_digest {
+            Verify::Digest
+        } else {
+            Verify::Trust
+        },
+    )
+}
+
+/// The JSON text of a JSON region, after the checks of section 3, rule 4: `{` first, `}` last,
+/// then at most seven spaces.
+fn json_text(region: &[u8]) -> Result<&[u8], FrameError> {
+    if region.first() != Some(&b'{') {
+        return bad("the JSON region must start with {");
+    }
+    let mut end = region.len();
+    while end > 0 && region.len() - end < 8 && region[end - 1] == b' ' {
+        end -= 1;
+    }
+    if end == 0 || region[end - 1] != b'}' {
+        return bad("the JSON region must end with } and at most seven spaces");
+    }
+    Ok(&region[..end])
+}
+
+/// Check and decode one complete frame, checking its digest field as `verify` says.
+pub fn decode_verified(
+    frame: Vec<u8>,
+    bound: usize,
+    verify: Verify<'_>,
 ) -> Result<Decoded, FrameError> {
     let frame = Arc::new(frame);
     let rest = remaining_length(&frame, bound)?;
@@ -432,10 +624,20 @@ pub fn decode_with(
     let json_length = u32::from_be_bytes([frame[4], frame[5], frame[6], frame[7]]) as usize;
     let attachment_length = u32::from_be_bytes([frame[8], frame[9], frame[10], frame[11]]) as usize;
     let end = HEADER_BYTES + json_length + attachment_length;
-    if check_digest && Sha256::digest(&frame[..end]).as_slice() != &frame[end..] {
-        return bad("digest");
+    match verify {
+        Verify::Digest => {
+            if Sha256::digest(&frame[..end]).as_slice() != &frame[end..] {
+                return bad("digest");
+            }
+        }
+        Verify::Key(key) => {
+            if !same_digest(&hmac_sha256(key.bytes(), &[&frame[..end]]), &frame[end..]) {
+                return bad("authentication code");
+            }
+        }
+        Verify::Trust => {}
     }
-    let json = &frame[HEADER_BYTES..HEADER_BYTES + json_length];
+    let json = json_text(&frame[HEADER_BYTES..HEADER_BYTES + json_length])?;
     scan(json)?;
     let mut deserializer = serde_json::Deserializer::from_slice(json);
     let message = StrictSeed
@@ -459,6 +661,23 @@ pub fn decode_with(
         identity: hex(&frame[end..]),
         frame,
     })
+}
+
+/// Parse one JSON document with the rules of section 4, for example a contract (section 11).
+/// Arrays of section 5 are not bound: an `ncp.array` member stays a plain object.
+pub fn loads(data: &[u8]) -> Result<Value, FrameError> {
+    if std::str::from_utf8(data).is_err() {
+        return bad("the document is not UTF-8");
+    }
+    scan(data)?;
+    let mut deserializer = serde_json::Deserializer::from_slice(data);
+    let value = StrictSeed
+        .deserialize(&mut deserializer)
+        .map_err(|e| FrameError(format!("json: {e}")))?;
+    deserializer
+        .end()
+        .map_err(|e| FrameError(format!("json: {e}")))?;
+    Ok(value)
 }
 
 /// One pass over the JSON text outside strings: integer literals within 2^53 - 1, nesting depth

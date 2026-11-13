@@ -5,16 +5,16 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sepahead-ncp"
 version = "2.0.0"
-description = "NCP 2: exactly-once exchanges and hash-chained streams between independent programs (reference SDK, standard library only)"
+description = "NCP 2: at-most-once exchanges with a truthful outcome, and hash-chained streams, between independent programs (reference SDK, standard library only)"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT OR Apache-2.0"
 license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
 authors = [{ name = "Sepehr Mahmoudian" }]
 dependencies = []
-keywords = ["co-simulation", "closed-loop", "neurorobotics", "protocol", "exactly-once"]
+keywords = ["co-simulation", "closed-loop", "neurorobotics", "protocol", "at-most-once"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering",
@@ -30,7 +30,7 @@ Specification = "https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md"
 include = ["ncp*"]
 
 [tool.setuptools.package-data]
-ncp = ["py.typed"]
+ncp = ["py.typed", "vectors.json"]
 
 [tool.ruff]
 line-length = 120

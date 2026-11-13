@@ -4,7 +4,7 @@ echo_owner.py [--no-digest-check]              one session on standard input and
 echo_owner.py [--no-digest-check] unix PATH    one session per connection; prints "ready unix:PATH"
 echo_owner.py tcp                              one session per connection; prints "ready tcp:127.0.0.1:PORT"
 
---no-digest-check turns off the comparison of request digests (spec section 3, rule 4).
+--no-digest-check turns off the comparison of request digests (spec section 3, rule 5).
 """
 
 import os
@@ -36,33 +36,37 @@ class Echo:
     def __init__(self):
         self.cache = {}
 
-    def validate(self, op, body):
-        if op == "echo" and isinstance(body, dict) and body.get("invalid"):
-            raise ncp.BodyInvalid("invalid requested")
-        if op == "spikes" and not (isinstance(body, dict) and type(body.get("n")) is int and 0 <= body["n"] <= 1 << 22):
-            raise ncp.BodyInvalid("n must be an integer from 0 to 2**22")
+    def validate(self, request):
+        body = request.body
+        if request.op == "echo" and isinstance(body, dict) and body.get("invalid"):
+            raise ncp.Declined("invalid requested")
+        if request.op == "spikes" and not (
+            isinstance(body, dict) and type(body.get("n")) is int and 0 <= body["n"] <= 1 << 22
+        ):
+            raise ncp.Declined("n must be an integer from 0 to 2**22")
 
-    def execute(self, op, body):
-        if op == "fail":
+    def execute(self, request):
+        if request.op == "fail":
             raise RuntimeError("requested failure")
-        if op == "spikes":
-            n = body["n"]
+        if request.op == "spikes":
+            n = request.body["n"]
             if n == 0:
                 return {"count": 13}
             if n not in self.cache:
                 self.cache[n] = spikes(n)
             senders, times = self.cache[n]
             return {"senders": ncp.Array("u32", [n], senders), "times": ncp.Array("f64", [n], times)}
-        return body
+        return request.body
 
 
-def make_owner(max_bound=ncp.MAX_BOUND, check_digests=True):
-    return ncp.Owner(
-        "echo", CONTRACT.identity, Echo(), CONTRACT.operations, max_bound=max_bound, check_digests=check_digests
-    )
+def make_owner(max_bound=ncp.MAX_BOUND, check_digests=True, **options):
+    return ncp.Owner(CONTRACT, Echo(), max_bound=max_bound, check_digests=check_digests, **options)
 
 
 if __name__ == "__main__":
+    import logging
+
+    logging.disable(logging.CRITICAL)  # the requested failures are expected
     arguments = sys.argv[1:]
     check = "--no-digest-check" not in arguments
     arguments = [argument for argument in arguments if argument != "--no-digest-check"]

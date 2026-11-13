@@ -1,8 +1,10 @@
 name: NCP 2
 
-# The gate of NCP 2 (scripts/check_ncp2.sh): the Python and Rust SDKs, the shared vectors, the
-# model conformance of both owners, the Lean proofs of the owner model with their axiom audit, the
-# owners against the compiled Lean model, and differential fuzzing of the decoders.
+# The gate of NCP 2 (scripts/check_ncp2.sh): the rules data and the requirements map, the Python
+# and Rust SDKs, the shared vectors against both SDKs and the Rust programs, the exhaustive model
+# check of the SDK client and owner, the Lean proofs of the owner and client models with their axiom
+# audit and mutation test, the owners against the compiled Lean model, and differential fuzzing of
+# the decoders and message checks.
 on:
   push:
     paths:
@@ -12,9 +14,15 @@ on:
       - "conformance/vectors.json"
       - "conformance/generate.py"
       - "conformance/fuzz.py"
-      - "spec/NCP-2.md"
+      - "conformance/requirements.json"
+      - "spec/NCP-2*.md"
+      - "spec/ncp2-rules.json"
       - "formal/**"
+      - "bindings/zenoh/python/tests/**"
+      - "bindings/zenoh/rust/tests/**"
       - "scripts/check_ncp2.sh"
+      - "scripts/check_ncp2_rules.py"
+      - "scripts/check_ncp2_requirements.py"
       - ".github/workflows/ncp2.yml"
   pull_request:
     paths:
@@ -24,9 +32,15 @@ on:
       - "conformance/vectors.json"
       - "conformance/generate.py"
       - "conformance/fuzz.py"
-      - "spec/NCP-2.md"
+      - "conformance/requirements.json"
+      - "spec/NCP-2*.md"
+      - "spec/ncp2-rules.json"
       - "formal/**"
+      - "bindings/zenoh/python/tests/**"
+      - "bindings/zenoh/rust/tests/**"
       - "scripts/check_ncp2.sh"
+      - "scripts/check_ncp2_rules.py"
+      - "scripts/check_ncp2_requirements.py"
       - ".github/workflows/ncp2.yml"
 
 env:
@@ -39,7 +53,7 @@ jobs:
   gate:
     name: ${{ matrix.os }}, Python ${{ matrix.python }}, Rust ${{ matrix.rust }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:

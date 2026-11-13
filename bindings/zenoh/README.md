@@ -14,7 +14,8 @@ The packages are version 2.0.0, like the rest of NCP 2.0, which is prepared for 
 - One service serves many sessions, one owner for each session identifier. A session that sends no request for 10 minutes after its last response is forgotten. A request with `seq` greater than 0 of a session that the service does not hold, because it forgot the session or restarted, gets `ended` with the code `session_expired`, so the client treats it as possibly executed (rule 9.2.7). The time must exceed the longest time that a client waits for a response, all repeats included: 4 s with the defaults. Above 4,096 live sessions (`max_sessions`), an `open` gets `rejected` with the code `refused`.
 - Streams travel as Zenoh publications on `ncp/s/<name>`. A subscriber checks them with the core SDK's `Subscriber`, which reports lost, repeated, and changed messages.
 - Service and stream names are Zenoh keys without wildcards: chunks of letters, digits, `_`, `.`, and `-`, separated by `/`.
-- The server handles the queries of all its sessions in their order of arrival, one at a time, on one thread. A long step of one session delays the other sessions of the same service.
+- The server runs each session in its own thread (rule 9.2.8). A long step of one session does not delay the other sessions of the same service, and the [rounds profile](../../spec/NCP-2-ROUNDS.md) can use the server. Within one session, the server handles the requests in their order of arrival, one at a time. A session with a request in progress is never forgotten.
+- `stop(grace)` stops the server as rule 9.2.9 says: a copy of a kept request still gets the kept response, an `open` gets `rejected` with `refused`, and every other request gets `ended` with `shutdown`, never admitted. After `grace` seconds, the server undeclares the service.
 - A step that takes longer than the client's time limit is not a failure: the client sends the request again, and the owner answers the repeat with its kept response once the step has run. The client gives up after its last repeat, 4 s after the first send with the defaults, so give a client of long steps a longer limit, for example `ZenohChannel(session, service, timeout=30)` in Python or `.with_timeout(Duration::from_secs(30))` in Rust.
 
 ## Use it
@@ -22,19 +23,18 @@ The packages are version 2.0.0, like the rest of NCP 2.0, which is prepared for 
 Python, with the core package and `eclipse-zenoh` 1.10.2 or a later 1.x release installed:
 
 ```python
-import threading, zenoh, ncp, ncp_zenoh
+import zenoh, ncp, ncp_zenoh
 
-# Owner: serve the application `handler` (an ncp.Handler) on ncp/x/lab/nest.
+# Owner: serve the application `Handler` on ncp/x/lab/nest, one owner for each session.
 session = zenoh.open(config)
-make_owner = lambda: ncp.Owner(contract.application, contract.identity, handler, contract.operations)
-threading.Thread(target=ncp_zenoh.serve, args=(session, "lab/nest", make_owner), daemon=True).start()
+server = ncp_zenoh.Server(session, "lab/nest", lambda: ncp.Owner(contract, Handler())).start()
 
 # Client: an ordinary ncp.Client over a Zenoh channel.
 channel = ncp_zenoh.ZenohChannel(zenoh.open(config), "lab/nest")
-client = ncp.Client(channel, application=contract.application, contract=contract.identity)
-client.open()
-result = client.call("step", {"dt_ms": 1})
-client.close()
+with ncp.Client(channel, contract) as client:
+    result = client.call("step", {"dt_ms": 1})
+
+server.stop(grace=1.0)
 ```
 
 Rust:
@@ -42,21 +42,26 @@ Rust:
 ```rust
 use ncp_zenoh::{Server, ServeOptions, ZenohChannel};
 
-// Owner: declare the service, then serve until `stop` is set.
-let mut server = Server::declare(&session, "lab/nest", make_owner, ServeOptions::default())?;
-server.run(&stop)?;
+// Owner: declare the service; each session runs in its own thread.
+let make_owner = move || ncp::Owner::new(contract.clone(), World::default());
+let server = Server::declare(&session, "lab/nest", make_owner, ServeOptions::default())?;
 
 // Client.
 let channel = ZenohChannel::new(&session, "lab/nest")?;
-let mut client = ncp::Client::new(channel, &contract.application, &contract.identity);
+let mut client = ncp::Client::new(channel, &contract);
 client.open()?;
+let result = client.call("step", serde_json::json!({"dt_ms": 1}), &[])?;
+client.close()?;
+
+server.stop(std::time::Duration::from_secs(1));
 ```
 
 ## Networks that are not trusted
 
 Rule 9.2.6 requires TLS with client certificates and Zenoh access control on such networks.
 `secure_config` (Python) and `secure_config` with `TlsFiles` (Rust) write a configuration with TLS links only, a certificate on both sides of each link (mutual TLS), names checked on connect, and no multicast scouting.
-Add access control before you open the owner's session. This example lets only the client whose certificate has the common name `host-a` use the service `lab/nest`:
+Add access control on both sides before you open the sessions.
+On the owner's side, this example lets only the client whose certificate has the common name `host-a` use the service `lab/nest`:
 
 ```json5
 access_control: {
@@ -69,7 +74,24 @@ access_control: {
 }
 ```
 
-NCP checks the integrity of every message; Zenoh's TLS and access control decide who may send them. NCP itself does not authenticate peers (specification section 13).
+On the client's side, the access control admits only the owner as the one that may declare the queryable and reply on the service key. Without it, any peer with a certificate of the same CA could declare `ncp/x/lab/nest` and answer the client's queries. This example admits only the owner whose certificate has the common name `nest-owner`:
+
+```json5
+access_control: {
+  enabled: true,
+  default_permission: "deny",
+  rules: [
+    { id: "send-queries", messages: ["query"], flows: ["egress"], permission: "allow",
+      key_exprs: ["ncp/x/lab/nest"] },
+    { id: "owner-replies", messages: ["reply", "declare_queryable"], flows: ["ingress"],
+      permission: "allow", key_exprs: ["ncp/x/lab/nest"] },
+  ],
+  subjects: [{ id: "nest-owner", cert_common_names: ["nest-owner"] }],
+  policies: [{ rules: ["send-queries", "owner-replies"], subjects: ["nest-owner"] }],
+}
+```
+
+NCP checks the integrity of every message; Zenoh's TLS and access control decide who may send them. For authentication of every frame by NCP itself, give both sides the same key (specification section 13.2).
 
 ## Tests
 
@@ -78,12 +100,13 @@ NCP checks the integrity of every message; Zenoh's TLS and access control decide
 - a session with attachments, whose transcript verifies;
 - a lost reply and a lost query: each step still runs once;
 - a damaged frame gets no reply, and the session goes on; a request with `seq` greater than 0 of a session that the service does not hold gets `session_expired`, and a request with `seq` 0 other than `open` gets `not_open`;
-- after an owner restart, a step that ran before the restart is reported as possibly executed; a request sent more than once and rejected as invalid is reported as possibly executed; a failing validation ends only its own session; a deeply nested payload is dropped without stopping the service; above the limit, an `open` is refused;
-- sessions of one service are independent, and a failing handler ends only its own session, possibly executed;
+- after an owner restart, a step that ran before the restart is reported as possibly executed; a declined request sent twice gets the same answer, and the session goes on; a failing validation ends only its own session; a deeply nested payload is dropped without stopping the service; above the limit, an `open` is refused; a rejected `open` keeps no session;
+- sessions of one service are independent: a long step of one session does not delay another, and a failing handler ends only its own session, possibly executed;
+- a stopping server answers a copy of a kept request with the kept response, a later request with `shutdown`, and an `open` with `refused`, and then undeclares the service;
 - a forgotten session ends with `session_expired`, and its request does not run;
 - a step longer than the expiry time keeps its session, because idle time counts from the last response;
 - a subscriber accepts every stream message in order;
-- mutual TLS admits a client whose certificate the CA signed and refuses a client of another CA; access control admits only the named certificate, and the same refused client is admitted without it;
+- mutual TLS admits a client whose certificate the CA signed and refuses a client of another CA; the owner's access control admits only the named client, and the same refused client is admitted without it; the client's access control admits only the named owner, so an impostor with a certificate of the same CA gets no query, and the same impostor answers without it;
 - a Python client against the Rust owner and a Rust client against the Python owner, each with a lost reply.
 
 ## What this does not show

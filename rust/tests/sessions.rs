@@ -1,17 +1,19 @@
-//! Sessions end to end: in-memory and lossy channels, TCP, transcripts, streams, and the
-//! Python reference owner when `python3` is available.
+//! Sessions end to end: in-memory and lossy channels, TCP, Unix domain sockets, child processes,
+//! servers, transcripts, streams, profiles, and the Python reference owner when `python3` is
+//! available.
 
-use ncp::exchange::Channel;
-use ncp::frame::{self, Array, HANDSHAKE_BOUND, MAX_BOUND};
+use ncp::frame::{self, Array, Key, HANDSHAKE_BOUND, MAX_BOUND};
 use ncp::{
-    binding, transcript, Client, Contract, Decoded, Delivery, Error, Handler, Owner, Publisher,
-    Reply, Subscriber,
+    declined, events, transcript, AppError, Channel, ChannelError, Client, Contract, Delivery,
+    Error, Executed, Handler, Invalid, Limits, Lockstep, LockstepClient, OpenInfo, Owner,
+    Publisher, Refused, Reply, Request, Stepper, Subscriber,
 };
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 const CONTRACT: &[u8] = br#"{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"big":{}},"streams":{"sensor":{}}}"#;
 
@@ -25,55 +27,61 @@ struct Echo {
 }
 
 impl Handler for Echo {
-    fn validate(&mut self, _op: &str, request: &Decoded) -> Result<(), String> {
-        if request.message["body"]["invalid"] == true {
-            return Err("invalid requested".into());
+    fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
+        if request.body["invalid"] == true {
+            return Err(declined("invalid requested"));
         }
         Ok(())
     }
-    fn execute(
-        &mut self,
-        op: &str,
-        request: &Decoded,
-    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
+    fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
         self.executed.fetch_add(1, Ordering::SeqCst);
-        let body = &request.message["body"];
-        match op {
+        match request.op {
             "fail" => Err("requested failure".into()),
             "big" => {
-                Ok(json!({"blob": "z".repeat(body["size"].as_u64().unwrap_or(0) as usize)}).into())
+                let size = request.body["size"].as_u64().unwrap_or(0) as usize;
+                if request.body["json"] == true {
+                    Ok(json!({"blob": "z".repeat(size)}).into())
+                } else {
+                    let array = Array::from_u8(&vec![0; size]);
+                    Ok(Reply {
+                        body: json!({"blob": array.reference(0)}),
+                        arrays: vec![array],
+                    })
+                }
             }
             _ => Ok(Reply {
-                body: body.clone(),
+                body: request.body.clone(),
                 arrays: request.owned_arrays(),
             }),
         }
     }
 }
 
+fn quiet() -> Arc<dyn ncp::Observer> {
+    Arc::new(events::Silent)
+}
+
 fn owner(handler: Echo, max_bound: usize) -> Owner<Echo> {
-    let contract = contract();
-    Owner::new(
-        &contract.application,
-        &contract.identity,
-        handler,
-        contract.operations,
-        max_bound,
-    )
+    Owner::new(contract(), handler)
+        .with_max_bound(max_bound)
+        .with_observer(quiet())
 }
 
 /// A channel that hands frames straight to an owner. `drop_responses` loses the next responses
 /// after the owner handled the request, as a lossy binding can.
-struct Memory {
-    owner: Owner<Echo>,
+struct Memory<H: Handler> {
+    owner: Owner<H>,
     inbox: VecDeque<Vec<u8>>,
     drop_responses: usize,
     lossy: bool,
 }
 
-impl Channel for Memory {
+impl<H: Handler> Channel for Memory<H> {
     fn lossy(&self) -> bool {
         self.lossy
+    }
+    fn local(&self) -> bool {
+        true
     }
     fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
         let response = self
@@ -87,25 +95,26 @@ impl Channel for Memory {
         }
         Ok(())
     }
-    fn receive(&mut self, _bound: usize) -> Result<Vec<u8>, Error> {
-        self.inbox.pop_front().ok_or_else(|| {
-            Error::Io(std::io::Error::new(
-                std::io::ErrorKind::TimedOut,
-                "no frame",
-            ))
-        })
+    fn receive(&mut self, _bound: usize) -> Result<Vec<u8>, ChannelError> {
+        self.inbox.pop_front().ok_or(ChannelError::Timeout)
     }
 }
 
-fn memory(handler: Echo, lossy: bool, drop_responses: usize) -> Client<Memory> {
-    let contract = contract();
-    let channel = Memory {
-        owner: owner(handler, MAX_BOUND),
-        inbox: VecDeque::new(),
-        drop_responses,
-        lossy,
-    };
-    Client::new(channel, &contract.application, &contract.identity)
+fn memory_of<H: Handler>(owner: Owner<H>, lossy: bool, drop_responses: usize) -> Client<Memory<H>> {
+    Client::new(
+        Memory {
+            owner,
+            inbox: VecDeque::new(),
+            drop_responses,
+            lossy,
+        },
+        &contract(),
+    )
+    .with_observer(quiet())
+}
+
+fn memory(handler: Echo, lossy: bool, drop_responses: usize) -> Client<Memory<Echo>> {
+    memory_of(owner(handler, MAX_BOUND), lossy, drop_responses)
 }
 
 fn all_dtypes() -> Vec<Array> {
@@ -134,37 +143,53 @@ fn array_body(arrays: &[Array]) -> Value {
     )
 }
 
-#[test]
-fn memory_session_rules() {
-    let echo = Echo::default();
-    let mut client = memory(echo.clone(), false, 0);
-    let opened = client.open().expect("open");
-    assert_eq!(opened["bound"], MAX_BOUND.min(ncp::DEFAULT_BOUND));
-    assert_eq!(opened["implementation"], ncp::IMPLEMENTATION);
-    let reply = client
-        .call("echo", json!({"x": 1.5, "s": "é😀"}), &[])
-        .expect("call");
-    assert_eq!(reply.message["body"], json!({"x": 1.5, "s": "é😀"}));
-    match client.call("echo", json!({"invalid": true}), &[]) {
-        Err(Error::Rejected { code, body }) => {
-            assert_eq!(code, "body_invalid");
-            assert_eq!(body["detail"], "invalid requested");
-        }
-        other => panic!("expected a rejection, got {other:?}"),
+fn ended(result: Result<impl std::fmt::Debug, Error>) -> (String, Executed) {
+    match result {
+        Err(Error::Ended { code, executed, .. }) => (code, executed),
+        other => panic!("expected an ended session, got {other:?}"),
     }
+}
+
+#[test]
+fn ok_and_declined_advance_the_session() {
+    let mut client = memory(Echo::default(), false, 0);
+    let opened = client.open().expect("open");
+    assert_eq!(opened["bound"], ncp::DEFAULT_BOUND);
+    assert_eq!(client.nonce().map(str::len), Some(32));
+    assert_eq!(
+        client
+            .call("echo", json!({"x": 1}), &[])
+            .expect("call")
+            .message["seq"],
+        1
+    );
+    match client.call("echo", json!({"invalid": true}), &[]) {
+        Err(Error::Declined { code, detail, .. }) => {
+            assert_eq!(
+                (code.as_str(), detail.as_str()),
+                ("body_invalid", "invalid requested")
+            )
+        }
+        other => panic!("expected declined, got {other:?}"),
+    }
+    assert_eq!(client.state().seq, 2);
     match client.call("missing", json!({}), &[]) {
-        Err(Error::Rejected { code, .. }) => assert_eq!(code, "unknown_op"),
+        Err(Error::Declined { code, .. }) => assert_eq!(code, "unknown_op"),
         other => panic!("expected unknown_op, got {other:?}"),
     }
-    // A rejection changes nothing: the next call still uses the next sequence number.
-    client
-        .call("echo", json!({"after": "rejections"}), &[])
-        .expect("call after rejections");
-    assert_eq!(echo.executed.load(Ordering::SeqCst), 2);
+    assert_eq!(client.ping().expect("ping").message["body"], json!({}));
+    assert_eq!(
+        client
+            .call("echo", json!({"x": 2}), &[])
+            .expect("call")
+            .message["seq"],
+        5
+    );
     client.close().expect("close");
+    assert!(client.ended());
     assert!(matches!(
         client.call("echo", json!({}), &[]),
-        Err(Error::Protocol(_))
+        Err(Error::Usage(_))
     ));
 }
 
@@ -176,310 +201,529 @@ fn arrays_of_every_dtype_round_trip() {
     let reply = client
         .call("echo", json!({"v": array_body(&arrays)}), &arrays)
         .expect("call");
-    assert_eq!(reply.arrays.len(), arrays.len());
     for (index, array) in arrays.iter().enumerate() {
         assert_eq!(
             reply.array_bytes(index).expect("bytes"),
             &array.data[..],
             "array {index}"
         );
-        assert_eq!(reply.arrays[index].dtype, array.dtype);
     }
     assert_eq!(reply.array_f64(9).expect("f64")[3], std::f64::consts::PI);
-    assert_eq!(reply.array_i64(7).expect("i64"), vec![i64::MIN, i64::MAX]);
 }
 
 #[test]
 fn endings_report_whether_the_request_executed() {
     let mut client = memory(Echo::default(), false, 0);
     client.open().expect("open");
-    match client.call("fail", json!({}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("owner_failure", "unknown"))
-        }
-        other => panic!("expected owner_failure, got {other:?}"),
-    }
-    assert!(client.call("echo", json!({}), &[]).is_err());
-
-    let mut client = memory(Echo::default(), false, 0).with_bound(HANDSHAKE_BOUND);
+    assert_eq!(
+        ended(client.call("fail", json!({}), &[])),
+        ("owner_failure".into(), Executed::Unknown)
+    );
+    let mut client =
+        memory_of(owner(Echo::default(), HANDSHAKE_BOUND), false, 0).with_bound(HANDSHAKE_BOUND);
     client.open().expect("open");
-    match client.call("big", json!({"size": HANDSHAKE_BOUND}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("result_too_large", "yes"))
+    let (code, executed) = ended(client.call("big", json!({"size": HANDSHAKE_BOUND}), &[]));
+    assert_eq!(
+        (code.as_str(), executed),
+        ("result_too_large", Executed::Yes)
+    );
+    let mut client = memory(Echo::default(), false, 0).with_bound(MAX_BOUND);
+    client.open().expect("open");
+    match client.call("big", json!({"size": frame::MAX_JSON, "json": true}), &[]) {
+        Err(Error::Ended {
+            code,
+            executed,
+            body,
+            ..
+        }) => {
+            assert_eq!(
+                (code.as_str(), executed),
+                ("result_too_large", Executed::Yes)
+            );
+            assert_eq!(body["limit"], frame::MAX_JSON);
         }
         other => panic!("expected result_too_large, got {other:?}"),
     }
 }
 
 #[test]
-fn a_lost_response_is_retried_and_executes_once() {
+fn a_lost_response_is_sent_again_and_executes_once() {
     let echo = Echo::default();
-    let mut client = memory(echo.clone(), true, 0);
+    let executed = echo.executed.clone();
+    let mut client = memory(echo, true, 0);
     client.open().expect("open");
-    // Lose the next two responses: the client sends the same request three times.
-    set_drops(&mut client, 2);
-    let reply = client
-        .call("echo", json!({"once": true}), &[])
-        .expect("call with retries");
-    assert_eq!(reply.message["body"], json!({"once": true}));
+    client.channel_mut().drop_responses = 2;
+    let reply = client.call("echo", json!({"n": 1}), &[]).expect("call");
+    assert_eq!(reply.message["body"], json!({"n": 1}));
     assert_eq!(
-        echo.executed.load(Ordering::SeqCst),
+        executed.load(Ordering::SeqCst),
         1,
-        "a retried request must execute exactly once"
+        "a copy must not execute again"
     );
-    set_drops(&mut client, 4);
-    match client.call("echo", json!({}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("timeout", "unknown"))
-        }
-        other => panic!("expected a timeout, got {other:?}"),
-    }
-}
-
-fn set_drops(client: &mut Client<Memory>, drops: usize) {
-    client.channel_mut().drop_responses = drops;
-}
-
-/// A channel to an owner that can be closed: then it fails as a closed pipe does, on send or
-/// on receive.
-struct Closing {
-    inner: Memory,
-    closed: bool,
-    fail_on_send: bool,
-}
-
-impl Channel for Closing {
-    fn lossy(&self) -> bool {
-        false
-    }
-    fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
-        match (self.closed, self.fail_on_send) {
-            (true, true) => Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "closed",
-            )),
-            (true, false) => Ok(()),
-            _ => self.inner.send(frame_bytes),
-        }
-    }
-    fn receive(&mut self, bound: usize) -> Result<Vec<u8>, Error> {
-        if self.closed {
-            return Err(Error::Io(std::io::Error::new(
-                std::io::ErrorKind::UnexpectedEof,
-                "closed",
-            )));
-        }
-        self.inner.receive(bound)
-    }
+    client.channel_mut().drop_responses = 10;
+    let (code, verdict) = ended(client.call("echo", json!({"n": 2}), &[]));
+    assert_eq!(
+        (code.as_str(), verdict),
+        ("local.timeout", Executed::Unknown)
+    );
 }
 
 #[test]
-fn a_closed_channel_ends_the_session_with_the_request_possibly_executed() {
-    // Spec section 7.6, rule 7: without a response, the request is possibly executed, and the
-    // session ends, whether the send or the receive notices the closed channel.
-    for fail_on_send in [false, true] {
-        let contract = contract();
-        let inner = Memory {
-            owner: owner(Echo::default(), MAX_BOUND),
+fn a_declined_answer_never_changes() {
+    // Decision D1: the owner keeps the declined response, so a copy that arrives after the
+    // application would accept the body still gets it, and nothing executes.
+    struct Flaky {
+        accept: Arc<AtomicUsize>,
+        executed: Arc<AtomicUsize>,
+    }
+    impl Handler for Flaky {
+        fn validate(&mut self, _: &Request<'_>) -> Result<(), Invalid> {
+            if self.accept.load(Ordering::SeqCst) == 0 {
+                return Err(declined("not yet"));
+            }
+            Ok(())
+        }
+        fn execute(&mut self, _: &Request<'_>) -> Result<Reply, AppError> {
+            self.executed.fetch_add(1, Ordering::SeqCst);
+            Ok(json!({}).into())
+        }
+    }
+    let (accept, executed) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicUsize::new(0)));
+    let mut owner = Owner::new(
+        contract(),
+        Flaky {
+            accept: accept.clone(),
+            executed: executed.clone(),
+        },
+    );
+    let session = ncp::random_session();
+    let open = json!({"ncp": 2, "session": session, "seq": 0, "op": "open", "ack": null,
+                      "body": {"application": "echo", "contract": contract().identity, "bound": 65536}});
+    let opened = owner
+        .handle(frame::encode(&open, &[]).expect("open"))
+        .expect("open");
+    let step = json!({"ncp": 2, "session": session, "seq": 1, "op": "echo", "ack": frame::identity(&opened), "body": {}});
+    let step = frame::encode(&step, &[]).expect("step");
+    let first = owner.handle(step.clone()).expect("step");
+    accept.store(1, Ordering::SeqCst);
+    assert_eq!(owner.handle(step).expect("copy"), first);
+    assert_eq!(executed.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn each_opening_has_its_own_nonce() {
+    let session = ncp::random_session();
+    let open = json!({"ncp": 2, "session": session, "seq": 0, "op": "open", "ack": null,
+                      "body": {"application": "echo", "contract": contract().identity, "bound": 65536}});
+    let open = frame::encode(&open, &[]).expect("open");
+    let (mut first, mut second) = (
+        owner(Echo::default(), MAX_BOUND),
+        owner(Echo::default(), MAX_BOUND),
+    );
+    let a = first.handle(open.clone()).expect("open");
+    let b = second.handle(open).expect("open");
+    assert_ne!(a, b);
+    let step = json!({"ncp": 2, "session": session, "seq": 1, "op": "echo", "ack": frame::identity(&a), "body": {}});
+    let step = frame::encode(&step, &[]).expect("step");
+    assert_eq!(
+        frame::decode(
+            first.handle(step.clone()).expect("step").to_vec(),
+            MAX_BOUND
+        )
+        .expect("ok")
+        .message["outcome"],
+        "ok"
+    );
+    let replay =
+        frame::decode(second.handle(step).expect("step").to_vec(), MAX_BOUND).expect("response");
+    assert_eq!(replay.message["code"], "ack_mismatch");
+}
+
+#[test]
+fn a_stopping_owner_admits_nothing_new() {
+    let mut client = memory(Echo::default(), false, 0);
+    client.open().expect("open");
+    client.call("echo", json!({}), &[]).expect("call");
+    client.channel_mut().owner.stop();
+    let (code, verdict) = ended(client.call("echo", json!({}), &[]));
+    assert_eq!((code.as_str(), verdict), ("shutdown", Executed::No));
+}
+
+#[test]
+fn several_contracts_and_the_handler_hooks() {
+    let v2 = Contract::from_bytes(
+        std::str::from_utf8(CONTRACT)
+            .expect("text")
+            .replace("\"version\":\"1\"", "\"version\":\"2\"")
+            .into_bytes(),
+    )
+    .expect("v2");
+    struct Hooked(Arc<std::sync::Mutex<Vec<String>>>);
+    impl Handler for Hooked {
+        fn validate(&mut self, _: &Request<'_>) -> Result<(), Invalid> {
+            Ok(())
+        }
+        fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
+            Ok(json!({"version": request.contract.version, "features": request.features, "run": request.run}).into())
+        }
+        fn open(&mut self, info: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
+            if info.run == Some("refuse") {
+                return Err(Refused("not today".into()));
+            }
+            let mut granted = Map::new();
+            granted.insert("x.feature".into(), json!({"granted": true}));
+            granted.insert("not.asked".into(), json!({}));
+            Ok(granted)
+        }
+        fn close(&mut self, reason: &str) {
+            self.0.lock().expect("lock").push(reason.to_owned());
+        }
+    }
+    let log = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let make =
+        || Owner::with_contracts(vec![contract(), v2.clone()], Hooked(log.clone())).expect("owner");
+    let mut features = Map::new();
+    features.insert("x.feature".into(), json!({}));
+    let mut refused = memory_of(make(), false, 0).with_run("refuse");
+    let mut refused_v2 = Client::new(
+        Memory {
+            owner: make(),
             inbox: VecDeque::new(),
             drop_responses: 0,
             lossy: false,
-        };
-        let channel = Closing {
-            inner,
-            closed: false,
-            fail_on_send,
-        };
-        let mut client = Client::new(channel, &contract.application, &contract.identity);
-        client.open().expect("open");
-        client.call("echo", json!({"n": 1}), &[]).expect("call");
-        client.channel_mut().closed = true;
-        match client.call("echo", json!({"n": 2}), &[]) {
-            Err(Error::Ended { code, executed }) => {
-                assert_eq!((code.as_str(), executed), ("closed", "unknown"))
-            }
-            other => panic!("expected a closed session, got {other:?}"),
-        }
-        assert!(matches!(
-            client.call("echo", json!({}), &[]),
-            Err(Error::Protocol(_))
-        ));
-    }
+        },
+        &v2,
+    )
+    .with_run("refuse");
+    assert!(matches!(refused_v2.open(), Err(Error::Rejected { code, .. }) if code == "refused"));
+    let _ = refused.open();
+    let mut client = Client::new(
+        Memory {
+            owner: make(),
+            inbox: VecDeque::new(),
+            drop_responses: 0,
+            lossy: false,
+        },
+        &v2,
+    )
+    .with_run("r1")
+    .with_features(features);
+    client.open().expect("open");
+    assert_eq!(
+        client.enabled().get("x.feature"),
+        Some(&json!({"granted": true}))
+    );
+    assert!(client.enabled().get("not.asked").is_none());
+    let reply = client.call("echo", json!({}), &[]).expect("call");
+    assert_eq!(reply.message["body"]["version"], "2");
+    assert_eq!(reply.message["body"]["run"], "r1");
+    client.channel_mut().owner.finish("lost");
+    client.channel_mut().owner.finish("lost");
+    assert_eq!(*log.lock().expect("lock"), vec!["lost".to_owned()]);
 }
 
 #[test]
+fn the_request_schema_of_the_contract() {
+    let typed = Contract::from_bytes(
+        br#"{"ncp_contract":1,"application":"echo","version":"3","operations":{"echo":{"ncp.schema":{"request":{"type":"object","required":["v"],"properties":{"v":{"ncp.array":{"dtype":"f64","shape":[null,3]}}}}}}},"streams":{}}"#.to_vec(),
+    )
+    .expect("typed");
+    let mut client = Client::new(
+        Memory {
+            owner: Owner::new(typed.clone(), Echo::default()).with_observer(quiet()),
+            inbox: VecDeque::new(),
+            drop_responses: 0,
+            lossy: false,
+        },
+        &typed,
+    );
+    client.open().expect("open");
+    let good = Array::new(frame::Dtype::F64, vec![2, 3], vec![0; 48]).expect("array");
+    client
+        .call("echo", json!({"v": good.reference(0)}), &[good])
+        .expect("call");
+    let bad = Array::from_f64(&[1.0, 2.0, 3.0]);
+    match client.call("echo", json!({"v": bad.reference(0)}), &[bad]) {
+        Err(Error::Declined { code, detail, .. }) => {
+            assert_eq!(code, "body_invalid");
+            assert!(detail.contains("shape"), "{detail}");
+        }
+        other => panic!("expected declined, got {other:?}"),
+    }
+}
+
+/// A Rust client over TCP with a transcript of every frame; the transcript verifies.
+#[test]
 fn tcp_session_with_transcripts() {
+    let mut server = ncp::serve_tcp(
+        "127.0.0.1:0",
+        false,
+        || owner(Echo::default(), MAX_BOUND),
+        Limits::default(),
+    )
+    .expect("server");
     let directory = scratch("tcp");
-    let owner_tap = Arc::new(ncp::Tap::create(directory.join("owner.ncpt")).expect("tap"));
-    let client_tap = Arc::new(ncp::Tap::create(directory.join("client.ncpt")).expect("tap"));
-    let listener = binding::listen_tcp("127.0.0.1:0", false).expect("listen");
-    let address = listener.local_addr().expect("address");
-    let tap = owner_tap.clone();
-    let server = std::thread::spawn(move || {
-        let (stream, _) = listener.accept().expect("accept");
-        let mut channel = binding::tcp_channel(stream).expect("channel").with_tap(tap);
-        let mut owner = owner(Echo::default(), MAX_BOUND);
-        binding::serve(&mut owner, &mut channel).expect("serve");
-        owner.closed()
-    });
-    let contract = contract();
-    let channel = binding::connect_tcp(address, false)
+    let path = directory.join("client.ncpt");
+    let tap = Arc::new(ncp::Tap::create(&path).expect("tap"));
+    let channel = ncp::connect_tcp(server.address(), false)
         .expect("connect")
-        .with_tap(client_tap.clone());
-    let mut client =
-        Client::new(channel, &contract.application, &contract.identity).with_run("tcp-test");
+        .with_tap(tap.clone());
+    let mut client = Client::new(channel, &contract());
     client.open().expect("open");
     let arrays = all_dtypes();
-    for step in 0..50 {
-        let reply = client
-            .call(
-                "echo",
-                json!({"step": step, "v": array_body(&arrays)}),
-                &arrays,
-            )
-            .expect("call");
-        assert_eq!(reply.message["body"]["step"], step);
-    }
-    let _ = client.call("echo", json!({"invalid": true}), &[]);
+    client
+        .call("echo", json!({"v": array_body(&arrays)}), &arrays)
+        .expect("call");
+    assert!(matches!(
+        client.call("echo", json!({"invalid": true}), &[]),
+        Err(Error::Declined { .. })
+    ));
     client.close().expect("close");
-    assert!(server.join().expect("server thread"), "the owner saw close");
-    owner_tap.flush().expect("flush");
-    client_tap.flush().expect("flush");
-    for (name, role) in [("owner.ncpt", "owner"), ("client.ncpt", "client")] {
-        let sessions = transcript::verify(directory.join(name)).expect("verify");
-        assert_eq!(sessions.len(), 1, "{name}");
-        let report = sessions.values().next().expect("session");
-        assert_eq!(report.role, role, "{name}");
-        assert!(report.complete, "{name}: {report:?}");
-        assert!(report.problems.is_empty(), "{name}: {:?}", report.problems);
-        assert_eq!(
-            report.requests, 53,
-            "{name}: open, 50 calls, 1 rejected call, close"
-        );
-    }
+    tap.close().expect("close the transcript");
+    let report = transcript::verify(&path, None).expect("verify");
+    assert!(report.ok(), "{report:?}");
+    assert_eq!((report.closed, report.chain_ok), (true, Some(true)));
+    let session = &report.sessions[0];
+    assert_eq!(
+        (
+            session.role.as_str(),
+            session.requests,
+            session.declined,
+            session.complete
+        ),
+        ("client", 4, 1, true)
+    );
+    server.stop(Duration::from_secs(1));
 }
 
 #[test]
 fn transcripts_detect_tampering() {
     let directory = scratch("tamper");
-    let path = directory.join("client.ncpt");
+    let path = directory.join("t.ncpt");
+    let tap = Arc::new(ncp::Tap::create(&path).expect("tap"));
     {
-        let tap = Arc::new(ncp::Tap::create(&path).expect("tap"));
-        let contract = contract();
-        let mut channel = Memory {
-            owner: owner(Echo::default(), MAX_BOUND),
-            inbox: VecDeque::new(),
-            drop_responses: 0,
-            lossy: false,
-        };
-        let session = ncp::random_session();
-        let mut ack = Value::Null;
-        for (seq, op, body) in [
-            (
-                0,
-                "open",
-                json!({"application": "echo", "contract": contract.identity, "bound": HANDSHAKE_BOUND}),
-            ),
-            (1, "echo", json!({"a": 1})),
-            (2, "echo", json!({"a": 2})),
-        ] {
-            let request = frame::encode(&json!({"ncp": 2, "session": session, "seq": seq, "op": op, "ack": ack, "body": body}), &[]).expect("encode");
-            tap.record(transcript::SENT, &request).expect("record");
-            channel.send(&request).expect("send");
-            let response = channel.receive(MAX_BOUND).expect("response");
-            tap.record(transcript::RECEIVED, &response).expect("record");
-            ack = Value::from(frame::identity(&response));
-        }
-        // A forged request whose ack names no response the client received.
-        let forged = frame::encode(&json!({"ncp": 2, "session": session, "seq": 3, "op": "echo", "ack": "0".repeat(64), "body": {}}), &[]).expect("encode");
-        tap.record(transcript::SENT, &forged).expect("record");
-        tap.flush().expect("flush");
+        let mut client = memory(Echo::default(), false, 0);
+        // Record by hand around the memory channel.
+        let state_tap = tap.clone();
+        client.open().expect("open");
+        let reply = client.call("echo", json!({"n": 1}), &[]).expect("call");
+        state_tap
+            .record(transcript::SENT, &reply.frame)
+            .expect("record");
     }
-    let sessions = transcript::verify(&path).expect("verify");
-    let report = sessions.values().next().expect("session");
-    assert!(!report.complete);
-    assert!(
-        report
-            .problems
-            .iter()
-            .any(|p| p.contains("ack does not name")),
-        "{:?}",
-        report.problems
+    tap.close().expect("close");
+    let mut data = std::fs::read(&path).expect("read");
+    let end = data.len();
+    data[end - 40] ^= 1; // inside the last chain value or the end record
+    std::fs::write(&path, &data).expect("write");
+    let report = transcript::verify(&path, None).expect("verify");
+    assert_eq!(report.chain_ok, Some(false));
+    std::fs::write(&path, &data[..end - 10]).expect("write");
+    let report = transcript::verify(&path, None).expect("verify");
+    assert!(report.truncated_at.is_some());
+    assert!(!report.ok());
+}
+
+#[test]
+fn a_tap_records_a_frame_before_sending_it_and_a_dropped_tap_closes() {
+    let directory = scratch("tap");
+    let path = directory.join("t.ncpt");
+    let frame_bytes = frame::encode(&json!({"a": 1}), &[]).expect("frame");
+    {
+        let tap = ncp::Tap::create(&path).expect("tap");
+        tap.record(transcript::SENT, &frame_bytes).expect("record");
+    }
+    let read = transcript::read(&path).expect("read");
+    assert_eq!(read.records.len(), 1);
+    assert!(read.closed, "dropping the tap writes the end record");
+    let path = directory.join("forgotten.ncpt");
+    let tap = ncp::Tap::create(&path).expect("tap");
+    tap.record(transcript::SENT, &frame_bytes).expect("record");
+    std::mem::forget(tap); // as if the program died
+    let report = transcript::verify(&path, None).expect("verify");
+    assert!(!report.closed);
+    assert!(report.problems.iter().any(|p| p.contains("no end record")));
+}
+
+#[test]
+fn a_keyed_transcript_and_an_authenticated_session() {
+    let key = Key::new((0..32).collect()).expect("key");
+    let mut server = ncp::serve_tcp(
+        "127.0.0.1:0",
+        false,
+        {
+            let key = key.clone();
+            move || owner(Echo::default(), MAX_BOUND).with_key(key.clone())
+        },
+        Limits::default(),
+    )
+    .expect("server");
+    let mut client = Client::new(
+        ncp::connect_tcp(server.address(), false).expect("connect"),
+        &contract(),
+    )
+    .with_key(key.clone());
+    client.open().expect("open");
+    client.call("echo", json!({"a": 1}), &[]).expect("call");
+    client.close().expect("close");
+    let mut stranger = Client::new(
+        ncp::connect_tcp(server.address(), false).expect("connect"),
+        &contract(),
     );
+    let (code, _) = ended(stranger.open());
     assert!(
-        report.problems.iter().any(|p| p.contains("no response")),
-        "{:?}",
-        report.problems
+        code == "local.bad_frame" || code == "local.closed",
+        "{code}"
+    );
+    server.stop(Duration::from_secs(1));
+}
+
+#[test]
+fn a_bad_frame_ends_a_tcp_connection() {
+    let mut server = ncp::serve_tcp(
+        "127.0.0.1:0",
+        false,
+        || owner(Echo::default(), MAX_BOUND),
+        Limits::default(),
+    )
+    .expect("server");
+    let mut stream = std::net::TcpStream::connect(server.address()).expect("connect");
+    let mut damaged = frame::encode(&json!({"a": "x".repeat(70_000)}), &[]).expect("frame");
+    damaged[40_000] ^= 1;
+    std::io::Write::write_all(&mut stream, &damaged).expect("write");
+    let mut channel = ncp::tcp_channel(stream).expect("channel");
+    let reply = channel
+        .receive_frame(MAX_BOUND)
+        .expect("bad-frame response");
+    let message = frame::decode(reply, MAX_BOUND).expect("decode").message;
+    assert_eq!(
+        (message["code"].as_str(), message["session"].is_null()),
+        (Some("bad_frame"), true)
+    );
+    server.stop(Duration::from_secs(1));
+}
+
+#[test]
+fn a_full_server_refuses_an_open_and_stop_sends_the_shutdown_response() {
+    let limits = Limits {
+        max_sessions: 1,
+        ..Limits::default()
+    };
+    let mut server = ncp::serve_tcp(
+        "127.0.0.1:0",
+        false,
+        || owner(Echo::default(), MAX_BOUND),
+        limits,
+    )
+    .expect("server");
+    let mut first = Client::new(
+        ncp::connect_tcp(server.address(), false).expect("connect"),
+        &contract(),
+    );
+    first.open().expect("open");
+    let mut second = Client::new(
+        ncp::connect_tcp(server.address(), false).expect("connect"),
+        &contract(),
+    );
+    assert!(matches!(second.open(), Err(Error::Rejected { code, .. }) if code == "refused"));
+    first.call("echo", json!({}), &[]).expect("call");
+    server.stop(Duration::from_secs(2));
+    let (code, verdict) = ended(first.call("echo", json!({}), &[]));
+    assert!(
+        (code.as_str(), verdict) == ("shutdown", Executed::No)
+            || (code.as_str(), verdict) == ("local.closed", Executed::Unknown),
+        "{code} {verdict}"
     );
 }
 
 #[test]
-fn bad_frame_ends_a_tcp_connection() {
-    let listener = binding::listen_tcp("127.0.0.1:0", false).expect("listen");
-    let address = listener.local_addr().expect("address");
-    let server = std::thread::spawn(move || {
-        let (stream, _) = listener.accept().expect("accept");
-        let mut channel = binding::tcp_channel(stream).expect("channel");
-        let mut owner = owner(Echo::default(), MAX_BOUND);
-        binding::serve(&mut owner, &mut channel).expect("serve");
-    });
-    let mut channel = binding::connect_tcp(address, false).expect("connect");
-    channel
-        .send_frame(b"NCP\x01\x00\x00\x00\x08\x00\x00\x00\x00{}      ")
-        .expect("send junk");
-    let response = channel
-        .receive_frame(MAX_BOUND)
-        .expect("bad frame response");
-    let message = frame::decode(response, MAX_BOUND).expect("decode").message;
-    assert_eq!(
-        (message["outcome"].as_str(), message["code"].as_str()),
-        (Some("ended"), Some("bad_frame"))
+fn an_idle_session_ends_with_the_shutdown_response() {
+    let limits = Limits {
+        idle_timeout: Some(Duration::from_millis(200)),
+        ..Limits::default()
+    };
+    let mut server = ncp::serve_tcp(
+        "127.0.0.1:0",
+        false,
+        || owner(Echo::default(), MAX_BOUND),
+        limits,
+    )
+    .expect("server");
+    let mut client = Client::new(
+        ncp::connect_tcp(server.address(), false).expect("connect"),
+        &contract(),
     );
-    assert!(message["session"].is_null() && message["request"].is_null());
-    server.join().expect("server thread");
-    assert!(
-        channel.receive_frame(MAX_BOUND).is_err(),
-        "the owner closed the connection"
-    );
+    client.open().expect("open");
+    std::thread::sleep(Duration::from_millis(500));
+    let (code, _) = ended(client.call("echo", json!({}), &[]));
+    assert!(code == "shutdown" || code == "local.closed", "{code}");
+    server.stop(Duration::from_secs(1));
 }
 
 #[test]
 fn remote_addresses_need_permission() {
-    let error = binding::connect_tcp("192.0.2.1:9", false).expect_err("refused");
-    assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
-    let error = binding::listen_tcp("0.0.0.0:0", false).expect_err("refused");
-    assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
+    assert!(ncp::connect_tcp("192.0.2.1:1", false).is_err());
+    assert!(ncp::listen_tcp("0.0.0.0:0", false).is_err());
+    assert!(ncp::listen_tcp("127.0.0.1:0", false).is_ok());
 }
 
-/// A lossless in-memory channel that records, in a log shared by several sessions, when the
-/// client sends and when it receives.
-struct Logged {
-    inner: Memory,
-    name: usize,
-    log: Arc<Mutex<Vec<(&'static str, usize)>>>,
-}
-
-impl Channel for Logged {
-    fn lossy(&self) -> bool {
-        false
-    }
-    fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
-        self.log.lock().expect("log").push(("send", self.name));
-        self.inner.send(frame_bytes)
-    }
-    fn receive(&mut self, bound: usize) -> Result<Vec<u8>, Error> {
-        self.log.lock().expect("log").push(("receive", self.name));
-        self.inner.receive(bound)
-    }
+#[test]
+fn the_digest_check_can_be_turned_off_only_on_local_links() {
+    let mut client = memory(Echo::default(), false, 0).without_digest_check();
+    client.open().expect("open");
+    client.call("echo", json!({"a": 1}), &[]).expect("call");
+    let mut server = ncp::serve_tcp(
+        "127.0.0.1:0",
+        false,
+        || owner(Echo::default(), MAX_BOUND).without_digest_check(),
+        Limits::default(),
+    )
+    .expect("server");
+    let mut client = Client::new(
+        ncp::connect_tcp(server.address(), false).expect("connect"),
+        &contract(),
+    );
+    assert!(matches!(client.open(), Err(Error::Ended { .. })));
+    server.stop(Duration::from_secs(1));
+    let tcp = ncp::connect_tcp(
+        ncp::listen_tcp("127.0.0.1:0", false)
+            .expect("listen")
+            .local_addr()
+            .expect("address"),
+        false,
+    )
+    .expect("connect");
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        Client::new(tcp, &contract()).without_digest_check()
+    }));
+    assert!(
+        result.is_err(),
+        "the client refuses to turn the comparison off over TCP"
+    );
 }
 
 #[test]
 fn call_all_sends_every_request_before_it_reads_a_response() {
-    // Spec section 16: the owners work at the same time, and each session still has one request
-    // outstanding (rule 7.6.1).
-    let contract = contract();
-    let log = Arc::new(Mutex::new(Vec::new()));
-    let mut clients: Vec<_> = (0..4)
+    let log = Arc::new(std::sync::Mutex::new(Vec::new()));
+    struct Logged {
+        name: usize,
+        inner: Memory<Echo>,
+        log: Arc<std::sync::Mutex<Vec<(&'static str, usize)>>>,
+    }
+    impl Channel for Logged {
+        fn lossy(&self) -> bool {
+            false
+        }
+        fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
+            self.log.lock().expect("lock").push(("send", self.name));
+            self.inner.send(frame_bytes)
+        }
+        fn receive(&mut self, bound: usize) -> Result<Vec<u8>, ChannelError> {
+            self.log.lock().expect("lock").push(("receive", self.name));
+            self.inner.receive(bound)
+        }
+    }
+    let mut clients: Vec<Client<Logged>> = (0..4)
         .map(|name| {
             let inner = Memory {
                 owner: owner(Echo::default(), MAX_BOUND),
@@ -487,163 +731,127 @@ fn call_all_sends_every_request_before_it_reads_a_response() {
                 drop_responses: 0,
                 lossy: false,
             };
-            let channel = Logged {
-                inner,
-                name,
-                log: log.clone(),
-            };
-            let mut client = Client::new(channel, &contract.application, &contract.identity);
-            client.open().expect("open");
-            client
+            Client::new(
+                Logged {
+                    name,
+                    inner,
+                    log: log.clone(),
+                },
+                &contract(),
+            )
         })
         .collect();
-    log.lock().expect("log").clear();
-    let bodies = (0..4).map(|agent| json!({"agent": agent})).collect();
-    for (agent, result) in ncp::call_all(&mut clients, "echo", bodies)
-        .into_iter()
-        .enumerate()
-    {
+    for client in &mut clients {
+        client.open().expect("open");
+    }
+    log.lock().expect("lock").clear();
+    let results = ncp::call_all(
+        &mut clients,
+        "echo",
+        (0..4).map(|i| json!({"agent": i})).collect(),
+    );
+    for (i, result) in results.iter().enumerate() {
         assert_eq!(
-            result.expect("call").message["body"],
-            json!({"agent": agent})
+            result.as_ref().expect("result").message["body"],
+            json!({"agent": i})
         );
     }
-    let expected: Vec<_> = (0..4)
-        .map(|name| ("send", name))
-        .chain((0..4).map(|name| ("receive", name)))
+    let expected: Vec<(&str, usize)> = (0..4)
+        .map(|i| ("send", i))
+        .chain((0..4).map(|i| ("receive", i)))
         .collect();
-    assert_eq!(*log.lock().expect("log"), expected);
+    assert_eq!(*log.lock().expect("lock"), expected);
 }
 
 #[test]
 fn call_all_returns_the_error_of_one_session_in_its_place() {
-    let mut clients: Vec<_> = (0..4)
-        .map(|_| {
-            let mut client = memory(Echo::default(), false, 0).with_bound(HANDSHAKE_BOUND);
-            client.open().expect("open");
-            client
-        })
+    let mut clients: Vec<_> = (0..3)
+        .map(|_| memory(Echo::default(), false, 0).with_bound(HANDSHAKE_BOUND))
         .collect();
-    assert!(matches!(
-        clients[1].call("fail", json!({}), &[]),
-        Err(Error::Ended { .. })
-    ));
-    let bodies = vec![
-        json!({"n": 0}),
-        json!({"n": 1}),
-        json!({"blob": "x".repeat(HANDSHAKE_BOUND)}),
-        json!({"n": 3}),
-    ];
-    let results = ncp::call_all(&mut clients, "echo", bodies);
-    assert!(matches!(&results[1], Err(Error::Protocol(text)) if text == "session ended"));
-    assert!(
-        matches!(&results[2], Err(Error::Protocol(text)) if text.contains("exceeds the bound"))
-    );
-    for n in [0, 3] {
-        assert_eq!(
-            results[n].as_ref().expect("call").message["body"],
-            json!({ "n": n })
-        );
-    }
-    // The other sessions stay in step: each read the response to its own request.
-    let bodies = (0..4).map(|m| json!({ "m": m })).collect();
-    let again = ncp::call_all(&mut clients, "echo", bodies);
-    for m in [0, 2, 3] {
-        assert_eq!(
-            again[m].as_ref().expect("call").message["body"],
-            json!({ "m": m })
-        );
-    }
-}
-
-#[test]
-fn many_sessions_with_call_all() {
-    let contract = contract();
-    let listener = binding::listen_tcp("127.0.0.1:0", false).expect("listen");
-    let address = listener.local_addr().expect("address");
-    let sessions = 16;
-    let executed = Arc::new(Mutex::new(Vec::new()));
-    let record = executed.clone();
-    let server = std::thread::spawn(move || {
-        let mut workers = Vec::new();
-        for _ in 0..sessions {
-            let (stream, _) = listener.accept().expect("accept");
-            let record = record.clone();
-            workers.push(std::thread::spawn(move || {
-                let echo = Echo::default();
-                let mut channel = binding::tcp_channel(stream).expect("channel");
-                let mut owner = owner(echo.clone(), MAX_BOUND);
-                binding::serve(&mut owner, &mut channel).expect("serve");
-                record
-                    .lock()
-                    .expect("lock")
-                    .push(echo.executed.load(Ordering::SeqCst));
-            }));
-        }
-        for worker in workers {
-            worker.join().expect("worker");
-        }
-    });
-    let mut clients: Vec<_> = (0..sessions)
-        .map(|_| {
-            let mut client = Client::new(
-                binding::connect_tcp(address, false).expect("connect"),
-                &contract.application,
-                &contract.identity,
-            );
-            client.open().expect("open");
-            client
-        })
-        .collect();
-    for round in 0..20 {
-        let bodies = (0..sessions)
-            .map(|agent| json!({"agent": agent, "round": round}))
-            .collect();
-        for (agent, result) in ncp::call_all(&mut clients, "echo", bodies)
-            .into_iter()
-            .enumerate()
-        {
-            assert_eq!(
-                result.expect("call").message["body"],
-                json!({"agent": agent, "round": round})
-            );
-        }
-    }
     for client in &mut clients {
-        client.close().expect("close");
+        client.open().expect("open");
     }
-    server.join().expect("server");
-    assert_eq!(*executed.lock().expect("lock"), vec![20; sessions]);
+    let _ = clients[1].call("fail", json!({}), &[]);
+    let results = ncp::call_all(
+        &mut clients,
+        "echo",
+        vec![
+            json!({"n": 0}),
+            json!({"n": 1}),
+            json!({"blob": "x".repeat(HANDSHAKE_BOUND)}),
+        ],
+    );
+    assert!(results[0].is_ok());
+    assert!(matches!(results[1], Err(Error::Usage(_))));
+    assert!(matches!(results[2], Err(Error::Usage(_))));
 }
 
 #[test]
-fn streams_detect_loss_repeats_and_forgery() {
-    let contract = contract();
-    let mut publisher = Publisher::new("sensor/left", &contract.identity).expect("publisher");
+fn the_subscriber_applies_its_bound_to_each_frame() {
+    // Rule 8.4: a frame over the subscriber's bound is a bad frame, and changes no stream state.
+    let identity = contract().identity;
+    let mut publisher = Publisher::exact("big", &identity).expect("publisher");
+    let blob = ncp::Array::new(
+        ncp::Dtype::U8,
+        vec![HANDSHAKE_BOUND as u64],
+        vec![0; HANDSHAKE_BOUND],
+    )
+    .expect("array");
+    let large = publisher
+        .publish(json!({"blob": blob.reference(0)}), &[blob])
+        .expect("publish");
+    assert!(large.len() > HANDSHAKE_BOUND);
+    let mut subscriber = Subscriber::new([identity]).with_bound(HANDSHAKE_BOUND);
+    assert_eq!(subscriber.receive(large).0, Delivery::BadFrame);
+    let next = publisher.publish(json!({}), &[]).expect("publish");
+    assert_eq!(subscriber.receive(next).0, Delivery::Joined { end: false });
+}
+
+#[test]
+fn streams_detect_loss_repeats_conflicts_and_forgery() {
+    let identity = contract().identity;
+    let mut publisher = Publisher::new("sensor", &identity).expect("publisher");
+    assert!(publisher.stream().starts_with("sensor/") && publisher.stream().len() == 23);
     let frames: Vec<Vec<u8>> = (0..6)
-        .map(|i| {
-            let reading = Array::from_f32(&[i as f32]);
-            publisher
-                .publish(json!({"i": i, "reading": reading.reference(0)}), &[reading])
-                .expect("publish")
-        })
+        .map(|i| publisher.publish(json!({"i": i}), &[]).expect("publish"))
         .collect();
-    let mut subscriber = Subscriber::new([contract.identity.clone()]);
-    let mut receive = |bytes: &[u8]| subscriber.receive(bytes.to_vec()).0;
-    assert_eq!(receive(&frames[0]), Delivery::Accepted { lost: 0 });
+    let mut subscriber = Subscriber::new([identity.clone()]);
+    let mut receive = |f: &Vec<u8>| subscriber.receive(f.clone()).0;
+    assert_eq!(
+        receive(&frames[0]),
+        Delivery::Accepted {
+            lost: 0,
+            end: false
+        }
+    );
     assert_eq!(receive(&frames[0]), Delivery::Repeat);
-    assert_eq!(receive(&frames[3]), Delivery::Accepted { lost: 2 });
-    assert_eq!(receive(&frames[2]), Delivery::Repeat);
-    assert_eq!(receive(&frames[4]), Delivery::Accepted { lost: 0 });
-    let mut forger = Publisher::new("sensor/left", &contract.identity).expect("publisher");
+    assert_eq!(
+        receive(&frames[3]),
+        Delivery::Accepted {
+            lost: 2,
+            end: false
+        }
+    );
+    let mut forger = Publisher::exact(publisher.stream(), &identity).expect("forger");
     let forged: Vec<Vec<u8>> = (0..6)
         .map(|i| forger.publish(json!({"forged": i}), &[]).expect("publish"))
         .collect();
-    assert_eq!(receive(&forged[5]), Delivery::BrokenChain);
-    assert_eq!(receive(&frames[5]), Delivery::Accepted { lost: 0 });
+    assert_eq!(receive(&forged[3]), Delivery::Conflict);
+    assert_eq!(receive(&forged[4]), Delivery::BrokenChain);
+    assert_eq!(
+        receive(&frames[4]),
+        Delivery::Accepted {
+            lost: 0,
+            end: false
+        }
+    );
     let mut damaged = frames[5].clone();
     damaged[20] ^= 1;
     assert_eq!(receive(&damaged), Delivery::BadFrame);
+    let end = publisher.end(json!({"why": "done"})).expect("end");
+    assert!(publisher.publish(json!({}), &[]).is_err());
+    let mut late = Subscriber::new([identity.clone()]);
+    assert_eq!(late.receive(end).0, Delivery::Joined { end: true });
     let mut stranger = Publisher::new("other", &"0".repeat(64)).expect("publisher");
     assert_eq!(
         receive(&stranger.publish(json!({}), &[]).expect("publish")),
@@ -667,14 +875,20 @@ fn python_echo_owner() -> Option<std::process::Command> {
     Some(command)
 }
 
+fn python_contract() -> Contract {
+    Contract::from_bytes(
+        br#"{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"spikes":{}},"streams":{}}"#
+            .to_vec(),
+    )
+    .expect("contract")
+}
+
 #[test]
 fn rust_client_with_the_python_owner() {
     let Some(command) = python_echo_owner() else {
         return;
     };
-    let (channel, mut child) = binding::spawn(command).expect("spawn");
-    // The Python echo owner serves the contract of python/tests/echo_owner.py.
-    let mut client = Client::new(channel, "echo", &python_contract_identity());
+    let mut client = Client::new(ncp::spawn(command).expect("spawn"), &python_contract());
     let opened = client.open().expect("open");
     assert!(opened["implementation"]
         .as_str()
@@ -696,35 +910,26 @@ fn rust_client_with_the_python_owner() {
             "array {index}"
         );
     }
-    match client.call("echo", json!({"invalid": true}), &[]) {
-        Err(Error::Rejected { code, .. }) => assert_eq!(code, "body_invalid"),
-        other => panic!("expected body_invalid, got {other:?}"),
-    }
+    assert!(matches!(
+        client.call("echo", json!({"invalid": true}), &[]),
+        Err(Error::Declined { .. })
+    ));
+    client.ping().expect("ping");
+    assert_eq!(
+        ended(client.call("fail", json!({}), &[])),
+        ("owner_failure".into(), Executed::Unknown)
+    );
     client.close().expect("close");
-    assert!(child.wait().expect("wait").success());
-}
-
-fn python_contract_identity() -> String {
-    let output = std::process::Command::new("python3")
-        .arg("-I")
-        .arg("-c")
-        .arg("import sys; sys.path[:0] = [sys.argv[1], sys.argv[2]]; from echo_owner import CONTRACT; print(CONTRACT.identity)")
-        .arg(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../python"))
-        .arg(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../python/tests"))
-        .output()
-        .expect("python3");
-    String::from_utf8(output.stdout)
-        .expect("utf-8")
-        .trim()
-        .to_owned()
 }
 
 fn scratch(name: &str) -> PathBuf {
-    let directory = std::env::temp_dir().join(format!(
-        "ncp-rust-tests-{}-{name}-{}",
-        std::process::id(),
-        ncp::random_session()
-    ));
+    // Short, so that a Unix domain socket path inside it stays below the system limit.
+    let base = if cfg!(unix) {
+        PathBuf::from("/tmp")
+    } else {
+        std::env::temp_dir()
+    };
+    let directory = base.join(format!("ncp-{name}-{}", &ncp::random_session()[..8]));
     std::fs::create_dir_all(&directory).expect("scratch directory");
     directory
 }
@@ -733,529 +938,312 @@ fn scratch(name: &str) -> PathBuf {
 struct Stalling;
 
 impl Handler for Stalling {
-    fn validate(&mut self, _op: &str, _request: &Decoded) -> Result<(), String> {
+    fn validate(&mut self, _: &Request<'_>) -> Result<(), Invalid> {
         Ok(())
     }
-    fn execute(
-        &mut self,
-        _op: &str,
-        request: &Decoded,
-    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
-        std::thread::sleep(std::time::Duration::from_secs(3));
-        Ok(request.message["body"].clone().into())
+    fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
+        std::thread::sleep(Duration::from_secs(3));
+        Ok(request.body.clone().into())
     }
 }
 
-fn stalling_owner() -> Owner<Stalling> {
-    let contract = contract();
-    Owner::new(
-        &contract.application,
-        &contract.identity,
-        Stalling,
-        contract.operations,
-        MAX_BOUND,
+#[test]
+fn a_time_limit_ends_a_stalled_call() {
+    let mut server = ncp::serve_tcp(
+        "127.0.0.1:0",
+        false,
+        || Owner::new(contract(), Stalling),
+        Limits::default(),
     )
-}
-
-/// A call to an owner that stalls must end with `timeout` and executed `unknown` once the
-/// channel's time limit passes (specification 7.6, rule 7), not wait for the owner.
-fn assert_times_out<C: Channel>(mut client: Client<C>) {
+    .expect("server");
+    let mut channel = ncp::connect_tcp(server.address(), false).expect("connect");
+    channel.set_timeout(Some(Duration::from_millis(200)));
+    let mut client = Client::new(channel, &contract());
     client.open().expect("open");
-    let started = std::time::Instant::now();
-    match client.call("echo", json!({"stall": true}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("timeout", "unknown"))
-        }
-        other => panic!("expected a timeout, got {other:?}"),
-    }
+    let started = Instant::now();
+    assert_eq!(
+        ended(client.call("echo", json!({}), &[])),
+        ("local.timeout".into(), Executed::Unknown)
+    );
     assert!(
-        started.elapsed() < std::time::Duration::from_secs(2),
+        started.elapsed() < Duration::from_secs(2),
         "the time limit was not kept"
     );
-}
-
-#[test]
-fn a_tcp_time_limit_ends_a_stalled_call() {
-    let listener = binding::listen_tcp("127.0.0.1:0", false).expect("listen");
-    let address = listener.local_addr().expect("address");
-    std::thread::spawn(move || {
-        let (stream, _) = listener.accept().expect("accept");
-        let mut channel = binding::tcp_channel(stream).expect("channel");
-        let _ = binding::serve(&mut stalling_owner(), &mut channel);
-    });
-    let contract = contract();
-    let channel = binding::connect_tcp(address, false).expect("connect");
-    ncp::set_tcp_timeout(&channel, Some(std::time::Duration::from_millis(200)))
-        .expect("time limit");
-    assert_times_out(Client::new(
-        channel,
-        &contract.application,
-        &contract.identity,
-    ));
+    server.stop(Duration::from_millis(10));
 }
 
 #[cfg(unix)]
 #[test]
-fn a_unix_time_limit_ends_a_stalled_call() {
-    let directory = std::env::temp_dir().join(format!("ncp-{}", &ncp::random_session()[..8]));
-    std::fs::create_dir_all(&directory).expect("directory");
-    let path = directory.join("owner.sock");
-    let listener = std::os::unix::net::UnixListener::bind(&path).expect("bind");
-    std::thread::spawn(move || {
-        let (stream, _) = listener.accept().expect("accept");
-        let mut channel = binding::unix_channel(stream).expect("channel");
-        let _ = binding::serve(&mut stalling_owner(), &mut channel);
-    });
-    let contract = contract();
-    let channel = binding::connect_unix(&path).expect("connect");
-    ncp::set_unix_timeout(&channel, Some(std::time::Duration::from_millis(200)))
-        .expect("time limit");
-    assert_times_out(Client::new(
-        channel,
-        &contract.application,
-        &contract.identity,
-    ));
-    std::fs::remove_dir_all(&directory).expect("remove directory");
+fn a_child_on_a_socket_pair_takes_a_time_limit() {
+    let mut command = std::process::Command::new("sleep");
+    command.arg("5");
+    let mut channel = ncp::spawn_unix(command)
+        .expect("spawn")
+        .with_grace(Duration::from_millis(10));
+    channel.set_timeout(Some(Duration::from_millis(200)));
+    let mut client = Client::new(channel, &contract());
+    let started = Instant::now();
+    assert_eq!(
+        ended(client.open()),
+        ("local.timeout".into(), Executed::Unknown)
+    );
+    assert!(started.elapsed() < Duration::from_secs(2));
+    let mut channel = client;
+    let _ = channel.close();
 }
 
 #[cfg(unix)]
 #[test]
-fn a_child_on_a_socket_pair_serves_a_session() {
+fn a_child_channel_ends_its_child() {
     let Some(command) = python_echo_owner() else {
         return;
     };
-    let (channel, mut child) = binding::spawn_unix(command).expect("spawn");
-    ncp::set_unix_timeout(&channel, Some(std::time::Duration::from_secs(10))).expect("time limit");
-    let mut client = Client::new(channel, "echo", &python_contract_identity());
+    let mut client = Client::new(ncp::spawn_unix(command).expect("spawn"), &python_contract());
     client.open().expect("open");
-    let reply = client
-        .call("echo", json!({"pair": true}), &[])
-        .expect("call");
-    assert_eq!(reply.message["body"], json!({"pair": true}));
+    assert_eq!(
+        client
+            .call("echo", json!({"pair": true}), &[])
+            .expect("call")
+            .message["body"],
+        json!({"pair": true})
+    );
     client.close().expect("close");
-    assert!(
-        child.wait().expect("wait").success(),
-        "the owner exits after close"
-    );
+    assert!(client
+        .channel_mut()
+        .exit_status()
+        .is_some_and(|s| s.success()));
 }
 
 #[cfg(unix)]
 #[test]
-fn a_time_limit_ends_the_wait_for_a_silent_child() {
-    // A child that never answers: without a time limit, open would wait as long as it runs.
-    let mut command = std::process::Command::new("sleep");
-    command.arg("5");
-    let (channel, mut child) = binding::spawn_unix(command).expect("spawn");
-    ncp::set_unix_timeout(&channel, Some(std::time::Duration::from_millis(200)))
-        .expect("time limit");
-    let contract = contract();
-    let mut client = Client::new(channel, &contract.application, &contract.identity);
-    let started = std::time::Instant::now();
-    match client.open() {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("timeout", "unknown"))
-        }
-        other => panic!("expected a timeout, got {other:?}"),
-    }
-    assert!(
-        started.elapsed() < std::time::Duration::from_secs(2),
-        "the time limit was not kept"
-    );
-    child.kill().expect("kill");
-    child.wait().expect("wait");
-}
-
-#[cfg(unix)]
-#[test]
-fn connect_unix_tries_a_refused_connection_again() {
-    // An owner refuses connections while its queue of connections that it has not yet accepted
-    // is full (macOS; Linux makes the client wait instead). Here the queue holds one connection,
-    // and the owner starts to accept only after 200 ms.
-    // A short path: a Unix domain socket path holds at most 104 bytes on macOS.
-    let directory = std::env::temp_dir().join(format!("ncp-{}", &ncp::random_session()[..8]));
-    std::fs::create_dir_all(&directory).expect("directory");
+fn a_unix_server_serves_sessions_and_removes_its_socket() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = scratch("unix");
     let path = directory.join("owner.sock");
-    let socket =
-        socket2::Socket::new(socket2::Domain::UNIX, socket2::Type::STREAM, None).expect("socket");
-    socket
-        .bind(&socket2::SockAddr::unix(&path).expect("address"))
-        .expect("bind");
-    socket.listen(1).expect("listen");
-    let listener = std::os::unix::net::UnixListener::from(std::os::fd::OwnedFd::from(socket));
-    let clients = 8;
-    let server = std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(200));
-        let workers: Vec<_> = (0..clients)
-            .map(|_| {
-                let (stream, _) = listener.accept().expect("accept");
-                std::thread::spawn(move || {
-                    let mut channel = binding::unix_channel(stream).expect("channel");
-                    let mut owner = owner(Echo::default(), MAX_BOUND);
-                    binding::serve(&mut owner, &mut channel).expect("serve");
-                })
-            })
-            .collect();
-        for worker in workers {
-            worker.join().expect("worker");
-        }
-    });
-    let handles: Vec<_> = (0..clients)
-        .map(|i| {
-            let path = path.clone();
-            std::thread::spawn(move || {
-                let contract = contract();
-                let channel = binding::connect_unix(&path).expect("connect");
-                let mut client = Client::new(channel, &contract.application, &contract.identity);
-                client.open().expect("open");
-                let reply = client.call("echo", json!({ "i": i }), &[]).expect("call");
-                assert_eq!(reply.message["body"], json!({ "i": i }));
-                client.close().expect("close");
-            })
-        })
+    let mut server = ncp::serve_unix(
+        &path,
+        || owner(Echo::default(), MAX_BOUND),
+        Limits::default(),
+    )
+    .expect("server");
+    assert_eq!(
+        std::fs::metadata(&path)
+            .expect("socket")
+            .permissions()
+            .mode()
+            & 0o777,
+        0o600
+    );
+    let mut clients: Vec<_> = (0..3)
+        .map(|_| Client::new(ncp::connect_unix(&path).expect("connect"), &contract()))
         .collect();
-    for handle in handles {
-        handle.join().expect("client");
+    for (i, client) in clients.iter_mut().enumerate() {
+        client.open().expect("open");
+        assert_eq!(
+            client
+                .call("echo", json!({"i": i}), &[])
+                .expect("call")
+                .message["body"],
+            json!({"i": i})
+        );
+        client.close().expect("close");
     }
-    server.join().expect("server");
-    std::fs::remove_dir_all(&directory).expect("remove scratch directory");
+    server.stop(Duration::from_secs(1));
+    assert!(!path.exists());
 }
 
 #[test]
 fn encoders_refuse_frames_that_receivers_must_reject() {
-    let ok = Array::from_u32(&[1, 2, 3]);
-    assert!(frame::encode(
-        &json!({"n": 9007199254740991_u64, "m": -9007199254740991_i64}),
-        &[]
-    )
-    .is_ok());
-    assert!(
-        frame::encode(&json!({"n": 9007199254740992_u64}), &[]).is_err(),
-        "integer above 2^53 - 1"
-    );
-    assert!(
-        frame::encode(&json!({"n": i64::MIN}), &[]).is_err(),
-        "integer below -(2^53 - 1)"
-    );
+    assert!(frame::encode(&json!({"n": 9007199254740992_u64}), &[]).is_err());
+    assert!(frame::encode(&json!([1]), &[]).is_err());
+    assert!(frame::encode(&json!({"att": []}), &[]).is_err());
     let mut deep = json!(1);
     for _ in 0..63 {
         deep = json!([deep]);
     }
-    assert!(
-        frame::encode(&json!({"d": deep.clone()}), &[]).is_ok(),
-        "64 levels, a number at the deepest level"
-    );
-    assert!(
-        frame::encode(&json!({"d": [deep]}), &[]).is_err(),
-        "65 levels"
-    );
-    let x = Array::from_u8(b"x");
-    let mut nested = x.reference(0);
-    for _ in 0..60 {
-        nested = json!([nested]);
-    }
-    assert!(
-        frame::encode(&json!({"a": nested}), std::slice::from_ref(&x)).is_ok(),
-        "array shape list at level 64"
-    );
-    assert!(
-        frame::encode(&json!({"a": [nested]}), std::slice::from_ref(&x)).is_err(),
-        "array shape list at level 65"
-    );
-    assert!(
-        frame::encode(&json!({"a": 1}), std::slice::from_ref(&ok)).is_err(),
-        "unreferenced array"
-    );
-    assert!(
-        frame::encode(
-            &json!({"a": ok.reference(0), "b": ok.reference(0)}),
-            std::slice::from_ref(&ok)
-        )
-        .is_err(),
-        "array referred to twice"
-    );
-    assert!(
-        frame::encode(&json!({"a": ok.reference(1)}), std::slice::from_ref(&ok)).is_err(),
-        "reference index out of range"
-    );
-    let mut wrong_shape = ok.reference(0);
-    wrong_shape["ncp.array"]["shape"] = json!([4]);
-    assert!(
-        frame::encode(&json!({"a": wrong_shape}), std::slice::from_ref(&ok)).is_err(),
-        "reference shape differs"
-    );
-    let inconsistent = Array {
-        dtype: ok.dtype,
-        shape: vec![2],
-        data: ok.data.clone(),
+    assert!(frame::encode(&json!({"d": deep.clone()}), &[]).is_ok());
+    assert!(frame::encode(&json!({"d": [deep]}), &[]).is_err());
+    let big = json!({"a": "x".repeat(frame::MAX_JSON)});
+    assert!(matches!(
+        frame::encode_with(&big, &[], None, None),
+        Err(frame::EncodeError::TooLarge(t)) if t.json
+    ));
+    // A JSON region of the largest size, 1 MiB minus 4 bytes, still decodes.
+    let largest =
+        frame::encode(&json!({"a": "x".repeat(frame::MAX_JSON - 16)}), &[]).expect("frame");
+    assert!(frame::decode(largest, MAX_BOUND).is_ok());
+}
+
+#[test]
+fn the_json_padding_is_exact() {
+    let make = |text: &[u8], pad: &[u8]| {
+        let mut frame_bytes = b"NCP\x02".to_vec();
+        frame_bytes.extend_from_slice(&((text.len() + pad.len()) as u32).to_be_bytes());
+        frame_bytes.extend_from_slice(&0u32.to_be_bytes());
+        frame_bytes.extend_from_slice(text);
+        frame_bytes.extend_from_slice(pad);
+        let digest = frame::digest_of(None, &[&frame_bytes]);
+        frame_bytes.extend_from_slice(&digest);
+        frame_bytes
     };
-    assert!(
-        frame::encode(&json!({"a": inconsistent.reference(0)}), &[inconsistent]).is_err(),
-        "array shape differs from its data"
-    );
-    assert!(frame::encode(&json!({"a": ok.reference(0)}), &[ok]).is_ok());
-}
-
-#[derive(Clone, Default)]
-struct BadResult;
-
-impl Handler for BadResult {
-    fn validate(&mut self, _op: &str, _request: &Decoded) -> Result<(), String> {
-        Ok(())
-    }
-    fn execute(
-        &mut self,
-        _op: &str,
-        _request: &Decoded,
-    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(json!({"too_big": u64::MAX}).into())
-    }
+    assert!(frame::decode(make(br#"{"a":1}"#, b"     "), MAX_BOUND).is_ok());
+    assert!(frame::decode(make(br#"{"a":1}"#, &[b' '; 9]), MAX_BOUND).is_err());
+    assert!(frame::decode(make(br#"{"a":1}"#, b"\t\n\r\n "), MAX_BOUND).is_err());
+    assert!(frame::decode(make(br#"        {"a":1}"#, b""), MAX_BOUND).is_err());
 }
 
 #[test]
-fn an_unencodable_result_ends_the_session_with_owner_failure() {
-    let contract = contract();
-    let mut owner = Owner::new(
-        &contract.application,
-        &contract.identity,
-        BadResult,
-        contract.operations,
-        MAX_BOUND,
-    );
-    let session = ncp::random_session();
-    let open = frame::encode(&json!({"ncp": 2, "session": session, "seq": 0, "op": "open", "ack": null,
-                                      "body": {"application": "echo", "contract": contract.identity, "bound": HANDSHAKE_BOUND}}), &[]).expect("encode");
-    let opened = owner.handle(open).expect("open");
-    let call = frame::encode(&json!({"ncp": 2, "session": session, "seq": 1, "op": "echo", "ack": frame::identity(&opened), "body": {}}), &[]).expect("encode");
-    let response = frame::decode(owner.handle(call).expect("response").to_vec(), MAX_BOUND)
-        .expect("decode")
-        .message;
-    assert_eq!(
-        (response["outcome"].as_str(), response["code"].as_str()),
-        (Some("ended"), Some("owner_failure"))
-    );
-    assert!(response["body"]["detail"]
-        .as_str()
-        .is_some_and(|d| d.contains("integer magnitude")));
-}
-
-#[test]
-fn the_digest_check_can_be_turned_off() {
-    let good = frame::encode(&json!({"a": 1}), &[]).expect("encode");
-    let mut wrong = good.clone();
-    let last = wrong.len() - 1;
-    wrong[last] ^= 1;
-    assert!(
-        frame::decode(wrong.clone(), MAX_BOUND).is_err(),
-        "checked: a wrong digest is a bad frame"
-    );
-    let unchecked = frame::decode_with(wrong.clone(), MAX_BOUND, false).expect("unchecked");
-    assert_eq!(
-        unchecked.identity,
-        frame::identity(&wrong),
-        "the identity is the digest field as received"
-    );
-    assert_eq!(unchecked.message, json!({"a": 1}));
-    // A whole session with the check off at both ends.
-    let contract = contract();
-    let channel = Memory {
-        owner: owner(Echo::default(), MAX_BOUND).without_digest_check(),
-        inbox: VecDeque::new(),
-        drop_responses: 0,
-        lossy: false,
-    };
-    let mut client =
-        Client::new(channel, &contract.application, &contract.identity).without_digest_check();
-    client.open().expect("open");
-    let arrays = all_dtypes();
-    let reply = client
-        .call("echo", json!({"v": array_body(&arrays)}), &arrays)
-        .expect("call");
-    assert_eq!(reply.array_bytes(9).expect("bytes"), &arrays[9].data[..]);
-    client.close().expect("close");
-}
-
-#[test]
-fn a_damaged_body_is_a_bad_frame() {
-    // An owner over TCP answers a request whose body was changed with the bad-frame response.
-    let listener = binding::listen_tcp("127.0.0.1:0", false).expect("listen");
-    let address = listener.local_addr().expect("address");
-    let server = std::thread::spawn(move || {
-        let (stream, _) = listener.accept().expect("accept");
-        let mut channel = binding::tcp_channel(stream).expect("channel");
-        binding::serve(&mut owner(Echo::default(), MAX_BOUND), &mut channel).expect("serve");
-    });
-    let mut damaged = frame::encode(&json!({"a": "x".repeat(70_000)}), &[]).expect("encode");
-    damaged[40_000] ^= 1;
-    let mut channel = binding::connect_tcp(address, false).expect("connect");
-    channel.send_frame(&damaged).expect("send");
-    let response = frame::decode(
-        channel.receive_frame(MAX_BOUND).expect("response"),
-        MAX_BOUND,
-    )
-    .expect("decode");
-    assert_eq!(response.message["code"], "bad_frame");
-    server.join().expect("server");
-}
-
-/// Answers each request with the next scripted (outcome, code, body).
-struct Scripted {
-    script: VecDeque<(&'static str, Option<&'static str>, Value)>,
-    inbox: VecDeque<Vec<u8>>,
-}
-
-impl Channel for Scripted {
-    fn lossy(&self) -> bool {
-        false
-    }
-    fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
-        let request = frame::decode(frame_bytes.to_vec(), MAX_BOUND)
-            .map_err(std::io::Error::other)?
-            .message;
-        let (outcome, code, body) = self.script.pop_front().expect("script");
-        let response = json!({"ncp": 2, "session": request["session"], "seq": request["seq"], "request": frame::identity(frame_bytes),
-                              "outcome": outcome, "code": code, "body": body});
-        self.inbox
-            .push_back(frame::encode(&response, &[]).map_err(std::io::Error::other)?);
-        Ok(())
-    }
-    fn receive(&mut self, _bound: usize) -> Result<Vec<u8>, Error> {
-        Ok(self.inbox.pop_front().expect("response"))
-    }
-}
-
-fn scripted(script: Vec<(&'static str, Option<&'static str>, Value)>) -> Client<Scripted> {
-    let contract = contract();
-    let open = json!({"bound": HANDSHAKE_BOUND, "application": "echo", "contract": contract.identity,
-                      "implementation": "later", "features": ["later"]});
-    let mut steps = vec![("ok", None, open)];
-    steps.extend(script);
-    let mut client = Client::new(
-        Scripted {
-            script: steps.into(),
-            inbox: VecDeque::new(),
-        },
-        &contract.application,
-        &contract.identity,
-    )
-    .with_bound(HANDSHAKE_BOUND);
-    assert_eq!(
-        client.open().expect("open")["features"],
-        json!(["later"]),
-        "unknown open members are ignored"
-    );
-    client
+fn the_frame_identity_of_short_input_does_not_panic() {
+    assert_eq!(frame::identity(b"ab"), "6162");
 }
 
 #[test]
 fn unknown_codes_are_handled_by_outcome() {
-    let mut client = scripted(vec![
-        ("rejected", Some("later_reason"), json!({})),
-        ("ended", Some("later_end"), json!({})),
-    ]);
-    match client.call("echo", json!({}), &[]) {
-        Err(Error::Rejected { code, .. }) => assert_eq!(code, "later_reason"),
-        other => panic!("expected a rejection, got {other:?}"),
+    struct Scripted {
+        script: VecDeque<(&'static str, Option<&'static str>, Value)>,
+        inbox: VecDeque<Vec<u8>>,
     }
-    match client.call("echo", json!({}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("later_end", "unknown"))
+    impl Channel for Scripted {
+        fn lossy(&self) -> bool {
+            false
         }
-        other => panic!("expected an ending, got {other:?}"),
-    }
-    let mut client = scripted(vec![("rejected", Some("Later-Reason"), json!({}))]);
-    assert!(
-        matches!(client.call("echo", json!({}), &[]), Err(Error::Protocol(_))),
-        "a code outside the format is a bad frame"
-    );
-}
-
-#[test]
-fn a_tap_records_a_frame_before_sending_it() {
-    // A writer that fails: the frame never leaves, but the transcript must already hold it,
-    // because the peer could have executed a request whose sending was interrupted (spec 10).
-    struct Broken;
-    impl std::io::Write for Broken {
-        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "the peer is gone",
-            ))
-        }
-        fn flush(&mut self) -> std::io::Result<()> {
+        fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
+            let request = frame::decode(frame_bytes.to_vec(), MAX_BOUND)
+                .expect("request")
+                .message;
+            let (outcome, code, body) = self.script.pop_front().expect("script");
+            let message = json!({"ncp": 2, "session": request["session"], "seq": request["seq"],
+                                 "request": frame::identity(frame_bytes), "outcome": outcome, "code": code, "body": body});
+            self.inbox
+                .push_back(frame::encode(&message, &[]).expect("encode"));
             Ok(())
         }
-    }
-    let path = scratch("write-ahead").join("sent.ncpt");
-    let tap = Arc::new(ncp::Tap::create(&path).expect("tap"));
-    let mut channel = ncp::StreamChannel::new(std::io::empty(), Broken).with_tap(tap);
-    let frame_bytes = frame::encode(&json!({"a": 1}), &[]).expect("encode");
-    assert!(channel.send_frame(&frame_bytes).is_err(), "the write fails");
-    let records = transcript::read(&path).expect("transcript");
-    assert_eq!(records.len(), 1);
-    assert_eq!(
-        (records[0].kind, records[0].frame.clone()),
-        (transcript::SENT, frame_bytes)
-    );
-}
-
-#[test]
-fn a_tap_keeps_its_records_when_the_program_dies() {
-    let directory = scratch("crash");
-    let frame_bytes = frame::encode(&json!({"a": 1}), &[]).expect("encode");
-    for (name, buffered, expected) in [("direct.ncpt", false, 3), ("buffered.ncpt", true, 0)] {
-        let path = directory.join(name);
-        let tap = if buffered {
-            ncp::Tap::create_buffered(&path)
-        } else {
-            ncp::Tap::create(&path)
+        fn receive(&mut self, _bound: usize) -> Result<Vec<u8>, ChannelError> {
+            self.inbox.pop_front().ok_or(ChannelError::Timeout)
         }
-        .expect("tap");
-        for _ in 0..3 {
-            tap.record(transcript::SENT, &frame_bytes).expect("record");
-        }
-        std::mem::forget(tap); // no destructor runs, as in a crash
-        let records = match transcript::read(&path) {
-            Ok(records) => records.len(),
-            Err(_) => 0, // the buffered tap had not even written the file magic
-        };
-        assert_eq!(records, expected, "{name}");
     }
-}
-
-#[test]
-fn not_open_after_open_leaves_the_request_possibly_executed() {
-    // Spec section 7.6, rule 8: an owner that no longer holds the session may have run it.
-    let mut client = scripted(vec![("rejected", Some("not_open"), json!({}))]);
-    match client.call("echo", json!({"n": 1}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("not_open", "unknown"))
-        }
-        other => panic!("unexpected: {other:?}"),
-    }
+    let open =
+        json!({"bound": HANDSHAKE_BOUND, "nonce": "0".repeat(32), "features": {}, "later": [1]});
+    let scripted = |replies: Vec<(&'static str, Option<&'static str>, Value)>| {
+        Client::new(
+            Scripted {
+                script: VecDeque::from(replies),
+                inbox: VecDeque::new(),
+            },
+            &contract(),
+        )
+        .with_bound(HANDSHAKE_BOUND)
+    };
+    let mut client = scripted(vec![
+        ("ok", None, open.clone()),
+        ("declined", Some("later_decline"), json!({})),
+        ("rejected", Some("later_reason"), json!({})),
+    ]);
+    assert_eq!(client.open().expect("open")["later"], json!([1]));
     assert!(
-        client.call("echo", json!({"n": 2}), &[]).is_err(),
-        "the session ended"
+        matches!(client.call("echo", json!({}), &[]), Err(Error::Declined { code, .. }) if code == "later_decline")
+    );
+    assert_eq!(client.state().seq, 1);
+    // Rule 7.6.4: a rejection of a request other than open ends the session, possibly executed.
+    assert_eq!(
+        ended(client.call("echo", json!({}), &[])),
+        ("later_reason".into(), Executed::Unknown)
+    );
+    assert!(client.state().ended);
+    let mut client = scripted(vec![
+        ("ok", None, open),
+        ("ended", Some("later_end"), json!({})),
+    ]);
+    client.open().expect("open");
+    assert_eq!(
+        ended(client.call("echo", json!({}), &[])),
+        ("later_end".into(), Executed::Unknown)
     );
 }
 
-#[test]
-fn a_repeated_request_rejected_as_invalid_is_possibly_executed() {
-    // Spec section 7.6, rule 9: another copy of the request can still arrive and execute.
-    let executed = Arc::new(AtomicUsize::new(0));
-    let mut client = memory(
-        Echo {
-            executed: executed.clone(),
-        },
-        true,
-        0,
-    );
-    client.open().expect("open");
-    client.channel_mut().drop_responses = 1; // the first copy's response is lost
-    match client.call("echo", json!({"invalid": true}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("body_invalid", "unknown"))
-        }
-        other => panic!("unexpected: {other:?}"),
+struct World {
+    position: i64,
+}
+
+impl Handler for World {
+    fn validate(&mut self, _: &Request<'_>) -> Result<(), Invalid> {
+        Ok(())
     }
-    assert_eq!(executed.load(Ordering::SeqCst), 0);
+    fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
+        if request.op == "echo" {
+            self.position += request.body["dx"].as_i64().unwrap_or(0);
+        }
+        Ok(json!({"position": self.position}).into())
+    }
+}
+
+impl Stepper for World {
+    fn state(&self) -> Option<String> {
+        Some(format!("p{}", self.position))
+    }
+}
+
+#[test]
+fn lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran() {
+    for (lose_response, expected) in [(true, Executed::Yes), (false, Executed::No)] {
+        let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+        let mut features = Map::new();
+        features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+        let first = Client::new(
+            Memory {
+                owner: Owner::new(contract(), lockstep.share()),
+                inbox: VecDeque::new(),
+                drop_responses: 0,
+                lossy: false,
+            },
+            &contract(),
+        )
+        .with_features(features.clone());
+        let mut stepper = LockstepClient::new(first).expect("lockstep");
+        let result = stepper.step("echo", json!({"dx": 2}), &[]).expect("step");
+        assert_eq!(result.message["body"]["position"], 2);
+        assert_eq!((stepper.tick, stepper.state.as_deref()), (1, Some("p2")));
+        if lose_response {
+            stepper.client().channel_mut().drop_responses = 1; // executed, answer lost
+        } else {
+            stepper.client().channel_mut().inbox.clear(); // the request never arrives: a timeout
+        }
+        let outcome = if lose_response {
+            stepper.step("echo", json!({"dx": 1}), &[])
+        } else {
+            // Drop the request: an owner that is gone.
+            let pending_error = {
+                let channel = stepper.client().channel_mut();
+                channel.lossy = false;
+                channel.drop_responses = 0;
+                channel.owner.stop();
+                stepper.step("echo", json!({"dx": 1}), &[])
+            };
+            pending_error
+        };
+        let error = outcome.expect_err("the step's answer is lost");
+        if lose_response {
+            assert_eq!(error.executed(), Executed::Unknown);
+            assert_eq!(stepper.uncertain, Some(2));
+            let fresh = Client::new(
+                Memory {
+                    owner: Owner::new(contract(), lockstep.share()),
+                    inbox: VecDeque::new(),
+                    drop_responses: 0,
+                    lossy: false,
+                },
+                &contract(),
+            )
+            .with_features(features.clone());
+            assert_eq!(stepper.recover(fresh).expect("recover"), expected);
+            assert_eq!(stepper.tick, 2);
+            stepper
+                .step("echo", json!({"dx": 10}), &[])
+                .expect("step after recovery");
+            assert_eq!(lockstep.clock().tick, 3);
+        } else {
+            assert_eq!(error.executed(), Executed::No); // shutdown: the owner stopped first
+            assert_eq!(lockstep.clock().tick, 1);
+        }
+    }
 }

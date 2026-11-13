@@ -1,33 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="975" viewBox="0 0 1600 975" role="img" aria-labelledby="ncp2-bindings-title ncp2-bindings-desc">
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1008" viewBox="0 0 1600 1008" role="img" aria-labelledby="ncp2-bindings-title ncp2-bindings-desc">
 <title id="ncp2-bindings-title">NCP 2 links, streams, and rounds</title>
 <desc id="ncp2-bindings-desc">The same NCP 2 frames travel over a pipe pair, a Unix domain socket, TCP, and Zenoh for networks that can lose messages. Streams carry live data, and rounds let many agents share one owner. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
 <style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
 <pattern id="ncp2-bindings-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="975" fill="#F7F3E9"/>
+<rect width="1600" height="1008" fill="#F7F3E9"/>
 <path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="156" width="350" height="337" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<rect x="52" y="156" width="350" height="370" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
 <path d="M52 170 L52 170 Q52 156 66 156 L388 156 Q402 156 402 170 L402 170 Z" fill="#1F3F60"/>
 <path d="M78 268 L376 268" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="434" y="156" width="350" height="337" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<rect x="434" y="156" width="350" height="370" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
 <path d="M434 170 L434 170 Q434 156 448 156 L770 156 Q784 156 784 170 L784 170 Z" fill="#1F3F60"/>
 <path d="M460 268 L758 268" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="816" y="156" width="350" height="337" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<rect x="816" y="156" width="350" height="370" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
 <path d="M816 170 L816 170 Q816 156 830 156 L1152 156 Q1166 156 1166 170 L1166 170 Z" fill="#1F3F60"/>
 <path d="M842 268 L1140 268" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="1198" y="156" width="350" height="337" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<rect x="1198" y="156" width="350" height="370" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
 <path d="M1198 170 L1198 170 Q1198 156 1212 156 L1534 156 Q1548 156 1548 170 L1548 170 Z" fill="#1F6968"/>
 <path d="M1224 268 L1522 268" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="533" width="732" height="238" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
-<path d="M52 547 L52 547 Q52 533 66 533 L770 533 Q784 533 784 547 L784 547 Z" fill="#1F6968"/>
-<path d="M78 645 L758 645" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="816" y="533" width="732" height="238" rx="14" fill="#FBF9F3" stroke="#7A5500" stroke-width="3"/>
-<path d="M816 547 L816 547 Q816 533 830 533 L1534 533 Q1548 533 1548 547 L1548 547 Z" fill="#7A5500"/>
-<path d="M842 645 L1522 645" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="805" width="1496" height="130" rx="10" fill="#D2E0E2"/>
-<rect x="52" y="805" width="10" height="130" rx="5" fill="#B28218"/>
+<rect x="52" y="566" width="732" height="238" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M52 580 L52 580 Q52 566 66 566 L770 566 Q784 566 784 580 L784 580 Z" fill="#1F6968"/>
+<path d="M78 678 L758 678" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="816" y="566" width="732" height="238" rx="14" fill="#FBF9F3" stroke="#7A5500" stroke-width="3"/>
+<path d="M816 580 L816 580 Q816 566 830 566 L1534 566 Q1548 566 1548 580 L1548 580 Z" fill="#7A5500"/>
+<path d="M842 678 L1522 678" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="838" width="1496" height="130" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="838" width="10" height="130" rx="5" fill="#B28218"/>
 <text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">NCP 2 LINKS</text>
 <text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">The same frames and rules over every kind of link</text>
 <text x="78" y="216" class="s" font-size="28" fill="#2C3E50" font-weight="700">Pipe pair</text>
@@ -39,35 +39,37 @@
 <text x="78" y="438" class="r" font-size="25" fill="#2C3E50">link.</text>
 <text x="460" y="216" class="s" font-size="28" fill="#2C3E50" font-weight="700">Unix socket</text>
 <text x="460" y="248" class="s" font-size="25" fill="#1F6968" font-weight="600">One computer</text>
-<text x="460" y="306" class="r" font-size="25" fill="#2C3E50">One owner process serves</text>
-<text x="460" y="339" class="r" font-size="25" fill="#2C3E50">many sessions. File</text>
-<text x="460" y="372" class="r" font-size="25" fill="#2C3E50">permissions decide who</text>
-<text x="460" y="405" class="r" font-size="25" fill="#2C3E50">may connect.</text>
+<text x="460" y="306" class="r" font-size="25" fill="#2C3E50">One session for each</text>
+<text x="460" y="339" class="r" font-size="25" fill="#2C3E50">connection, each in its own</text>
+<text x="460" y="372" class="r" font-size="25" fill="#2C3E50">thread. File permissions</text>
+<text x="460" y="405" class="r" font-size="25" fill="#2C3E50">decide who may connect.</text>
 <text x="842" y="216" class="s" font-size="28" fill="#2C3E50" font-weight="700">TCP</text>
 <text x="842" y="248" class="s" font-size="25" fill="#1F6968" font-weight="600">Trusted network</text>
 <text x="842" y="306" class="r" font-size="25" fill="#2C3E50">Between computers on a</text>
-<text x="842" y="339" class="r" font-size="25" fill="#2C3E50">network that you trust,</text>
-<text x="842" y="372" class="r" font-size="25" fill="#2C3E50">with a time limit for each</text>
-<text x="842" y="405" class="r" font-size="25" fill="#2C3E50">call.</text>
+<text x="842" y="339" class="r" font-size="25" fill="#2C3E50">network that you trust, or</text>
+<text x="842" y="372" class="r" font-size="25" fill="#2C3E50">with TLS on both sides. A</text>
+<text x="842" y="405" class="r" font-size="25" fill="#2C3E50">time limit for each call is</text>
+<text x="842" y="438" class="r" font-size="25" fill="#2C3E50">an option.</text>
 <text x="1224" y="216" class="s" font-size="28" fill="#2C3E50" font-weight="700">Zenoh</text>
 <text x="1224" y="248" class="s" font-size="25" fill="#1F6968" font-weight="600">Lossy or open network</text>
 <text x="1224" y="306" class="r" font-size="25" fill="#2C3E50">Requests travel as queries.</text>
 <text x="1224" y="339" class="r" font-size="25" fill="#2C3E50">A lost message is sent</text>
 <text x="1224" y="372" class="r" font-size="25" fill="#2C3E50">again, and the owner</text>
 <text x="1224" y="405" class="r" font-size="25" fill="#2C3E50">answers with its kept</text>
-<text x="1224" y="438" class="r" font-size="25" fill="#2C3E50">response. Mutual TLS and</text>
-<text x="1224" y="471" class="r" font-size="25" fill="#2C3E50">access control protect it.</text>
-<text x="78" y="593" class="s" font-size="28" fill="#2C3E50" font-weight="700">Streams</text>
-<text x="78" y="625" class="s" font-size="25" fill="#1F6968" font-weight="600">Live data</text>
-<text x="78" y="683" class="r" font-size="25" fill="#2C3E50">A publisher numbers its messages, and each names the one</text>
-<text x="78" y="716" class="r" font-size="25" fill="#2C3E50">before. Subscribers see lost, repeated, and changed messages.</text>
-<text x="78" y="749" class="r" font-size="25" fill="#2C3E50">Nothing is sent again.</text>
-<text x="842" y="593" class="s" font-size="28" fill="#2C3E50" font-weight="700">Rounds</text>
-<text x="842" y="625" class="s" font-size="25" fill="#1F6968" font-weight="600">Many agents, one world</text>
-<text x="842" y="683" class="r" font-size="25" fill="#2C3E50">Many agents share one owner. Each round applies their</text>
-<text x="842" y="716" class="r" font-size="25" fill="#2C3E50">requests in a fixed order, and every agent receives the same</text>
-<text x="842" y="749" class="r" font-size="25" fill="#2C3E50">record of the round.</text>
-<text x="84" y="843" class="s" font-size="24" fill="#4D5C64" font-weight="600">SMALL BY DESIGN</text>
-<text x="84" y="881" class="r" font-size="25" fill="#2C3E50">The Python SDK uses only the standard library, and the Rust SDK needs four crates. The Zenoh binding is a separate, optional</text>
-<text x="84" y="914" class="r" font-size="25" fill="#2C3E50">package for both languages; the rounds profile is in the Python SDK.</text>
+<text x="1224" y="438" class="r" font-size="25" fill="#2C3E50">response. Configure</text>
+<text x="1224" y="471" class="r" font-size="25" fill="#2C3E50">mutual TLS and access</text>
+<text x="1224" y="504" class="r" font-size="25" fill="#2C3E50">control on both sides.</text>
+<text x="78" y="626" class="s" font-size="28" fill="#2C3E50" font-weight="700">Streams</text>
+<text x="78" y="658" class="s" font-size="25" fill="#1F6968" font-weight="600">Live data</text>
+<text x="78" y="716" class="r" font-size="25" fill="#2C3E50">A publisher numbers its messages, and each names the one</text>
+<text x="78" y="749" class="r" font-size="25" fill="#2C3E50">before. Subscribers see lost, repeated, and changed messages.</text>
+<text x="78" y="782" class="r" font-size="25" fill="#2C3E50">Nothing is sent again.</text>
+<text x="842" y="626" class="s" font-size="28" fill="#2C3E50" font-weight="700">Rounds</text>
+<text x="842" y="658" class="s" font-size="25" fill="#1F6968" font-weight="600">Many agents, one world</text>
+<text x="842" y="716" class="r" font-size="25" fill="#2C3E50">Many agents share one owner. Each round applies their</text>
+<text x="842" y="749" class="r" font-size="25" fill="#2C3E50">requests in a fixed order, and every agent receives the same</text>
+<text x="842" y="782" class="r" font-size="25" fill="#2C3E50">record of the round.</text>
+<text x="84" y="876" class="s" font-size="24" fill="#4D5C64" font-weight="600">SMALL BY DESIGN</text>
+<text x="84" y="914" class="r" font-size="25" fill="#2C3E50">The Python SDK uses only the standard library, and the Rust SDK needs four crates. The Zenoh binding is a separate, optional</text>
+<text x="84" y="947" class="r" font-size="25" fill="#2C3E50">package for both languages; the rounds profile is in the Python SDK.</text>
 </svg>

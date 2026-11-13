@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-import threading
 import time
 from pathlib import Path
 
@@ -31,15 +30,15 @@ CONTRACT = ncp.Contract.from_bytes(
 
 
 class Logged(Echo):
-    def execute(self, op, body):
-        if op == "sleep":
-            time.sleep(body["seconds"])
-            return body
+    def execute(self, request):
+        if request.op == "sleep":
+            time.sleep(request.body["seconds"])
+            return request.body
         log = os.environ.get("NCP_EXECUTION_LOG")
         if log:
             with open(log, "a") as handle:
-                handle.write(json.dumps(body, separators=(",", ":"), default=repr) + "\n")  # arrays as text
-        return super().execute(op, body)
+                handle.write(json.dumps(request.body, separators=(",", ":"), default=repr) + "\n")  # arrays as text
+        return super().execute(request)
 
 
 def main() -> None:
@@ -49,20 +48,10 @@ def main() -> None:
     config.insert_json5("scouting/multicast/enabled", "false")
     config.insert_json5("listen/endpoints", json.dumps([endpoint]))
     session = zenoh.open(config)
-    stop, ready = threading.Event(), threading.Event()
-
-    def make_owner() -> ncp.Owner:
-        return ncp.Owner(CONTRACT.application, CONTRACT.identity, Logged(), CONTRACT.operations)
-
-    thread = threading.Thread(
-        target=ncp_zenoh.serve, args=(session, service, make_owner), kwargs={"stop": stop, "ready": ready}
-    )
-    thread.start()
-    ready.wait(10)
+    server = ncp_zenoh.Server(session, service, lambda: ncp.Owner(CONTRACT, Logged())).start()
     print("ready", flush=True)
     sys.stdin.read()
-    stop.set()
-    thread.join()
+    server.stop(0.0)
     session.close()
 
 

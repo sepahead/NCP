@@ -32,15 +32,15 @@ sys.path.insert(0, str(HERE))
 from modules import CONTRACTS, NEURONS, RECORD_CONTRACT  # noqa: E402
 
 TIME_LIMIT_S = 1.0
-ERRORS = (ncp.Rejected, ncp.Ended, ncp.ProtocolError)
+ERRORS = (ncp.CallError,)
 
 
 def view(error: Exception) -> str:
     if isinstance(error, ncp.Ended):
-        return f"ended:{error.code}:{error.executed}"
-    if isinstance(error, ncp.Rejected):
-        return f"rejected:{error.code}"
-    return f"protocol_error:{error}"
+        return f"ended:{error.code}:{error.executed.value}"
+    if isinstance(error, ncp.Declined):
+        return f"declined:{error.code}"
+    return f"rejected:{getattr(error, 'code', error)}"
 
 
 def command_of(fired: list[int]) -> list[float]:
@@ -61,11 +61,14 @@ def main() -> None:
     for name in ["neural", "body"] + [m for m in ("monitor",) if m in optional_set]:
         tap = ncp.Tap(work / f"{name}.ncpt")
         taps.append(tap)
-        channel, process = ncp.spawn([sys.executable, "-s", str(modules), name, str(seed)], tap=tap, env=env)
-        contract = CONTRACTS[name]
-        client = ncp.Client(channel, application=contract.application, contract=contract.identity, timeout=TIME_LIMIT_S)
+        # The injected faults log application errors on the module's standard error; keep them
+        # out of the gate's output. The channel keeps the last lines in `stderr_tail`.
+        channel = ncp.spawn(
+            [sys.executable, "-s", str(modules), name, str(seed)], tap=tap, env=env, capture_stderr=True
+        )
+        client = ncp.Client(channel, CONTRACTS[name], timeout=TIME_LIMIT_S)
         client.open()
-        clients[name], processes[name] = client, process
+        clients[name], processes[name] = client, channel.process
     publisher = recorder = None
     if "recorder" in optional_set:
         recorder = subprocess.Popen(

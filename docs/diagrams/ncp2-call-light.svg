@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1456" viewBox="0 0 1600 1456" role="img" aria-labelledby="ncp2-call-title ncp2-call-desc">
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1489" viewBox="0 0 1600 1489" role="img" aria-labelledby="ncp2-call-title ncp2-call-desc">
 <title id="ncp2-call-title">An NCP 2 session: one round trip for each step</title>
 <desc id="ncp2-call-desc">A client opens a session, sends two steps and a close, and gets one response for each. Each request carries the identity of the last response as its receipt, so the session forms one hash chain. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
@@ -7,41 +7,41 @@
 <marker id="ncp2-call-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F6968"/></marker>
 <pattern id="ncp2-call-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="1456" fill="#F7F3E9"/>
+<rect width="1600" height="1489" fill="#F7F3E9"/>
 <path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
 <rect x="52" y="152" width="300" height="122" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
 <path d="M52 166 L52 166 Q52 152 66 152 L338 152 Q352 152 352 166 L352 166 Z" fill="#1F3F60"/>
 <rect x="560" y="152" width="300" height="122" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
 <path d="M560 166 L560 166 Q560 152 574 152 L846 152 Q860 152 860 166 L860 166 Z" fill="#1F6968"/>
-<rect x="900" y="304" width="648" height="206" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<rect x="900" y="304" width="648" height="239" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
 <path d="M900 318 L900 318 Q900 304 914 304 L1534 304 Q1548 304 1548 318 L1548 318 Z" fill="#1F6968"/>
 <circle cx="938" cy="355" r="21.2" fill="#1F6968"/>
 <path d="M926 384 L1522 384" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="900" y="524" width="648" height="239" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
-<path d="M900 538 L900 538 Q900 524 914 524 L1534 524 Q1548 524 1548 538 L1548 538 Z" fill="#1F3F60"/>
-<circle cx="938" cy="575" r="21.2" fill="#1F3F60"/>
-<path d="M926 604 L1522 604" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="900" y="777" width="648" height="239" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
-<path d="M900 791 L900 791 Q900 777 914 777 L1534 777 Q1548 777 1548 791 L1548 791 Z" fill="#1F6968"/>
-<circle cx="938" cy="828" r="21.2" fill="#1F6968"/>
-<path d="M926 857 L1522 857" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="900" y="1030" width="648" height="206" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
-<path d="M900 1044 L900 1044 Q900 1030 914 1030 L1534 1030 Q1548 1030 1548 1044 L1548 1044 Z" fill="#1F6968"/>
-<circle cx="938" cy="1081" r="21.2" fill="#1F6968"/>
-<path d="M926 1110 L1522 1110" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<path d="M202 274 L202 1260" stroke="#4D5C64" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
-<path d="M710 274 L710 1260" stroke="#4D5C64" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
-<rect x="52" y="1286" width="1496" height="130" rx="10" fill="#D2E0E2"/>
-<rect x="52" y="1286" width="10" height="130" rx="5" fill="#B28218"/>
-<path d="M208 377 L704 377" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-lapis)"/>
-<path d="M704 457 L208 457" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-turquoise)"/>
-<path d="M208 613.5 L704 613.5" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-lapis)"/>
-<path d="M704 693.5 L208 693.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-turquoise)"/>
-<path d="M208 866.5 L704 866.5" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-lapis)"/>
-<path d="M704 946.5 L208 946.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-turquoise)"/>
-<path d="M208 1103 L704 1103" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-lapis)"/>
-<path d="M704 1183 L208 1183" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-turquoise)"/>
+<rect x="900" y="557" width="648" height="239" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M900 571 L900 571 Q900 557 914 557 L1534 557 Q1548 557 1548 571 L1548 571 Z" fill="#1F3F60"/>
+<circle cx="938" cy="608" r="21.2" fill="#1F3F60"/>
+<path d="M926 637 L1522 637" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="810" width="648" height="239" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M900 824 L900 824 Q900 810 914 810 L1534 810 Q1548 810 1548 824 L1548 824 Z" fill="#1F6968"/>
+<circle cx="938" cy="861" r="21.2" fill="#1F6968"/>
+<path d="M926 890 L1522 890" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="1063" width="648" height="206" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<path d="M900 1077 L900 1077 Q900 1063 914 1063 L1534 1063 Q1548 1063 1548 1077 L1548 1077 Z" fill="#1F6968"/>
+<circle cx="938" cy="1114" r="21.2" fill="#1F6968"/>
+<path d="M926 1143 L1522 1143" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M202 274 L202 1293" stroke="#4D5C64" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
+<path d="M710 274 L710 1293" stroke="#4D5C64" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
+<rect x="52" y="1319" width="1496" height="130" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="1319" width="10" height="130" rx="5" fill="#B28218"/>
+<path d="M208 393.5 L704 393.5" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-lapis)"/>
+<path d="M704 473.5 L208 473.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-turquoise)"/>
+<path d="M208 646.5 L704 646.5" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-lapis)"/>
+<path d="M704 726.5 L208 726.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-turquoise)"/>
+<path d="M208 899.5 L704 899.5" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-lapis)"/>
+<path d="M704 979.5 L208 979.5" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-turquoise)"/>
+<path d="M208 1136 L704 1136" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-lapis)"/>
+<path d="M704 1216 L208 1216" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-call-arrow-turquoise)"/>
 <text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">NCP 2 EXCHANGE</text>
 <text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">One request and one response for each step</text>
 <text x="78" y="212" class="s" font-size="28" fill="#2C3E50" font-weight="700">Client</text>
@@ -52,33 +52,34 @@
 <text x="970" y="364" class="s" font-size="28" fill="#2C3E50" font-weight="700">Open the session</text>
 <text x="926" y="422" class="r" font-size="25" fill="#2C3E50">The client names the application and its contract by</text>
 <text x="926" y="455" class="r" font-size="25" fill="#2C3E50">identity. The owner answers with the largest frame</text>
-<text x="926" y="488" class="r" font-size="25" fill="#2C3E50">size of the session.</text>
-<text x="938" y="583.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
-<text x="970" y="584" class="s" font-size="28" fill="#2C3E50" font-weight="700">The receipt rides along</text>
-<text x="926" y="642" class="r" font-size="25" fill="#2C3E50">Each later request carries the identity of the last</text>
-<text x="926" y="675" class="r" font-size="25" fill="#2C3E50">response: the SHA-256 fingerprint of its bytes. That</text>
-<text x="926" y="708" class="r" font-size="25" fill="#2C3E50">is the acknowledgement, so a step needs one round</text>
-<text x="926" y="741" class="r" font-size="25" fill="#2C3E50">trip, not two.</text>
-<text x="938" y="836.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
-<text x="970" y="837" class="s" font-size="28" fill="#2C3E50" font-weight="700">A response is lost</text>
-<text x="926" y="895" class="r" font-size="25" fill="#2C3E50">On a link that can lose messages, the client sends the</text>
-<text x="926" y="928" class="r" font-size="25" fill="#2C3E50">same request again. The owner sends its kept</text>
-<text x="926" y="961" class="r" font-size="25" fill="#2C3E50">response again and does not execute the step a second</text>
-<text x="926" y="994" class="r" font-size="25" fill="#2C3E50">time.</text>
-<text x="938" y="1089.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">4</text>
-<text x="970" y="1090" class="s" font-size="28" fill="#2C3E50" font-weight="700">One hash chain</text>
-<text x="926" y="1148" class="r" font-size="25" fill="#2C3E50">Each response names its request, and each request</text>
-<text x="926" y="1181" class="r" font-size="25" fill="#2C3E50">names the response before it. The identity of the last</text>
-<text x="926" y="1214" class="r" font-size="25" fill="#2C3E50">response commits to the whole session.</text>
-<text x="456" y="361" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">open, seq 0, contract identity</text>
-<text x="456" y="441" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">ok, session frame size</text>
-<text x="456" y="597.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">step, seq 1, receipt of response 0</text>
-<text x="456" y="677.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">ok, result of step 1</text>
-<text x="456" y="850.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">step, seq 2, receipt of response 1</text>
-<text x="456" y="930.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">ok, result of step 2</text>
-<text x="456" y="1087" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">close, seq 3, receipt of response 2</text>
-<text x="456" y="1167" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">ok, session closed</text>
-<text x="84" y="1324" class="s" font-size="24" fill="#4D5C64" font-weight="600">AFTER A FAILURE</text>
-<text x="84" y="1362" class="r" font-size="25" fill="#2C3E50">If the owner fails while it executes a step, the response says so, and the step is possibly executed. If the connection breaks, the</text>
-<text x="84" y="1395" class="r" font-size="25" fill="#2C3E50">request without a response is possibly executed. In either case, at most one call of the session is uncertain, and the session ends.</text>
+<text x="926" y="488" class="r" font-size="25" fill="#2C3E50">size of the session and a fresh nonce, so no two</text>
+<text x="926" y="521" class="r" font-size="25" fill="#2C3E50">openings share a chain.</text>
+<text x="938" y="616.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="970" y="617" class="s" font-size="28" fill="#2C3E50" font-weight="700">The receipt rides along</text>
+<text x="926" y="675" class="r" font-size="25" fill="#2C3E50">Each later request carries the identity of the last</text>
+<text x="926" y="708" class="r" font-size="25" fill="#2C3E50">response: the SHA-256 fingerprint of its bytes. That</text>
+<text x="926" y="741" class="r" font-size="25" fill="#2C3E50">is the acknowledgement, so a step needs one round</text>
+<text x="926" y="774" class="r" font-size="25" fill="#2C3E50">trip, not two.</text>
+<text x="938" y="869.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="970" y="870" class="s" font-size="28" fill="#2C3E50" font-weight="700">A response is lost</text>
+<text x="926" y="928" class="r" font-size="25" fill="#2C3E50">On a link that can lose messages, the client sends the</text>
+<text x="926" y="961" class="r" font-size="25" fill="#2C3E50">same request again. The owner sends its kept</text>
+<text x="926" y="994" class="r" font-size="25" fill="#2C3E50">response again and does not execute the step a second</text>
+<text x="926" y="1027" class="r" font-size="25" fill="#2C3E50">time.</text>
+<text x="938" y="1122.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">4</text>
+<text x="970" y="1123" class="s" font-size="28" fill="#2C3E50" font-weight="700">One hash chain</text>
+<text x="926" y="1181" class="r" font-size="25" fill="#2C3E50">Each response names its request, and each request</text>
+<text x="926" y="1214" class="r" font-size="25" fill="#2C3E50">names the response before it. The identity of the last</text>
+<text x="926" y="1247" class="r" font-size="25" fill="#2C3E50">response commits to the whole session.</text>
+<text x="456" y="377.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">open, seq 0, contract identity</text>
+<text x="456" y="457.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">ok, session frame size</text>
+<text x="456" y="630.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">step, seq 1, receipt of response 0</text>
+<text x="456" y="710.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">ok, result of step 1</text>
+<text x="456" y="883.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">step, seq 2, receipt of response 1</text>
+<text x="456" y="963.5" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">ok, result of step 2</text>
+<text x="456" y="1120" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">close, seq 3, receipt of response 2</text>
+<text x="456" y="1200" class="s" font-size="25" fill="#2C3E50" font-weight="600" text-anchor="middle">ok, session closed</text>
+<text x="84" y="1357" class="s" font-size="24" fill="#4D5C64" font-weight="600">AFTER A FAILURE</text>
+<text x="84" y="1395" class="r" font-size="25" fill="#2C3E50">If the owner fails while it executes a step, the response says so, and the step is possibly executed. If the connection breaks, the</text>
+<text x="84" y="1428" class="r" font-size="25" fill="#2C3E50">request without a response is possibly executed. In either case, at most one call of the session is uncertain, and the session ends.</text>
 </svg>

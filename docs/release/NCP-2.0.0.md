@@ -1,10 +1,10 @@
 # NCP 2.0.0 release record
 
-Status: prepared on 11 November 2026. The tag and the publication of the packages are owner actions; this record lists what they publish.
+Status: prepared on 11 November 2026, and rebuilt on 13 November 2026 for revision 3 of the specification. The tag and the publication of the packages are owner actions; this record lists what they publish.
 
 ## What 2.0.0 is
 
-- The [NCP 2 specification](../../spec/NCP-2.md), final, with the [rounds profile](../../spec/NCP-2-ROUNDS.md).
+- The [NCP 2 specification](../../spec/NCP-2.md), release candidate, revision 3, with the [rounds profile](../../spec/NCP-2-ROUNDS.md) and the [lockstep profile](../../spec/NCP-2-LOCKSTEP.md).
 - `sepahead-ncp` 2.0.0, the Python SDK (module `ncp`), standard library only: [`python/`](../../python/README.md).
 - `sepahead-ncp-core` 2.0.0, the Rust SDK (library `ncp`): [`rust/`](../../rust/README.md).
 - `sepahead-ncp-zenoh` 2.0.0, the optional Zenoh binding for Python and for Rust: [`bindings/zenoh/`](../../bindings/zenoh/README.md).
@@ -17,13 +17,15 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 36,774 | `cadd5452d4796b8334c2773aec770d5942863f87476c8da6d84ce78a9bbd4667` |
-| `sepahead_ncp-2.0.0-py3-none-any.whl` | 35,120 | `6a71251d7b47e975dc599ceb056fc54a94e6211c525d0ae5d140a9e3915c31e9` |
-| `sepahead_ncp-2.0.0.tar.gz` | 34,020 | `3b2616bb902246093ae82128b5c7aca6f126faa50306c6c5befa64979e82f890` |
-| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 11,885 | `03a6ef046666265475cf0b005a64a99884ef1370b63c758e5b7fb2b229a950f6` |
-| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 10,774 | `67714abe3247b3b365af7752e45115d05f1e4b00bc7ceb44a844be2812392f68` |
+| `sepahead-ncp-core-2.0.0.crate` | 65,286 | `a4de69d06be669b4c84fb83f013ebf371882040231c0ff31c7990339f441fe99` |
+| `sepahead_ncp-2.0.0-py3-none-any.whl` | 99,436 | `7930fb77bf517bc8c8c8262c3bb03610c78963de4e09a1f6a0e80108476eb004` |
+| `sepahead_ncp-2.0.0.tar.gz` | 95,140 | `ec3746daeb464561d646b38cf017b0216c504cdcdd23991b20f04831b5bf9178` |
+| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 13,351 | `cb9c9cf96a74a4aed1416b21ac32ff28b0b35b72d64a14a94534da5cfe470b33` |
+| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 12,241 | `618dcdd8b43be55dd6561f8cbda14ca5d897744ef59df5c8738b5dd6e3159ce8` |
 
-- With the same tools (see below), a rebuild from any commit with the same package files and lockfiles gives the same five files; a third build, run separately, gave the same checksums.
+The Python package now ships the conformance vectors (`ncp/vectors.json`), which `python -m ncp conformance` reads; they make up most of its size.
+
+- With the same tools (see below), a rebuild from any commit with the same package files and lockfiles gives the same five files.
 - The crate archive was made from a copy outside Git. `cargo publish` from the tagged commit adds `.cargo_vcs_info.json`, with the commit, so the published archive differs from this one by that file.
 - The crate `sepahead-ncp-zenoh` depends on `sepahead-ncp-core` from the registry, so it can be packaged and published only after `sepahead-ncp-core` is.
 
@@ -47,7 +49,7 @@ The packages require ranges, such as `serde` 1.0.229 or a later 1.x release, not
 
 ## Checks
 
-The commit that holds this record passed, on this computer: the NCP 2 gate (`scripts/check_ncp2.sh`: both SDKs, the shared vectors, the model check and the model conformance of both owners, the Lean proofs with their axiom audit, the modular-composition test, and differential fuzzing of 200,000 frames); the Zenoh gate (`scripts/check_ncp2_zenoh.sh`); the release-owned machine-contract gates of the CI workflow; and the release build above, with its checks of versions, license texts, and README links. The workflows `NCP 2` and `NCP 2 Zenoh binding` run the two gates on Linux and macOS.
+The commit that holds this record passed, on this computer: the NCP 2 gate (`scripts/check_ncp2.sh`: the rules data and the requirements map, both SDKs, the shared vectors against both SDKs and the Rust programs, the exhaustive model check of the SDK client and owner with its mutation test, the owners against the compiled Lean model, the Lean proofs with their axiom audit and mutation test, the modular-composition test, and differential fuzzing of 200,000 frames); the Zenoh gate (`scripts/check_ncp2_zenoh.sh`); and the release build above, with its checks of versions, license texts, and README links. The workflows `NCP 2` and `NCP 2 Zenoh binding` run the two gates on Linux and macOS.
 
 ## Owner steps
 

@@ -1,0 +1,54 @@
+{
+  "spec": "spec/NCP-2.md",
+  "note": "The codes, outcomes, and limits of NCP 2 as data. scripts/check_ncp2_rules.py compares this file with the specification text, both SDKs, and the Lean model. Change this file and those sources together.",
+  "outcomes": {
+    "ok": {"admitted": true, "next_seq": "advance", "ends_session": false},
+    "declined": {"admitted": true, "next_seq": "advance", "ends_session": false},
+    "rejected": {"admitted": false, "next_seq": "same, for a corrected open", "ends_session": "for a request other than open: the client ends the session, and the request is possibly executed (rule 7.6.4)"},
+    "ended": {"admitted": "depends on the code", "next_seq": "none", "ends_session": true}
+  },
+  "codes": [
+    {"code": "wrong_protocol", "outcome": "rejected", "executed": "no", "rule": "7.3.2"},
+    {"code": "not_open", "outcome": "rejected", "executed": "no", "rule": "7.3.3"},
+    {"code": "session_expired", "outcome": "ended", "executed": "unknown", "rule": "7.3.3"},
+    {"code": "wrong_session", "outcome": "rejected", "executed": "no", "rule": "7.3.4"},
+    {"code": "seq_conflict", "outcome": "rejected", "executed": "no", "rule": "7.3.5"},
+    {"code": "seq_stale", "outcome": "rejected", "executed": "not by this frame", "rule": "7.3.6"},
+    {"code": "seq_gap", "outcome": "rejected", "executed": "no", "rule": "7.3.7"},
+    {"code": "session_ended", "outcome": "rejected", "executed": "no", "rule": "7.3.8"},
+    {"code": "ack_missing", "outcome": "rejected", "executed": "no", "rule": "7.3.9"},
+    {"code": "ack_mismatch", "outcome": "rejected", "executed": "no", "rule": "7.3.9"},
+    {"code": "already_open", "outcome": "rejected", "executed": "no", "rule": "7.3.10"},
+    {"code": "shutdown", "outcome": "ended", "executed": "no", "rule": "7.3.10"},
+    {"code": "unknown_op", "outcome": "declined", "executed": "no", "rule": "7.3.12"},
+    {"code": "body_invalid", "outcome": "declined", "executed": "no", "rule": "7.3.12"},
+    {"code": "owner_failure", "outcome": "ended", "executed": "unknown", "rule": "7.3.12"},
+    {"code": "result_too_large", "outcome": "ended", "executed": "yes", "rule": "7.3.12"},
+    {"code": "body_invalid", "outcome": "rejected", "executed": "no", "rule": "7.1.4", "open": true},
+    {"code": "contract_mismatch", "outcome": "rejected", "executed": "no", "rule": "7.1.4", "open": true},
+    {"code": "bound_unacceptable", "outcome": "rejected", "executed": "no", "rule": "7.1.4", "open": true},
+    {"code": "refused", "outcome": "rejected", "executed": "no", "rule": "7.1.4", "open": true},
+    {"code": "bad_frame", "outcome": "ended", "executed": "no", "rule": "9.1.3"}
+  ],
+  "local_codes": [
+    {"code": "local.timeout", "executed": "unknown", "rule": "7.6.7", "meaning": "no response before the time limit, after the last copy"},
+    {"code": "local.closed", "executed": "unknown", "rule": "7.6.7", "meaning": "the binding closed or failed before a response arrived"},
+    {"code": "local.protocol", "executed": "unknown", "rule": "7.6.2", "meaning": "a frame that does not belong to the request, on the byte-stream binding"},
+    {"code": "local.bad_frame", "executed": "unknown", "rule": "7.6.2", "meaning": "a bad frame from the owner, on the byte-stream binding"}
+  ],
+  "limits": {
+    "handshake_bound": 65536,
+    "max_bound": 67108864,
+    "default_bound": 1048576,
+    "max_json": 1048576,
+    "max_depth": 64,
+    "max_integer": 9007199254740991,
+    "max_attachments": 1024,
+    "max_name": 64,
+    "max_stream_identifier": 256,
+    "max_features": 32,
+    "max_transcript_header": 4096,
+    "max_run": 256,
+    "max_detail": 256
+  }
+}

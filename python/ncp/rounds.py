@@ -10,7 +10,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from . import frame as F
-from .exchange import BodyInvalid, Owner, ProtocolError, Result
+from .client import Result
+from .contract import Contract
+from .messages import ProtocolError
+from .owner import Declined, Owner, Request
 
 ROUND = "ncp.round"
 RECORD = "ncp.round_record"
@@ -45,9 +48,11 @@ class Rounds:
     the round applied, the identities of those requests, and the members that missed the round.
 
     A member without a request in a round when it closes is excluded from every later round, so
-    an agent that stops delays the others once, by at most one deadline. If `step` raises or
-    returns a wrong result, every session of the round ends with `owner_failure`, the exception
-    is kept in `error`, and every later request is rejected.
+    an agent that stops delays the others once, by at most one deadline. A request that breaks a
+    rule of the profile is declined (outcome `declined`, code `body_invalid`): it never runs, and
+    the agent's session goes on. When an agent's session ends, the member is free for a new
+    session. If `step` raises or returns a wrong result, every session of the round ends with
+    `owner_failure`, the exception is kept in `error`, and every later request is declined.
 
     Serve the sessions with a server that runs each session in its own thread, for example
     `UnixServer(rounds.owner, path)`: a request waits in its session's thread until its round
@@ -56,8 +61,7 @@ class Rounds:
 
     def __init__(
         self,
-        application: str,
-        contract: str,
+        contract: Contract,
         op: str,
         members: Iterable[str],
         step: Step,
@@ -65,6 +69,8 @@ class Rounds:
         deadline: float,
         max_bound: int = F.DEFAULT_BOUND,
         check_digests: bool = True,
+        key: bytes | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         names = tuple(members)
         if (
@@ -75,9 +81,11 @@ class Rounds:
             raise ValueError(f"members: one or more distinct names of 1 to {MAX_NAME} characters")
         if not deadline > 0:
             raise ValueError("deadline must be positive")
-        self.application, self.contract, self.op = application, contract, op
+        if op not in contract.operations:
+            raise ValueError(f"the contract has no operation {op!r}")
+        self.contract, self.op = contract, op
         self.members, self.step, self.deadline = names, step, deadline
-        self.max_bound, self.check_digests = max_bound, check_digests
+        self.max_bound, self.check_digests, self.key, self.clock = max_bound, check_digests, key, clock
         self.closed = 0  # the last round that closed
         self.excluded: dict[str, int] = {}  # member -> the round that it missed
         self.error: BaseException | None = None  # set when a step failed; no later round runs
@@ -86,52 +94,50 @@ class Rounds:
         self._sessions: dict[str, _AgentHandler] = {}
         self._slots: dict[str, _Slot] = {}  # the open round's requests, reserved or added
         self._pending = 0  # requests of the open round that are reserved but not yet added
-        self._opened = 0.0  # time.monotonic() when round closed + 1 opened, if it has slots
+        self._opened = 0.0  # clock() when round closed + 1 opened, if it has slots
 
     def owner(self) -> Owner:
         """A new owner for one agent's session."""
-        handler = _AgentHandler(self)
-        owner = Owner(
-            self.application,
+        return Owner(
             self.contract,
-            handler,
-            [self.op],
+            _AgentHandler(self),
             max_bound=self.max_bound,
             check_digests=self.check_digests,
+            key=self.key,
         )
-        handler.owner = owner
-        return owner
 
-    def _accept(self, handler: _AgentHandler, body: Any) -> None:
+    def _accept(self, handler: _AgentHandler, request: Request) -> None:
         """Validate a request and reserve its place in the open round. The owner executes every
         request that it validated, so a reserved place is filled at once by `_wait`."""
+        if request.op != self.op:
+            return
+        body = request.body
         member = body.get(ROUND) if type(body) is dict else None
         if type(member) is not dict or member.keys() != {"agent", "round"}:
-            raise BodyInvalid('the body needs the member "ncp.round": {"agent": NAME, "round": K}')
+            raise Declined('the body needs the member "ncp.round": {"agent": NAME, "round": K}')
         agent, number = member["agent"], member["round"]
         if type(agent) is not str or type(number) is not int:
-            raise BodyInvalid("ncp.round: agent must be a string and round an integer")
+            raise Declined("ncp.round: agent must be a string and round an integer")
         with self._lock:
             if self.error is not None:
-                raise BodyInvalid(f"a step failed in round {self.closed}; the rounds have stopped")
+                raise Declined(f"a step failed in round {self.closed}; the rounds have stopped")
             if agent not in self._members:
-                raise BodyInvalid("unknown agent")
+                raise Declined("unknown agent")
             if handler.agent is not None and handler.agent != agent:
-                raise BodyInvalid("this session belongs to another agent")
+                raise Declined("this session belongs to another agent")
             if agent in self.excluded:
-                raise BodyInvalid(f"the agent is excluded: it missed round {self.excluded[agent]}")
+                raise Declined(f"the agent is excluded: it missed round {self.excluded[agent]}")
             if self._sessions.get(agent, handler) is not handler:
-                raise BodyInvalid("the agent has another session")
+                raise Declined("the agent has another session")
             if number != self.closed + 1:
-                raise BodyInvalid(f"round {number} is not open; the next round is {self.closed + 1}")
+                raise Declined(f"round {number} is not open; the next round is {self.closed + 1}")
             if agent in self._slots:  # unreachable: one session, one request at a time
-                raise BodyInvalid("the agent already has a request in this round")
-            assert handler.owner is not None and handler.owner.request_identity is not None
+                raise Declined("the agent already has a request in this round")
             self._sessions[agent] = handler
             handler.agent = agent
             if not self._slots:
-                self._opened = time.monotonic()
-            self._slots[agent] = _Slot(handler.owner.request_identity)
+                self._opened = self.clock()
+            self._slots[agent] = _Slot(request.identity)
             self._pending += 1
 
     def _wait(self, handler: _AgentHandler, body: Any) -> dict[str, Any]:
@@ -147,7 +153,7 @@ class Rounds:
         # Each request waits on its own event, so that a closed round wakes its requests without
         # making them queue for the lock.
         while not slot.done.is_set():
-            remaining = deadline - time.monotonic()
+            remaining = deadline - self.clock()
             if remaining > 0:
                 slot.done.wait(remaining)
                 continue
@@ -162,12 +168,17 @@ class Rounds:
         assert slot.result is not None
         return slot.result
 
+    def _release(self, handler: _AgentHandler) -> None:
+        """The session of `handler` ended: its member may take a new session."""
+        with self._lock:
+            if handler.agent is not None and self._sessions.get(handler.agent) is handler:
+                del self._sessions[handler.agent]
+
     def _close_if_ready(self, number: int) -> None:
         """Close round `number` if every member that is not excluded has a request in it, or if
         its deadline has passed; never while a reserved request is not yet added. Needs the lock."""
         if self._pending == 0 and (
-            len(self._slots) + len(self.excluded) == len(self.members)
-            or time.monotonic() >= self._opened + self.deadline
+            len(self._slots) + len(self.excluded) == len(self.members) or self.clock() >= self._opened + self.deadline
         ):
             self._close(number)
 
@@ -206,14 +217,16 @@ class _AgentHandler:
 
     def __init__(self, rounds: Rounds) -> None:
         self.rounds = rounds
-        self.owner: Owner | None = None
         self.agent: str | None = None
 
-    def validate(self, op: str, body: Any) -> None:
-        self.rounds._accept(self, body)
+    def validate(self, request: Request) -> None:
+        self.rounds._accept(self, request)
 
-    def execute(self, op: str, body: Any) -> Any:
-        return self.rounds._wait(self, body)
+    def execute(self, request: Request) -> Any:
+        return self.rounds._wait(self, request.body)
+
+    def close(self, reason: str) -> None:
+        self.rounds._release(self)
 
 
 @dataclass(frozen=True)

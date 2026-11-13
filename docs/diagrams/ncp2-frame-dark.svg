@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="985" viewBox="0 0 1600 985" role="img" aria-labelledby="ncp2-frame-title ncp2-frame-desc">
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1018" viewBox="0 0 1600 1018" role="img" aria-labelledby="ncp2-frame-title ncp2-frame-desc">
 <title id="ncp2-frame-title">One NCP 2 frame</title>
 <desc id="ncp2-frame-desc">A frame has a 12-byte header, the JSON text, binary attachments, and a 32-byte SHA-256 digest of all bytes before it. The digest is the frame's identity; a receiver checks it before parsing. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
@@ -6,7 +6,7 @@
 <marker id="ncp2-frame-arrow-muted" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#AAB7BE"/></marker>
 <pattern id="ncp2-frame-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="985" fill="#131D26"/>
+<rect width="1600" height="1018" fill="#131D26"/>
 <path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
 <rect x="52" y="208" width="246" height="112" rx="10" fill="#8DB2D8"/>
@@ -29,8 +29,8 @@
 <path d="M1198 424 L1198 424 Q1198 410 1212 410 L1534 410 Q1548 410 1548 424 L1548 424 Z" fill="#E2B75A"/>
 <circle cx="1236" cy="461" r="21.2" fill="#E2B75A"/>
 <path d="M1224 490 L1522 490" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="782" width="1496" height="163" rx="10" fill="#1E3240"/>
-<rect x="52" y="782" width="10" height="163" rx="5" fill="#D8AA45"/>
+<rect x="52" y="782" width="1496" height="196" rx="10" fill="#1E3240"/>
+<rect x="52" y="782" width="10" height="196" rx="5" fill="#D8AA45"/>
 <path d="M175 320 L175 365 L227 365 L227 410" fill="none" stroke="#AAB7BE" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-frame-arrow-muted)"/>
 <path d="M550 320 L550 365 L609 365 L609 410" fill="none" stroke="#AAB7BE" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-frame-arrow-muted)"/>
 <path d="M1048 320 L1048 365 L991 365 L991 410" fill="none" stroke="#AAB7BE" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-frame-arrow-muted)"/>
@@ -84,7 +84,8 @@
 <text x="1224" y="693" class="r" font-size="25" fill="#ECE5D5">transcripts chain frames</text>
 <text x="1224" y="726" class="r" font-size="25" fill="#ECE5D5">with it.</text>
 <text x="84" y="820" class="s" font-size="24" fill="#AAB7BE" font-weight="600">WHY ONE FINGERPRINT</text>
-<text x="84" y="858" class="r" font-size="25" fill="#ECE5D5">A changed bit anywhere in the frame gives another digest, so a receiver never parses or runs a damaged request. The client</text>
-<text x="84" y="891" class="r" font-size="25" fill="#ECE5D5">chooses the size limit when it opens the session: from 64 KiB to 64 MiB, 1 MiB by default. Text and binary data travel in one</text>
-<text x="84" y="924" class="r" font-size="25" fill="#ECE5D5">frame, with no Base64 and no second message.</text>
+<text x="84" y="858" class="r" font-size="25" fill="#ECE5D5">A changed bit anywhere in the frame gives another digest, so a receiver that compares digests never parses or runs a damaged</text>
+<text x="84" y="891" class="r" font-size="25" fill="#ECE5D5">request; only on a local link may an application turn the comparison off. The client chooses the size limit when it opens the</text>
+<text x="84" y="924" class="r" font-size="25" fill="#ECE5D5">session: from 64 KiB to 64 MiB, 1 MiB by default. Text and binary data travel in one frame, with no Base64 and no second</text>
+<text x="84" y="957" class="r" font-size="25" fill="#ECE5D5">message.</text>
 </svg>

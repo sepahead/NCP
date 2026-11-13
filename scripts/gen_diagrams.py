@@ -3325,7 +3325,8 @@ def ncp2_call() -> Canvas:
             "1",
             "Open the session",
             "The client names the application and its contract by identity. The owner answers "
-            "with the largest frame size of the session.",
+            "with the largest frame size of the session and a fresh nonce, so no two openings "
+            "share a chain.",
         ),
         (
             "2",
@@ -3484,8 +3485,9 @@ def ncp2_frame() -> Canvas:
         "frame-why",
         cards[0].box.bottom + 34,
         "WHY ONE FINGERPRINT",
-        "A changed bit anywhere in the frame gives another digest, so a receiver never parses or "
-        "runs a damaged request. The client chooses the size limit when it opens the session: "
+        "A changed bit anywhere in the frame gives another digest, so a receiver that compares "
+        "digests never parses or runs a damaged request; only on a local link may an application "
+        "turn the comparison off. The client chooses the size limit when it opens the session: "
         "from 64\u00a0KiB to 64\u00a0MiB, 1\u00a0MiB by default. Text and binary data travel in one frame, with "
         "no Base64 and no second message.",
     ).bottom
@@ -3493,16 +3495,18 @@ def ncp2_frame() -> Canvas:
 
 
 def ncp2_outcomes() -> Canvas:
-    """The three outcomes of a response and what happens when something goes wrong."""
+    """The four outcomes of a response and what happens when something goes wrong."""
     c = Canvas(
         "ncp2-outcomes",
         WIDTH,
         1800,
         "What an NCP 2 response tells the client",
-        "Every response is ok, rejected, or ended. Six cards show what happens to damaged, lost, repeated, and late messages, after an owner failure, and when the connection breaks. At most one call is possibly executed. "
+        "Every response is ok, declined, rejected, or ended. Eight cards show what happens to damaged, lost, "
+        "repeated, and late messages, after an owner failure, a restart or a stop of the owner, and when the "
+        "connection breaks. At most one call is possibly executed. "
         f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
     )
-    y = header(c, "NCP 2 OUTCOMES", "Three outcomes tell the client exactly what happened")
+    y = header(c, "NCP 2 OUTCOMES", "Four outcomes, and one honest unknown")
     outcomes = card_row(
         c,
         y + 10,
@@ -3515,19 +3519,27 @@ def ncp2_outcomes() -> Canvas:
                 body="The owner ran the request once. The body is its result. The session continues.",
             ),
             dict(
+                name="outcome-declined",
+                title="declined",
+                subtitle="It never runs",
+                accent="turquoise",
+                body="The owner kept the request and did not run it, for example a body that the "
+                "application finds invalid. It never runs. The session continues.",
+            ),
+            dict(
                 name="outcome-rejected",
                 title="rejected",
-                subtitle="Nothing ran",
-                body="Nothing ran and nothing changed. A code says why, for example a wrong "
-                "sequence number. The client can send a corrected request.",
+                subtitle="Only for open",
+                body="The owner opened no session for this open, for example a wrong contract. "
+                "For any other request, the client ends the session.",
             ),
             dict(
                 name="outcome-ended",
                 title="ended",
                 subtitle="The session is over",
                 accent="pomegranate",
-                body="The session cannot continue. The code says whether the request ran or "
-                "possibly ran. The client opens a new session if it needs one.",
+                body="The session cannot continue. The code says whether the request ran, did not "
+                "run, or possibly ran.",
             ),
         ],
     )
@@ -3535,8 +3547,7 @@ def ncp2_outcomes() -> Canvas:
     c.text(MARGIN, label_y, "WHEN SOMETHING GOES WRONG", EYEBROW)
     events = [
         ("event-damaged", "A message is damaged", "The receiver computes the fingerprint "
-         "again and finds a difference. No damaged request runs. On a pipe or a socket, the "
-         "session then ends."),
+         "again and finds a difference. No damaged request runs."),
         ("event-lost", "A message is lost", "The client sends the same request again. The "
          "owner sends its kept response again: the step ran once."),
         ("event-twice", "A message arrives twice", "The owner recognizes the copy and sends "
@@ -3545,20 +3556,24 @@ def ncp2_outcomes() -> Canvas:
          "request already ran. Nothing runs again."),
         ("event-failure", "The owner fails in a step", "It answers ended with the code "
          "owner_failure. The step possibly ran."),
+        ("event-restart", "The owner restarts", "A later request gets session_expired: it "
+         "possibly ran. A new opening has a new nonce, so no old copy runs again."),
+        ("event-stop", "The owner stops", "It answers ended with the code shutdown. The "
+         "request did not run, and it never will."),
         ("event-broken", "The connection breaks", "The session ends. The request without a "
          "response possibly ran."),
     ]
     first = card_row(
         c,
         label_y + 26,
-        [dict(name=n, title=t, body=b, accent="lapis") for n, t, b in events[:3]],
+        [dict(name=n, title=t, body=b, accent="lapis") for n, t, b in events[:4]],
     )
     second = card_row(
         c,
         first[0].box.bottom + 28,
         [
-            dict(name=n, title=t, body=b, accent="pomegranate" if n != "event-late" else "lapis")
-            for n, t, b in events[3:]
+            dict(name=n, title=t, body=b, accent="lapis" if n == "event-stop" else "pomegranate")
+            for n, t, b in events[4:]
         ],
     )
     bottom = note(
@@ -3567,8 +3582,8 @@ def ncp2_outcomes() -> Canvas:
         second[0].box.bottom + 34,
         "POSSIBLY EXECUTED",
         "In a session, at most one call can be possibly executed, and it is always the last one. "
-        "Lean proofs cover these owner rules for every sequence of requests, and 8,730 fault "
-        "trials with real programs found no wrong result, no step run twice, and no false report.",
+        "Lean proofs cover these rules for a model of the owner and the client, and an exhaustive "
+        "check of the real SDKs with up to two faults, in 2.6 million states, found no false report.",
     ).bottom
     return _finish(c, bottom)
 
@@ -3608,8 +3623,9 @@ def ncp2_transcript() -> Canvas:
                 number="3",
                 title="Check afterwards",
                 accent="bronze",
-                body="A verifier recomputes every digest and checks the numbers and the chain. "
-                "A changed byte breaks it.",
+                body="A verifier recomputes every digest and checks the numbers, the "
+                "acknowledgements, and the chain over the records. A changed, removed, or reordered "
+                "record breaks it.",
             ),
         ],
     )
@@ -3652,8 +3668,9 @@ def ncp2_transcript() -> Canvas:
         "WHAT A TRANSCRIPT SHOWS",
         "Which frames one program sent and received, in which order. Because a frame is recorded "
         "before it is sent, the transcript holds every request that the peer may have run. It "
-        "does not show who produced the frames: transcripts are not signed. CREBAIN's loop check "
-        "and Prisoma's capture read transcripts.",
+        "does not show who produced the frames: transcripts are not signed. With a key, the chain "
+        "shows that a holder of the key wrote them. CREBAIN's loop check and Prisoma's capture "
+        "read transcripts.",
     ).bottom
     return _finish(c, bottom)
 
@@ -3677,14 +3694,15 @@ def ncp2_bindings() -> Canvas:
                  body="The owner runs as a child process and speaks on its standard input and "
                  "output. The simplest local link."),
             dict(name="link-unix", title="Unix socket", subtitle="One computer",
-                 body="One owner process serves many sessions. File permissions decide who may "
-                 "connect."),
+                 body="One session for each connection, each in its own thread. File permissions "
+                 "decide who may connect."),
             dict(name="link-tcp", title="TCP", subtitle="Trusted network",
-                 body="Between computers on a network that you trust, with a time limit for each "
-                 "call."),
+                 body="Between computers on a network that you trust, or with TLS on both sides. A "
+                 "time limit for each call is an option."),
             dict(name="link-zenoh", title="Zenoh", subtitle="Lossy or open network", accent="turquoise",
                  body="Requests travel as queries. A lost message is sent again, and the owner "
-                 "answers with its kept response. Mutual TLS and access control protect it."),
+                 "answers with its kept response. Configure mutual TLS and access control on "
+                 "both sides."),
         ],
     )
     patterns = card_row(
@@ -3804,9 +3822,9 @@ def ncp2_why() -> Canvas:
     )
     columns = [
         ("System", 196),
-        ("Runs each request at most once", 250),
+        ("A request sent again runs once", 250),
         ("Says after a failure whether it ran", 250),
-        ("SHA-256 fingerprint on each message", 250),
+        ("Detects a damaged message without TLS", 250),
         ("Session record a verifier checks", 250),
         ("Small call, Rust\u00a0·\u00a0Python", 300),
     ]
@@ -3855,6 +3873,9 @@ def ncp2_why() -> Canvas:
             "Medians of the comparison benchmark on one laptop, with no spikes: NCP 2 over a pipe, "
             "gRPC over a Unix socket, ZeroMQ over ipc, Zenoh and HTTP/1.1 over TCP. With the same "
             "SHA-256 check added to every system, NCP 2 was the fastest at every size up to 1\u00a0MiB.",
+            "The others have what NCP 2 lacks: gRPC has typed interfaces with code generation, "
+            "streaming calls, and deadlines; gRPC, ZeroMQ, and Zenoh authenticate peers without a "
+            "shared key. The comparison document lists each difference with its source.",
             "MUSIC, with which NEST exchanges spikes with other simulators, needs all of them in "
             "one MPI job; in this NEST build it delivered exact spikes only with one NEST thread.",
         ],

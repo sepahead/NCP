@@ -147,4 +147,75 @@ theorem Chain.live_index {xs : List Exchange} {y : Exchange} (hc : Chain H xs y)
         simpa [show xs.length - 1 = i by omega] using this
       rw [hlast]; exact hlive
 
+/-- The request at position `i` of a chain has the sequence number `i`. -/
+theorem Chain.seq_index {xs : List Exchange} {y : Exchange} (hc : Chain H xs y)
+    (i : Nat) (h : i < xs.length) : (xs[i]'h).request.seq = i := by
+  have := congrArg (·[i]?) hc.seqs
+  simp [h] at this
+  exact this
+
+theorem frames_mem_req {xs : List Exchange} {x : Exchange} (h : x ∈ xs) :
+    Frame.req x.request ∈ frames xs :=
+  List.mem_flatMap.2 ⟨x, h, by simp⟩
+
+theorem frames_mem_resp {xs : List Exchange} {x : Exchange} (h : x ∈ xs) :
+    Frame.resp x.response ∈ frames xs :=
+  List.mem_flatMap.2 ⟨x, h, by simp⟩
+
+/-- Each response of a chain names the identity of its request. -/
+theorem Chain.resp_req {xs : List Exchange} {y : Exchange} (hc : Chain H xs y) :
+    ∀ x ∈ xs, x.response.request = H (.req x.request) := by
+  induction hc with
+  | start x _ _ _ hreq => intro z hz; simp at hz; subst hz; exact hreq
+  | extend xs y x _ _ _ hreq _ _ ih =>
+    intro z hz
+    rcases List.mem_append.1 hz with hz | hz
+    · exact ih z hz
+    · simp at hz; subst hz; exact hreq
+
+/-- Two hash chains that admit the same request after `open` have the same `open` response: each
+request names the response before it, and each response names its request, down to `open`. If
+`H` has no collision among the frames of the two chains, two openings whose `open` responses
+differ, for example by their nonces, share no admitted request after `open` (property 1). -/
+theorem Chain.shared_prefix {xs ys : List Exchange} {x y : Exchange}
+    (hx : Chain H xs x) (hy : Chain H ys y)
+    (hinj : ∀ f ∈ frames xs, ∀ g ∈ frames ys, H f = H g → f = g) :
+    ∀ (i : Nat) (h₁ : i + 1 < xs.length) (h₂ : i + 1 < ys.length),
+      (xs[i + 1]'h₁).request = (ys[i + 1]'h₂).request →
+      (xs[0]'(by omega)).response = (ys[0]'(by omega)).response := by
+  intro i
+  induction i with
+  | zero =>
+    intro h₁ h₂ heq
+    have a₁ := hx.ack_index 0 h₁
+    have a₂ := hy.ack_index 0 h₂
+    have hid : H (.resp (xs[0]'(by omega)).response) = H (.resp (ys[0]'(by omega)).response) := by
+      have := a₁.symm.trans ((congrArg (·.ack) heq).trans a₂)
+      injection this
+    have := hinj _ (frames_mem_resp (List.getElem_mem (by omega))) _
+      (frames_mem_resp (List.getElem_mem (by omega))) hid
+    injection this
+  | succ k ih =>
+    intro h₁ h₂ heq
+    have a₁ := hx.ack_index (k + 1) h₁
+    have a₂ := hy.ack_index (k + 1) h₂
+    have hid : H (.resp (xs[k + 1]'(by omega)).response) =
+        H (.resp (ys[k + 1]'(by omega)).response) := by
+      have := a₁.symm.trans ((congrArg (·.ack) heq).trans a₂)
+      injection this
+    have hresp : (xs[k + 1]'(by omega)).response = (ys[k + 1]'(by omega)).response := by
+      have := hinj _ (frames_mem_resp (List.getElem_mem (by omega))) _
+        (frames_mem_resp (List.getElem_mem (by omega))) hid
+      injection this
+    have hreq : (xs[k + 1]'(by omega)).request = (ys[k + 1]'(by omega)).request := by
+      have r₁ := hx.resp_req (xs[k + 1]'(by omega)) (List.getElem_mem (by omega))
+      have r₂ := hy.resp_req (ys[k + 1]'(by omega)) (List.getElem_mem (by omega))
+      have hid' : H (.req (xs[k + 1]'(by omega)).request) =
+          H (.req (ys[k + 1]'(by omega)).request) := by
+        rw [← r₁, ← r₂, hresp]
+      have := hinj _ (frames_mem_req (List.getElem_mem (by omega))) _
+        (frames_mem_req (List.getElem_mem (by omega))) hid'
+      injection this
+    exact ih (by omega) (by omega) hreq
+
 end NCP2

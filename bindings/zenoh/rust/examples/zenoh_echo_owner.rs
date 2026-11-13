@@ -6,10 +6,10 @@
 //! binding (echo, fail, sleep, spikes): each operation but `fail` returns the request body and
 //! arrays, and `sleep` first waits `seconds`. Each execution appends the body as one line to
 //! NCP_EXECUTION_LOG, if set.
-use ncp::{Contract, Decoded, Handler, Owner, Reply};
+use ncp::{AppError, Contract, Handler, Invalid, Owner, Reply, Request};
 use std::io::{Read, Write};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::Duration;
 use zenoh::Wait;
 
 const CONTRACT: &[u8] = br#"{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{},"fail":{},"sleep":{},"spikes":{}},"streams":{}}"#;
@@ -19,26 +19,22 @@ struct Echo {
 }
 
 impl Handler for Echo {
-    fn validate(&mut self, _op: &str, _request: &Decoded) -> Result<(), String> {
+    fn validate(&mut self, _request: &Request<'_>) -> Result<(), Invalid> {
         Ok(())
     }
-    fn execute(
-        &mut self,
-        op: &str,
-        request: &Decoded,
-    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
+    fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
         if let Some(log) = self.log.as_mut() {
-            writeln!(log, "{}", request.message["body"])?;
+            writeln!(log, "{}", request.body)?;
         }
-        if op == "fail" {
+        if request.op == "fail" {
             return Err("requested failure".into());
         }
-        if op == "sleep" {
-            let seconds = request.message["body"]["seconds"].as_f64().unwrap_or(0.0);
-            std::thread::sleep(std::time::Duration::from_secs_f64(seconds));
+        if request.op == "sleep" {
+            let seconds = request.body["seconds"].as_f64().unwrap_or(0.0);
+            std::thread::sleep(Duration::from_secs_f64(seconds));
         }
         Ok(Reply {
-            body: request.message["body"].clone(),
+            body: request.body.clone(),
             arrays: request.owned_arrays(),
         })
     }
@@ -54,33 +50,24 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     config.insert_json5("listen/endpoints", &format!(r#"["{endpoint}"]"#))?;
     let session = zenoh::open(config).wait()?;
     let log_path = std::env::var_os("NCP_EXECUTION_LOG");
-    let make_owner = || {
-        let log = log_path.as_ref().map(|path| {
-            std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(path)
-                .expect("execution log")
-        });
-        Owner::new(
-            &contract.application,
-            &contract.identity,
-            Echo { log },
-            contract.operations.clone(),
-            ncp::MAX_BOUND,
-        )
+    let make_owner = {
+        let log_path = Mutex::new(log_path);
+        move || {
+            let log = log_path.lock().unwrap().as_ref().map(|path| {
+                std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(path)
+                    .expect("execution log")
+            });
+            Owner::new(contract.clone(), Echo { log })
+        }
     };
-    let mut server = ncp_zenoh::Server::declare(&session, service, make_owner, Default::default())?;
+    let server = ncp_zenoh::Server::declare(&session, service, make_owner, Default::default())?;
     println!("ready");
     std::io::stdout().flush()?;
-    let stop = Arc::new(AtomicBool::new(false));
-    let watcher = Arc::clone(&stop);
-    std::thread::spawn(move || {
-        let _ = std::io::stdin().read_to_end(&mut Vec::new());
-        watcher.store(true, Ordering::Release);
-    });
-    server.run(&stop)?;
-    drop(server);
+    let _ = std::io::stdin().read_to_end(&mut Vec::new());
+    server.stop(Duration::ZERO);
     session.close().wait()?;
     Ok(())
 }

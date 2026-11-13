@@ -9,7 +9,7 @@ on:
       - "bindings/zenoh/**"
       - "python/**"
       - "rust/**"
-      - "spec/NCP-2.md"
+      - "spec/NCP-2*.md"
       - "scripts/check_ncp2_zenoh.sh"
       - ".github/workflows/ncp2-zenoh.yml"
   pull_request:
@@ -17,7 +17,7 @@ on:
       - "bindings/zenoh/**"
       - "python/**"
       - "rust/**"
-      - "spec/NCP-2.md"
+      - "spec/NCP-2*.md"
       - "scripts/check_ncp2_zenoh.sh"
       - ".github/workflows/ncp2-zenoh.yml"
 

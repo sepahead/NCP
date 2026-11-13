@@ -1,6 +1,6 @@
 # NCP 2 for Rust
 
-The Rust core of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md): at-most-once exchanges with a known or possibly-executed outcome, and hash-chained streams between independent programs.
+The Rust core of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md): at-most-once exchanges with a truthful outcome, and hash-chained streams, between independent programs.
 
 - Crate name: `sepahead-ncp-core`. Library name: `ncp`.
 - Rust 1.88 or later. No `unsafe` code.
@@ -17,7 +17,7 @@ serde_json = "1"
 ## An owner and a client
 
 An owner runs an application's operations; a client sends requests to it.
-They agree on a contract, a JSON document that both identify by the SHA-256 digest of its exact bytes (specification section 11):
+They agree on a contract, a JSON document that both identify by the SHA-256 digest of its exact bytes (specification, section 11):
 
 ```json
 {"ncp_contract": 1, "application": "counter", "version": "1", "operations": {"add": {}}, "streams": {}}
@@ -26,7 +26,7 @@ They agree on a contract, a JSON document that both identify by the SHA-256 dige
 The owner serves one session on its standard input and output:
 
 ```rust
-use ncp::{Contract, Decoded, Handler, Owner, Reply};
+use ncp::{declined, AppError, Contract, Handler, Invalid, Owner, Reply, Request};
 use serde_json::json;
 
 struct Counter {
@@ -34,23 +34,22 @@ struct Counter {
 }
 
 impl Handler for Counter {
-    fn validate(&mut self, _op: &str, request: &Decoded) -> Result<(), String> {
-        match request.message["body"]["amount"].is_i64() {
-            true => Ok(()),
-            false => Err("amount must be an integer".into()),
+    fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
+        if !request.body["amount"].is_i64() {
+            return Err(declined("amount must be an integer"));
         }
+        Ok(())
     }
 
-    fn execute(&mut self, _op: &str, request: &Decoded) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
-        self.total += request.message["body"]["amount"].as_i64().unwrap_or(0);
+    fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
+        self.total += request.body["amount"].as_i64().unwrap_or(0);
         Ok(json!({"total": self.total}).into())
     }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let contract = Contract::from_bytes(std::fs::read("contract.json")?)?;
-    let counter = Counter { total: 0 };
-    let mut owner = Owner::new(&contract.application, &contract.identity, counter, contract.operations.clone(), ncp::DEFAULT_BOUND);
+    let mut owner = Owner::new(contract, Counter { total: 0 });
     ncp::serve_stdio(&mut owner)?;
     Ok(())
 }
@@ -65,34 +64,40 @@ use std::process::Command;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let contract = Contract::from_bytes(std::fs::read("contract.json")?)?;
-    let (channel, mut child) = ncp::spawn(Command::new("./owner"))?;
-    let mut client = Client::new(channel, &contract.application, &contract.identity);
+    let mut client = Client::new(ncp::spawn(Command::new("./owner"))?, &contract);
     client.open()?;
     println!("{}", client.call("add", json!({"amount": 2}), &[])?.message["body"]); // {"total":2}
     println!("{}", client.call("add", json!({"amount": 3}), &[])?.message["body"]); // {"total":5}
     match client.call("add", json!({"amount": "three"}), &[]) {
-        Err(Error::Rejected { code, .. }) => println!("{code}"), // body_invalid; the owner changed nothing
+        // It never runs, and the session goes on.
+        Err(Error::Declined { code, .. }) => println!("{code}"), // body_invalid
         other => println!("unexpected: {other:?}"),
     }
+    println!("{}", client.call("add", json!({"amount": 1}), &[])?.message["body"]); // {"total":6}
     client.close()?;
-    child.wait()?;
     Ok(())
 }
 ```
 
-`validate` must not change state: a rejected request leaves the owner as it was.
-`execute` runs each accepted request once, also when the client sends a request again after a lost response.
+`validate` must not change state: a declined request leaves the application as it was.
+`execute` runs each admitted request at most once, also when the client sends a request again after a lost response.
+Dropping the channel of `spawn` ends the child.
 
 ## Outcomes
 
-`Client::call` returns the decoded `ok` response, or an `Error`:
+`Client::call` returns the decoded `ok` response, or an `Error`. Each one says whether the request executed (specification, section 7.7, property 7); `Error::executed()` gives it for every variant:
 
-| Error | Meaning |
-| --- | --- |
-| `Error::Rejected { code, body }` | The owner did not execute the request and changed no state. The session continues. |
-| `Error::Ended { code, executed }` | The session is over. `executed` is `"yes"`, `"no"`, or `"unknown"` for the last request. `code` is the owner's code, or `"timeout"` or `"closed"` when no response arrived in time or the channel closed or failed; then the request is possibly executed. |
-| `Error::Protocol` | The peer broke the protocol, and the session is over: a request that was sent is possibly executed. The same variant reports wrong use, such as a call before `open` or a request above the session bound; then nothing was sent. |
-| `Error::Frame` | The request cannot be encoded. Nothing was sent, and the session continues. |
+| Error | Executed | Meaning |
+| --- | --- | --- |
+| `Error::Declined { code, .. }` | No, and never | The owner admitted the request and did not execute it. `code` is `body_invalid` or `unknown_op`. The session goes on. |
+| `Error::Ended { code, executed, .. }` | `Yes`, `No`, or `Unknown` | The session is over. `code` is the owner's code, or a local one: `local.timeout`, `local.closed`, `local.protocol`, or `local.bad_frame`. |
+| `Error::Rejected { code, .. }` | No | Only for `open`: the owner opened no session. |
+| `Error::Usage(reason)` | No | The client refused the call before it sent anything, for example a call after the session ended, or a request larger than the session bound. |
+
+A request is possibly executed (`Unknown`) only when the client cannot know: a time limit passed, the connection closed, the owner failed or forgot the session, or the owner lost the session and a delayed copy of `open` opened it again (rule 7.6.4).
+At most one request of a session is possibly executed, and it is the last one.
+
+The client rules are also pure functions over a `ClientState` (`client::request`, `client::receive`, `client::time_out`, `client::closed`), and the owner rules one function over an `OwnerState` (`owner::step`), for drivers of your own.
 
 ## Arrays
 
@@ -106,46 +111,48 @@ let reply = client.call("set_rates", json!({"rates": rates.reference(0)}), &[rat
 The encoder checks that each array has exactly one reference with its own type and shape.
 A received frame keeps its bytes once: `array_bytes(i)` returns a slice of the frame, and `array_f64(i)` and the other typed readers return the elements.
 
+## Contracts and schemas
+
+A contract can give each operation a `request` and a `result` schema, and each stream a `body` schema, in a closed subset of JSON Schema (specification, section 11.1).
+The owner declines a request whose body does not match its schema with `body_invalid`, before it calls `validate`.
+An owner can serve several contracts of one application, for example two versions during an upgrade: `Owner::with_contracts(vec![old, new], handler)`.
+
 ## Connections
 
 | Connection | Owner side | Client side |
 | --- | --- | --- |
 | Pipes to a child process | `serve_stdio(&mut owner)` | `spawn(command)` |
-| Unix domain socket | `unix_channel(stream)` for each accepted stream, then `serve` | `connect_unix(path)` |
-| TCP | `listen_tcp(address, false)`, then `tcp_channel(stream)` and `serve` for each connection | `connect_tcp(address, false)` |
+| A socket pair to a child process, with time limits | `serve_stdio(&mut owner)` | `spawn_unix(command)` |
+| Unix domain socket | `serve_unix(path, make_owner, limits)` | `connect_unix(path)` |
+| TCP | `serve_tcp(address, false, make_owner, limits)` | `connect_tcp(address, false)` |
 
-A connection carries one session. TCP accepts only loopback addresses unless the second argument is `true`; use that only on a trusted cluster network.
+A connection carries one session. `serve_unix` and `serve_tcp` call `make_owner()` for each connection, run each session in its own thread, and take `Limits` for the number of sessions and the time limits of frames and idle sessions. `Server::stop` sends each session the shutdown response, after the owner has answered every request that it read.
+TCP accepts only loopback addresses unless the second argument is `true`; use that only on a trusted cluster network.
 Between computers, or over a network that can lose messages, use the optional [Zenoh binding](https://github.com/sepahead/NCP/blob/main/bindings/zenoh/README.md) (crate `sepahead-ncp-zenoh`), with mutual TLS and access control on networks that are not trusted.
-`connect_unix` tries a refused connection again for up to 10 s (`binding::CONNECT_PATIENCE`): an owner refuses connections while its queue of connections that it has not yet accepted is full, for example when many agents start at once (macOS keeps 128).
+`set_timeout(Some(limit))` on a socket channel sets a time limit for each response: a call whose response does not arrive in time ends the session with `local.timeout`, possibly executed. A pipe takes no time limit; start the child with `spawn_unix` to give it one.
 The binding sets 1 MiB socket buffers and `TCP_NODELAY`.
-`set_tcp_timeout(&channel, Some(limit))` and `set_unix_timeout(&channel, Some(limit))` set a time limit for each receive: a call whose response does not arrive in time ends the session with `timeout` and executed `unknown`.
-A channel to a child process over pipes (`spawn`) has no time limit. To give one to a child, start it with `spawn_unix(command)`: its standard input and output are then one end of a Unix domain socket pair, which the owner serves as it serves pipes, and `set_unix_timeout` applies to the channel.
 To call many sessions at once, use `ncp::call_all(&mut clients, op, bodies)`.
 It sends every request before it reads the first response, so the owners work at the same time without a thread for each session, and it returns each session's result in its place.
-With 64 or more sessions, a host can split them over threads that each use `call_all` on their share: in the [multi-agent benchmark](https://github.com/sepahead/NCP/blob/main/benchmarks/multi-agent/README.md), 8 such threads finished a round over 256 owners in 646 µs, against 921 µs for one `call_all`, but they were slower with 16 sessions or fewer.
 
-The crate is tested on Linux and macOS. It also builds for Windows, without the Unix domain socket functions, but it is not tested there; the examples and tests use Unix domain sockets.
+The crate is tested on Linux and macOS. It also builds for Windows, without the Unix domain socket functions, but it is not tested there.
 
-## Streams and transcripts
+## Profiles, streams, and transcripts
 
-`Publisher` numbers and chains the messages of a stream; `Subscriber` reports each frame as accepted (with the number of lost messages before it), a repeat, a broken chain, an unknown contract, or a bad frame.
-`Tap` records the frames that a channel sends and receives (`with_tap` on a channel), and `transcript::verify` checks the digests, the sequence numbers, and the hash chain.
-`Tap::create` gives each record to the operating system at once, so a transcript keeps every record up to a crash of the recording program; `Tap::create_buffered` saves one system call for each frame but loses its buffer in a crash.
-A failure to write a record is an error of the channel's send or receive.
+`Lockstep` and `LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and after a lost session, a new session tells the client whether its last step ran.
+`Publisher` numbers and chains the messages of a stream under a unique stream identifier; `Subscriber` reports each frame as accepted (with the number of lost messages before it), joined, a repeat, a conflict, a broken chain, an unknown contract, or a bad frame.
+`Tap` records the frames that a channel sends and receives (`with_tap` on a channel), with a hash chain over the records, and `transcript::verify` checks the digests, the sequence numbers, the acknowledgements, and the chain.
+A tap gives each record to the operating system before the frame is sent, so a transcript keeps every record up to a crash of the recording program.
 
 ## Options
 
 | Option | Default | Effect |
 | --- | --- | --- |
 | `Client::with_bound` | 1 MiB | The largest frame of the session, from 64 KiB to 64 MiB. The owner can lower it. |
-| The `max_bound` argument of `Owner::new` | required | The largest session bound that the owner accepts, from 64 KiB to 64 MiB. |
-| `without_digest_check` on `Owner`, `Client`, `Subscriber` | check on | Turns off the comparison of received digests. Use it only on pipes or a Unix domain socket with no other program between the two ends (specification section 3, rule 4). |
-
-## Performance
-
-On one laptop (Apple M4 Max), a call between two Rust programs over a pipe took 9.0 µs with no spikes and 32.5 µs with 1,788 spikes, and 99 of 100 calls took at most 12.4 µs and 38.5 µs (each value is the middle one of three repeated runs). gRPC (tonic) took 35.9 µs and 55.6 µs over a Unix socket, and NCP 1.0.1 took 36.1 µs and 430 µs.
-Coupled to NEST, an exchange after each 1 ms step added 23 to 32 µs, and a Rust host called 256 owners in one round in 0.92 ms with `call_all`.
-The [benchmark section of the README](https://github.com/sepahead/NCP/blob/main/README.md#ncp-2-benchmarks-speed-lag-and-correctness) gives the other systems and sizes, and states how they were measured.
+| `Client::with_retries` | 3 | How often a lossy channel sends a request again. |
+| `Owner::with_max_bound` | 1 MiB | The largest session bound that the owner accepts, from 64 KiB to 64 MiB. |
+| `with_key` on `Owner`, `Client`, `Subscriber`, `Publisher` | none | Authenticates every frame with HMAC-SHA-256 and a key of at least 32 bytes (specification, section 13.2). |
+| `without_digest_check` on `Owner`, `Client`, `Subscriber` | check on | Turns off the comparison of received digests. Use it only on pipes or a Unix domain socket with no other program between the two ends (specification, section 3, rule 5). |
+| `with_observer` on `Owner`, `Client` | errors to standard error | Receives an `Event` for each step. `events::Silent` drops them. |
 
 ## Tests and examples
 
@@ -154,4 +161,4 @@ cargo test --release
 ```
 
 The tests include the shared conformance vectors of `../conformance` and, when `python3` is available, a session with the Python owner.
-The examples are the owners and clients of the benchmarks and of the conformance tools: `echo_owner`, `bench_client`, `model_owner`, and `decode_corpus`.
+The examples are the owners and clients of the benchmarks and of the conformance tools: `echo_owner`, `bench_client`, `model_owner`, `conformance_owner`, and `decode_corpus`.

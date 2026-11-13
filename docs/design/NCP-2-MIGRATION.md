@@ -51,3 +51,52 @@ A migration adds new files next to them; it never edits them.
 - This table is updated.
 
 When every row is done, the NCP 1 code (`local/`, `ncp-core`, `ncp-zenoh`, `ncp-ts`, `ncp-cpp`, `ncp-gateway`, `ncp-python`) leaves the main branch. Its last state stays reachable through the tag `ncp-1-archive`, which the owner creates; NCP 2.0 is released after its gates and the owner's approval.
+
+## 6. From revision 2 to revision 3 of NCP 2
+
+Revision 3 of the specification (13 November 2026) changes the session rules (design record, [section 12](NCP-2-DESIGN.md#12-revision-3)) and the interfaces of both SDKs. A consumer of revision 2 moves in one change: its code, its pin of NCP, and its evidence.
+
+### What changes on the wire
+
+- Responses can have the outcome `declined`: the owner admitted the request and never executes it. `rejected` means "not admitted", and a client that follows the rules sees it only for `open`; a rejection of another request ends the session, possibly executed (rule 7.6.4).
+- The `open` response carries a `nonce` and the `features` that the owner enabled.
+- A request with `seq` greater than 0 of a session that the owner does not hold gets `ended` with `session_expired` on every binding.
+- A stopping owner answers `ended` with `shutdown`.
+- Optional: frames authenticated with a shared key (HMAC-SHA-256), contract schemas, and transcript version 2. A verifier still reads transcripts of version 1.
+
+### Python (`ncp`)
+
+| Revision 2 | Revision 3 |
+| --- | --- |
+| `ncp.Owner(application, contract_identity, handler, operations)` | `ncp.Owner(contract, handler)`, where `contract` is an `ncp.Contract`; a list of contracts of one application is allowed |
+| Handler `validate(op, body)` and `execute(op, body)` | `validate(request)` and `execute(request)`: `request.op`, `request.body`, `request.arrays`, `request.seq`, `request.identity`, and more |
+| `raise ncp.BodyInvalid(...)` in `validate` | `raise ncp.Declined(...)` |
+| `ncp.Client(channel, application=..., contract=...)` | `ncp.Client(channel, contract)`; a context manager opens and closes the session |
+| `channel, process = ncp.spawn(argv)` | `channel = ncp.spawn(argv)`; closing the channel ends the child |
+| `ncp.Rejected` for an invalid body | `ncp.Declined`, with `code` `body_invalid` or `unknown_op`; the session goes on |
+| `ncp.Ended` codes `timeout` and `closed` | `local.timeout`, `local.closed`, `local.protocol`, and `local.bad_frame`; `executed` is an `ncp.Executed` (`YES`, `NO`, `UNKNOWN`), which compares equal to `"yes"`, `"no"`, and `"unknown"` |
+| `ncp.verify_transcript(path)` returns one report for each session | It returns one `Report`: `ok`, `sessions`, `streams`, and `problems` |
+| `ncp.exchange` | `ncp.owner`, `ncp.client`, and `ncp.messages` |
+| `ncp_zenoh.serve(...)` on the caller's thread | `ncp_zenoh.Server(...).start()` and `stop(grace)`, one thread for each session; `serve(..., stop=event)` still blocks until the event is set |
+
+### Rust (`ncp`)
+
+| Revision 2 | Revision 3 |
+| --- | --- |
+| `Owner::new(application, identity, handler, operations, max_bound)` | `Owner::new(contract, handler)`, then `with_max_bound`, `with_key`, `with_observer`; `Owner::with_contracts` for several contracts |
+| `Handler::validate(&mut self, op, &Decoded) -> Result<(), String>` | `validate(&mut self, &Request<'_>) -> Result<(), Invalid>`; `declined("why")` makes the error |
+| `Handler::execute(&mut self, op, &Decoded) -> Result<Reply, Box<dyn Error>>` | `execute(&mut self, &Request<'_>) -> Result<Reply, AppError>`; `request.body`, `request.op`, `request.owned_arrays()` |
+| `Client::new(channel, application, identity)` | `Client::new(channel, &contract)` |
+| `let (channel, child) = spawn(command)?` | `let channel = spawn(command)?`; dropping it ends the child |
+| `Error::Rejected` for an invalid body; `Error::Ended { code, executed: &str }` | `Error::Declined { code, detail, body }`; `Error::Rejected` only for `open`; `Error::Ended { code, executed: Executed, detail, body }`; `Error::Usage` |
+| `Channel::receive -> Result<Vec<u8>, Error>` | `-> Result<Vec<u8>, ChannelError>` (`BadFrame`, `Timeout`, `Closed`) |
+| `transcript::verify(path)` | `transcript::verify(path, key)` returns one `Report` |
+| `ncp::exchange` | `ncp::owner`, `ncp::client`, and `ncp::messages` |
+| `ncp_zenoh::Server::run` on the caller's thread | `Server::declare` serves each session in its own thread; `Server::stop(grace)` |
+
+### Consumers of revision 2
+
+| Consumer | Uses | State |
+| --- | --- | --- |
+| CREBAIN | The native simulation and its closed loop (`src-tauri/crates/ncp-simulation`, Rust, pinned at `3b51a1b`) and the NEST controller (`integrations/ncp2-nest-controller`, Python) | Moves to revision 3 with a new pin |
+| Prisoma, Galadriel, Haldir, Engram | NCP 1 surfaces (section 1) | Move directly to revision 3, in the order of section 3 |

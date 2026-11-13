@@ -3,20 +3,30 @@
 #
 # Usage: scripts/check_ncp2.sh [--quick]
 # PYTHON names the interpreter to test (default python3; NCP 2 needs Python 3.11 or later).
-# --quick runs 2,000 model traces and 20,000 fuzzing cases instead of 20,000 and 200,000.
+# --quick runs 2,000 oracle traces, a model check with one fault, and 20,000 fuzzing cases,
+# instead of 20,000 traces, two faults, and 200,000 cases.
 # NCP2_SKIP_LEAN=1 leaves out the Lean proofs and the Lean oracle (they need elan and lake).
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 python=${PYTHON:-python3}
 traces=20000
+faults=2
 cases=200000
 if [ "${1:-}" = "--quick" ]; then
     traces=2000
+    faults=1
     cases=20000
 fi
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 cd "$root"
+
+echo "== Rules, requirements, and vectors: generated or checked, never edited"
+"$python" -I scripts/check_ncp2_rules.py
+"$python" -I scripts/check_ncp2_requirements.py
+"$python" -I conformance/generate.py "$work/vectors.json" "$work/package-vectors.json"
+cmp conformance/vectors.json "$work/vectors.json"
+cmp python/ncp/vectors.json "$work/package-vectors.json"
 
 echo "== Python SDK, Python $("$python" -c 'import sys; print(sys.version.split()[0])')"
 "$python" -I python/tests/test_ncp.py
@@ -25,10 +35,6 @@ echo "== Python SDK, Python $("$python" -c 'import sys; print(sys.version.split(
 
 echo "== Modular composition: 40 closed-loop runs with optional modules and faults"
 "$python" -I python/tests/test_composition.py
-
-echo "== Shared vectors: generated, never edited"
-"$python" -I conformance/generate.py "$work/vectors.json"
-cmp conformance/vectors.json "$work/vectors.json"
 
 echo "== Rust core"
 (
@@ -40,19 +46,21 @@ echo "== Rust core"
 )
 examples="$root/rust/target/release/examples"
 
+echo "== The vectors against the Rust decoder and owner programs (python -m ncp conformance)"
+(cd python && "$python" -m ncp conformance --decoder "$examples/decode_corpus" --owner "$examples/conformance_owner")
+
 echo "== Python client with the Rust owner"
 NCP_RUST_EXAMPLES="$examples" "$python" -I python/tests/test_ncp.py BindingTests.test_python_client_with_the_rust_owner
 
-echo "== Bounded model check of owner, client, and network, with its mutation test"
-"$python" -I model/ncp2_model.py --self-test
+echo "== Exhaustive model check of the SDK client and owner, up to $faults faults, with its mutation test"
+"$python" -I model/simulate.py --faults "$faults"
+"$python" -I model/simulate.py --faults "$faults" --self-test
 
-echo "== Model conformance of both owners, $traces traces each"
-"$python" -I model/conformance.py --traces "$traces"
-# One connection per trace: a Unix domain socket, because TCP would run out of ephemeral ports.
-"$python" -I model/conformance.py --traces "$traces" --owner "$examples/model_owner" "$work/owner.sock"
+echo "== The Rust owner against the Python owner, $traces traces"
+"$python" -I model/conformance.py --traces "$traces" --owner "$examples/model_owner"
 
 if [ "${NCP2_SKIP_LEAN:-0}" != "1" ]; then
-    echo "== Lean proofs of the owner model, warnings fatal"
+    echo "== Lean proofs of the owner and client models, warnings fatal"
     (cd formal && lake build --wfail)
     echo "== Replay of every proof by the Lean kernel, outside the elaborator"
     (cd formal && lake env leanchecker --fresh Audit)
@@ -81,16 +89,15 @@ if [ "${NCP2_SKIP_LEAN:-0}" != "1" ]; then
     fi
     echo "every claim of Statements.lean is proved and audited: $(printf '%s\n' $claims | grep -c .) claims"
     oracle="$root/formal/.lake/build/bin/ncp2-oracle"
-    echo "== Both owners against the verified Lean model, $traces traces each"
-    "$python" -I model/conformance.py --traces "$traces" --oracle "$oracle"
-    "$python" -I model/conformance.py --traces "$traces" --oracle "$oracle" --owner "$examples/model_owner" "$work/oracle.sock"
+    echo "== The Python and Rust owners against the verified Lean model, $traces traces"
+    "$python" -I model/conformance.py --traces "$traces" --oracle "$oracle" --owner "$examples/model_owner"
     echo "== The traces detect each known defect of an owner"
     "$python" -I model/conformance.py --traces "$traces" --self-test --oracle "$oracle"
-    echo "== The claims break under each defect of the owner model"
+    echo "== The claims break under each defect of the owner and client models"
     (cd formal && "$python" -I mutants.py --check README.md)
 fi
 
-echo "== Differential fuzzing of the decoders, $cases cases"
+echo "== Differential fuzzing of the decoders and message checks, $cases cases"
 "$python" -I conformance/fuzz.py --decoder "$examples/decode_corpus" --cases "$cases"
 
 echo "NCP 2 gate passed"

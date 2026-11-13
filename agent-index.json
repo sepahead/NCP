@@ -1,7 +1,7 @@
 {
   "schema": "sepahead.agent-index.v1",
   "repository": "sepahead/NCP",
-  "summary": "Neuro-Cybernetic Protocol: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
+  "summary": "Neuro-Cybernetic Protocol: NCP 2 (release candidate, revision 3 of spec/NCP-2.md; Python and Rust SDKs, optional Zenoh binding, Lean models, model checks, and vectors) and the NCP 1 surfaces that stay until their consumers move: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
   "entry_documents": [
     {"path": "AGENTS.md", "role": "operating contract for agents"},
     {"path": "README.md", "role": "overview"},
@@ -11,7 +11,12 @@
     {"path": "conformance/manifest.v1.json", "role": "conformance coverage"},
     {"path": "evidence/supply-chain/inventory.v1.json", "role": "registry of every code generator, its outputs and every tracked asset"},
     {"path": "docs/implementation/NCP_1_0_TASK_LEDGER.md", "role": "NCP 1.0 programme ledger"},
-    {"path": "docs/governance/owner-decisions-2026-10-01.md", "role": "owner decisions, including when the v1.0.0 tag may follow"}
+    {"path": "docs/governance/owner-decisions-2026-10-01.md", "role": "owner decisions, including when the v1.0.0 tag may follow"},
+    {"path": "spec/NCP-2.md", "role": "NCP 2 specification, release candidate"},
+    {"path": "spec/ncp2-rules.json", "role": "NCP 2 codes, outcomes, and limits as data"},
+    {"path": "conformance/requirements.json", "role": "each NCP 2 requirement mapped to its checks"},
+    {"path": "docs/design/NCP-2-DESIGN.md", "role": "NCP 2 design record"},
+    {"path": "docs/design/NCP-2-MIGRATION.md", "role": "how consumers move to NCP 2 and between its revisions"}
   ],
   "delivery": {
     "default_branch": "main",
@@ -28,8 +33,8 @@
     {"id": "plots", "when": "scripts/plot_perf.py or docs/plots changes", "command": "python3 scripts/plot_perf.py --self-test --check", "cost": "fast", "environment": "scripts/requirements-plot.txt"},
     {"id": "agent-index", "when": "agent-index.json or a path it names changes", "command": "python3 scripts/check_agent_index.py", "cost": "fast"},
     {"id": "frozen-baselines", "when": "a protocol, schema or vector changes", "command": "python3 scripts/check_wire_baseline.py && python3 scripts/check_released_baselines.py", "cost": "medium"},
-    {"id": "ncp2", "when": "python/, rust/, model/, formal/, conformance/, or spec/NCP-2.md changes", "command": "scripts/check_ncp2.sh", "cost": "medium"},
-    {"id": "ncp2-zenoh", "when": "bindings/zenoh/, python/, rust/, or spec/NCP-2.md changes", "command": "scripts/check_ncp2_zenoh.sh", "cost": "medium"},
+    {"id": "ncp2", "when": "python/, rust/, model/, formal/, conformance/, spec/NCP-2*.md, spec/ncp2-rules.json, or the tests of bindings/zenoh change; scripts/check_ncp2.sh --quick while editing", "command": "scripts/check_ncp2.sh", "cost": "medium"},
+    {"id": "ncp2-zenoh", "when": "bindings/zenoh/, python/, rust/, or spec/NCP-2*.md changes", "command": "scripts/check_ncp2_zenoh.sh", "cost": "medium"},
     {"id": "complete-local-gate", "when": "before a release-candidate handoff", "command": "scripts/check.sh", "cost": "full"}
   ],
   "generated": [
@@ -40,7 +45,10 @@
     {"path": "docs/diagrams/*.svg", "regenerate": "python3 scripts/gen_diagrams.py"},
     {"path": "docs/plots/*.svg", "regenerate": "python3 scripts/plot_perf.py"},
     {"path": "docs/implementation/NCP_1_0_TASK_LEDGER.md", "regenerate": "python3 scripts/generate_implementation_ledger.py --write"},
-    {"path": "ncp-ts/src/generated/*.ts", "regenerate": "node ncp-ts/scripts/sync-bindings.mjs"}
+    {"path": "ncp-ts/src/generated/*.ts", "regenerate": "node ncp-ts/scripts/sync-bindings.mjs"},
+    {"path": "conformance/vectors.json", "regenerate": "python3 conformance/generate.py"},
+    {"path": "python/ncp/vectors.json", "regenerate": "python3 conformance/generate.py"},
+    {"path": "evidence/release/ncp-2.0.0/SHA256SUMS", "regenerate": "python3 scripts/build_ncp2_release.py OUT_DIR --records evidence/release/ncp-2.0.0 --python PYTHON, with build 1.6.1"}
   ],
   "frozen": [
     {"path": "conformance/baseline/", "reason": "frozen candidate and released wire baselines; scripts/check_wire_baseline.py and scripts/check_released_baselines.py verify them"},
@@ -49,7 +57,7 @@
     {"path": "docs/figures/nest-3.10.0-stepwise-control.json", "reason": "raw output of the NEST 3.10.0 benchmark run and its same-session control; a new measurement needs a new file"}
   ],
   "ecosystem": [
-    {"repository": "sepahead/crebain", "relation": "consumer pinned to the 1.0.0-rc.1 candidate"},
+    {"repository": "sepahead/crebain", "relation": "consumer: the native simulation, its closed loop, and the NEST controller use NCP 2; the desktop adapter pins the 1.0.0-rc.1 candidate; the sensor integrations use the NCP 1 local SDK 1.0.0"},
     {"repository": "sepahead/galadriel", "relation": "observer and raw-advisory publisher pinned to the 1.0.0-rc.1 candidate"},
     {"repository": "sepahead/prisoma", "relation": "observer pinned to the 1.0.0-rc.1 candidate"},
     {"repository": "sepahead/haldir", "relation": "commander adapter pinned to the 1.0.0-rc.1 candidate"},

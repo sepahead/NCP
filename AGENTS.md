@@ -88,6 +88,37 @@ Do not infer migration from copied protocol files. Do not create a silent
 consumer-specific fork. Update the consumer runtime, descriptor, fixtures, and
 transport behavior together.
 
+## NCP 2
+
+NCP 2 replaces the NCP 1 surfaces once their consumers have moved
+([design record](docs/design/NCP-2-DESIGN.md),
+[migration plan](docs/design/NCP-2-MIGRATION.md)). It is a release candidate:
+revision 3 of [`spec/NCP-2.md`](spec/NCP-2.md), with the profiles
+[`spec/NCP-2-ROUNDS.md`](spec/NCP-2-ROUNDS.md) and
+[`spec/NCP-2-LOCKSTEP.md`](spec/NCP-2-LOCKSTEP.md), and packages of version
+2.0.0. It is not tagged and not published.
+
+Change an NCP 2 rule in one change that updates all of these together:
+
+- the specification text;
+- [`spec/ncp2-rules.json`](spec/ncp2-rules.json);
+- both SDKs (`python/`, `rust/`) and the Zenoh bindings (`bindings/zenoh/`);
+- the Lean models and their claims (`formal/`);
+- the vectors, through `conformance/generate.py`;
+- [`conformance/requirements.json`](conformance/requirements.json).
+
+`scripts/check_ncp2.sh` fails when these disagree. Run it with `--quick` while
+you edit and without it before a commit. Run `scripts/check_ncp2_zenoh.sh` after a
+change to the bindings or to the SDKs.
+
+Do not edit `conformance/vectors.json`, `python/ncp/vectors.json`, or the mutant
+table of `formal/README.md`: run `conformance/generate.py` and
+`formal/mutants.py --table`. The Lean proofs use only `propext`,
+`Classical.choice`, and `Quot.sound`.
+
+The benchmarks and the fault campaign ran with revision 2 of the SDKs. Keep their
+records, and state the revision of the SDKs with each new measurement.
+
 ## Task coordination
 
 Use the JSON task ledger only for coordination and evidence bookkeeping. It gives

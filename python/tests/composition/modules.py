@@ -77,7 +77,7 @@ class Faulty:
 
 def check_step(body: object, keys: set[str]) -> dict:
     if type(body) is not dict or not keys <= body.keys() or type(body["t"]) is not int:
-        raise ncp.BodyInvalid(f"the body needs {sorted(keys)}")
+        raise ncp.Declined(f"the body needs {sorted(keys)}")
     return body
 
 
@@ -92,10 +92,11 @@ class Neural(Faulty):
         self.v = [0.0] * NEURONS
         self.fired: list[int] = []
 
-    def validate(self, op: str, body: object) -> None:
-        check_step(body, {"t", "input"})
+    def validate(self, request: ncp.Request) -> None:
+        check_step(request.body, {"t", "input"})
 
-    def execute(self, op: str, body: dict) -> dict:
+    def execute(self, request: ncp.Request) -> dict:
+        body = request.body
         t = body["t"]
         self.before(t)
         recurrent = [sum(self.w_rec[i][j] for j in self.fired) for i in range(NEURONS)]
@@ -114,10 +115,11 @@ class Body(Faulty):
         rng = random.Random(seed + 1)
         self.x, self.y, self.heading = rng.uniform(3, 7), rng.uniform(3, 7), rng.uniform(0, 2 * math.pi)
 
-    def validate(self, op: str, body: object) -> None:
-        check_step(body, {"t", "command"})
+    def validate(self, request: ncp.Request) -> None:
+        check_step(request.body, {"t", "command"})
 
-    def execute(self, op: str, body: dict) -> dict:
+    def execute(self, request: ncp.Request) -> dict:
+        body = request.body
         t = body["t"]
         self.before(t)
         forward, turn = body["command"]
@@ -137,10 +139,11 @@ class Monitor(Faulty):
     def __init__(self, seed: int) -> None:
         super().__init__("monitor")
 
-    def validate(self, op: str, body: object) -> None:
-        check_step(body, {"t", "position", "command"})
+    def validate(self, request: ncp.Request) -> None:
+        check_step(request.body, {"t", "position", "command"})
 
-    def execute(self, op: str, body: dict) -> dict:
+    def execute(self, request: ncp.Request) -> dict:
+        body = request.body
         t = body["t"]
         self.before(t)
         x, y = body["position"]
@@ -181,7 +184,7 @@ def main() -> None:
         return record(seed)
     handler = {"neural": Neural, "body": Body, "monitor": Monitor}[module](seed)
     contract = CONTRACTS[module]
-    owner = ncp.Owner(contract.application, contract.identity, handler, contract.operations)
+    owner = ncp.Owner(contract, handler)
     ncp.serve_stdio(owner)
 
 

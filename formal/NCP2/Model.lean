@@ -1,7 +1,7 @@
 /-
 The NCP 2 owner as a Lean model (spec/NCP-2.md, sections 6 and 7).
 
-The model follows owner rules 7.3.2 to 7.3.14 for one decoded request. Rule 7.3.1 (bad frames)
+The model follows owner rules 7.3.2 to 7.3.13 for one decoded request. Rule 7.3.1 (bad frames)
 belongs to the binding and is outside the model. Identities are digests of frames; the model takes
 the digest function `H` as a parameter and compares identities exactly where the rules do.
 -/
@@ -14,11 +14,13 @@ abbrev Id := Nat
 inductive Op where
   | openSession
   | close
+  | ping
   | call (name : Nat)
   deriving DecidableEq, Repr, Hashable
 
 inductive Outcome where
   | ok
+  | declined
   | rejected
   | ended
   deriving DecidableEq, Repr, Hashable
@@ -27,7 +29,7 @@ inductive Outcome where
 inductive Code where
   | wrongProtocol | notOpen | alreadyOpen | wrongSession | seqStale | seqGap | seqConflict
   | ackMissing | ackMismatch | unknownOp | bodyInvalid | contractMismatch | boundUnacceptable
-  | sessionEnded | resultTooLarge | ownerFailure
+  | refused | sessionEnded | resultTooLarge | ownerFailure | sessionExpired | shutdown
   deriving DecidableEq, Repr, Hashable
 
 /-- A request (spec 6.1). Bodies are abstract numbers. -/
@@ -40,12 +42,13 @@ structure Request where
   body : Nat
   deriving DecidableEq, Repr, Hashable
 
-/-- Response bodies, abstractly. -/
+/-- Response bodies, abstractly. The body of an `open` response carries the session bound and
+the nonce of the opening (section 7.1, rule 5). -/
 inductive Body where
   | empty
   | detail
   | result (value : Nat)
-  | opened (bound : Nat)
+  | opened (bound nonce : Nat)
   | tooLarge (size bound : Nat)
   deriving DecidableEq, Repr, Hashable
 
@@ -70,51 +73,67 @@ inductive OpenVerdict where
   | bodyInvalid
   | contractMismatch
   | boundUnacceptable
+  | refused
   deriving DecidableEq, Repr
 
-/-- What the application does when the owner executes a call (rule 7.3.13). -/
+/-- What the application does when the owner executes a call (rule 7.3.12). -/
 inductive AppResult where
   | result (value : Nat)
   | error
   | tooLarge (size : Nat)
   deriving DecidableEq, Repr
 
-/-- What the application does at one step: its verdict on the body of a call (rule 7.3.11) and,
-if the owner executes the call, its result (rule 7.3.13). Both are inputs of each step, so the
-model covers every behavior of the application, also one that depends on its own state. -/
+/-- What the application and the owner do at one step: the application's verdict on the body of
+a call and, if the owner executes the call, its result (rule 7.3.12); and the nonce that the
+owner chooses if the step opens a session (section 7.1, rule 5). These are inputs of each step,
+so the model covers every behavior of the application, also one that depends on its own state. -/
 structure Behavior where
   valid : Bool
   result : AppResult
+  nonce : Nat := 0
   deriving DecidableEq, Repr
 
-/-- The parts of the application that stay fixed: the operations of its contract (rule 7.3.11)
+/-- The parts of the application that stay fixed: the operations of its contract (rule 7.3.12)
 and its verdict on the body of an `open` request (section 7.1). -/
 structure App where
   known : Nat → Bool
   opening : Nat → OpenVerdict
 
-/-- One exchange that the owner accepted: the request and the response that it sent. -/
+/-- One exchange that the owner admitted: the request and the response that it kept. -/
 structure Exchange where
   request : Request
   response : Response
   deriving DecidableEq, Repr
 
 /-- The owner state of section 7.2. The protocol keeps the identity of the kept request; the
-model keeps the request itself, from which the owner uses only its identity. `log` is ghost
-state for the proofs: every accepted exchange, `open` first. -/
+model keeps the request itself, from which the owner uses only its identity. `stopped` says that
+the owner stops (rule 7.3.10). `log` is ghost state for the proofs: every admitted exchange,
+`open` first. -/
 structure Owner where
   session : Option Nat := none
   bound : Nat := 65536
   high : Nat := 0
   kept : Option Exchange := none
   ended : Bool := false
+  stopped : Bool := false
   log : List Exchange := []
   deriving Repr
 
-/-- An exchange ends the session: a `close`, or a response with outcome `ended` (rule 7.3.14). -/
+/-- An exchange ends the session: a `close`, or a response with outcome `ended` (rule 7.3.13). -/
 def Ends (x : Exchange) : Prop := x.request.op = .close ∨ x.response.outcome = .ended
 
 instance (x : Exchange) : Decidable (Ends x) := by unfold Ends; infer_instance
+
+/-- Whether an admitted exchange executed: every admitted exchange except a declined one. -/
+def Executed (x : Exchange) : Prop := x.response.outcome ≠ .declined
+
+instance (x : Exchange) : Decidable (Executed x) := by unfold Executed; infer_instance
+
+/-- One input of the owner: a decoded request with the application's behavior, or the owner's
+own decision to stop (rule 7.3.10). -/
+inductive Input where
+  | req (r : Request) (b : Behavior)
+  | stop
 
 section Step
 
@@ -125,36 +144,43 @@ def reply (r : Request) (outcome : Outcome) (code : Option Code) (body : Body) :
 
 def reject (r : Request) (code : Code) : Response := reply H r .rejected (some code) .detail
 
-/-- Rule 7.3.13: the response of an accepted request. -/
-def execute (bound : Nat) (r : Request) (a : AppResult) : Response :=
-  match r.op, a with
-  | .call _, .result v => reply H r .ok none (.result v)
-  | .call _, .error => reply H r .ended (some .ownerFailure) .empty
-  | .call _, .tooLarge size => reply H r .ended (some .resultTooLarge) (.tooLarge size bound)
-  | _, _ => reply H r .ok none .empty
+/-- Rule 7.3.12: the response to an admitted request. -/
+def answer (bound : Nat) (r : Request) (b : Behavior) : Response :=
+  match r.op with
+  | .call name =>
+    if app.known name = false then reply H r .declined (some .unknownOp) .detail
+    else if b.valid = false then reply H r .declined (some .bodyInvalid) .detail
+    else match b.result with
+      | .result v => reply H r .ok none (.result v)
+      | .error => reply H r .ended (some .ownerFailure) .empty
+      | .tooLarge size => reply H r .ended (some .resultTooLarge) (.tooLarge size bound)
+  | _ => reply H r .ok none .empty
 
-/-- Rules 7.3.12 to 7.3.14. -/
-def accept (o : Owner) (r : Request) (a : AppResult) : Owner × Response :=
-  let p := execute H o.bound r a
+/-- Rules 7.3.11 to 7.3.13: admit the request, keep its response, and log the exchange. -/
+def admit (o : Owner) (r : Request) (p : Response) : Owner × Response :=
   ({ o with high := r.seq, kept := some ⟨r, p⟩, ended := decide (Ends ⟨r, p⟩),
             log := o.log ++ [⟨r, p⟩] }, p)
 
-/-- Section 7.1, for a request that arrives while no session is open. -/
-def openStep (o : Owner) (r : Request) : Owner × Response :=
-  if r.op = .openSession ∧ r.seq = 0 then
-    if r.ack.isSome then (o, reject H r .bodyInvalid) else
-    match app.opening r.body with
-    | .accept b =>
-      let p := reply H r .ok none (.opened b)
-      ({ o with session := some r.session, bound := b, high := 0, kept := some ⟨r, p⟩,
-                ended := false, log := [⟨r, p⟩] }, p)
-    | .bodyInvalid => (o, reject H r .bodyInvalid)
-    | .contractMismatch => (o, reject H r .contractMismatch)
-    | .boundUnacceptable => (o, reject H r .boundUnacceptable)
-  else (o, reject H r .notOpen)
+/-- Section 7.1 and rule 7.3.3, for a request that arrives while no session is open. -/
+def openStep (o : Owner) (r : Request) (b : Behavior) : Owner × Response :=
+  if r.seq = 0 then
+    if r.op = .openSession then
+      if r.ack.isSome then (o, reject H r .bodyInvalid) else
+      match app.opening r.body with
+      | .accept bd =>
+        if o.stopped then (o, reject H r .refused) else
+        let p := reply H r .ok none (.opened bd b.nonce)
+        ({ o with session := some r.session, bound := bd, high := 0, kept := some ⟨r, p⟩,
+                  ended := false, log := [⟨r, p⟩] }, p)
+      | .bodyInvalid => (o, reject H r .bodyInvalid)
+      | .contractMismatch => (o, reject H r .contractMismatch)
+      | .boundUnacceptable => (o, reject H r .boundUnacceptable)
+      | .refused => (o, reject H r .refused)
+    else (o, reject H r .notOpen)
+  else (o, reply H r .ended (some .sessionExpired) .empty)
 
-/-- Rules 7.3.6 to 7.3.11, with the identity of the kept response, if any. -/
-def checkThenAccept (o : Owner) (keptId : Option Id) (r : Request) (b : Behavior) :
+/-- Rules 7.3.6 to 7.3.13, with the identity of the kept response, if any. -/
+def checkThenAdmit (o : Owner) (keptId : Option Id) (r : Request) (b : Behavior) :
     Owner × Response :=
   if r.seq < o.high then (o, reject H r .seqStale)
   else if r.seq > o.high + 1 then (o, reject H r .seqGap)
@@ -163,19 +189,15 @@ def checkThenAccept (o : Owner) (keptId : Option Id) (r : Request) (b : Behavior
     | none => (o, reject H r .ackMissing)
     | some ack =>
       if keptId ≠ some ack then (o, reject H r .ackMismatch)
-      else match r.op with
-        | .openSession => (o, reject H r .alreadyOpen)
-        | .close => accept H o r b.result
-        | .call name =>
-          if app.known name = false then (o, reject H r .unknownOp)
-          else if b.valid = false then (o, reject H r .bodyInvalid)
-          else accept H o r b.result
+      else if r.op = .openSession then (o, reject H r .alreadyOpen)
+      else if o.stopped then (o, reply H r .ended (some .shutdown) .empty)
+      else admit o r (answer H app o.bound r b)
 
-/-- One step of the owner: rules 7.3.2 to 7.3.14 for one decoded request. -/
+/-- One step of the owner: rules 7.3.2 to 7.3.13 for one decoded request. -/
 def step (o : Owner) (r : Request) (b : Behavior) : Owner × Response :=
   if r.protocol ≠ 2 then (o, reject H r .wrongProtocol) else
   match o.session with
-  | none => openStep H app o r
+  | none => openStep H app o r b
   | some s =>
     if r.session ≠ s then (o, reject H r .wrongSession) else
     match o.kept with
@@ -183,13 +205,30 @@ def step (o : Owner) (r : Request) (b : Behavior) : Owner × Response :=
       if r.seq = o.high then
         if H (.req r) = H (.req k.request) then (o, k.response)
         else (o, reject H r .seqConflict)
-      else checkThenAccept H app o (some (H (.resp k.response))) r b
-    | none => checkThenAccept H app o none r b
+      else checkThenAdmit H app o (some (H (.resp k.response))) r b
+    | none => checkThenAdmit H app o none r b
 
-/-- The owner after a sequence of requests, each with the application's behavior. -/
-def run (o : Owner) : List (Request × Behavior) → Owner
+/-- The owner after one input. -/
+def apply (o : Owner) : Input → Owner
+  | .req r b => (step H app o r b).1
+  | .stop => { o with stopped := true }
+
+/-- The owner after a sequence of inputs. -/
+def run (o : Owner) : List Input → Owner
   | [] => o
-  | (r, b) :: rest => run (step H app o r b).1 rest
+  | i :: rest => run (apply H app o i) rest
+
+/-- The responses that the owner sends during a sequence of inputs. -/
+def responses (o : Owner) : List Input → List Response
+  | [] => []
+  | .req r b :: rest => (step H app o r b).2 :: responses (step H app o r b).1 rest
+  | .stop :: rest => responses { o with stopped := true } rest
+
+/-- The requests among the inputs. -/
+def requests : List Input → List Request
+  | [] => []
+  | .req r _ :: rest => r :: requests rest
+  | .stop :: rest => requests rest
 
 end Step
 

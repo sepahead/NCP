@@ -3,9 +3,9 @@
 Exchanges travel as Zenoh queries and replies, streams as Zenoh publications. This package is
 optional: it needs `eclipse-zenoh`, and the NCP 2 core package `ncp` never imports it.
 
-- An owner serves on the key `ncp/x/<service>` (`serve`). A client sends each request frame as
-  the payload of a query to that key (`ZenohChannel`), and the owner replies with the response
-  frame (rule 9.2.1).
+- An owner serves on the key `ncp/x/<service>` (`Server`, `serve`). A client sends each request
+  frame as the payload of a query to that key (`ZenohChannel`), and the owner replies with the
+  response frame (rule 9.2.1).
 - A publisher puts stream frames on `ncp/s/<stream-key>` (`stream_sender`), and subscribers
   subscribe to that key (`subscribe`) (rule 9.2.2).
 - A receiver drops a bad frame (rule 9.2.3).
@@ -15,8 +15,11 @@ optional: it needs `eclipse-zenoh`, and the NCP 2 core package `ncp` never impor
   so the request still runs at most once.
 - Each owner uses its own service key (rule 9.2.5).
 - On networks that are not trusted, the Zenoh sessions MUST use TLS with client certificates and
-  Zenoh access control (rule 9.2.6). `secure_config` writes the TLS part of such a configuration;
-  the README shows the access control.
+  Zenoh access control on both sides (rule 9.2.6). `secure_config` writes the TLS part of such a
+  configuration; the README shows the access control.
+- The server keeps one owner for each session and runs each session in its own thread, so a long
+  step of one session does not delay the others (rules 9.2.7 and 9.2.8). It forgets a session
+  after a time without requests, and it stops as rule 9.2.9 says.
 """
 
 from __future__ import annotations
@@ -24,7 +27,6 @@ from __future__ import annotations
 import json
 import queue
 import re
-import sys
 import threading
 import time
 from collections.abc import Callable, Iterable
@@ -32,14 +34,16 @@ from typing import Any
 
 import ncp
 import zenoh
+from ncp import events as E
 from ncp import frame as F
-from ncp.exchange import check_request
+from ncp.messages import check_request
 from ncp.transcript import RECEIVED, SENT, Tap
 
 __all__ = [
     "DEFAULT_TIMEOUT_S",
     "EXCHANGE_PREFIX",
     "STREAM_PREFIX",
+    "Server",
     "ZenohChannel",
     "exchange_key",
     "secure_config",
@@ -86,6 +90,7 @@ class ZenohChannel:
     """
 
     lossy = True
+    local = False
 
     def __init__(
         self,
@@ -119,6 +124,9 @@ class ZenohChannel:
             self.tap.record(RECEIVED, frame)
         return frame
 
+    def close(self) -> None:
+        pass
+
 
 def _peek(frame: bytes) -> tuple[Any, Any, Any]:
     """The session, op, and seq of a request frame, read from its JSON region only. Raises
@@ -126,7 +134,7 @@ def _peek(frame: bytes) -> tuple[Any, Any, Any]:
     if len(frame) < F.OVERHEAD or len(frame) > F.MAX_BOUND or frame[:4] != F.MAGIC:
         raise ValueError("not a frame")
     _, json_length, attachment_length = F.HEADER.unpack_from(frame)
-    if F.OVERHEAD + json_length + attachment_length != len(frame):
+    if json_length > F.MAX_JSON or F.OVERHEAD + json_length + attachment_length != len(frame):
         raise ValueError("frame length")
     try:
         message = json.loads(frame[F.HEADER_BYTES : F.HEADER_BYTES + json_length])
@@ -161,51 +169,200 @@ def _answer(frame: bytes, outcome: str, code: str, bound: int) -> bytes | None:
     )
 
 
-class _Sessions:
-    """The owners of one service, one for each session."""
+class _Worker:
+    """One session: its owner, the queries that wait for it, and its thread."""
 
-    def __init__(self, make_owner: Callable[[], ncp.Owner], expire_after_s: float, max_sessions: int) -> None:
-        self.make_owner, self.expire_after_s, self.max_sessions = make_owner, expire_after_s, max_sessions
-        self.owners: dict[str, tuple[ncp.Owner, float]] = {}
+    def __init__(self, server: Server, session: str, owner: ncp.Owner) -> None:
+        self.server, self.session, self.owner = server, session, owner
+        self.queries: queue.SimpleQueue[zenoh.Query | None] = queue.SimpleQueue()
+        self.lock = threading.Lock()  # one step of the owner at a time; stop() waits for it
+        self.waiting = 0  # queries queued or in progress; guarded by the server's lock
+        self.last = time.monotonic()  # the time of the last response; guarded by the server's lock
+        self.thread = threading.Thread(target=self._run, name=f"ncp-zenoh {session[:8]}", daemon=True)
 
-    def respond(self, frame: bytes) -> bytes | None:
-        """The response frame to one request frame, or None for a bad frame (rule 9.2.3)."""
+    def _run(self) -> None:
+        server = self.server
+        while True:
+            query = self.queries.get()
+            if query is None:
+                break
+            response = None
+            try:
+                payload = query.payload
+                if payload is not None:
+                    with self.lock:
+                        response = self.owner.handle(payload.to_bytes())
+            except F.FrameError:
+                response = None  # rule 9.2.3: a bad frame gets no reply
+            except Exception as error:  # noqa: BLE001 - one query must not stop the session
+                server.observer.event(E.Event("server_error", "server", self.session, detail="query dropped", error=error))
+            server._reply(query, response)
+            with server.lock:
+                self.waiting -= 1
+                self.last = time.monotonic()
+                if self.owner.session is None and self.waiting == 0:
+                    server._forget(self)  # the open was not accepted: there is no session to keep
+
+
+class Server:
+    """An owner service on `ncp/x/<service>`: one `ncp.Owner` for each session.
+
+    `make_owner` returns a new owner for each new session. Each session runs in its own thread, so
+    a long step of one session does not delay the others (rule 9.2.8). A session without a request
+    for `expire_after_s` seconds, counted from the last response, is forgotten; a session with a
+    request in progress is never forgotten. A request with `seq` greater than 0 of a session that
+    the server does not hold, because it forgot the session or restarted, gets `ended` with
+    `session_expired`: possibly executed (rule 9.2.7). Above `max_sessions` sessions, an `open`
+    gets `rejected` with `refused`.
+
+    `start()` declares the service; `stop(grace)` stops it as rule 9.2.9 says. Use it as a
+    context manager to do both.
+    """
+
+    def __init__(
+        self,
+        session: zenoh.Session,
+        service: str,
+        make_owner: Callable[[], ncp.Owner],
+        *,
+        expire_after_s: float = 600.0,
+        max_sessions: int = 4096,
+        observer: Any = None,
+    ) -> None:
+        if expire_after_s <= 0 or max_sessions < 1:
+            raise ValueError("expire_after_s must be positive and max_sessions at least 1")
+        self.zenoh_session, self.key, self.make_owner = session, exchange_key(service), make_owner
+        self.expire_after_s, self.max_sessions = expire_after_s, max_sessions
+        self.observer = observer if observer is not None else E.DEFAULT
+        self.lock = threading.Lock()
+        self.workers: dict[str, _Worker] = {}
+        self.stopping = False
+        self._queryable: Any = None
+        self._done = threading.Event()
+        self._janitor = threading.Thread(target=self._expire, name="ncp-zenoh expiry", daemon=True)
+
+    @property
+    def sessions(self) -> int:
+        """The number of sessions whose state the server keeps."""
+        with self.lock:
+            return len(self.workers)
+
+    def start(self) -> Server:
+        self._queryable = self.zenoh_session.declare_queryable(self.key, self._on_query, complete=True)
+        self._janitor.start()
+        return self
+
+    def __enter__(self) -> Server:
+        return self.start()
+
+    def __exit__(self, *_: object) -> None:
+        self.stop()
+
+    def _reply(self, query: zenoh.Query, response: bytes | None) -> None:
         try:
+            if response is not None:
+                query.reply(self.key, response)
+            query.drop()  # the query is complete: the client stops waiting for more replies
+        except Exception:  # noqa: BLE001 - the client may have gone; the query then has no reader
+            pass
+
+    def _forget(self, worker: _Worker) -> bool:
+        """Remove a session and end its thread. Needs the lock. The caller then calls `_finish`
+        without the lock: it runs application code."""
+        if self.workers.get(worker.session) is not worker:
+            return False
+        del self.workers[worker.session]
+        worker.queries.put(None)
+        return True
+
+    def _finish(self, worker: _Worker, reason: str) -> None:
+        """Tell the application, once, that the session ended."""
+        try:
+            with worker.lock:
+                worker.owner.finish(reason)
+        except Exception as error:  # noqa: BLE001 - the session is over anyway
+            self.observer.event(E.Event("server_error", "server", worker.session, detail="close failed", error=error))
+
+    def _on_query(self, query: zenoh.Query) -> None:
+        """Route one query to its session's thread, or answer it here (rules 7.3.3 and 9.2.7).
+        Runs in a thread of Zenoh, so it never waits for an owner."""
+        try:
+            payload = query.payload
+            frame = b"" if payload is None else payload.to_bytes()
             session, op, seq = _peek(frame)
         except (ValueError, UnicodeDecodeError):
-            return None
+            self._reply(query, None)  # rule 9.2.3
+            return
         if type(session) is not str:
-            return None
-        if session in self.owners:
-            owner = self.owners[session][0]
-        elif type(seq) is int and seq > 0:
-            # A session that this owner does not hold: it forgot it, it restarted, or it never
+            self._reply(query, None)
+            return
+        with self.lock:
+            worker = self.workers.get(session)
+            if worker is None and op == "open" and seq == 0 and not self.stopping and len(self.workers) < self.max_sessions:
+                try:  # check the whole frame before the application makes an owner for it
+                    check_request(F.decode(frame, F.HANDSHAKE_BOUND).message)
+                    worker = _Worker(self, session, self.make_owner())
+                except F.FrameError:
+                    worker = None
+                except Exception as error:  # noqa: BLE001 - a defect of the factory drops the query
+                    self.observer.event(E.Event("server_error", "server", session, detail="the owner factory failed", error=error))
+                    self._reply(query, None)
+                    return
+                else:
+                    self.workers[session] = worker
+                    worker.thread.start()
+            if worker is not None:
+                worker.waiting += 1
+                worker.queries.put(query)
+                return
+            stopping, full = self.stopping, len(self.workers) >= self.max_sessions
+        if type(seq) is int and seq > 0:
+            # A session that this server does not hold: it forgot it, it restarted, or it never
             # served it. An earlier copy of the request may have executed (rule 9.2.7).
-            return _answer(frame, "ended", "session_expired", F.MAX_BOUND)
+            response = _answer(frame, "ended", "session_expired", F.MAX_BOUND)
         elif op != "open":
-            return _answer(frame, "rejected", "not_open", F.HANDSHAKE_BOUND)
-        elif len(self.owners) >= self.max_sessions:
-            return _answer(frame, "rejected", "refused", F.HANDSHAKE_BOUND)
+            response = _answer(frame, "rejected", "not_open", F.HANDSHAKE_BOUND)
+        elif stopping or full:
+            response = _answer(frame, "rejected", "refused", F.HANDSHAKE_BOUND)
         else:
-            try:  # check the whole frame before the application makes an owner for it
-                check_request(F.decode(frame, F.HANDSHAKE_BOUND).message)
-            except F.FrameError:
-                return None
-            owner = self.make_owner()
-        try:
-            response = owner.handle(frame)
-        except F.FrameError:
-            return None
-        if owner.session == session:  # the open was accepted, or the session already existed
-            # Idle time counts from the response, so a long step does not expire its own session.
-            self.owners[session] = (owner, time.monotonic())
-        return response
+            response = None  # a bad open frame
+        self._reply(query, response)
 
-    def expire(self, now: float) -> None:
-        """Forget the sessions without a request for `expire_after_s`."""
-        for session, (_, last) in list(self.owners.items()):
-            if now - last >= self.expire_after_s:
-                del self.owners[session]
+    def _expire(self) -> None:
+        period = min(1.0, self.expire_after_s / 4)
+        while not self._done.wait(period):
+            now = time.monotonic()
+            with self.lock:
+                expired = [
+                    worker
+                    for worker in list(self.workers.values())
+                    if worker.waiting == 0 and now - worker.last >= self.expire_after_s and self._forget(worker)
+                ]
+            for worker in expired:
+                self._finish(worker, "expired")
+
+    def stop(self, grace: float = 1.0) -> None:
+        """Stop as rule 9.2.9 says: every owner stops, so a copy of a kept request still gets the
+        kept response, an `open` gets `rejected` with `refused`, and every other request gets
+        `ended` with `shutdown`. After `grace` seconds, the server undeclares the queryable and
+        ends the threads of the sessions, once they have answered their queries."""
+        with self.lock:
+            if self.stopping:
+                return
+            self.stopping = True
+            workers = list(self.workers.values())
+        for worker in workers:
+            with worker.lock:  # waits for a step in progress, so the stop is never lost
+                worker.owner.stop()
+        time.sleep(grace)
+        if self._queryable is not None:
+            self._queryable.undeclare()
+        self._done.set()
+        with self.lock:
+            workers = [worker for worker in list(self.workers.values()) if self._forget(worker)]
+        for worker in workers:
+            worker.thread.join(10)
+            self._finish(worker, "shutdown")
 
 
 def serve(
@@ -213,47 +370,20 @@ def serve(
     service: str,
     make_owner: Callable[[], ncp.Owner],
     *,
-    stop: threading.Event | None = None,
+    stop: threading.Event,
     ready: threading.Event | None = None,
-    expire_after_s: float = 600.0,
-    max_sessions: int = 4096,
+    grace: float = 1.0,
+    **options: Any,
 ) -> None:
-    """Serve exchange sessions on `ncp/x/<service>` until `stop` is set.
-
-    `make_owner` returns a new `ncp.Owner` for each new session. The caller's thread handles the
-    queries in their order of arrival, one at a time, so a long step of one session delays the
-    others. A session without a request for `expire_after_s` seconds is forgotten. A request
-    with `seq` greater than 0 of a session that the service does not hold, because it forgot the
-    session or restarted, is answered with `ended` and the code `session_expired`: possibly
-    executed (rule 9.2.7). Above `max_sessions` live sessions, an `open` is answered with
-    `rejected` and the code `refused`. `ready` is set once the service is declared.
-    """
-    key = exchange_key(service)
-    incoming: queue.SimpleQueue[zenoh.Query] = queue.SimpleQueue()
-    queryable = session.declare_queryable(key, incoming.put, complete=True)
-    sessions = _Sessions(make_owner, expire_after_s, max_sessions)
+    """Serve `ncp/x/<service>` with a `Server` until `stop` is set, then stop as rule 9.2.9 says.
+    `ready` is set once the service is declared. `options` go to `Server`."""
+    server = Server(session, service, make_owner, **options).start()
     if ready is not None:
         ready.set()
     try:
-        while stop is None or not stop.is_set():
-            sessions.expire(time.monotonic())
-            try:
-                query = incoming.get(timeout=0.05)
-            except queue.Empty:
-                continue
-            payload = query.payload
-            try:
-                response = None if payload is None else sessions.respond(payload.to_bytes())
-            except Exception as error:  # noqa: BLE001 - one query must not stop the service
-                # A defect while answering one query drops that query (rule 9.2.3); the
-                # client repeats it or ends its session as possibly executed.
-                print(f"ncp_zenoh: dropped a query: {error!r}", file=sys.stderr)
-                response = None
-            if response is not None:
-                query.reply(key, response)
-            query.drop()  # the query is complete: the client stops waiting for more replies
+        stop.wait()
     finally:
-        queryable.undeclare()
+        server.stop(grace)
 
 
 def stream_sender(session: zenoh.Session, name: str, **options: Any) -> Callable[[bytes], None]:
@@ -285,16 +415,17 @@ def secure_config(
 ) -> zenoh.Config:
     """A Zenoh configuration for networks that are not trusted (rule 9.2.6): TLS links only,
     with a certificate on both sides (mutual TLS), signed by `root_ca_certificate`, and no
-    multicast scouting. Endpoints have the form `tls/HOST:PORT`. Add access control to the
-    configuration before you open the session; the README shows an example."""
+    multicast scouting. Endpoints have the form `tls/HOST:PORT`. Add access control on both sides
+    before you open the session; the README shows an example."""
+    listen, connect = list(listen), list(connect)
     endpoints = [*listen, *connect]
     if not endpoints or any(not e.startswith("tls/") for e in endpoints):
         raise ValueError("secure_config needs tls/ endpoints only")
     config = zenoh.Config()
     config.insert_json5("mode", json.dumps(mode))
     config.insert_json5("scouting/multicast/enabled", "false")
-    config.insert_json5("listen/endpoints", json.dumps(list(listen)))
-    config.insert_json5("connect/endpoints", json.dumps(list(connect)))
+    config.insert_json5("listen/endpoints", json.dumps(listen))
+    config.insert_json5("connect/endpoints", json.dumps(connect))
     tls = {
         "root_ca_certificate": root_ca_certificate,
         "listen_certificate": certificate,

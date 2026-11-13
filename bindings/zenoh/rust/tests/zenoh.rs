@@ -1,7 +1,8 @@
 //! Tests of the Zenoh binding (specification, section 9.2), with two Zenoh sessions in one process.
 //! The TLS tests need the `openssl` command; they are skipped without it.
 use ncp::{
-    frame, Array, Channel, Client, Contract, Decoded, Delivery, Error, Handler, Owner, Reply,
+    events, frame, AppError, Array, Channel, ChannelError, Client, Contract, Delivery, Error,
+    Executed, Handler, Invalid, Owner, Reply, Request,
 };
 use ncp_zenoh::{exchange_key, ServeOptions, Server, StreamSender, TlsFiles, ZenohChannel};
 use serde_json::{json, Value};
@@ -10,7 +11,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
-use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use zenoh::{Config, Session, Wait};
 
@@ -25,26 +25,22 @@ struct Counting {
 }
 
 impl Handler for Counting {
-    fn validate(&mut self, _op: &str, _request: &Decoded) -> Result<(), String> {
+    fn validate(&mut self, _request: &Request<'_>) -> Result<(), Invalid> {
         Ok(())
     }
-    fn execute(
-        &mut self,
-        op: &str,
-        request: &Decoded,
-    ) -> Result<Reply, Box<dyn std::error::Error + Send + Sync>> {
-        if let Some(k) = request.message["body"]["k"].as_i64() {
+    fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
+        if let Some(k) = request.body["k"].as_i64() {
             *self.counts.lock().unwrap().entry(k).or_default() += 1;
         }
-        if op == "fail" {
+        if request.op == "fail" {
             return Err("requested failure".into());
         }
-        if op == "sleep" {
-            let seconds = request.message["body"]["seconds"].as_f64().unwrap_or(0.0);
+        if request.op == "sleep" {
+            let seconds = request.body["seconds"].as_f64().unwrap_or(0.0);
             std::thread::sleep(Duration::from_secs_f64(seconds));
         }
         Ok(Reply {
-            body: request.message["body"].clone(),
+            body: request.body.clone(),
             arrays: request.owned_arrays(),
         })
     }
@@ -84,14 +80,13 @@ fn wait_for_peer(session: &Session, limit: Duration) -> bool {
     false
 }
 
-/// An owner session serving `ncp/x/<name>` in a thread, and a client session.
+/// An owner session serving `ncp/x/<name>`, and a client session.
 struct Service {
     owner: Session,
     client: Session,
     name: String,
     counts: Counts,
-    stop: Arc<AtomicBool>,
-    thread: Option<JoinHandle<()>>,
+    server: Option<Server<Counting>>,
     linked: bool,
 }
 
@@ -105,38 +100,27 @@ impl Service {
         let owner = zenoh::open(owner_config).wait().unwrap();
         let client = zenoh::open(client_config).wait().unwrap();
         let counts = Counts::default();
-        let stop = Arc::new(AtomicBool::new(false));
-        let (ready, declared) = mpsc::channel();
-        let thread = {
-            let (owner, name, counts, stop) =
-                (owner.clone(), name.clone(), counts.clone(), stop.clone());
-            std::thread::spawn(move || {
-                let contract = Contract::from_bytes(CONTRACT.to_vec()).unwrap();
-                let make_owner = || {
-                    Owner::new(
-                        &contract.application,
-                        &contract.identity,
-                        Counting {
-                            counts: counts.clone(),
-                        },
-                        contract.operations.clone(),
-                        ncp::MAX_BOUND,
-                    )
-                };
-                let mut server = Server::declare(&owner, &name, make_owner, options).unwrap();
-                ready.send(()).unwrap();
-                server.run(&stop).unwrap();
-            })
+        let make_owner = {
+            let counts = counts.clone();
+            let contract = Contract::from_bytes(CONTRACT.to_vec()).unwrap();
+            move || {
+                Owner::new(
+                    contract.clone(),
+                    Counting {
+                        counts: counts.clone(),
+                    },
+                )
+                .with_observer(Arc::new(events::Silent))
+            }
         };
-        declared.recv_timeout(Duration::from_secs(5)).unwrap();
+        let server = Server::declare(&owner, &name, make_owner, options).unwrap();
         let linked = wait_for_peer(&client, Duration::from_secs(3));
         Service {
             owner,
             client,
             name,
             counts,
-            stop,
-            thread: Some(thread),
+            server: Some(server),
             linked,
         }
     }
@@ -183,7 +167,7 @@ impl Service {
 
     fn client<C: Channel>(&self, channel: C) -> Client<C> {
         let contract = Contract::from_bytes(CONTRACT.to_vec()).unwrap();
-        Client::new(channel, &contract.application, &contract.identity)
+        Client::new(channel, &contract).with_observer(Arc::new(events::Silent))
     }
 
     /// Send one frame as a query and return every reply frame.
@@ -215,13 +199,19 @@ impl Service {
 
 impl Drop for Service {
     fn drop(&mut self) {
-        self.stop.store(true, Ordering::Release);
-        if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
+        if let Some(server) = self.server.take() {
+            server.stop(Duration::ZERO);
         }
         let _ = self.client.close().wait();
         let _ = self.owner.close().wait();
     }
+}
+
+fn outcome(frame_bytes: &[u8]) -> (Value, Value) {
+    let message = frame::decode(frame_bytes.to_vec(), ncp::MAX_BOUND)
+        .unwrap()
+        .message;
+    (message["outcome"].clone(), message["code"].clone())
 }
 
 fn new_name() -> String {
@@ -249,10 +239,11 @@ fn a_session_runs_and_its_transcript_verifies() {
         .unwrap();
     assert_eq!(two.array_u32(0).unwrap(), vec![1, 2, 3]);
     client.close().unwrap();
-    let reports = ncp::transcript::verify(&path).unwrap();
-    let report = reports.values().next().unwrap();
-    assert!(report.complete, "{report:?}");
-    assert!(report.problems.is_empty(), "{report:?}");
+    drop(client); // the tap writes its end record when the channel drops
+    let report = ncp::transcript::verify(&path, None).unwrap();
+    assert!(report.ok(), "{report:?}");
+    assert!(report.sessions[0].complete, "{report:?}");
+    assert!(report.sessions[0].problems.is_empty(), "{report:?}");
     assert_eq!(service.counts(), counts(&[(1, 1), (2, 1)]));
     std::fs::remove_file(path).unwrap();
 }
@@ -286,16 +277,13 @@ impl Channel for Dropping {
         }
         self.inner.send(frame_bytes)
     }
-    fn receive(&mut self, bound: usize) -> Result<Vec<u8>, Error> {
+    fn receive(&mut self, bound: usize) -> Result<Vec<u8>, ChannelError> {
         let frame_bytes = self.inner.receive(bound)?;
         if !self.lose_query
             && seq_of(&frame_bytes) == self.seq
             && !self.lost.swap(true, Ordering::AcqRel)
         {
-            return Err(Error::Io(std::io::Error::new(
-                std::io::ErrorKind::TimedOut,
-                "lost",
-            )));
+            return Err(ChannelError::Timeout); // the reply was lost
         }
         Ok(frame_bytes)
     }
@@ -391,14 +379,102 @@ fn sessions_are_independent_and_a_failure_ends_only_its_own() {
     second.open().unwrap();
     first.call("echo", json!({"k": 1}), &[]).unwrap();
     match second.call("fail", json!({"k": 2}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("owner_failure", "unknown"))
+        Err(Error::Ended { code, executed, .. }) => {
+            assert_eq!(
+                (code.as_str(), executed),
+                ("owner_failure", Executed::Unknown)
+            )
         }
         other => panic!("unexpected: {other:?}"),
     }
     first.call("echo", json!({"k": 3}), &[]).unwrap();
     first.close().unwrap();
     assert_eq!(service.counts(), counts(&[(1, 1), (2, 1), (3, 1)]));
+}
+
+#[test]
+fn a_long_step_does_not_delay_another_session() {
+    // Rule 9.2.8: each session runs in its own thread.
+    let service = Arc::new(Service::plain(ServeOptions::default()));
+    let slow_channel = ZenohChannel::new(&service.client, &service.name)
+        .unwrap()
+        .with_timeout(Duration::from_secs(5));
+    let mut slow = service.client(slow_channel);
+    let mut fast = service.client(
+        ZenohChannel::new(&service.client, &service.name)
+            .unwrap()
+            .with_timeout(Duration::from_secs(5)),
+    );
+    slow.open().unwrap();
+    fast.open().unwrap();
+    let (done, finished) = mpsc::channel();
+    let thread = std::thread::spawn(move || {
+        slow.call("sleep", json!({"k": 1, "seconds": 1.5}), &[])
+            .unwrap();
+        done.send(()).unwrap();
+    });
+    std::thread::sleep(Duration::from_millis(200)); // the slow step is running
+    let started = Instant::now();
+    fast.call("echo", json!({"k": 2}), &[]).unwrap();
+    assert!(started.elapsed() < Duration::from_secs(1));
+    assert!(
+        finished.try_recv().is_err(),
+        "the slow step is still running"
+    );
+    thread.join().unwrap();
+    finished.recv_timeout(Duration::from_secs(5)).unwrap();
+}
+
+#[test]
+fn a_stopping_server_answers_as_rule_9_2_9_says() {
+    let mut service = Service::plain(ServeOptions::default());
+    let session = ncp::random_session();
+    let contract = Contract::from_bytes(CONTRACT.to_vec()).unwrap();
+    let open = frame::encode(
+        &json!({"ncp": 2, "session": session, "seq": 0, "op": "open", "ack": null,
+                "body": {"application": "echo", "contract": contract.identity,
+                         "bound": ncp::HANDSHAKE_BOUND}}),
+        &[],
+    )
+    .unwrap();
+    let opened = service.raw(open).pop().unwrap();
+    let step = frame::encode(
+        &json!({"ncp": 2, "session": session, "seq": 1, "op": "echo",
+                "ack": frame::identity(&opened), "body": {"k": 1}}),
+        &[],
+    )
+    .unwrap();
+    let kept = service.raw(step.clone()).pop().unwrap();
+    assert_eq!(outcome(&kept), (json!("ok"), json!(null)));
+    let server = service.server.take().unwrap();
+    let stopper = std::thread::spawn(move || server.stop(Duration::from_millis(1500)));
+    std::thread::sleep(Duration::from_millis(300)); // the owners have stopped
+    assert_eq!(
+        service.raw(step.clone()),
+        vec![kept.clone()],
+        "the kept response"
+    );
+    let later = frame::encode(
+        &json!({"ncp": 2, "session": session, "seq": 2, "op": "echo",
+                "ack": frame::identity(&kept), "body": {"k": 2}}),
+        &[],
+    )
+    .unwrap();
+    let ended = service.raw(later).pop().unwrap();
+    assert_eq!(outcome(&ended), (json!("ended"), json!("shutdown")));
+    let mut fresh = service.client(service.channel());
+    match fresh.open() {
+        Err(Error::Rejected { code, .. }) => assert_eq!(code, "refused"),
+        other => panic!("unexpected: {other:?}"),
+    }
+    stopper.join().unwrap();
+    assert!(
+        service
+            .raw_within(step, Duration::from_millis(500))
+            .is_empty(),
+        "the service is undeclared"
+    );
+    assert_eq!(service.counts(), counts(&[(1, 1)]));
 }
 
 #[test]
@@ -413,8 +489,11 @@ fn a_forgotten_session_ends_with_session_expired() {
     client.call("echo", json!({"k": 1}), &[]).unwrap();
     std::thread::sleep(Duration::from_millis(600));
     match client.call("echo", json!({"k": 2}), &[]) {
-        Err(Error::Ended { code, executed }) => {
-            assert_eq!((code.as_str(), executed), ("session_expired", "unknown"))
+        Err(Error::Ended { code, executed, .. }) => {
+            assert_eq!(
+                (code.as_str(), executed),
+                ("session_expired", Executed::Unknown)
+            )
         }
         other => panic!("unexpected: {other:?}"),
     }
@@ -470,7 +549,13 @@ fn a_subscriber_accepts_every_message_in_order() {
     for t in 0..20 {
         let (delivery, value) = delivered.recv_timeout(Duration::from_secs(5)).unwrap();
         assert!(
-            matches!(delivery, Delivery::Accepted { lost: 0 }),
+            matches!(
+                delivery,
+                Delivery::Accepted {
+                    lost: 0,
+                    end: false
+                }
+            ),
             "{delivery:?}"
         );
         assert_eq!(value, json!(t));
@@ -683,7 +768,7 @@ fn admitted(service: &Service) -> bool {
             client.close().unwrap();
             true
         }
-        Err(Error::Ended { code, .. }) if code == "timeout" => {
+        Err(Error::Ended { code, .. }) if code == "local.timeout" => {
             assert!(service.counts().is_empty());
             false
         }
@@ -774,7 +859,7 @@ fn rust_client_with_the_python_owner() {
         lost: lost.clone(),
     };
     let contract = Contract::from_bytes(CONTRACT.to_vec()).unwrap();
-    let mut client = Client::new(channel, &contract.application, &contract.identity);
+    let mut client = Client::new(channel, &contract);
     client.open().unwrap();
     for k in 1..=3 {
         let values = Array::from_u32(&[1, 2, 3]);

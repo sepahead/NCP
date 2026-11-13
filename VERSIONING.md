@@ -22,6 +22,21 @@ NCP has four separate identities:
   40-hex `HEAD`, verifies the Rust seam, and injects TypeScript only in an archived
   staging tree; normal regeneration cannot create a certifying package.
 
+## NCP 2
+
+NCP 2 has one version for the protocol and its packages: 2.0.0. The magic of every frame and the
+member `ncp` of every message carry the protocol version 2.
+
+- Before the tag `v2.0.0`, the specification has revisions; revision 3 is current. The changelog
+  and section 12 of the [design record](docs/design/NCP-2-DESIGN.md) state what each revision
+  changed. The tag freezes the text; after it, section 19 of the specification lists errata,
+  which change no behavior.
+- A later version can add codes and members of the `open` response without a new protocol
+  version: a receiver acts on the outcome of a code that it does not know, and a client ignores
+  members that it does not know (specification, sections 7.5 and 7.1).
+- The packages follow Semantic Versioning: a breaking change of an SDK interface needs a new major
+  version, and each binding requires the core packages of its own major version.
+
 ## Compatibility rule
 
 Wire versions contain one or two canonical ASCII-decimal `u64` components and no

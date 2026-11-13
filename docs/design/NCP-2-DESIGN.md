@@ -1,6 +1,6 @@
 # NCP 2 design record
 
-Status: decided on 23 October 2026 by the owner (option B of the council review).
+Status: decided on 23 October 2026 by the owner (option B of the council review). Revision 3 of the specification, of 13 November 2026, adds the decisions of section 12.
 The normative rules are in the [specification](../../spec/NCP-2.md). This record explains why.
 
 ## 1. The problem
@@ -66,7 +66,7 @@ Each row names an assumption of NCP 1, the question, and the decision.
 | 11 | Recording is a separate application role. | Can recording be part of every session? | Yes. Any binding can write a transcript; a verifier checks the chain offline. Prisoma builds on this. |
 | 12 | The SDKs need many dependencies. | What is the minimum? | Python: standard library only. Rust: `serde`, `serde_json`, `sha2`, and `socket2` for socket buffer sizes (decision 16). Zenoh only in the optional binding. |
 | 13 | Two version lines (SDK and wire) are clear. | Do users understand them? | No. One version: NCP 2 for protocol and SDKs. |
-| 14 | The receiver must compute every digest again. | What does the second hash protect? | Only against damage between the endpoints. Identities, the acknowledgement chain, and transcripts need one hash for each frame, and the sender computes it. On a pipe pair or a Unix domain socket with no program in between, a receiver may skip the comparison (specification 3.4). The default stays on. Measured with Rust at both ends: 34.9 to 24.6 µs at 1788 spikes, 974 to 568 µs at 1 MiB. |
+| 14 | The receiver must compute every digest again. | What does the second hash protect? | Only against damage between the endpoints. Identities, the acknowledgement chain, and transcripts need one hash for each frame, and the sender computes it. On a pipe pair or a Unix domain socket with no program in between, a receiver may skip the comparison (specification, section 3, rule 5). The default stays on. Measured with Rust at both ends: 34.9 to 24.6 µs at 1788 spikes, 974 to 568 µs at 1 MiB. |
 | 15 | A receiver must know every code. | What happens when a later version adds a code or an `open` response member? | A strict 2.0 client would read the response as a bad frame. Receivers use the outcome of an unknown code, and clients ignore unknown `open` response members (specification 7.5 and 7.1). NCP 2 can grow without a new protocol version. |
 | 16 | The kernel's default socket buffers suit NCP. | Do they suit large frames? | No. macOS gives a Unix domain socket 8 KiB buffers. A 1 MiB echo between two Python threads took 1391 µs with them and 121 µs with 1 MiB buffers; over TCP loopback, 335 and 168 µs. Both SDKs set 1 MiB send and receive buffers on Unix domain sockets and TCP connections (specification 9.1, rule 8). The kernel uses the memory only while data waits. In Rust this needs `socket2`, because the standard library cannot set buffer sizes and the crate forbids `unsafe` code. |
 
@@ -86,7 +86,6 @@ Each row names an assumption of NCP 1, the question, and the decision.
 | No digest | Removes the identities, the acknowledgement chain, and transcripts: the reasons for NCP. |
 | A faster hash that is not SHA-256 (BLAKE3, xxHash) | Not in the Python standard library. SHA-256 has hardware support on ARMv8 and x86: 2968 MB/s with `sha2` 0.11 and 3464 MB/s with OpenSSL on the computer of section 3. |
 | Hashing each frame while it arrives, to overlap the hash with the transfer | Measured: no gain on pipes (974 to 940 µs at 1 MiB, Rust at both ends). The receiver's copy and hash run in series either way. Only streaming at both ends would overlap the two hashes; that couples the owner to the binding and gains nothing below 64 KiB. |
-| A hash chain over transcript records | The session chain already commits to every accepted exchange. A transcript that several sessions share records the arrival order, not the execution order, so it cannot replace a deterministic order (section 11). |
 | Consensus inside NCP | Existing implementations do it better (etcd, openraft), and it makes progress only under timing assumptions. NCP can carry their messages. |
 
 ## 6. Red-team review
@@ -97,10 +96,12 @@ Each row names an assumption of NCP 1, the question, and the decision.
 | Replay of an earlier request in the same session | `seq_stale`, or the kept response if it is the last one |
 | A different request with the same sequence number | `seq_conflict` |
 | Acknowledgement of a response that the client did not get | `ack_mismatch`; nothing executes |
-| Damaged frame | Digest mismatch: bad frame. A receiver that turned off the comparison on a local binding (specification 3.4) does not detect it while the session runs; the transcript verifier does. |
-| Peer that computes valid digests for false content | Not prevented by NCP. Bindings authenticate peers (operating system, TLS); applications add signed authority. |
+| Damaged frame | Digest mismatch: bad frame. A receiver that turned off the comparison on a local binding (specification, section 3, rule 5) does not detect it while the session runs; the transcript verifier does. |
+| Peer that computes valid digests for false content | Prevented when both sides share a key: every frame then carries an HMAC that only a holder of the key can make (specification 13.2). Without a key, the bindings authenticate peers (operating system, TLS, Zenoh access control), and applications add signed authority. |
+| Copy of a request of an earlier opening, after the owner restarted or forgot the session | `session_expired` while the owner holds no session. Once a delayed copy of `open` opened the session again, `ack_mismatch` or `seq_gap`: each opening has its own nonce, so the chains of two openings share no request. The client ends the session with the request possibly executed (rule 7.6.4). |
+| Owner that stops | `shutdown`: the request never runs; a copy of the kept request still gets the kept response |
 | Memory exhaustion by length fields | Lengths are checked against the bound before allocation |
-| Slow sender | An optional per-frame time limit (`frame_timeout` in Python; a read timeout on the stream in Rust); the servers apply none by default |
+| Slow sender | A time limit for each frame (`Limits.frame_timeout` in both SDKs, 30 s by default in the servers), and an optional limit for idle sessions |
 | Lost framing on a byte stream | Magic check; the connection closes |
 | Parser differences | Duplicate names, large integers, unpaired surrogates, and deep nesting are rejected in both languages |
 | Owner that sends a stale response | The client checks `request` and `seq` |
@@ -117,11 +118,11 @@ Every level runs in the gate, except the campaigns, which run before a release a
 | Level | What it checks | How |
 | --- | --- | --- |
 | Unit | Each function of each SDK | Standard test runners |
-| Conformance | Every MUST of the specification | Shared vectors in `conformance/`: frames, arrays, owner rules, client rules, streams, transcripts. Both SDKs must give identical results. |
+| Conformance | Every requirement of the specification | Shared vectors in `conformance/`: frames, messages, authenticated frames, owner rules, client rules, streams, transcripts, contracts, and schemas. Both SDKs must give identical results. [`conformance/requirements.json`](../../conformance/requirements.json) maps each requirement line of the specification to the vectors, tests, model checks, and Lean claims that test it, and a check keeps the map complete. |
 | Cross-language | Rust and Python together | Rust client with Python owner and the reverse, with attachments, over pipes, Unix domain sockets, and TCP |
-| Model | Safety in every reachable state | Exhaustive search with lost, repeated, delayed, and changed frames and crashes; a mutation self-test shows that each property catches a defect; the real owners answer like the model on random traces |
-| Proof | Owner safety for every sequence of requests, and progress without faults | Lean 4 model of rules 7.3.2 to 7.3.14 and proofs in `formal/`; only Lean's standard axioms; every proof replayed by the kernel. The compiled model is the oracle of the model conformance traces. The SDKs and the codec are tested, not proved. |
-| Fuzz | Decoders under arbitrary input | Differential: `conformance/fuzz.py` sends random, edited, and damaged frames with valid digests, and structured array references, to both decoders. Acceptance, messages, identities, and array bytes must be equal, and no decoder may crash. |
+| Model | The eight properties of section 7.7 in every reachable state | [`model/simulate.py`](../../model/simulate.py) drives the real Python client and owner through every reachable state of bounded runs with lost, repeated, and reordered frames, restarts and stops of the owner, faulty clients, and broken connections; a mutation self-test of eleven defects. [`model/conformance.py`](../../model/conformance.py): the Python and Rust owners answer like the compiled Lean model on random traces with copies, restarts, and stops |
+| Proof | Owner and client safety for every sequence of inputs, and progress without faults | Lean 4 models of the owner (rules 7.3.2 to 7.3.13) and of a client that follows section 7.6, with nineteen claims in `formal/`; only Lean's standard axioms; every proof replayed by the kernel; eleven model mutants each break the claim that they target. The SDKs and the codec are tested, not proved. |
+| Fuzz | Decoders and message checks under arbitrary input | Differential: `conformance/fuzz.py` sends random, edited, and damaged frames with valid digests, structured array references, and messages with changed members, to both implementations, with bounds around each frame's length. Acceptance, messages, identities, array bytes, and the request, response, and stream forms must be equal, and no implementation may crash. |
 | Modular composition | The ecosystem as a set of optional modules | [`python/tests/test_composition.py`](../../python/tests/test_composition.py), in the gate: a host with stand-in neural, body, monitor, and recorder modules, each its own process, in every subset of the optional monitor and recorder, without a fault and with a kill, a stall, or a raising handler in each module present (40 runs of 40 steps). A fault in the neural module or the body ends the run at its step, executed `unknown`; a fault in an optional module never stops the loop; every transcript verifies with the NCP verifier, except the unanswered request of a killed or stalled module; two runs with the same seed give the same message bodies, and optional modules change none of the loop's bodies. Prisoma verifies transcripts once it uses NCP 2 |
 | Faults | Behavior under real faults | Bit flips, truncation, repeated frames, killed processes, stalls, oversized frames, and raising handlers. Over pipes, with the Python client and both owners, [fault-campaign protocol 3](../../benchmarks/fault-campaign/README.md#results-of-protocol-3) (4,170 trials); over Unix domain sockets and TCP, with the Python and the Rust client and both owners, [protocol 5](../../benchmarks/fault-campaign/README.md#results-of-protocol-5) (4,560 trials). No wrong result, no step run twice or out of order, and no false report of a step |
 | Soak | Resources over long runs | Memory and open descriptors over 10^6 calls. Protocol 3: nine soaks of 200,000 to 1,000,000 calls, memory growth at most 0.69 %, constant descriptors |
@@ -154,7 +155,7 @@ Comparisons, with the same workloads, shown as figures in this repository:
 - Correct-content throughput: the wall time of a run whose delivered spikes are exact. MUSIC is exact only with one NEST thread in this build; NCP 1.0.1 and NCP 2 are exact with any thread count (content protocols 1 and 2).
 - Multi-agent scaling: 1 to 256 sessions, Rust and Python hosts ([multi-agent benchmark](../../benchmarks/multi-agent/README.md), parts F and R).
 - MPI: the rank-0 owner pattern with 1 to 8 MPI ranks on one computer (multi-agent benchmark, part M).
-- A feature matrix of NCP 2, MUSIC, NRP-core, FMI 3 co-simulation, gRPC, ROS 2, and Zenoh.
+- A feature matrix of NCP 2, MUSIC, NRP-core, FMI 3 co-simulation, gRPC, ROS 2, and Zenoh: [NCP 2 compared with other tools](NCP-2-COMPARISON.md).
 
 Every figure states the computer, the software versions, the load, and what it does not show.
 
@@ -197,8 +198,8 @@ This section states the limits, what NCP gives, the patterns that work with NCP 
 
 - **Retry-safe messages.** Each call executes at most once, and its outcome says whether it executed: yes, no, or unknown. After a failure, at most one call in each session is unknown.
 - **Verifiable references.** Identities are SHA-256 digests of exact bytes. A message can name other messages by identity, and no message can name a message that was made after it.
-- **Evidence.** Each session is one hash chain. The identity of the last response commits to every accepted exchange of the session (specification, property 7.7.6).
-- **A vote step.** An owner checks a request (`validate`) before it executes it (`execute`), and a rejection changes no state.
+- **Evidence.** Each session is one hash chain. The identity of the last response commits to every admitted exchange of the session (specification, section 7.7, property 8).
+- **A vote step.** An owner checks a request (`validate`) before it executes it (`execute`). A declined request changes no state, its answer is kept, and it never executes.
 
 ### 11.3 Patterns with NCP 2 as specified
 
@@ -217,9 +218,30 @@ This section states the limits, what NCP gives, the patterns that work with NCP 
 | Profile | What it adds | Status and condition |
 | --- | --- | --- |
 | Rounds | An owner applies round k only when every agent sent it or a deadline passed, in a fixed order, and returns to each agent the identities of the requests that it applied. Multi-agent steps become deterministic and verifiable. | Specified in [`spec/NCP-2-ROUNDS.md`](../../spec/NCP-2-ROUNDS.md) and implemented in the Python SDK (`ncp.Rounds`, `ncp.RoundRecord`). In the multi-agent benchmark, a round took 2.6 ms with 64 agents and 16.6 ms with 256, 1.4 to 2.3 times the cost of applying requests on arrival, and the final state was the same in every run. A member without a request at the deadline is excluded from later rounds, so an agent that stops delays the others once. The record carries the request identities as one `u8` array, 32 bytes for each agent, because every agent receives the whole record and a JSON list of hexadecimal identities would need 67 bytes for each agent and the work of encoding them. Rust follows with its first consumer. |
-| Zenoh binding | Routing, discovery, and lossy links for fleets (specification 9.2). | Implemented as optional packages for Python and Rust in [`bindings/zenoh`](../../bindings/zenoh/README.md), with TCP and TLS links only, mutual TLS, access control, and session expiry (rule 9.2.7); not yet measured in a benchmark protocol. |
+| Zenoh binding | Routing, discovery, and lossy links for fleets (specification 9.2). | Implemented as optional packages for Python and Rust in [`bindings/zenoh`](../../bindings/zenoh/README.md), with TCP and TLS links only, mutual TLS, access control on both sides, one thread for each session, session expiry (rule 9.2.7), and the stop of rule 9.2.9; not yet measured in a benchmark protocol. |
+| Lockstep | Each step names the tick that it advances to and the state that it answers; after a lost session, the `open` response of a new session tells the client whether its last step ran. | Specified in [`spec/NCP-2-LOCKSTEP.md`](../../spec/NCP-2-LOCKSTEP.md) and implemented in both SDKs (`Lockstep`, `LockstepClient`). It turns "possibly executed" into "ran" or "did not run" for an owner that keeps its state, without durable session state. |
 | Two-phase actions | Operations `ncp.prepare`, `ncp.commit`, `ncp.abort`, and `ncp.status`, with a deadline and an optional start time. | Deferred until a consumer needs it. Needs a model check with crashes and losses first. |
 | Causal references | A body member `ncp.refs` lists the identities that a message depends on; a verifier builds the happens-before graph across transcripts. | Deferred until a tool such as Prisoma needs the graph. Applications can put identities in their bodies today. |
-| Session resume | A client continues a session after an owner restart; "unknown" becomes "executed" or "not executed". | Deferred. It needs durable session state before each response (one fsync per call) and an application that restores its own state, which NEST cannot do. |
+| Session resume | A client continues a session after an owner restart; "unknown" becomes "executed" or "not executed". | Deferred. It needs durable session state before each response (one fsync per call) and an application that restores its own state, which NEST cannot do. For owners that keep their state, the lockstep profile gives the verdict without it. |
 
 Specification section 15 reserves the `ncp.` names for these profiles.
+
+## 12. Revision 3
+
+A review in November 2026 questioned the rules of revisions 1 and 2 from first principles, and an exhaustive check of the SDKs found one more gap. Revision 3 of the specification makes these decisions. Each one changes behavior that a client or an owner can observe, so the consumers of NCP 2 move together with it ([migration plan](NCP-2-MIGRATION.md)).
+
+| # | Finding | Decision | Check |
+| --- | --- | --- | --- |
+| 17 | A request that the application found invalid got `rejected`, and the owner kept nothing. A delayed copy of it could execute later, if the application then found it valid, although the client had been told that nothing ran. | A new outcome, `declined`: the owner admits the request, keeps the response, and never executes it (rule 7.3.12). `rejected` now means "not admitted", and a client that follows the rules sees it only for `open`. | Lean `DeclinedIsFinal`; model check, property 5; scenario vectors |
+| 18 | An owner that restarted, or forgot a session, could open it again from a delayed copy of the `open` request and send byte-identical responses. A copy of a later step of the old opening could then execute again. | Each opening draws a nonce of at least 128 random bits and sends it in its `open` response (section 7.1), so the chains of two openings share no request after `open`. | Lean `OpeningsDisjoint`, with the nonces of assumption A4 as its hypothesis; model check with restarts, property 1; the mutants `constant_nonce` of the Lean model, the oracle traces, and the model check |
+| 19 | After such a reopening, a call of the old opening gets `ack_mismatch` or `seq_gap`, although an earlier copy of it may have executed before the loss. Revision 2 told the client that nothing ran. The exhaustive model check of the SDKs found this case in its first run. | Rule 7.6.4: a rejection of a request other than `open` ends the session, and the request is possibly executed. | Lean `RejectedOnlyForOpen`; model check, properties 6 and 7, and the mutant `client_trusts_rejected_call`; client vectors |
+| 20 | Without a session, a request with `seq` greater than 0 got `not_open` on byte streams but `session_expired` on Zenoh. | `session_expired`, possibly executed, on every binding (rule 7.3.3). | Scenario vectors; oracle traces |
+| 21 | An owner could not stop without leaving its clients unsure. | `shutdown`: a stopping owner answers `ended` with `shutdown` and never admits the request; a copy of the kept request still gets the kept response. Byte streams send a shutdown response that names no request (rules 9.1.9 and 9.2.9). | Lean `NothingAfterStop` and `ShutdownIsFinal`; Zenoh tests of both bindings |
+| 22 | Frames were checked but not authenticated. | Optional HMAC-SHA-256 with a key of at least 32 bytes in place of the digest (section 13.2). | Authenticated-frame vectors; session tests |
+| 23 | A transcript could lose a rejected frame, a time, or a direction without a trace, because the session chain commits only to admitted exchanges. | Transcript version 2: a header, a chain value for each record, and an end record; with a key, a keyed chain (section 10). | Transcript vectors |
+| 24 | A contract named its operations but did not describe their bodies. | Schemas in a closed subset of JSON Schema (section 11.1); the owner declines a body that does not match before it calls the application. | Contract and schema vectors |
+| 25 | Profiles had no way to agree on optional behavior. | `features` in `open`; the owner returns the features that it enabled. The lockstep profile uses it. | Session tests |
+| 26 | Each SDK mixed the rules with input and output. | Pure state machines: the owner's `step` and the client's `request`, `receive`, `time_out`, and `closed`. The blocking drivers, the Zenoh servers, the model check, and the vectors drive the same functions. | Model check; vectors |
+| 27 | The Zenoh servers handled the queries of all sessions on one thread, so the rounds profile could not use them. | One thread for each session (rule 9.2.8), and a stop as rule 9.2.9 says. | Zenoh tests of both bindings |
+
+The decisions keep the frame format of revisions 1 and 2. They change the messages: the `open` response carries a nonce, and responses can have the outcome `declined`.
