@@ -1079,7 +1079,7 @@
       "license_file_declared": false
     },
     {
-      "bom_ref": "pkg:cargo/quinn-udp@0.5.14",
+      "bom_ref": "pkg:cargo/quinn-udp@0.5.16",
       "license_expression_normalized": "MIT OR Apache-2.0",
       "license_expression_raw": "MIT OR Apache-2.0",
       "license_file_declared": false

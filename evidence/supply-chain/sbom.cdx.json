@@ -4203,11 +4203,11 @@
       "version": "0.11.19"
     },
     {
-      "bom-ref": "pkg:cargo/quinn-udp@0.5.14",
+      "bom-ref": "pkg:cargo/quinn-udp@0.5.16",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "addec6a0dcad8a8d96a771f815f0eaf55f9d1805756410b39f5fa81332574cbd"
+          "content": "af66907df18639dcf4db56ca65490cabc4b27a97dbadd96f2926cca73298f016"
         }
       ],
       "licenses": [
@@ -4222,9 +4222,9 @@
           "value": "registry+https://github.com/rust-lang/crates.io-index"
         }
       ],
-      "purl": "pkg:cargo/quinn-udp@0.5.14",
+      "purl": "pkg:cargo/quinn-udp@0.5.16",
       "type": "library",
-      "version": "0.5.14"
+      "version": "0.5.16"
     },
     {
       "bom-ref": "pkg:cargo/quinn@0.11.9",
@@ -10139,7 +10139,7 @@
         "pkg:cargo/tracing@0.1.44",
         "pkg:cargo/windows-sys@0.52.0"
       ],
-      "ref": "pkg:cargo/quinn-udp@0.5.14"
+      "ref": "pkg:cargo/quinn-udp@0.5.16"
     },
     {
       "dependsOn": [
@@ -10147,7 +10147,7 @@
         "pkg:cargo/cfg_aliases@0.2.1",
         "pkg:cargo/pin-project-lite@0.2.17",
         "pkg:cargo/quinn-proto@0.11.19",
-        "pkg:cargo/quinn-udp@0.5.14",
+        "pkg:cargo/quinn-udp@0.5.16",
         "pkg:cargo/rustc-hash@2.1.2",
         "pkg:cargo/rustls@0.23.46",
         "pkg:cargo/socket2@0.6.4",
@@ -11815,7 +11815,7 @@
       "version": "1.0.0-rc.1"
     }
   },
-  "serialNumber": "urn:uuid:cb368578-1a40-5eb1-b170-a2801899aaa9",
+  "serialNumber": "urn:uuid:8a930a26-4646-50c6-9b4a-f55c521bd9a4",
   "specVersion": "1.6",
   "version": 1
 }
