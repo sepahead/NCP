@@ -2,7 +2,7 @@
 
 This guide explains NCP 2 for readers without a background in protocols.
 The [specification](../spec/NCP-2.md) is the exact definition; where this guide and the specification differ, the specification is correct.
-NCP 2.0 is a release candidate: revision 4 of the specification. The tag and the publication of the packages follow.
+NCP 2.0 is a release candidate: revision 5 of the specification. The tag and the publication of the packages follow.
 
 ## What NCP is for
 
@@ -70,7 +70,7 @@ A client that follows the rules gets `rejected` for a request other than `open` 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-outcomes-dark.svg">
-  <img src="diagrams/ncp2-outcomes-light.svg" alt="Three cards for the outcomes ok, rejected, and ended, and six cards for a damaged, lost, repeated, or late message, an owner failure, and a broken connection, each with what the client learns. A note says that at most one call of a session is possibly executed, and it is the last one.">
+  <img src="diagrams/ncp2-outcomes-light.svg" alt="Four cards for the outcomes ok, declined, rejected, and ended, and eight cards for the events that can happen to a call, such as a damaged, lost, repeated, or late message, an owner failure, and a broken connection, each with what the client learns. A note says that at most one call of a session is possibly executed, and it is the last one.">
 </picture>
 
 These rules are proved for the owner (see [How we know that it works](#how-we-know-that-it-works)).
@@ -113,13 +113,13 @@ Because each request names the response before it, a verifier can check the whol
 
 ## How fast it is
 
-These times were measured with revision 2 of the SDKs. Revision 3 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again.
-One call with a small result took 9.1 µs between two Rust programs and 38.6 µs between two Python programs, on one laptop.
-NCP 1.0.1 took 37.9 µs and 457.8 µs. Over all pairs of languages and sizes, NCP 2 was 4.2 to 165 times faster.
+These times were measured with revision 2 of the SDKs. Revisions 3 to 5 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again.
+One call with a small result took 9.0 µs between two Rust programs and 38.8 µs between two Python programs, on one laptop ([comparison protocol 2](../benchmarks/comparison/README.md#results-of-protocol-2)).
+NCP 1.0.1 took 36.1 µs and 469 µs. Over all pairs of languages and sizes, NCP 2 was 4.0 to 167 times faster.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/comparison/results/figures/versions_dark.svg">
-  <img src="../benchmarks/comparison/results/figures/versions_light.svg" alt="NCP 1.0.1 and NCP 2 call times for each language pair and number of spikes, joined by lines: NCP 2 is 4.2 to 165 times faster.">
+  <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/comparison/results-2/figures/versions_dark.svg">
+  <img src="../benchmarks/comparison/results-2/figures/versions_light.svg" alt="NCP 1.0.1 and NCP 2 call times for each language pair and number of spikes, joined by lines: NCP 2 is 4.0 to 167 times faster.">
 </picture>
 
 Coupled to the NEST simulator, an exchange after each 1 ms step added 23 to 32 µs with a Rust client and 50 to 61 µs with a Python client.
@@ -166,7 +166,7 @@ A second run gave every other tool the same fingerprint check as NCP 2, added by
 - **Model check.** A program drives the real client and owner of the Python SDK through every reachable state of small sessions, about 2.6 million states, in which messages are lost, repeated, delayed, or reordered, the owner restarts or stops, and a faulty client sends wrong requests. It checks all eight properties of the specification in every state ([`model/`](../model/README.md)). Its first run found the gap that the client rule for a rejected request now closes.
 - **The real owners against the proved model.** The Python and Rust owners give the same answer as the compiled Lean model on 20,000 random traces with copies, restarts, and stops ([`model/`](../model/README.md)).
 - **Shared tests.** The Rust and Python versions pass the same test vectors, every requirement of the specification is mapped to the checks that test it, and a test compares their answers on 200,000 random and damaged messages ([`conformance/`](../conformance/README.md)).
-- **Real faults.** In 8,730 trials with real programs, over pipes, Unix domain sockets, and TCP, with Rust and Python on both sides, a relay damaged, cut, or repeated messages, programs were killed, steps stalled, and messages were too large. No client accepted a wrong result, no owner ran a step twice, and no client was told something false about a step. Nine runs of up to 1,000,000 calls kept their memory and open files constant ([fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocol-5)). These trials ran with revision 2 of the SDKs, before the `declined` outcome and the nonce; they have not run again with revision 3.
+- **Real faults.** In 8,730 trials with real programs, over pipes, Unix domain sockets, and TCP, with Rust and Python on both sides, a relay damaged, cut, or repeated messages, programs were killed, steps stalled, and messages were too large. No client accepted a wrong result, no owner ran a step twice, and no client was told something false about a step. Nine runs of up to 1,000,000 calls kept their memory and open files constant ([fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocol-5)). These trials ran with revision 2 of the SDKs, before the `declined` outcome and the nonce; they have not run again with revisions 3 to 5.
 - **Exact data.** Coupled to NEST, both versions received exactly the spikes that NEST recorded, each neuron and time, in all 96 trials of a content test, with up to 8 threads and 10,000 neurons: 42,026,126 spikes compared ([NEST campaign](../benchmarks/nest-campaign/README.md#results-of-content-protocol-2)).
 
 ## What NCP 2 does not do

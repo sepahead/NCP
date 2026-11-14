@@ -1,6 +1,6 @@
 {
  "spec": "spec/NCP-2.md",
- "revision": 3,
+ "revision": 5,
  "contract": "{\"ncp_contract\":1,\"application\":\"conformance\",\"version\":\"2\",\"operations\":{\"step\":{},\"fail\":{},\"big\":{},\"flaky\":{},\"typed\":{\"ncp.schema\":{\"request\":{\"type\":\"object\",\"required\":[\"n\"],\"properties\":{\"n\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9},\"v\":{\"ncp.array\":{\"dtype\":\"f64\",\"shape\":[null]}}},\"additionalProperties\":false}}}},\"streams\":{\"sensor\":{}}}",
  "contract_identity": "bce9be2b19db76efb4e796d5ee0f8bbdfce3a1486d522bf2649b7903db2dd7d0",
  "session": "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b",
@@ -15324,6 +15324,61 @@
     }
    },
    "frame": "4e4350020000001c000000007b2276616c7565223a7b2261223a312c2262223a2232227d7d2020204e16532efddc230830378c4b57ebf8f9cf518b31004a1b4d61b4dce1736554c3",
+   "valid": false
+  },
+  {
+   "schema": {
+    "properties": {
+     "dx": {
+      "type": "integer"
+     }
+    },
+    "additionalProperties": false
+   },
+   "frame": "4e4350020000003c000000007b2276616c7565223a7b226478223a312c226e63702e7469636b223a7b227469636b223a312c227374617465223a6e756c6c7d7d7d20202020202020aefae214a20db649f0b2b259247c45112cf7411b874c0d0b394092e4ef2807ff",
+   "valid": true
+  },
+  {
+   "schema": {
+    "additionalProperties": {
+     "type": "integer"
+    }
+   },
+   "frame": "4e4350020000003c000000007b2276616c7565223a7b2261223a312c226e63702e726f756e64223a7b226167656e74223a2261222c22726f756e64223a307d7d7d20202020202020fb761877d64da39fd9ea17a05badc431160e3e0ea1fb50e895081670e75ebc9d",
+   "valid": true
+  },
+  {
+   "schema": {
+    "properties": {
+     "ncp.tick": {
+      "type": "integer"
+     }
+    },
+    "additionalProperties": false
+   },
+   "frame": "4e4350020000001c000000007b2276616c7565223a7b226e63702e7469636b223a2278227d7d2020968899447e428f1778757dc1707bba86c102dac47916efa059f924671077afe8",
+   "valid": false
+  },
+  {
+   "schema": {
+    "required": [
+     "ncp.tick"
+    ],
+    "additionalProperties": false
+   },
+   "frame": "4e43500200000014000000007b2276616c7565223a7b226478223a317d7d2020bb36dd5ac500083ef43165355a3a25252a41d534442209aae391ac943af2537d",
+   "valid": false
+  },
+  {
+   "schema": {
+    "properties": {
+     "dx": {
+      "type": "integer"
+     }
+    },
+    "additionalProperties": false
+   },
+   "frame": "4e4350020000001c000000007b2276616c7565223a7b226478223a312c226e637078223a317d7d20fd00cdfe76467f6a2a209ed10c1c6627a2899d68565feb6836f8a0e5e826e17c",
    "valid": false
   },
   {

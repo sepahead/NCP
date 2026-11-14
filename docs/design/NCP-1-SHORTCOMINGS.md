@@ -8,8 +8,8 @@ The sources of the shortcomings are NCP 1's [known limitations](../../KNOWN_LIMI
 
 NCP 1 grew into three overlapping protocols with about 59,000 lines of code.
 A call needed two round trips, a result above 64 KiB ended the run, and the remote family brought most of the dependencies and every security advisory of October 2026.
-NCP 2 replaces the three with one protocol: a specification of 362 lines and 3,876 lines of code in Rust and Python.
-A call is 4 to 165 times faster than with NCP 1.0.1, and coupled to NEST, an exchange adds 23 to 32 µs instead of 228 to 248 µs. When gRPC, ZeroMQ, HTTP/1.1, and Zenoh make the same integrity check, NCP 2 is faster than each of them at every message size. A frame can carry up to 64 MiB, and the owner's rules are proved in Lean.
+NCP 2 replaces the three with one protocol: on 14 November 2026, a specification of 551 lines, two profiles of 182 lines, and 10,826 lines of code in Rust and Python.
+A call is 4 to 167 times faster than with NCP 1.0.1, and coupled to NEST, an exchange adds 23 to 32 µs instead of 228 to 248 µs. When gRPC, ZeroMQ, HTTP/1.1, and Zenoh make the same integrity check, NCP 2 is faster than each of them at every message size. A frame can carry up to 64 MiB, and the owner's rules are proved in Lean.
 
 Some work is still open. Section 8 lists it.
 
@@ -30,7 +30,7 @@ Line counts are of the source files at commit `6424fb8`, without tests, generate
 | --- | --- | --- | --- | --- |
 | 1 | Three overlapping protocol families: the lockstep local profile, the modular local profile, and the wire-1.0 candidate | One protocol with two patterns, exchange and stream, and two bindings, byte stream and Zenoh | Fixed | Specification, sections 1 and 6 to 9 |
 | 2 | The lockstep and modular families each implemented admission, kept results, and acknowledgements | One exchange core | Fixed | Specification, section 7 |
-| 3 | About 59,000 lines of code in Rust, C++, TypeScript, and Python | 2,302 lines of Rust, 1,574 lines of Python, and a specification of 362 lines | Fixed | Line counts at `6424fb8` |
+| 3 | About 59,000 lines of code in Rust, C++, TypeScript, and Python | 6,012 lines of Rust, 4,814 lines of Python, a specification of 551 lines, and two profiles of 182 lines | Fixed | Line counts on 14 November 2026, revision 5: `rust/src/*.rs`, `python/ncp/*.py`, `spec/NCP-2*.md` |
 | 4 | The 41 kB descriptor mixed the protocol with one reference experiment's data types | Applications describe their operations and streams in their own contract documents, identified by their digest | Fixed | Specification, section 11 |
 | 5 | Two version lines, for the SDK and for the wire | One version, NCP 2, for the protocol and both SDKs | Fixed | Design record, decision 13 |
 | 6 | The names "local", "modular", and "wire 1.0" did not explain themselves | Exchange, stream, byte-stream binding, Zenoh binding | Fixed | Specification, section 2 |

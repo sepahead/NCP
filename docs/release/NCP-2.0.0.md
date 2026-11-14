@@ -1,10 +1,10 @@
 # NCP 2.0.0 release record
 
-Status: prepared on 11 November 2026, and rebuilt on 13 November 2026 for revision 4 of the specification. The tag and the publication of the packages are owner actions; this record lists what they publish.
+Status: prepared on 11 November 2026, and rebuilt on 14 November 2026 for revision 5 of the specification. The tag and the publication of the packages are owner actions; this record lists what they publish.
 
 ## What 2.0.0 is
 
-- The [NCP 2 specification](../../spec/NCP-2.md), release candidate, revision 4, with the [rounds profile](../../spec/NCP-2-ROUNDS.md) and revision 2 of the [lockstep profile](../../spec/NCP-2-LOCKSTEP.md).
+- The [NCP 2 specification](../../spec/NCP-2.md), release candidate, revision 5, with the [rounds profile](../../spec/NCP-2-ROUNDS.md) and revision 3 of the [lockstep profile](../../spec/NCP-2-LOCKSTEP.md).
 - `sepahead-ncp` 2.0.0, the Python SDK (module `ncp`), standard library only: [`python/`](../../python/README.md).
 - `sepahead-ncp-core` 2.0.0, the Rust SDK (library `ncp`): [`rust/`](../../rust/README.md).
 - `sepahead-ncp-zenoh` 2.0.0, the optional Zenoh binding for Python and for Rust: [`bindings/zenoh/`](../../bindings/zenoh/README.md).
@@ -17,9 +17,9 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 67,425 | `a5b5b51043503261564ee7ec151d59494a37ef9c5eb089f8ce29f91faa37f158` |
-| `sepahead_ncp-2.0.0-py3-none-any.whl` | 105,098 | `16e17887c6b42b72915e97c7f6bce7fbc5f56209f5d823a74a4b921b239aae9d` |
-| `sepahead_ncp-2.0.0.tar.gz` | 100,696 | `18303e60fc8dea8e5d9e6dac02cf310b8c5f25db676e1056830b5fdea81425d1` |
+| `sepahead-ncp-core-2.0.0.crate` | 67,702 | `03fa1be285631f7042544e1bf59561c933916afb9720855f30beaca118488312` |
+| `sepahead_ncp-2.0.0-py3-none-any.whl` | 105,788 | `ab74c5177a01096f2440888d87310d527b7458ae9e451bf666b36bd369de9911` |
+| `sepahead_ncp-2.0.0.tar.gz` | 101,385 | `d91e171c6129dd28a9970f92700c4d95f2a1b5fe5e958bd17611978333c81796` |
 | `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 13,613 | `f0d120d6fa8d94afa047ac5dc81b40e58cf6c2e91197803c83db5533419504c8` |
 | `sepahead_ncp_zenoh-2.0.0.tar.gz` | 12,506 | `2fd58008722a2121b49338ceef384630d626f860e4dc0229109d687d520481ae` |
 
@@ -51,9 +51,29 @@ The packages require ranges, such as `serde` 1.0.229 or a later 1.x release, not
 
 The commit that holds this record passed, on this computer: the NCP 2 gate (`scripts/check_ncp2.sh`: the rules data and the requirements map, both SDKs, the shared vectors against both SDKs and the Rust programs, the exhaustive model check of the SDK client and owner with its mutation test, the owners against the compiled Lean model, the Lean proofs with their axiom audit and mutation test, the modular-composition test, and differential fuzzing of 200,000 frames); the Zenoh gate (`scripts/check_ncp2_zenoh.sh`); and the release build above, with its checks of versions, license texts, and README links. The workflows `NCP 2` and `NCP 2 Zenoh binding` run the two gates on Linux and macOS.
 
+## Gates for the tag
+
+Each gate is PASS, with its evidence, NOT RUN, or OPEN, which is a decision of the owner. Local evidence is not independent evidence.
+
+| Gate | State |
+| --- | --- |
+| Both NCP 2 gates on this computer (macOS) | PASS at the commit that holds this record (section "Checks") |
+| Both NCP 2 gates on Linux and macOS in hosted CI | The workflows `NCP 2` and `NCP 2 Zenoh binding` run them on each push; the run of the tagged commit is the evidence |
+| Reproducible release build | PASS at the commit that holds this record: two identical builds (section "Artifacts") |
+| Benchmarks and fault campaign on the revision that the tag names | NOT RUN: they ran with revision 2 of the SDKs |
+| Fault campaign on the Zenoh binding, with owner restarts, session expiry, delayed and repeated `open`, and replayed frames | NOT RUN |
+| Benchmark of the Zenoh binding | NOT RUN |
+| A consumer of the exchange over the byte-stream binding | PASS: CREBAIN's closed loop and NEST controller on revision 4 (CREBAIN `a1df34c`) |
+| A consumer of streams, of the Zenoh binding, of contract schemas, of authenticated frames, and of each profile | NOT RUN: none uses them yet |
+| Model check of the profiles | NOT RUN |
+| An implementation by another author | NOT RUN |
+| External review | NOT RUN |
+| Signatures, SBOM, and provenance of the published files | NOT RUN |
+| Which parts the tag freezes | OPEN. The advisory review of revision 4 recommends a tag for the exercised core, with sections 8, 9.2, and 11.1 and both profiles marked provisional ([migration plan](../design/NCP-2-MIGRATION.md#open-work-after-revision-5)) |
+
 ## Owner steps
 
-1. Create the tag `v2.0.0` on the commit that holds this record. The wire versions of NCP 1 used `v0.x`, `v1.0.0` stays reserved for the unreleased wire-1.0 candidate, and the local SDK used `sdk-v1.0.x`.
+1. Decide which gates above must pass before the tag, and which parts the tag freezes. Then create the tag `v2.0.0` on the commit that holds this record. The wire versions of NCP 1 used `v0.x`, `v1.0.0` stays reserved for the unreleased wire-1.0 candidate, and the local SDK used `sdk-v1.0.x`.
 2. In a clean checkout of the tag, run `python3 scripts/build_ncp2_release.py OUT --python PYTHON`, with a PYTHON that has `build` 1.6.1, and compare `OUT/SHA256SUMS` with [`evidence/release/ncp-2.0.0/SHA256SUMS`](../../evidence/release/ncp-2.0.0/SHA256SUMS). With the tools above, the files are the same. Publish the Python files to PyPI, `sepahead-ncp` before `sepahead-ncp-zenoh`.
 3. Publish the crates to crates.io: `cargo publish` in `rust/`, then in `bindings/zenoh/rust/`.
 

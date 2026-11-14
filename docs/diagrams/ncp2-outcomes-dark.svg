@@ -123,6 +123,6 @@
 <text x="1224" y="1100" class="r" font-size="25" fill="#ECE5D5">possibly ran.</text>
 <text x="84" y="1260" class="s" font-size="24" fill="#AAB7BE" font-weight="600">POSSIBLY EXECUTED</text>
 <text x="84" y="1298" class="r" font-size="25" fill="#ECE5D5">In a session, at most one call can be possibly executed, and it is always the last one. Lean proofs cover these rules for a model of</text>
-<text x="84" y="1331" class="r" font-size="25" fill="#ECE5D5">the owner and the client, and an exhaustive check of the real SDKs with up to two faults, in 2.6 million states, found no false</text>
-<text x="84" y="1364" class="r" font-size="25" fill="#ECE5D5">report.</text>
+<text x="84" y="1331" class="r" font-size="25" fill="#ECE5D5">the owner and the client, and an exhaustive check of the real Python client and owner with up to two faults, in 2.6 million states,</text>
+<text x="84" y="1364" class="r" font-size="25" fill="#ECE5D5">found no false report.</text>
 </svg>

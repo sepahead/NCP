@@ -41,7 +41,9 @@ pub struct Clock {
     pub state: Option<String>,
     /// The identity of the request whose step produced the last tick, if any.
     pub request: Option<String>,
-    /// The session that holds the ticks: the last session that enabled the feature.
+    /// The nonce of the opening that holds the ticks: the last opening that enabled the
+    /// feature (profile, rule 3.3). A session identifier does not name one opening: a copy of an
+    /// old `open` opens the session again with another nonce (specification, rule 7.1.8).
     pub holder: Option<String>,
     /// The identity of the step between its validation and its execution, if any.
     running: Option<String>,
@@ -90,13 +92,13 @@ impl<S: Stepper> Handler for Lockstep<S> {
         let mut guard = mutex.lock().map_err(|_| Refused("lock".into()))?;
         let mut granted = guard.0.open(info)?;
         if info.features.contains_key(FEATURE) {
-            // The session takes over the ticks (profile, rule 5.2): wait until no checked step
-            // is about to run, so that the tick read here is final for every earlier session,
-            // whose later steps validate then declines.
+            // The opening takes over the ticks (profile, rule 3.3): wait until no checked step
+            // is about to run, so that the tick read here is final for every earlier opening,
+            // also of the same session identifier, whose later steps validate then declines.
             while guard.1.running.is_some() {
                 guard = idle.wait(guard).map_err(|_| Refused("lock".into()))?;
             }
-            guard.1.holder = Some(info.session.to_owned());
+            guard.1.holder = Some(info.nonce.to_owned());
             granted.insert(
                 FEATURE.to_owned(),
                 json!({"tick": guard.1.tick, "state": guard.1.state, "request": guard.1.request}),
@@ -123,9 +125,9 @@ impl<S: Stepper> Handler for Lockstep<S> {
                 "a lockstep step needs the member \"ncp.tick\": {\"tick\": T, \"state\": S}",
             ));
         }
-        if guard.1.holder.as_deref() != Some(request.session) {
+        if guard.1.holder.as_deref() != Some(request.nonce) {
             return Err(declined(
-                "the session does not hold the ticks: it did not ask for ncp.lockstep, or a later session took them over",
+                "the opening does not hold the ticks: it did not ask for ncp.lockstep, or a later opening took them over",
             ));
         }
         if !member["tick"].is_u64() || member["tick"].as_u64() != Some(guard.1.tick + 1) {
@@ -305,8 +307,8 @@ impl<C: Channel> LockstepClient<C> {
         if !client.opened() {
             client.open()?;
         }
-        // The new session took over the ticks (profile, rule 5.2), so the step of the old
-        // session that is possibly executed has run, with this identity, or never will.
+        // The opening of the new session took over the ticks (profile, rule 3.3), so the step of
+        // the old session that is possibly executed has run, with this identity, or never will.
         let (tick, state, last) = granted(&client)?;
         let verdict = if tick == uncertain && request.is_some() && last == request {
             Executed::Yes

@@ -1,6 +1,7 @@
 {
   "spec": "spec/NCP-2.md",
-  "note": "The codes, outcomes, and limits of NCP 2 as data. For each code, executed is what the owner knows about the frame (section 7.5), and client is the verdict of a client that follows section 7.6 about its request: for a rejected code, the verdict for a request other than open (a rejected open opens no session); for bad_frame and shutdown in a response that names no request, the verdict when the body binds the response to the client's chain (rule 7.6.2). scripts/check_ncp2_rules.py compares this file with the specification text, both SDKs, and the Lean model. Change this file and those sources together.",
+  "revision": 5,
+  "note": "The codes, outcomes, and limits of NCP 2 as data. For each code, executed is what the owner knows about the frame (section 7.5), and client is the verdict of a client that follows section 7.6 about its request: for a rejected code, the verdict for a request other than open (a rejected open opens no session); for bad_frame and shutdown in a response that names no request, the verdict when the body binds the response to the client's chain (rule 7.6.2). scripts/check_ncp2_rules.py compares this file with the specification text, both SDKs, and the Lean model, and its revision with the status line of the specification and with the conformance vectors. Change this file and those sources together.",
   "outcomes": {
     "ok": {"admitted": true, "next_seq": "advance", "ends_session": false},
     "declined": {"admitted": true, "next_seq": "advance", "ends_session": false},

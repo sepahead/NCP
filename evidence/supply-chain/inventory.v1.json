@@ -397,7 +397,7 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/README.md",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "0b9c2956a8dd50ff60e1db9d4ffc4be5fd7338fe0ac20b30ddc7b918545818ee",
+      "sha256": "e9787192207662a6738a64c893035db107cd3be747a06c530ec04540329b3fe1",
       "size_bytes": 6497
     },
     {
@@ -1645,8 +1645,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/generate.py",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "936f76cdf2277f4b2724061ad0cd006aa436c99bc971dcc67c7ce04c4fb39172",
-      "size_bytes": 60204
+      "sha256": "d18face0b1dbd40b705700c5af93b876dd07559217f84e99a55271377e5193dd",
+      "size_bytes": 60972
     },
     {
       "classification": "conformance-fixture",
@@ -1693,8 +1693,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/requirements.json",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "d16a25b3e81d15c428273a1128a1f189eab2d009c786ca5784cbff2c35ba21aa",
-      "size_bytes": 35516
+      "sha256": "1f7485629445ff93f1d85acaa7ba9c7c02b6ccd30a85efcff7551893e41a2d9d",
+      "size_bytes": 35835
     },
     {
       "classification": "conformance-fixture",
@@ -1709,8 +1709,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/vectors.json",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "d875e00761d59617d1bcf66f6ba0b5e3cb184daffffb137759a3e98f4c44d2ce",
-      "size_bytes": 587121
+      "sha256": "7c4157cc566ea1daaa1a092d1cc77aea851f2d8528458f033507e3c143d1cefe",
+      "size_bytes": 588726
     },
     {
       "classification": "conformance-fixture",
@@ -2625,7 +2625,7 @@
         "scripts/diagram_font_metrics.v1.json"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "0c8a712111418ff422b33512c8132de3d2aaab923922871928d8d407527fe42c"
+      "sha256": "b6aadf46944eec7d1096127ebdcf8d47fe96525cc46549c70000303c7fd6ba83"
     },
     {
       "outputs": [

@@ -13,6 +13,8 @@ from .frame import FrameError
 from .messages import is_name
 
 TYPES = frozenset({"null", "boolean", "integer", "number", "string", "array", "object"})
+# The prefix of the member names that NCP and its profiles reserve (section 15).
+RESERVED = "ncp."
 _NUMBER_KEYWORDS = ("minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum")
 _COUNT_KEYWORDS = ("minLength", "maxLength", "minItems", "maxItems")
 _KEYWORDS = frozenset(
@@ -176,6 +178,9 @@ def check(schema: Mapping[str, Any], value: Any, path: str = "$") -> str | None:
         for name, member in value.items():
             if name in properties:
                 error = check(properties[name], member, f"{path}.{name}")
+            elif name.startswith(RESERVED):
+                # A reserved member belongs to NCP or a profile, which checks it (section 11.1).
+                error = None
             elif extra is False:
                 return f"{path}: the member {name!r} is not allowed"
             elif extra is not None:

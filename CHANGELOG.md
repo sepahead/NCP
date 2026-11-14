@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NCP 2.0 release candidate, revision 5 (14 November 2026; tag and publication follow)
+
+An advisory review of revision 4 by a language model (read-only, not certification evidence) found no
+defect in the exchange, one defect that made a verdict of the lockstep profile false, and a conflict
+between contract schemas and the profiles. The frame format and the exchange stay.
+[`docs/design/NCP-2-DESIGN.md`](docs/design/NCP-2-DESIGN.md#14-revision-5) gives each decision with
+its finding and its check, and
+[`docs/design/NCP-2-MIGRATION.md`](docs/design/NCP-2-MIGRATION.md#8-from-revision-4-to-revision-5-of-ncp-2)
+lists the changes for programs and the open work.
+
+- **Fixed: lockstep profile revision 3.** Both SDKs named the holder of the ticks by the session
+  identifier. A copy of an earlier `open`, replayed on another connection, or a recovery that used
+  the same session identifier on another connection, gave an earlier opening the ticks again, and its
+  delayed step ran after the recovery had said that it did not run and never would. The holder is now
+  an opening. A copy of `open` still takes the ticks; the profile states that this costs liveness,
+  not truth. Tests in both SDKs fail on the code of revision 4.
+- **Breaking (API):** `OpenInfo` and `Request` carry `nonce`, the nonce of the opening, in both SDKs.
+  `Lockstep.holder` and `lockstep::Clock::holder` hold that nonce.
+- **Wire:** `additionalProperties` does not apply to members whose names start with `ncp.`, so a
+  closed request schema no longer declines every lockstep step (section 11.1). Five schema vectors.
+- `spec/ncp2-rules.json` names the revision, and the rules check compares it with the specification
+  and with the conformance vectors, which said revision 3 for revision 4.
+
 ### NCP 2.0 release candidate, revision 4 (13 November 2026; tag and publication follow)
 
 An advisory review of revision 3 by a language model (read-only, not certification evidence) found

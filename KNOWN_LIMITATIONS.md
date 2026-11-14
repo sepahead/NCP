@@ -1,4 +1,4 @@
-# Known limitations of the NCP 1.0 candidate
+# Known limitations of NCP 2 and of the NCP 1.0 candidate
 
 > This ledger describes unreleased `1.0.0-rc.1` (wire `1.0`). The immutable
 > `v0.8.0` limitations are historical and remain visible in that tag and
@@ -9,7 +9,7 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 
 ## NCP 2
 
-The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 4
+The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 5
 of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
 
 - **The SDKs are not proved.** The Lean proofs cover models of the owner and of a client. The
@@ -18,9 +18,11 @@ of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
 - **Bounded model check.** The exhaustive check of the SDK client and owner covers four calls and
   up to two faults ([`model/`](model/README.md)). Client verdicts across a restart of the owner are
   checked there, not proved.
-- **One author.** The same author wrote both SDKs. No independent implementation exists.
+- **One author.** The same author wrote the specification, both SDKs, the vectors, the Lean models,
+  and the model check. The two SDKs are two implementations by one author; no independent
+  implementation exists.
 - **Evidence of revision 2.** The benchmarks and the fault campaign ran with revision 2 of the SDKs
-  on one macOS laptop. They have not run again for revisions 3 and 4, not on Linux, and not with the
+  on one macOS laptop. They have not run again for revisions 3 to 5, not on Linux, and not with the
   Zenoh binding.
 - **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. Windows is
   not tested. On a system without `/dev/urandom`, such as Windows, the Rust SDK derives nonces and

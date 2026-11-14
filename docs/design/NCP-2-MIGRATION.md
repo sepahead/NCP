@@ -147,3 +147,48 @@ State on 14 November 2026. Each pin names the NCP commit of the NCP 2 core that 
 
 The remaining NCP 1 users share the wire-1.0 message families: sensor streams, advisories, and commands. They move together once NCP 2 contracts or profiles for those families exist (section 3, step 3).
 Haldir's NCP pin lies inside the protected boundary of its signed lineage epoch 21. Moving it needs an epoch-22 transition, which the owner delivers, and a design of the Gate's commander lease over NCP 2, which has no authority machine.
+
+## 8. From revision 4 to revision 5 of NCP 2
+
+Revision 5 (14 November 2026) closes the findings of the design record, [section 14](NCP-2-DESIGN.md#14-revision-5). No consumer of revision 4 serves the lockstep profile or a contract with `ncp.schema`, so none must move its pin for these findings. A program that serves either moves.
+
+### What changes on the wire
+
+- `additionalProperties` no longer applies to members whose names start with `ncp.` (section 11.1). An owner of revision 5 admits a body with such a member that a closed schema of revision 4 declined.
+- Lockstep profile revision 3: no message changes. The owner names the holder by its opening, so a copy of an earlier `open` no longer gives that opening the ticks again.
+- The conformance vectors say revision 5, and `spec/ncp2-rules.json` names the revision.
+
+### Python (`ncp`)
+
+| Revision 4 | Revision 5 |
+| --- | --- |
+| `ncp.OpenInfo(session, contract, run, features)` | Also `nonce`: the nonce of the opening |
+| `ncp.Request(op, body, arrays, seq, session, identity, contract, run, features)` | Also `nonce`: the nonce of the opening of the session |
+| `ncp.Lockstep.holder`: a session identifier | The nonce of the opening that holds the ticks |
+| `ncp.contract.check` with `additionalProperties` | Members whose names start with `ncp.` are exempt; `ncp.contract.RESERVED` |
+
+### Rust (`ncp`)
+
+| Revision 4 | Revision 5 |
+| --- | --- |
+| `OpenInfo { session, contract, run, features }` | Also `nonce: &str` |
+| `Request { op, body, seq, session, identity, contract, run, features, decoded }` | Also `nonce: &str` |
+| `lockstep::Clock::holder`: a session identifier | The nonce of the opening that holds the ticks |
+| — | `contract::RESERVED` |
+
+### Contract upgrades
+
+A contract's identity is the digest of its exact bytes, so a corrected word in a description is a new contract. Keep the document that the identity covers to names and schemas, and publish the prose next to it. To change a contract, let the owners accept both the old and the new contract first (rule 7.1.4.2), then move the clients. For streams, move the subscribers first, then the publishers.
+
+### Open work after revision 5
+
+The advisory review of revision 4 proposed this work, in this order:
+
+Before the tag, the owner decides which parts it freezes. The review recommends a tag for the exercised core (frames, messages, the exchange, the byte-stream binding, transcripts, and contract identity), with sections 8, 9.2, and 11.1 and both profiles marked provisional, because no consumer uses them yet.
+
+1. Lockstep: a takeover by a request inside the new opening, with a term that the owner issues, so that a copy of `open` takes nothing (rule 7.1.8); a model check of both profiles before they are frozen.
+2. Decline reasons that a program can read: a code for a refusal by the owner's state, and a `reason` member.
+3. A stream profile for sensors and advisories: the stream type in the stream identifier, an announcement of live streams, start and liveness, time, and one key for each publisher. Galadriel's `galadriel-ncp` is its first subscriber.
+4. An authority profile for commands: the body is the owner; the Gate acquires a lease with a term and a token bound to the opening; each response gives the remaining time; ESTOP has its own session. Then CREBAIN's application, and Haldir with its epoch-22 transition.
+5. A fault campaign and a benchmark on the Zenoh binding, and the campaigns again on the revision that the tag names.
+6. A convention for principals: one key, and one service, for each pair of programs whose frames must be told apart.

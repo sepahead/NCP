@@ -9,6 +9,8 @@ use std::fmt;
 const TYPES: [&str; 7] = [
     "null", "boolean", "integer", "number", "string", "array", "object",
 ];
+/// The prefix of the member names that NCP and its profiles reserve (section 15).
+pub const RESERVED: &str = "ncp.";
 const NUMBER_KEYWORDS: [&str; 4] = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"];
 const COUNT_KEYWORDS: [&str; 4] = ["minLength", "maxLength", "minItems", "maxItems"];
 const OTHER_KEYWORDS: [&str; 9] = [
@@ -306,6 +308,9 @@ pub fn check(schema: &Value, value: &Value, path: &str) -> Option<String> {
             for (name, member) in object {
                 let error = if let Some(member_schema) = properties.and_then(|p| p.get(name)) {
                     check(member_schema, member, &format!("{path}.{name}"))
+                } else if name.starts_with(RESERVED) {
+                    // A reserved member belongs to NCP or a profile (section 11.1).
+                    None
                 } else if extra == Some(&Value::Bool(false)) {
                     return Some(format!("{path}: the member {name:?} is not allowed"));
                 } else if let Some(extra_schema) = extra {

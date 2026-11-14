@@ -39,7 +39,7 @@ from ncp import client as C  # noqa: E402
 from ncp import frame as F  # noqa: E402
 from ncp import transcript as T  # noqa: E402
 
-REVISION = 3
+REVISION = 5
 SESSION = "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b"
 NONCE = "00112233445566778899aabbccddeeff"
 KEY = bytes(range(32))
@@ -1131,6 +1131,14 @@ def schemas() -> list[dict]:
         ({"properties": {"a": {"type": "string"}}, "additionalProperties": False}, {"a": "x", "b": 1}, False),
         ({"additionalProperties": {"type": "integer"}}, {"a": 1, "b": 2}, True),
         ({"additionalProperties": {"type": "integer"}}, {"a": 1, "b": "2"}, False),
+        # Members whose names start with "ncp." belong to NCP and its profiles: additionalProperties
+        # does not apply to them, but properties and required do (section 11.1).
+        ({"properties": {"dx": {"type": "integer"}}, "additionalProperties": False},
+         {"dx": 1, "ncp.tick": {"tick": 1, "state": None}}, True),
+        ({"additionalProperties": {"type": "integer"}}, {"a": 1, "ncp.round": {"agent": "a", "round": 0}}, True),
+        ({"properties": {"ncp.tick": {"type": "integer"}}, "additionalProperties": False}, {"ncp.tick": "x"}, False),
+        ({"required": ["ncp.tick"], "additionalProperties": False}, {"dx": 1}, False),
+        ({"properties": {"dx": {"type": "integer"}}, "additionalProperties": False}, {"dx": 1, "ncpx": 1}, False),
         ({"ncp.array": {"dtype": "f64", "shape": [None, 3]}}, F.Array("f64", [2, 3], bytes(48)), True),
         ({"ncp.array": {"dtype": ["u8", "i8"], "shape": [2]}}, F.Array("i8", [2], b"ab"), True),
         ({"ncp.array": {"dtype": "f64", "shape": [None, 3]}}, F.Array("f64", [3, 2], bytes(48)), False),

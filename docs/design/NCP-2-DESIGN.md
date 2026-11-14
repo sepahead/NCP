@@ -1,6 +1,6 @@
 # NCP 2 design record
 
-Status: decided on 23 October 2026 by the owner (option B of the council review). Revision 3 of the specification, of 13 November 2026, adds the decisions of section 12.
+Status: decided on 23 October 2026 by the owner (option B of the council review). Revision 3 of the specification, of 13 November 2026, adds the decisions of section 12, revision 4 of the same day those of section 13, and revision 5, of 14 November 2026, those of section 14.
 The normative rules are in the [specification](../../spec/NCP-2.md). This record explains why.
 
 ## 1. The problem
@@ -267,3 +267,15 @@ An advisory review of revision 3 by a language model, read-only and not certific
 | 40 | Smaller gaps. | No expiry with a request in progress (rule 9.2.7); comparison of authentication codes in constant time (section 13.2); a Python TLS client needs the server's name (section 13.3); the limits of section 12 complete and checked against the data; the JSON limit first in rule 7.3.12. | `scripts/check_ncp2_rules.py`; session tests |
 
 The review found sound: the order of the owner rules in the text, the Python SDK, and Lean; at most once for `seq` greater than 0 under A3 and A4; truthful verdicts with honest endpoints on both bindings; unknown codes; the scope of the Lean statements; `spec/ncp2-rules.json` against table 7.5; the model check; Zenoh expiry; byte-stream bounds; named responses under keys; and the rounds profile.
+
+## 14. Revision 5
+
+An advisory review of revision 4 by a language model, read-only and not certification evidence, found no defect in the exchange (sections 3 to 7 of the specification), one defect that made a verdict of the lockstep profile false, and a conflict between contract schemas and the profiles. Revision 5 makes these decisions. The frame format and the exchange stay; [migration plan](NCP-2-MIGRATION.md), section 8, lists what changes for a program of revision 4.
+
+| # | Finding | Decision | Check |
+| --- | --- | --- | --- |
+| 41 | Lockstep profile: both SDKs named the holder by the session identifier. A copy of an earlier `open`, replayed on another connection, or a recovery that used the same session identifier on another connection, gave an earlier opening the ticks again; its delayed step then ran after the recovery had said that it did not run and never would. | Profile revision 3: the holder is an opening, not a session identifier (rule 3.3). The owner gives the application the nonce of the opening at `open` and with each request. A copy of `open` still takes the ticks; the profile states that this costs liveness, not truth. | SDK tests in both languages: a replayed `open` and a recovery with the same session identifier, each with a delayed step; both fail on the code of revision 4 |
+| 42 | A contract schema with `additionalProperties: false` declined every lockstep step, because the profile's member `ncp.tick` was not in `properties`. A client that checks results against a closed `result` schema refused the results. | Wire: `additionalProperties` does not apply to members whose names start with `ncp.`; NCP or the profile that defines a member checks it (section 11.1). `properties` and `required` still apply to such members. | Five schema vectors; SDK tests with a closed request schema under the lockstep profile |
+| 43 | `conformance/vectors.json` said revision 3 for the vectors of revision 4, and nothing compared the revisions. | `spec/ncp2-rules.json` names the revision; the rules check compares it with the status line of the specification and with the vectors. | `scripts/check_ncp2_rules.py` |
+
+The review also proposed larger work that revision 5 does not do: a lockstep takeover by a request inside the new opening, so that a copy of `open` takes nothing; decline reasons that a program can read; a stream profile for sensors and advisories; an authority profile for commands; and fault campaigns on the Zenoh binding. Section 8 of the [migration plan](NCP-2-MIGRATION.md) lists them in their order.

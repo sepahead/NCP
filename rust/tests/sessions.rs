@@ -1256,6 +1256,8 @@ struct Held<H: Handler> {
     owner: Owner<H>,
     inbox: VecDeque<Vec<u8>>,
     held: Vec<Vec<u8>>,
+    /// Every frame that the client sent, in order.
+    frames: Vec<Vec<u8>>,
     broken: bool,
 }
 
@@ -1267,6 +1269,7 @@ impl<H: Handler> Channel for Held<H> {
         true
     }
     fn send(&mut self, frame_bytes: &[u8]) -> std::io::Result<()> {
+        self.frames.push(frame_bytes.to_vec());
         if self.broken {
             self.held.push(frame_bytes.to_vec());
             return Err(std::io::Error::other("the connection broke"));
@@ -1293,6 +1296,7 @@ fn held_session(lockstep: &Lockstep<World>, feature: bool) -> Client<Held<Lockst
             owner: Owner::new(contract(), lockstep.share()),
             inbox: VecDeque::new(),
             held: Vec::new(),
+            frames: Vec::new(),
             broken: false,
         },
         &contract(),
@@ -1365,6 +1369,97 @@ fn a_session_that_takes_over_the_ticks_fences_the_steps_of_earlier_sessions() {
     );
 }
 
+/// A stepper whose second step is on its way when its connection breaks.
+fn lose_a_step(
+    lockstep: &Lockstep<World>,
+    session: Option<&str>,
+) -> LockstepClient<Held<Lockstep<World>>> {
+    let mut client = held_session(lockstep, true);
+    if let Some(session) = session {
+        client = client.with_session(session);
+    }
+    let mut stepper = LockstepClient::new(client).expect("lockstep");
+    stepper.step("echo", json!({"dx": 2}), &[]).expect("step");
+    stepper.client().channel_mut().broken = true;
+    let error = stepper
+        .step("echo", json!({"dx": 1}), &[])
+        .expect_err("the connection broke");
+    assert_eq!(error.executed(), Executed::Unknown);
+    stepper
+}
+
+#[test]
+fn a_copy_of_an_old_open_does_not_give_the_ticks_back() {
+    // Profile rule 3.3: the ticks belong to an opening, not to a session identifier. A copy of
+    // the first open, replayed on another connection, opens that session again with another
+    // nonce. The first opening, whose step is still on its way, stays fenced.
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let mut stepper = lose_a_step(&lockstep, None);
+    let channel = stepper.client().channel_mut();
+    let first_open = channel.frames[0].clone();
+    let held = std::mem::take(&mut channel.held);
+    let mut old = std::mem::replace(&mut channel.owner, Owner::new(contract(), lockstep.share()));
+    assert_eq!(
+        stepper
+            .recover(held_session(&lockstep, true))
+            .expect("recover"),
+        Executed::No
+    );
+    // A fresh owner, as a server makes one, accepts the copy as another opening.
+    let mut replayed = Owner::new(contract(), lockstep.share()).with_observer(quiet());
+    let opened = frame::decode(
+        replayed.handle(first_open).expect("a response").to_vec(),
+        MAX_BOUND,
+    )
+    .expect("the open response")
+    .message;
+    assert_eq!(opened["outcome"], "ok");
+    assert_ne!(
+        opened["body"]["nonce"].as_str(),
+        old.state().nonce.as_deref()
+    );
+    assert_eq!(
+        lockstep.clock().holder.as_deref(),
+        opened["body"]["nonce"].as_str()
+    );
+    // The delayed step reaches the first opening: it never runs, so "did not run" stays true.
+    let (outcome, code, detail) = answer(&old.handle(held[0].clone()).expect("a response"));
+    assert_eq!(
+        (outcome.as_str(), code.as_str()),
+        ("declined", "body_invalid")
+    );
+    assert!(detail.contains("does not hold the ticks"), "{detail}");
+    let clock = lockstep.clock();
+    assert_eq!((clock.tick, clock.state.as_deref()), (1, Some("p2")));
+    // A replay costs liveness, not truth: the copy also fenced the live session.
+    let fenced = stepper.step("echo", json!({"dx": 10}), &[]);
+    assert!(matches!(&fenced, Err(Error::Declined { .. })), "{fenced:?}");
+}
+
+#[test]
+fn a_recovery_with_the_same_session_identifier_fences_the_old_opening() {
+    // A client may reuse its session identifier on a new connection; the new opening still
+    // takes the ticks from the old one.
+    const SESSION: &str = "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b";
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let mut stepper = lose_a_step(&lockstep, Some(SESSION));
+    let channel = stepper.client().channel_mut();
+    let held = std::mem::take(&mut channel.held);
+    let mut old = std::mem::replace(&mut channel.owner, Owner::new(contract(), lockstep.share()));
+    let fresh = held_session(&lockstep, true).with_session(SESSION);
+    assert_eq!(stepper.recover(fresh).expect("recover"), Executed::No);
+    let (outcome, code, _) = answer(&old.handle(held[0].clone()).expect("a response"));
+    assert_eq!(
+        (outcome.as_str(), code.as_str()),
+        ("declined", "body_invalid")
+    );
+    assert_eq!(lockstep.clock().tick, 1);
+    let result = stepper
+        .step("echo", json!({"dx": 10}), &[])
+        .expect("the new opening steps");
+    assert_eq!(result.message["body"]["position"], 12);
+}
+
 #[test]
 fn a_lockstep_step_whose_application_fails_counts_as_executed() {
     let lockstep = Lockstep::new(World { position: 0 }, &["echo", "fail"]);
@@ -1385,6 +1480,44 @@ fn a_lockstep_step_whose_application_fails_counts_as_executed() {
         Executed::Yes
     );
     assert_eq!((stepper.tick, stepper.state.as_deref()), (1, Some("p4")));
+}
+
+#[test]
+fn a_closed_request_schema_admits_the_tick() {
+    // Section 11.1: additionalProperties does not apply to members whose names start with "ncp.".
+    let closed = Contract::from_bytes(
+        br#"{"ncp_contract":1,"application":"world","version":"1","operations":{"step":{"ncp.schema":{"request":{"type":"object","required":["dx"],"properties":{"dx":{"type":"integer"}},"additionalProperties":false},"result":{"type":"object","properties":{"position":{"type":"integer"}},"additionalProperties":false}}}},"streams":{}}"#.to_vec(),
+    )
+    .expect("contract");
+    let lockstep = Lockstep::new(World { position: 0 }, &["step"]);
+    let mut features = Map::new();
+    features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    let client = Client::new(
+        Memory {
+            owner: Owner::new(closed.clone(), lockstep.share()).with_observer(quiet()),
+            inbox: VecDeque::new(),
+            drop_responses: 0,
+            lossy: false,
+        },
+        &closed,
+    )
+    .with_features(features)
+    .with_observer(quiet());
+    let mut stepper = LockstepClient::new(client).expect("lockstep");
+    let result = stepper
+        .step("step", json!({"dx": 2}), &[])
+        .expect("the closed schema admits ncp.tick");
+    assert_eq!(result.message["body"]["position"], 2);
+    assert_eq!(closed.check_result("step", &result.message["body"]), None);
+    assert_eq!(stepper.tick, 1);
+    // Other members stay closed out.
+    let refused = stepper.step("step", json!({"dx": 1, "dy": 1}), &[]);
+    assert!(
+        matches!(&refused, Err(Error::Declined { code, detail, .. })
+            if code == "body_invalid" && detail.contains("\"dy\" is not allowed")),
+        "{refused:?}"
+    );
+    assert_eq!(lockstep.clock().tick, 1);
 }
 
 #[test]
@@ -1418,6 +1551,7 @@ fn a_takeover_waits_for_a_checked_step_and_reads_its_tick() {
             contract: &contract,
             run: None,
             features: &features,
+            nonce: "n1",
         })
         .expect("open");
     let body = json!({"dx": 3, "ncp.tick": {"tick": 1, "state": null}});
@@ -1436,6 +1570,7 @@ fn a_takeover_waits_for_a_checked_step_and_reads_its_tick() {
         contract: &contract,
         run: None,
         features: &features,
+        nonce: "n1",
         decoded: &decoded,
     };
     first.validate(&request).expect("the step is checked");
@@ -1451,6 +1586,7 @@ fn a_takeover_waits_for_a_checked_step_and_reads_its_tick() {
                 contract: &contract,
                 run: None,
                 features: &features,
+                nonce: "n2",
             })
             .expect("open")[ncp::lockstep::FEATURE]
             .clone()
@@ -1462,5 +1598,5 @@ fn a_takeover_waits_for_a_checked_step_and_reads_its_tick() {
         waiting.join().expect("the takeover"),
         json!({"tick": 1, "state": "p3", "request": "r1"})
     );
-    assert_eq!(lockstep.clock().holder.as_deref(), Some("second"));
+    assert_eq!(lockstep.clock().holder.as_deref(), Some("n2"));
 }

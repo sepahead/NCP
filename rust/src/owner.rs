@@ -62,7 +62,7 @@ impl From<Value> for Reply {
     }
 }
 
-/// What the client asked for in its `open` request.
+/// What the client asked for in its `open` request, and the nonce of the opening.
 #[derive(Debug)]
 pub struct OpenInfo<'a> {
     /// The session identifier.
@@ -73,6 +73,10 @@ pub struct OpenInfo<'a> {
     pub run: Option<&'a str>,
     /// The features that the client asked for, with its parameters.
     pub features: &'a Map<String, Value>,
+    /// The nonce of this opening (section 7.1). A copy of the same `open` that opens the session
+    /// again (rule 7.1.8) is another opening with another nonce, so state that outlives a
+    /// session, such as the holder of the lockstep profile, belongs to an opening.
+    pub nonce: &'a str,
 }
 
 /// One admitted request, as the handler sees it.
@@ -94,6 +98,8 @@ pub struct Request<'a> {
     pub run: Option<&'a str>,
     /// The features that the owner enabled for the session.
     pub features: &'a Map<String, Value>,
+    /// The nonce of the opening of the session (section 7.1).
+    pub nonce: &'a str,
     /// The decoded frame, for its arrays.
     pub decoded: &'a Decoded,
 }
@@ -444,6 +450,7 @@ fn call<H: Handler + ?Sized>(
         contract,
         run: state.run.as_deref(),
         features: &state.features,
+        nonce: state.nonce.as_deref().unwrap_or_default(),
         decoded,
     };
     match handler.validate(&request) {
@@ -572,11 +579,13 @@ fn open<H: Handler + ?Sized>(
     let contract = &config.contracts[index];
     let requested = features.as_object().cloned().unwrap_or_default();
     let run = body.get("run").and_then(Value::as_str);
+    let nonce = (config.nonce)();
     let info = OpenInfo {
         session: request["session"].as_str().unwrap_or_default(),
         contract,
         run,
         features: &requested,
+        nonce: &nonce,
     };
     let granted = match handler.open(&info) {
         Ok(granted) => granted,
@@ -587,7 +596,6 @@ fn open<H: Handler + ?Sized>(
         .into_iter()
         .filter(|(name, params)| requested.contains_key(name) && params.is_object())
         .collect();
-    let nonce = (config.nonce)();
     let effective = bound.min(config.max_bound);
     let message = json!({"ncp": PROTOCOL, "session": info.session, "seq": 0, "request": decoded.identity,
                          "outcome": "ok", "code": null,

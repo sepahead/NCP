@@ -731,9 +731,11 @@
     },
     {
       "section": "11.1",
-      "text": "| `additionalProperties` | `false`, or a schema. With `false`, the value MUST NOT have members outside `properties`. With a schema, each such member MUST match it. |",
+      "text": "| `additionalProperties` | `false`, or a schema. With `false`, the value MUST NOT have members outside `properties`. With a schema, each such member MUST match it. Neither applies to a member whose name starts with `ncp.` (section 15): NCP or the profile that defines the member checks it. `properties` and `required` apply to such members as to others. |",
       "covered_by": [
-        "vectors:schemas:additionalProperties"
+        "vectors:schemas:additionalProperties",
+        "test:python:test_a_closed_request_schema_admits_the_tick",
+        "test:rust:a_closed_request_schema_admits_the_tick"
       ]
     },
     {

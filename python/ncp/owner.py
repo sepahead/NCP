@@ -84,17 +84,22 @@ class OwnerState:
 
 @dataclass(frozen=True, slots=True)
 class OpenInfo:
-    """What the client asked for in its `open` request."""
+    """What the client asked for in its `open` request, and the nonce of the opening.
+
+    `nonce` names this opening (section 7.1): a copy of the same `open` that opens the session
+    again (rule 7.1.8) is another opening with another nonce. State that outlives a session, such
+    as the holder of the lockstep profile, belongs to an opening, not to a session identifier."""
 
     session: str
     contract: Contract
     run: str | None
     features: Mapping[str, Any]
+    nonce: str
 
 
 @dataclass(frozen=True, slots=True)
 class Request:
-    """One admitted request, as the handler sees it."""
+    """One admitted request, as the handler sees it. `nonce` names the opening of its session."""
 
     op: str
     body: Any
@@ -105,6 +110,7 @@ class Request:
     contract: Contract
     run: str | None
     features: Mapping[str, Any]
+    nonce: str
 
 
 class Handler(Protocol):
@@ -252,8 +258,8 @@ def _call(
 ) -> tuple[bytes, Note]:
     """Rule 12 for an operation of the application."""
     message = decoded.message
-    contract = state.contract
-    assert contract is not None
+    contract, nonce = state.contract, state.nonce
+    assert contract is not None and nonce is not None
     if op not in contract.operations:
         return reply("declined", "unknown_op", {}), Note("admitted", "declined", "unknown_op")
     body = message["body"]
@@ -272,6 +278,7 @@ def _call(
         contract,
         state.run,
         state.features,
+        nonce,
     )
     try:
         handler.validate(request)
@@ -342,10 +349,11 @@ def _open(
     if state.stopping:
         return reject("refused", "the owner stops")
     enabled: Mapping[str, Any] = {}
+    nonce = config.nonce()
     opener = getattr(handler, "open", None)
     if opener is not None:
         try:
-            granted = opener(OpenInfo(request["session"], contract, run, features)) or {}
+            granted = opener(OpenInfo(request["session"], contract, run, features, nonce)) or {}
         except Refused as refusal:
             return reject("refused", refusal.detail)
         except Exception as error:  # noqa: BLE001 - the owner cannot open; it says so
@@ -357,7 +365,6 @@ def _open(
             return reject("refused", "the application returned features that are not an object")
         # Only features that the client asked for, each with parameters that are an object.
         enabled = {name: dict(params) for name, params in granted.items() if name in features and type(params) is dict}
-    nonce = config.nonce()
     effective = min(bound, config.max_bound)
     response = reply(
         "ok",

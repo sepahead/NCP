@@ -37,7 +37,9 @@ class Lockstep:
     `tick`, `state`, and `request` restore a clock that the application saved: the tick, the
     state digest, and the identity of the request whose step produced the tick.
 
-    Only the last session that asked for the feature can step (profile, rule 3.3): `holder`.
+    Only the last opening that asked for the feature can step (profile, rule 3.3): `holder` is
+    the nonce of that opening. A session identifier does not name one opening: a copy of an old
+    `open` opens the session again with another nonce (specification, rule 7.1.8).
     """
 
     def __init__(
@@ -63,11 +65,11 @@ class Lockstep:
         opener = getattr(self.handler, "open", None)
         granted = dict(opener(info) or {}) if opener is not None else {}
         if FEATURE in info.features:
-            # The session takes over the ticks (profile, rule 3.3). A checked step holds the lock
-            # until it has run, so the tick read here is final for every earlier session: validate
-            # declines their later steps.
+            # The opening takes over the ticks (profile, rule 3.3). A checked step holds the lock
+            # until it has run, so the tick read here is final for every earlier opening, also of
+            # the same session identifier: validate declines their later steps.
             with self._lock:
-                self.holder = info.session
+                self.holder = info.nonce
                 granted[FEATURE] = {"tick": self.tick, "state": self.state, "request": self.request}
         return granted
 
@@ -81,9 +83,9 @@ class Lockstep:
             raise Declined('a lockstep step needs the member "ncp.tick": {"tick": T, "state": S}')
         self._lock.acquire()
         try:
-            if request.session != self.holder:
+            if request.nonce != self.holder:
                 raise Declined(
-                    "the session does not hold the ticks: it did not ask for ncp.lockstep, or a later session took them over"
+                    "the opening does not hold the ticks: it did not ask for ncp.lockstep, or a later opening took them over"
                 )
             if type(member["tick"]) is not int or member["tick"] != self.tick + 1:
                 raise Declined(f"tick: the next tick is {self.tick + 1}")
@@ -181,8 +183,8 @@ class LockstepClient:
         executed. Return YES if that step ran, NO if it did not and never will. Raise ProtocolError
         if the owner's tick is neither, for example because another client stepped it.
 
-        The new session takes over the ticks (profile, rule 3.3), so a copy of the step that is
-        still on its way can no longer run."""
+        The opening of the new session takes over the ticks (profile, rule 3.3), so a copy of the
+        step that is still on its way can no longer run."""
         if self.uncertain is None:
             raise ValueError("no step is possibly executed")
         uncertain, identity = self.uncertain

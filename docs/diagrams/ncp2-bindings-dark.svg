@@ -47,9 +47,10 @@
 <text x="842" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Trusted network</text>
 <text x="842" y="306" class="r" font-size="25" fill="#ECE5D5">Between computers on a</text>
 <text x="842" y="339" class="r" font-size="25" fill="#ECE5D5">network that you trust, or</text>
-<text x="842" y="372" class="r" font-size="25" fill="#ECE5D5">with TLS on both sides. A</text>
-<text x="842" y="405" class="r" font-size="25" fill="#ECE5D5">time limit for each call is</text>
-<text x="842" y="438" class="r" font-size="25" fill="#ECE5D5">an option.</text>
+<text x="842" y="372" class="r" font-size="25" fill="#ECE5D5">with TLS on both sides in</text>
+<text x="842" y="405" class="r" font-size="25" fill="#ECE5D5">the Python SDK. A time</text>
+<text x="842" y="438" class="r" font-size="25" fill="#ECE5D5">limit for each call is an</text>
+<text x="842" y="471" class="r" font-size="25" fill="#ECE5D5">option.</text>
 <text x="1224" y="216" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Zenoh</text>
 <text x="1224" y="248" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Lossy or open network</text>
 <text x="1224" y="306" class="r" font-size="25" fill="#ECE5D5">Requests travel as queries.</text>

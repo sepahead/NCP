@@ -3583,7 +3583,8 @@ def ncp2_outcomes() -> Canvas:
         "POSSIBLY EXECUTED",
         "In a session, at most one call can be possibly executed, and it is always the last one. "
         "Lean proofs cover these rules for a model of the owner and the client, and an exhaustive "
-        "check of the real SDKs with up to two faults, in 2.6 million states, found no false report.",
+        "check of the real Python client and owner with up to two faults, in 2.6 million states, "
+        "found no false report.",
     ).bottom
     return _finish(c, bottom)
 
@@ -3697,8 +3698,8 @@ def ncp2_bindings() -> Canvas:
                  body="One session for each connection, each in its own thread. File permissions "
                  "decide who may connect."),
             dict(name="link-tcp", title="TCP", subtitle="Trusted network",
-                 body="Between computers on a network that you trust, or with TLS on both sides. A "
-                 "time limit for each call is an option."),
+                 body="Between computers on a network that you trust, or with TLS on both sides "
+                 "in the Python SDK. A time limit for each call is an option."),
             dict(name="link-zenoh", title="Zenoh", subtitle="Lossy or open network", accent="turquoise",
                  body="Requests travel as queries. A lost message is sent again, and the owner "
                  "answers with its kept response. Configure mutual TLS and access control on "

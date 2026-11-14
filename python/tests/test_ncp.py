@@ -1386,20 +1386,33 @@ class LockstepTests(unittest.TestCase):
 
         def __init__(self, owner) -> None:
             super().__init__(owner)
-            self.broken, self.held = False, []
+            self.broken, self.held, self.frames = False, [], []
 
         def send(self, frame: bytes) -> None:
+            self.frames.append(bytes(frame))
             if self.broken:
                 self.held.append(bytes(frame))
                 raise ConnectionResetError("the connection broke")
             super().send(frame)
 
-    def session(self, lockstep, feature: bool = True) -> ncp.Client:
+    def session(self, lockstep, feature: bool = True, session: str | None = None) -> ncp.Client:
         return ncp.Client(
             self.Held(ncp.Owner(self.CONTRACT, lockstep)),
             self.CONTRACT,
             features={"ncp.lockstep": {}} if feature else None,
+            session=session,
         )
+
+    def lose_a_step(self, lockstep, session: str | None = None):
+        """A stepper whose second step is on its way when its connection breaks; recovered."""
+        stepper = ncp.LockstepClient(self.session(lockstep, session=session))
+        stepper.step("step", {"dx": 2})
+        old = stepper.client.channel
+        old.broken = True
+        with self.assertRaises(ncp.Ended) as caught:
+            stepper.step("step", {"dx": 1})
+        self.assertEqual(caught.exception.executed, ncp.Executed.UNKNOWN)
+        return stepper, old
 
     def test_steps_carry_the_tick_and_the_state(self) -> None:
         lockstep = ncp.Lockstep(self.World(), ["step"])
@@ -1469,12 +1482,47 @@ class LockstepTests(unittest.TestCase):
         self.assertIn("does not hold the ticks", response.message["body"]["detail"])
         self.assertEqual(lockstep.tick, 1)
         self.assertEqual(stepper.step("step", {"dx": 10}).body["position"], 12)
+        self.assertEqual(lockstep.holder, stepper.client.nonce)
         # A session that did not ask for the feature cannot step.
         plain = self.session(lockstep, feature=False)
         plain.open()
         with self.assertRaises(ncp.Declined) as declined:
             plain.call("step", {"dx": 1, "ncp.tick": {"tick": 3, "state": "p12"}})
         self.assertIn("does not hold the ticks", declined.exception.detail)
+
+    def test_a_copy_of_an_old_open_does_not_give_the_ticks_back(self) -> None:
+        # Profile rule 3.3: the ticks belong to an opening, not to a session identifier. A copy of
+        # the first open, replayed on another connection, opens that session again with another
+        # nonce. The first opening, whose step is still on its way, stays fenced.
+        lockstep = ncp.Lockstep(self.World(), ["step"])
+        stepper, old = self.lose_a_step(lockstep)
+        self.assertEqual(stepper.recover(self.session(lockstep)), ncp.Executed.NO)
+        replayed = ncp.Owner(self.CONTRACT, lockstep)  # a fresh owner, as a server makes one
+        opened = F.decode(replayed.handle(old.frames[0]), F.MAX_BOUND).message
+        self.assertEqual(opened["outcome"], "ok")
+        self.assertNotEqual(opened["body"]["nonce"], old.owner.state.nonce)
+        self.assertEqual(lockstep.holder, opened["body"]["nonce"])  # replay costs liveness, not truth
+        response = F.decode(old.owner.handle(old.held[0]), F.MAX_BOUND).message
+        self.assertEqual((response["outcome"], response["code"]), ("declined", "body_invalid"))
+        self.assertIn("does not hold the ticks", response["body"]["detail"])
+        self.assertEqual((lockstep.tick, lockstep.handler.position), (1, 2))  # "did not run" stays true
+        with self.assertRaises(ncp.Declined):  # the live session was fenced by the copy
+            stepper.step("step", {"dx": 10})
+        fresh = self.session(lockstep)
+        fresh.open()
+        self.assertEqual(lockstep.holder, fresh.nonce)
+
+    def test_a_recovery_with_the_same_session_identifier_fences_the_old_opening(self) -> None:
+        # The client may reuse its session identifier on a new connection (rule 7.1.7 lets it
+        # send the same open again); the new opening still takes the ticks from the old one.
+        lockstep = ncp.Lockstep(self.World(), ["step"])
+        session = "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b"
+        stepper, old = self.lose_a_step(lockstep, session=session)
+        self.assertEqual(stepper.recover(self.session(lockstep, session=session)), ncp.Executed.NO)
+        response = F.decode(old.owner.handle(old.held[0]), F.MAX_BOUND).message
+        self.assertEqual((response["outcome"], response["code"]), ("declined", "body_invalid"))
+        self.assertEqual((lockstep.tick, lockstep.handler.position), (1, 2))
+        self.assertEqual(stepper.step("step", {"dx": 10}).body["position"], 12)
 
     def test_a_step_whose_application_fails_counts_as_executed(self) -> None:
         lockstep = ncp.Lockstep(self.World(), ["step"])
@@ -1486,6 +1534,27 @@ class LockstepTests(unittest.TestCase):
         # The world moved before it failed, so the recovery must say that the step ran.
         self.assertEqual(stepper.recover(self.session(lockstep)), ncp.Executed.YES)
         self.assertEqual((stepper.tick, stepper.state), (1, "p4"))
+
+    def test_a_closed_request_schema_admits_the_tick(self) -> None:
+        # Section 11.1: additionalProperties does not apply to members whose names start with "ncp.".
+        closed = ncp.Contract.from_bytes(
+            b'{"ncp_contract":1,"application":"world","version":"1","operations":{"step":{"ncp.schema":'
+            b'{"request":{"type":"object","required":["dx"],"properties":{"dx":{"type":"integer"}},'
+            b'"additionalProperties":false},"result":{"type":"object","properties":{"position":'
+            b'{"type":"integer"}},"additionalProperties":false}}}},"streams":{}}'
+        )
+        lockstep = ncp.Lockstep(self.World(), ["step"])
+        client = ncp.Client(_Lossless(ncp.Owner(closed, lockstep)), closed, features={"ncp.lockstep": {}})
+        stepper = ncp.LockstepClient(client)
+        result = stepper.step("step", {"dx": 2})
+        self.assertEqual(result.body["position"], 2)
+        self.assertIsNone(closed.check_result("step", result.body))
+        self.assertEqual(stepper.tick, 1)
+        with self.assertRaises(ncp.Declined) as caught:  # other members stay closed out
+            stepper.step("step", {"dx": 1, "dy": 1})
+        self.assertEqual(caught.exception.code, "body_invalid")
+        self.assertIn("'dy' is not allowed", caught.exception.detail)
+        self.assertEqual(lockstep.tick, 1)
 
     def test_a_recovery_that_finds_the_step_of_another_session_gives_no_verdict(self) -> None:
         lockstep = ncp.Lockstep(self.World(), ["step"])
@@ -1501,15 +1570,16 @@ class LockstepTests(unittest.TestCase):
 
     def test_a_takeover_waits_for_a_checked_step_and_reads_its_tick(self) -> None:
         lockstep = ncp.Lockstep(self.World(), ["step"])
-        lockstep.open(ncp.OpenInfo("first", self.CONTRACT, None, {"ncp.lockstep": {}}))
+        lockstep.open(ncp.OpenInfo("first", self.CONTRACT, None, {"ncp.lockstep": {}}, "n1"))
         request = ncp.Request(
-            "step", {"dx": 3, "ncp.tick": {"tick": 1, "state": None}}, [], 1, "first", "r1", self.CONTRACT, None, {}
+            "step", {"dx": 3, "ncp.tick": {"tick": 1, "state": None}}, [], 1, "first", "r1", self.CONTRACT, None, {},
+            "n1",
         )
         lockstep.validate(request)
         granted = []
         waiting = threading.Thread(
             target=lambda: granted.append(
-                lockstep.open(ncp.OpenInfo("second", self.CONTRACT, None, {"ncp.lockstep": {}}))["ncp.lockstep"]
+                lockstep.open(ncp.OpenInfo("second", self.CONTRACT, None, {"ncp.lockstep": {}}, "n2"))["ncp.lockstep"]
             )
         )
         waiting.start()
@@ -1518,7 +1588,7 @@ class LockstepTests(unittest.TestCase):
         lockstep.execute(request)
         waiting.join(5)
         self.assertEqual(granted, [{"tick": 1, "state": "p3", "request": "r1"}])
-        self.assertEqual(lockstep.holder, "second")
+        self.assertEqual(lockstep.holder, "n2")
 
 
 class PackageTests(unittest.TestCase):

@@ -8,7 +8,9 @@ script requires:
 2. the Python constants (python/ncp/messages.py, frame.py, transcript.py) to equal the data;
 3. the Rust constants (rust/src/messages.rs, frame.rs, transcript.rs) to equal the data;
 4. the Lean `Code` type (formal/NCP2/Model.lean) and the oracle's code names (formal/Oracle.lean)
-   to name exactly the codes that an owner sends in reply to a decoded request.
+   to name exactly the codes that an owner sends in reply to a decoded request;
+5. the revision of the data to equal the revision in the status line of spec/NCP-2.md and in
+   conformance/vectors.json, which conformance/generate.py writes.
 
 Usage: check_ncp2_rules.py   (standard library only)
 """
@@ -78,6 +80,16 @@ def main() -> int:
 
     # 1. The specification's codes table.
     spec = (ROOT / "spec" / "NCP-2.md").read_text(encoding="utf-8")
+
+    # The revision: the status line of the specification, the data, and the conformance vectors.
+    status = re.search(r"^Status: NCP 2\.0, release candidate, revision (\d+) of ", spec, re.MULTILINE)
+    vectors = json.loads((ROOT / "conformance" / "vectors.json").read_text(encoding="utf-8"))
+    expect(status is not None, "spec: the status line names no revision")
+    expect(status is not None and int(status.group(1)) == rules.get("revision"),
+           f"the revision of the data, {rules.get('revision')}, differs from the status line of spec/NCP-2.md")
+    expect(vectors.get("revision") == rules.get("revision"),
+           f"conformance/vectors.json is for revision {vectors.get('revision')}, the data for {rules.get('revision')}")
+
     table = spec.split("### 7.5 Codes", 1)[1].split("\n\n", 2)[1]
     rows = [line for line in table.split("\n") if line.startswith("| `")]
     seen: dict[str, set[str]] = {}
@@ -176,8 +188,8 @@ def main() -> int:
         print(failure, file=sys.stderr)
     if failures:
         return 1
-    print(f"rules: {len(codes)} codes, {len(local)} local codes, and {len(limits)} limits agree in the data, the "
-          "specification, both SDKs, and the Lean model")
+    print(f"rules: revision {rules['revision']}; {len(codes)} codes, {len(local)} local codes, and {len(limits)} limits "
+          "agree in the data, the specification, both SDKs, and the Lean model")
     return 0
 
 

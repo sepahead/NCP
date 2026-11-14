@@ -1,6 +1,6 @@
 # NCP 2 specification
 
-Status: NCP 2.0, release candidate, revision 4 of 13 November 2026.
+Status: NCP 2.0, release candidate, revision 5 of 14 November 2026.
 The tag `v2.0.0` freezes this text. After the tag, section 19 lists errata. An erratum corrects the text and changes no behavior.
 This document is normative. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119 and RFC 8174 when, and only when, they appear in all capitals.
 The [design record](../docs/design/NCP-2-DESIGN.md) gives the reasons for each decision. [`ncp2-rules.json`](ncp2-rules.json) states the codes and outcomes of this document as data, and a check keeps the SDKs, the Lean model, and this text equal to it.
@@ -445,7 +445,7 @@ A schema is an object with only the members of this table. A contract with anoth
 | `minItems`, `maxItems` | Integers. An array MUST have at least, or at most, this number of elements. |
 | `properties` | An object of schemas. Each member of the value with one of these names MUST match its schema. |
 | `required` | An array of member names. The value MUST have each of these members. |
-| `additionalProperties` | `false`, or a schema. With `false`, the value MUST NOT have members outside `properties`. With a schema, each such member MUST match it. |
+| `additionalProperties` | `false`, or a schema. With `false`, the value MUST NOT have members outside `properties`. With a schema, each such member MUST match it. Neither applies to a member whose name starts with `ncp.` (section 15): NCP or the profile that defines the member checks it. `properties` and `required` apply to such members as to others. |
 | `ncp.array` | An object with the members `dtype`, a dtype or an array of dtypes, and `shape`, an array of integers or `null`. The value MUST be an array (section 5) with one of these dtypes and a shape of the same length, equal at each integer. |
 | `description`, `title` | Strings. NCP ignores them. |
 
