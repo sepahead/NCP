@@ -4530,9 +4530,9 @@
       },
       {
         "path": "docs/design/NCP-2-MIGRATION.md",
-        "bytes": 12623,
-        "sha256": "29599ca242440c5e826271e23c44fd873e7adce252b3c94cff4eb780eb6b19a1",
-        "git_blob_oid": "5e9c5c46bed2e48a136f85dcd2a48a572205416c",
+        "bytes": 14238,
+        "sha256": "4a2b8d28190d918d864ad07154952f0791c71c79843ed4b0b1a23a98f1de17b2",
+        "git_blob_oid": "2eb5c653bde053cbe879a3fbf44f513736e41aeb",
         "indexed": true
       },
       {
@@ -11565,9 +11565,9 @@
       },
       {
         "path": "spec/NCP-2.md",
-        "bytes": 50331,
-        "sha256": "2a8874ba90286aa89c21e03e0cefdc2248614a83fdf2d11462b3d361cf988452",
-        "git_blob_oid": "4d57bce5c53c05f42b4c8cd1a27ddbf24320ade2",
+        "bytes": 50429,
+        "sha256": "f77a88fa033202f177dcc0b577596d8b7cc535726f08528aa642f4743275411c",
+        "git_blob_oid": "8dc6b51717d8069f2548e52e5eea991bd2de2ecd",
         "indexed": true
       },
       {

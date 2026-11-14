@@ -201,7 +201,7 @@ A stream message is an object with exactly these members (`att` is optional):
 An owner keeps, for each session:
 
 - `high`: the sequence number of the last admitted request. It is 0 after `open`.
-- `kept`: the response to the last admitted request, with its frame bytes, its identity, and the identity of its request.
+- `kept`: the response to the last admitted request, with its frame bytes, its identity, and the identity of its request. After `open`, `kept` is the `open` response, so `kept` exists whenever the owner holds a session.
 - `ended`: true after a kept response with outcome `ended` and after the `ok` response to `close`.
 
 ### 7.3 Owner rules

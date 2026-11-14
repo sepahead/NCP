@@ -132,3 +132,18 @@ Revision 4 (13 November 2026) closes the findings of the design record, [section
 | `lockstep::Clock { tick, state }` | Also `request` and `holder` |
 | `ncp_zenoh::ServeOptions`, which was `Copy` | Also `key: Option<Key>`; `Clone`, no longer `Copy` |
 | — | `messages::foreign`, `frame::elements`, `frame::MAX_RANK` |
+
+### Consumers of revision 4
+
+State on 14 November 2026. Each pin names the NCP commit of the NCP 2 core that the consumer uses.
+
+| Consumer | On NCP 2 | Still on NCP 1 |
+| --- | --- | --- |
+| CREBAIN | The native simulation and its closed loop (`src-tauri/crates/ncp-simulation`, pin `2e24ef5`) and the NEST controller (`integrations/ncp2-nest-controller`), on `main` at `a1df34c` | The application (`src-tauri`, feature `ncp`) and `ncp-headless` on the wire-1.0 candidate; `@sepahead/ncp` in `src/neuro`; the force-city and ground-sensor integrations on `ncp-local` 1.0.0 |
+| Prisoma | The loop capture (`crates/ncp-loop-capture`, pin `2e24ef5`), on `main` at `6d5dde0` | `crates/ncp-observer` on the wire-1.0 candidate; the Agent Bridge and the modular transcript |
+| Galadriel | The local adapter, which assesses CREBAIN loop runs (`crates/galadriel-local-adapter`, feature `ncp-loop`, pin `2e24ef5`), on `main` at `20ddc41` | `crates/galadriel-ncp` and its CLI on the wire-1.0 candidate |
+| Haldir | None | `crates/haldir-ncp10` and `crates/haldir-transport-zenoh` on the wire-1.0 candidate |
+| Engram | None | The vendored wire-1.0 workspace and its protocol module |
+
+The remaining NCP 1 users share the wire-1.0 message families: sensor streams, advisories, and commands. They move together once NCP 2 contracts or profiles for those families exist (section 3, step 3).
+Haldir's NCP pin lies inside the protected boundary of its signed lineage epoch 21. Moving it needs an epoch-22 transition, which the owner delivers, and a design of the Gate's commander lease over NCP 2, which has no authority machine.
