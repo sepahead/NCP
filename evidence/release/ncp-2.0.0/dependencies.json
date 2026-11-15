@@ -1,8 +1,8 @@
 {
  "artifacts": {
   "sepahead-ncp-core-2.0.0.crate": {
-   "bytes": 67702,
-   "sha256": "03fa1be285631f7042544e1bf59561c933916afb9720855f30beaca118488312"
+   "bytes": 67841,
+   "sha256": "5a6b053690063d0962528c65460566cdc7df7ce7cc7d3e67864ac7f5a7c3b0bb"
   },
   "sepahead_ncp-2.0.0-py3-none-any.whl": {
    "bytes": 105788,
@@ -82,6 +82,13 @@
     "version": "0.11.3"
    },
    {
+    "checksum": "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd",
+    "license": "MIT OR Apache-2.0",
+    "name": "getrandom",
+    "source": "registry+https://github.com/rust-lang/crates.io-index",
+    "version": "0.3.4"
+   },
+   {
     "checksum": "27f864f10dfb56725ce5ce5472bc52252c8f93a4ab86327122cebf62c5f59a17",
     "license": "MIT OR Apache-2.0",
     "name": "hybrid-array",
@@ -122,6 +129,13 @@
     "name": "quote",
     "source": "registry+https://github.com/rust-lang/crates.io-index",
     "version": "1.0.47"
+   },
+   {
+    "checksum": "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f",
+    "license": "MIT OR Apache-2.0 OR LGPL-2.1-or-later",
+    "name": "r-efi",
+    "source": "registry+https://github.com/rust-lang/crates.io-index",
+    "version": "5.3.0"
    },
    {
     "checksum": null,
@@ -194,6 +208,13 @@
     "version": "1.0.27"
    },
    {
+    "checksum": "b67efb37e106e55ce722a510d6b5f9c17f083e5fc79afc2badeb12cc313d9487",
+    "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+    "name": "wasip2",
+    "source": "registry+https://github.com/rust-lang/crates.io-index",
+    "version": "1.0.4+wasi-0.2.12"
+   },
+   {
     "checksum": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
     "license": "MIT OR Apache-2.0",
     "name": "windows-link",
@@ -206,6 +227,13 @@
     "name": "windows-sys",
     "source": "registry+https://github.com/rust-lang/crates.io-index",
     "version": "0.61.2"
+   },
+   {
+    "checksum": "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e",
+    "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+    "name": "wit-bindgen",
+    "source": "registry+https://github.com/rust-lang/crates.io-index",
+    "version": "0.57.1"
    },
    {
     "checksum": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",

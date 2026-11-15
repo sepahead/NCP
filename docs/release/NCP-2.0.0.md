@@ -17,7 +17,7 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 67,702 | `03fa1be285631f7042544e1bf59561c933916afb9720855f30beaca118488312` |
+| `sepahead-ncp-core-2.0.0.crate` | 67,841 | `5a6b053690063d0962528c65460566cdc7df7ce7cc7d3e67864ac7f5a7c3b0bb` |
 | `sepahead_ncp-2.0.0-py3-none-any.whl` | 105,788 | `ab74c5177a01096f2440888d87310d527b7458ae9e451bf666b36bd369de9911` |
 | `sepahead_ncp-2.0.0.tar.gz` | 101,385 | `d91e171c6129dd28a9970f92700c4d95f2a1b5fe5e958bd17611978333c81796` |
 | `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 13,613 | `f0d120d6fa8d94afa047ac5dc81b40e58cf6c2e91197803c83db5533419504c8` |
@@ -43,7 +43,7 @@ The packages require ranges, such as `serde` 1.0.229 or a later 1.x release, not
 
 - `sepahead-ncp` requires nothing beyond Python 3.11 or later.
 - `sepahead-ncp-zenoh` (Python) requires `sepahead-ncp` 2.0.0 or a later 2.x release and `eclipse-zenoh` 1.10.2 or a later 1.x release (EPL-2.0 OR Apache-2.0); its tests use 1.10.2.
-- `sepahead-ncp-core` uses `serde` 1.0.229, `serde_json` 1.0.154, `sha2` 0.11.1, and `socket2` 0.6.5, or later compatible releases; with their own dependencies, 25 packages, all under MIT, Apache-2.0, Unlicense, or Unicode-3.0 terms.
+- `sepahead-ncp-core` uses `getrandom` 0.3.4, `serde` 1.0.229, `serde_json` 1.0.154, `sha2` 0.11.1, and `socket2` 0.6.5, or later compatible releases; with their own dependencies, 29 packages. Each is under terms that include MIT or Apache-2.0, and `unicode-ident` also under Unicode-3.0 terms. Of these, `r-efi`, `wasip2`, and `wit-bindgen` are built only for UEFI and WASI targets.
 - `sepahead-ncp-zenoh` (Rust) resolves 312 packages with Zenoh 1.10.2. The Zenoh packages are under EPL-2.0 OR Apache-2.0, `webpki-roots` under CDLA-Permissive-2.0, and `option-ext` 0.2.0, which Zenoh reaches through `dirs`, under MPL-2.0, which requires that its own files, when changed and distributed, stay available as source; all others are under permissive terms such as MIT, Apache-2.0, BSD, ISC, and Zlib.
 - The binding's lockfile holds `lz4_flex` 0.10.0, which `zenoh-transport` requires; the advisory GHSA-vvp9-7p8x-rfvv concerns its decompression, which Zenoh uses only with the `transport_compression` feature, and the binding does not enable it.
 

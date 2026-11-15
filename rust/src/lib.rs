@@ -1,7 +1,7 @@
 //! NCP 2: at-most-once exchanges with a known or possibly-executed outcome, and hash-chained
 //! streams, between independent programs.
 //!
-//! See `spec/NCP-2.md`. Dependencies: `serde`, `serde_json`, `sha2`, and `socket2`.
+//! See `spec/NCP-2.md`. Dependencies: `serde`, `serde_json`, `sha2`, `socket2`, and `getrandom`.
 //!
 //! - [`owner`]: the owner state machine ([`owner::step`]) and its driver [`Owner`].
 //! - [`client`]: the client state machine ([`client::request`], [`client::receive`]) and its
@@ -44,31 +44,20 @@ pub use owner::{
 pub use stream::{Delivery, Publisher, Subscriber};
 pub use transcript::Tap;
 
-use std::collections::hash_map::RandomState;
-use std::hash::{BuildHasher, Hasher};
-use std::sync::atomic::{AtomicU64, Ordering};
-
-/// Random bytes from the operating system, or, where it has no `/dev/urandom`, from the
-/// process's random hash keys, a counter, and the time.
+/// Random bytes from the cryptographically secure generator of the operating system, which
+/// rule 7.1.5 requires for nonces.
+///
+/// # Panics
+///
+/// If the operating system gives no random bytes. NCP then opens no session and makes no
+/// stream: it never falls back to a weaker source.
 fn random_bytes<const N: usize>() -> [u8; N] {
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
     let mut bytes = [0u8; N];
-    let from_os = std::fs::File::open("/dev/urandom")
-        .and_then(|mut f| std::io::Read::read_exact(&mut f, &mut bytes));
-    if from_os.is_err() {
-        for (index, chunk) in bytes.chunks_mut(8).enumerate() {
-            let mut hasher = RandomState::new().build_hasher();
-            hasher.write_u64(COUNTER.fetch_add(1, Ordering::Relaxed));
-            hasher.write_u128(
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .map(|d| d.as_nanos())
-                    .unwrap_or(0),
-            );
-            hasher.write_usize(index);
-            let value = hasher.finish().to_le_bytes();
-            chunk.copy_from_slice(&value[..chunk.len()]);
-        }
+    if let Err(error) = getrandom::fill(&mut bytes) {
+        panic!(
+            "the operating system gave no random bytes ({error}); NCP needs them for nonces and \
+             session identifiers (rule 7.1.5)"
+        );
     }
     bytes
 }

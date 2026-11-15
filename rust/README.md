@@ -4,7 +4,7 @@ The Rust core of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md
 
 - Crate name: `sepahead-ncp-core`. Library name: `ncp`.
 - Rust 1.88 or later. No `unsafe` code.
-- Dependencies: `serde` and `serde_json` for JSON, `sha2` for SHA-256 (with the ARMv8 and x86 instructions), and `socket2` to set socket buffer sizes.
+- Dependencies: `serde` and `serde_json` for JSON, `sha2` for SHA-256 (with the ARMv8 and x86 instructions), `socket2` to set socket buffer sizes, and `getrandom` for the random generator of the operating system, from which nonces and session identifiers come.
 
 Add it from a checkout of this repository:
 

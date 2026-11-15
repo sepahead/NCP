@@ -25,9 +25,9 @@ of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
   on one macOS laptop. They have not run again for revisions 3 to 5, not on Linux, and not with the
   Zenoh binding.
 - **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. Windows is
-  not tested. On a system without `/dev/urandom`, such as Windows, the Rust SDK derives nonces and
-  session identifiers from the process's random hash keys, a counter, and the time, which is not
-  the cryptographically secure generator that rule 7.1.5 requires.
+  not tested. The Rust SDK takes nonces and session identifiers from the generator of the
+  operating system, through `getrandom`, on every platform; if that generator fails, the SDK panics
+  rather than use a weaker source (rule 7.1.5).
 - **Recovery.** A session does not survive a restart of its owner; the last request is then
   possibly executed. The lockstep profile tells a client whether its last step ran, for an owner
   that keeps its state.

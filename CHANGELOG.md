@@ -29,6 +29,10 @@ lists the changes for programs and the open work.
   closed request schema no longer declines every lockstep step (section 11.1). Five schema vectors.
 - `spec/ncp2-rules.json` names the revision, and the rules check compares it with the specification
   and with the conformance vectors, which said revision 3 for revision 4.
+- **Fixed (Rust SDK):** nonces and session identifiers come from the generator of the operating
+  system through `getrandom` 0.3.4 on every platform. The SDK fell back to the process's hash keys,
+  a counter, and the time without an error when it could not read `/dev/urandom`, and always on
+  Windows; it now panics instead of using a weaker source (rule 7.1.5).
 
 ### NCP 2.0 release candidate, revision 4 (13 November 2026; tag and publication follow)
 

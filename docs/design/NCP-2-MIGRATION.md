@@ -176,6 +176,8 @@ Revision 5 (14 November 2026) closes the findings of the design record, [section
 | `lockstep::Clock::holder`: a session identifier | The nonce of the opening that holds the ticks |
 | — | `contract::RESERVED` |
 
+The Rust core also depends on `getrandom` 0.3.4. The lockfile of the Zenoh binding already holds it. The NCP 2 crates of the consumers (CREBAIN's `ncp-simulation`, Prisoma's `ncp-loop-capture`, and Galadriel's local adapter) add it when they move their pins, with `r-efi`, `wasip2`, and `wit-bindgen`, which only UEFI and WASI targets build. The core panics if the generator of the operating system fails, instead of using a weaker source.
+
 ### Contract upgrades
 
 A contract's identity is the digest of its exact bytes, so a corrected word in a description is a new contract. Keep the document that the identity covers to names and schemas, and publish the prose next to it. To change a contract, let the owners accept both the old and the new contract first (rule 7.1.4.2), then move the clients. For streams, move the subscribers first, then the publishers.
