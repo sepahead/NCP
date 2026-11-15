@@ -16,7 +16,7 @@ from typing import Any, Protocol
 
 from . import events as E
 from . import frame as F
-from .contract import Contract
+from .contract import RESERVED, Contract
 from .frame import FrameError
 from .messages import (
     MAX_FEATURES,
@@ -24,6 +24,7 @@ from .messages import (
     MAX_RUN,
     PROTOCOL,
     check_request,
+    feature_of,
     foreign,
     detail,
     is_identity,
@@ -260,10 +261,15 @@ def _call(
     message = decoded.message
     contract, nonce = state.contract, state.nonce
     assert contract is not None and nonce is not None
-    if op not in contract.operations:
+    # A feature operation of a feature that the session enabled belongs to the profile that
+    # defines the feature: the handler serves it, and the contract and its schemas do not apply
+    # (rule 12; section 15, rule 3). Any other operation outside the contract is unknown.
+    feature = feature_of(op)
+    of_feature = feature is not None and feature in state.features
+    if not of_feature and op not in contract.operations:
         return reply("declined", "unknown_op", {}), Note("admitted", "declined", "unknown_op")
     body = message["body"]
-    if config.check_schemas:
+    if config.check_schemas and not of_feature:
         mismatch = contract.check_request(op, body)
         if mismatch is not None:
             text = detail(f"request schema: {mismatch}")
@@ -284,8 +290,22 @@ def _call(
         handler.validate(request)
     except Declined as declined:
         text = detail(declined.detail)
-        body_out = {"detail": text} if text else {}
-        return reply("declined", "body_invalid", body_out), Note("admitted", "declined", "body_invalid", text or None)
+        body_out: dict[str, Any] = {"detail": text} if text else {}
+        # A profile can add its own members, whose names start with "ncp." (section 15, rule 2),
+        # for example the term of a declined take of the lockstep profile.
+        if type(declined.body) is dict:
+            body_out.update(
+                (name, value)
+                for name, value in declined.body.items()
+                if type(name) is str and name.startswith(RESERVED)
+            )
+        try:
+            response = reply("declined", "body_invalid", body_out, limit=state.bound)
+        except Exception:  # noqa: BLE001 - any member that cannot be sent leaves the detail alone
+            # Members that cannot be encoded, or that make the response larger than the session's
+            # bound: decline with the detail alone, which always fits.
+            response = reply("declined", "body_invalid", {"detail": text} if text else {})
+        return response, Note("admitted", "declined", "body_invalid", text or None)
     except Exception as error:  # noqa: BLE001 - a failure while checking ends the session (rule 12)
         return reply("ended", "owner_failure", {}), Note(
             "application_error", "ended", "owner_failure", "the application failed while it checked the body", error=error
@@ -366,18 +386,27 @@ def _open(
         # Only features that the client asked for, each with parameters that are an object.
         enabled = {name: dict(params) for name, params in granted.items() if name in features and type(params) is dict}
     effective = min(bound, config.max_bound)
-    response = reply(
-        "ok",
-        None,
-        {
-            "bound": effective,
-            "application": contract.application,
-            "contract": contract.identity,
-            "implementation": config.implementation,
-            "nonce": nonce,
-            "features": enabled,
-        },
-    )
+    opened = {
+        "bound": effective,
+        "application": contract.application,
+        "contract": contract.identity,
+        "implementation": config.implementation,
+        "nonce": nonce,
+        "features": enabled,
+    }
+    try:
+        # The client reads the `open` response with the handshake bound (rule 7.1.3).
+        response = reply("ok", None, opened, limit=F.HANDSHAKE_BOUND)
+    except Exception as error:  # noqa: BLE001 - feature parameters that cannot be sent
+        text = "the application granted features that cannot be sent"
+        closer = getattr(handler, "close", None)
+        if closer is not None:
+            try:
+                closer("refused")  # the application opened a session that the owner refuses
+            except Exception:  # noqa: BLE001 - the session never opened
+                pass
+        state_, response, _ = reject("refused", text)
+        return state_, response, Note("application_error", "rejected", "refused", text, error=error)
     new_state = OwnerState(
         session=request["session"],
         bound=effective,

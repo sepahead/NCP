@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1936" viewBox="0 0 1600 1936" role="img" aria-labelledby="ncp2-ladder-title ncp2-ladder-desc">
+<title id="ncp2-ladder-title">The owner's checks for one frame, in order</title>
+<desc id="ncp2-ladder-desc">Thirteen checks in the order of section 7.3. A frame leaves at the first check that fails, with the outcome and code beside it. A frame that passes ten checks is admitted, and the owner keeps every answer from that point. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="ncp2-ladder-arrow-lapis" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F3F60"/></marker>
+<marker id="ncp2-ladder-arrow-muted" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#4D5C64"/></marker>
+<marker id="ncp2-ladder-arrow-pomegranate" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#743E37"/></marker>
+<marker id="ncp2-ladder-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#1F6968"/></marker>
+<pattern id="ncp2-ladder-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1936" fill="#F7F3E9"/>
+<rect x="1369.3" y="18" width="178.7" height="38" rx="19" fill="#1F3F60"/>
+<path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<path d="M52 172 L108 172" stroke="#743E37" stroke-width="4" fill="none" stroke-linecap="butt"/>
+<path d="M382.8 172 L438.8 172" stroke="#1F3F60" stroke-width="4" fill="none" stroke-linecap="butt"/>
+<path d="M651 172 L707 172" stroke="#4D5C64" stroke-width="4" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="216" width="620" height="62" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="247" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="216" width="820" height="62" rx="12" fill="#E4EDEE" stroke="#1F3F60" stroke-width="3"/>
+<rect x="52" y="312" width="620" height="62" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="343" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="312" width="820" height="62" rx="12" fill="#E4EDEE" stroke="#743E37" stroke-width="3"/>
+<rect x="52" y="408" width="620" height="96" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="456" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="408" width="820" height="96" rx="12" fill="#E4EDEE" stroke="#4D5C64" stroke-width="3"/>
+<rect x="52" y="538" width="620" height="62" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="569" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="538" width="820" height="62" rx="12" fill="#E4EDEE" stroke="#743E37" stroke-width="3"/>
+<rect x="52" y="634" width="620" height="96" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="682" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="634" width="820" height="96" rx="12" fill="#E4EDEE" stroke="#4D5C64" stroke-width="3"/>
+<rect x="52" y="764" width="620" height="62" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="795" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="764" width="820" height="62" rx="12" fill="#E4EDEE" stroke="#743E37" stroke-width="3"/>
+<rect x="52" y="860" width="620" height="62" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="891" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="860" width="820" height="62" rx="12" fill="#E4EDEE" stroke="#743E37" stroke-width="3"/>
+<rect x="52" y="956" width="620" height="62" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="987" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="956" width="820" height="62" rx="12" fill="#E4EDEE" stroke="#743E37" stroke-width="3"/>
+<rect x="52" y="1052" width="620" height="62" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="1083" r="21.2" fill="#1F3F60"/>
+<rect x="728" y="1052" width="820" height="62" rx="12" fill="#E4EDEE" stroke="#743E37" stroke-width="3"/>
+<rect x="52" y="1148" width="620" height="62" rx="12" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<circle cx="92" cy="1179" r="28.3" fill="#1F3F60"/>
+<rect x="728" y="1148" width="820" height="62" rx="12" fill="#E4EDEE" stroke="#4D5C64" stroke-width="3"/>
+<rect x="52" y="1244" width="1496" height="70" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="1244" width="10" height="70" rx="5" fill="#B28218"/>
+<rect x="52" y="1348" width="1496" height="351" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<path d="M52 1362 L52 1362 Q52 1348 66 1348 L1534 1348 Q1548 1348 1548 1362 L1548 1362 Z" fill="#1F3F60"/>
+<circle cx="90" cy="1399" r="28.3" fill="#1F3F60"/>
+<path d="M78 1428 L1522 1428" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="78" y="1524" width="716" height="46" rx="10" fill="#E4EDEE" stroke="#1F6968" stroke-width="2"/>
+<rect x="806" y="1524" width="716" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
+<rect x="78" y="1578" width="716" height="46" rx="10" fill="#E4EDEE" stroke="#1F6968" stroke-width="2"/>
+<rect x="806" y="1578" width="716" height="46" rx="10" fill="#E4EDEE" stroke="#743E37" stroke-width="2"/>
+<rect x="52" y="1733" width="1496" height="163" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="1733" width="10" height="163" rx="5" fill="#B28218"/>
+<path d="M672 247 L728 247" fill="none" stroke="#1F3F60" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-lapis)"/>
+<path d="M672 343 L728 343" fill="none" stroke="#743E37" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-pomegranate)"/>
+<path d="M362 278 L362 312" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M672 456 L728 456" fill="none" stroke="#4D5C64" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-muted)"/>
+<path d="M362 374 L362 408" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M672 569 L728 569" fill="none" stroke="#743E37" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-pomegranate)"/>
+<path d="M362 504 L362 538" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M672 682 L728 682" fill="none" stroke="#4D5C64" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-muted)"/>
+<path d="M362 600 L362 634" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M672 795 L728 795" fill="none" stroke="#743E37" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-pomegranate)"/>
+<path d="M362 730 L362 764" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M672 891 L728 891" fill="none" stroke="#743E37" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-pomegranate)"/>
+<path d="M362 826 L362 860" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M672 987 L728 987" fill="none" stroke="#743E37" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-pomegranate)"/>
+<path d="M362 922 L362 956" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M672 1083 L728 1083" fill="none" stroke="#743E37" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-pomegranate)"/>
+<path d="M362 1018 L362 1052" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M672 1179 L728 1179" fill="none" stroke="#4D5C64" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-muted)"/>
+<path d="M362 1114 L362 1148" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M362 1210 L362 1244" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<path d="M362 1314 L362 1348" fill="none" stroke="#1F6968" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
+<text x="1458.6" y="43.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 6</text>
+<text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">NCP 2 OWNER RULES</text>
+<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">A frame leaves at the first check that fails</text>
+<text x="122" y="180" class="s" font-size="25" fill="#2C3E50" font-weight="600">possibly executed</text>
+<text x="452.8" y="180" class="s" font-size="25" fill="#2C3E50" font-weight="600">not executed</text>
+<text x="721" y="180" class="s" font-size="25" fill="#2C3E50" font-weight="600">two answers</text>
+<text x="92" y="255.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="130" y="256" class="s" font-size="26" fill="#2C3E50" font-weight="700">Is the frame bad?</text>
+<text x="750" y="256" class="s" font-size="25" fill="#2C3E50" font-weight="600">byte stream: ended: bad_frame; Zenoh: no answer</text>
+<text x="92" y="351.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="130" y="352" class="s" font-size="26" fill="#2C3E50" font-weight="700">Is ncp not 2?</text>
+<text x="750" y="352" class="s" font-size="25" fill="#2C3E50" font-weight="600">rejected: wrong_protocol</text>
+<text x="92" y="464.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="130" y="465" class="s" font-size="26" fill="#2C3E50" font-weight="700">Does the owner hold no session?</text>
+<text x="750" y="446" class="s" font-size="25" fill="#2C3E50" font-weight="600">open with seq 0: start a session (section 7.1)</text>
+<text x="750" y="480" class="s" font-size="25" fill="#2C3E50" font-weight="600">otherwise rejected: not_open; ended: session_expired</text>
+<text x="92" y="577.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">4</text>
+<text x="130" y="578" class="s" font-size="26" fill="#2C3E50" font-weight="700">Is it another session?</text>
+<text x="750" y="578" class="s" font-size="25" fill="#2C3E50" font-weight="600">rejected: wrong_session</text>
+<text x="92" y="690.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">5</text>
+<text x="130" y="691" class="s" font-size="26" fill="#2C3E50" font-weight="700">Is seq equal to high?</text>
+<text x="750" y="672" class="s" font-size="25" fill="#2C3E50" font-weight="600">the same request: the kept response again</text>
+<text x="750" y="706" class="s" font-size="25" fill="#2C3E50" font-weight="600">another request: rejected: seq_conflict</text>
+<text x="92" y="803.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">6</text>
+<text x="130" y="804" class="s" font-size="26" fill="#2C3E50" font-weight="700">Is seq below high?</text>
+<text x="750" y="804" class="s" font-size="25" fill="#2C3E50" font-weight="600">rejected: seq_stale</text>
+<text x="92" y="899.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">7</text>
+<text x="130" y="900" class="s" font-size="26" fill="#2C3E50" font-weight="700">Is seq above high + 1?</text>
+<text x="750" y="900" class="s" font-size="25" fill="#2C3E50" font-weight="600">rejected: seq_gap</text>
+<text x="92" y="995.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">8</text>
+<text x="130" y="996" class="s" font-size="26" fill="#2C3E50" font-weight="700">Has the session ended?</text>
+<text x="750" y="996" class="s" font-size="25" fill="#2C3E50" font-weight="600">rejected: session_ended</text>
+<text x="92" y="1091.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">9</text>
+<text x="130" y="1092" class="s" font-size="26" fill="#2C3E50" font-weight="700">Is ack missing or wrong?</text>
+<text x="750" y="1092" class="s" font-size="25" fill="#2C3E50" font-weight="600">rejected: ack_missing, ack_mismatch</text>
+<text x="92" y="1187.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">10</text>
+<text x="130" y="1188" class="s" font-size="26" fill="#2C3E50" font-weight="700">Is it open, or does the owner stop?</text>
+<text x="750" y="1188" class="s" font-size="25" fill="#2C3E50" font-weight="600">rejected: already_open; ended: shutdown</text>
+<text x="84" y="1288" class="s" font-size="25" fill="#2C3E50" font-weight="600">11   Admitted. The owner keeps every response from here on, and its answer never changes.</text>
+<text x="90" y="1407.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">12</text>
+<text x="122" y="1408" class="s" font-size="28" fill="#2C3E50" font-weight="700">Execute the request</text>
+<text x="78" y="1466" class="r" font-size="25" fill="#2C3E50">The owner calls the application at most once. close and ncp.ping need no application, and a feature operation of an enabled feature</text>
+<text x="78" y="1499" class="r" font-size="25" fill="#2C3E50">goes to its profile.</text>
+<text x="94" y="1555" class="s" font-size="25" fill="#2C3E50" font-weight="600">ok: the result</text>
+<text x="822" y="1555" class="s" font-size="25" fill="#2C3E50" font-weight="600">declined: unknown_op, body_invalid</text>
+<text x="94" y="1609" class="s" font-size="25" fill="#2C3E50" font-weight="600">ended: result_too_large</text>
+<text x="822" y="1609" class="s" font-size="25" fill="#2C3E50" font-weight="600">ended: owner_failure</text>
+<text x="78" y="1668" class="s" font-size="25" fill="#2C3E50" font-weight="600">13   The owner keeps the response. After ended, or after close, the session is over.</text>
+<text x="84" y="1771" class="s" font-size="24" fill="#4D5C64" font-weight="600">WHY THE ORDER MATTERS</text>
+<text x="84" y="1809" class="r" font-size="25" fill="#2C3E50">A copy of the last admitted request leaves at check 5 with the kept response, so it never executes twice. Apart from an open at</text>
+<text x="84" y="1842" class="r" font-size="25" fill="#2C3E50">check 3, no check before check 11 changes any state. For the client, a rejected request other than open still means possibly</text>
+<text x="84" y="1875" class="r" font-size="25" fill="#2C3E50">executed: the owner can have lost the session and opened it again.</text>
+</svg>

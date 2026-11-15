@@ -188,9 +188,44 @@ The advisory review of revision 4 proposed this work, in this order:
 
 Before the tag, the owner decides which parts it freezes. The review recommends a tag for the exercised core (frames, messages, the exchange, the byte-stream binding, transcripts, and contract identity), with sections 8, 9.2, and 11.1 and both profiles marked provisional, because no consumer uses them yet.
 
-1. Lockstep: a takeover by a request inside the new opening, with a term that the owner issues, so that a copy of `open` takes nothing (rule 7.1.8); a model check of both profiles before they are frozen.
+1. Lockstep: a takeover by a request inside the new opening, with a term that the owner issues, so that a copy of `open` takes nothing (rule 7.1.8); a model check of both profiles before they are frozen. Revision 6 did this for the lockstep profile (section 9); the rounds profile still has no model check.
 2. Decline reasons that a program can read: a code for a refusal by the owner's state, and a `reason` member.
 3. A stream profile for sensors and advisories: the stream type in the stream identifier, an announcement of live streams, start and liveness, time, and one key for each publisher. Galadriel's `galadriel-ncp` is its first subscriber.
 4. An authority profile for commands: the body is the owner; the Gate acquires a lease with a term and a token bound to the opening; each response gives the remaining time; ESTOP has its own session. Then CREBAIN's application, and Haldir with its epoch-22 transition.
 5. A fault campaign and a benchmark on the Zenoh binding, and the campaigns again on the revision that the tag names.
-6. A convention for principals: one key, and one service, for each pair of programs whose frames must be told apart.
+6. A convention for principals: one key, and one service, for each pair of programs whose frames must be told apart. Revision 6 states it in section 13.2; passing the binding's peer to the application stays open.
+
+## 9. From revision 5 to revision 6 of NCP 2
+
+Revision 6 (15 November 2026) closes the findings of the design record, [section 15](NCP-2-DESIGN.md#15-revision-6). Its wire changes concern only the lockstep profile and operations whose names start with `ncp.`; no consumer uses either, so none must move its pin.
+
+### What changes on the wire
+
+- Feature operations (section 15, rule 3): an operation `F.N` of a feature `F` that the session enabled goes to the profile; in every other session it is `declined` with `unknown_op`, as every owner of revision 5 answers it. A `declined` body can carry members whose names start with `ncp.`.
+- Lockstep profile revision 4. The `open` response reports `{"tick", "state", "request", "term"}` and takes nothing. A stepping client sends `ncp.lockstep.take` with `{"term": E}` before its first step; the response is the final clock. A take whose term moved, or a step that the holder check declines, carries `{"ncp.lockstep": {"term": E}}`. A client of profile revision 3 never takes the ticks, so the owner declines all its steps; a client of revision 4 ends a session with an owner that reports no term.
+- The owner leaves out `ncp.` members of a `declined` body that would not fit the session bound, and refuses an `open` whose response would not fit 65,536 bytes (rules 7.3.12 and 7.1.5).
+
+### Python (`ncp`)
+
+| Revision 5 | Revision 6 |
+| --- | --- |
+| `ncp.Lockstep(handler, ops, tick=..., state=..., request=...)`: `open` takes the ticks; the state digest starts as `None` | `open` reports; `ncp.lockstep.take` takes them; also `term`, `term=` to restore it, and `clock()`. Without `state=`, the digest starts as the application's `state()`. `tick` and `term` are at most 2**53 − 1 |
+| `ncp.LockstepClient(client)` reads the report | Also takes the ticks; also `request`, the request that produced the tick, `term`, the term that the owner told last, and `take()`, which takes the ticks again in the same session |
+| `LockstepClient.recover(client)`: verdict from the report, by the tick; `ProtocolError` without a verdict | Verdict from the take, by the whole clock: `ncp.lockstep.judge`. Without a verdict, it returns `Executed.UNKNOWN`; with every verdict, it goes on in the new session |
+| `LockstepClient.step` after an `ok` without the tick: `ProtocolError` | Ends the session and raises `Ended` with `local.protocol`, executed `YES` |
+| — | `ncp.lockstep.take(client, term=None)`, which returns the clock and the new term, `ncp.lockstep.report(client)`, `TAKE`, `TAKE_ATTEMPTS`, `MAX_TERM`, `MAX_TICK` |
+| — | `ncp.messages.feature_of(op)` |
+| A handler's `Declined(detail, body=...)`: the owner kept only `detail` | The owner also keeps the members of `body` whose names start with `ncp.` |
+
+### Rust (`ncp`)
+
+| Revision 5 | Revision 6 |
+| --- | --- |
+| `lockstep::Clock { tick, state, request, holder }` | Also `term` |
+| `LockstepClient { tick, state, uncertain }` | Also `request` and `term`; `new` also takes the ticks; `take()` takes them again in the same session |
+| `LockstepClient::recover`: `Error::Usage` without a verdict | `Ok(Executed::Unknown)` without a verdict; with every verdict, it goes on in the new session |
+| `LockstepClient::step` after an `ok` without the tick: `Error::Usage`, whose `executed()` is No | Ends the session and returns `Error::Ended` with `local.protocol`, executed Yes |
+| `Lockstep::new`: the state digest starts as `None` | The application's `state()` |
+| — | `lockstep::{TAKE, TAKE_ATTEMPTS, MAX_TERM, MAX_TICK, Known, take, judge}`; `take(client, term)` returns the clock and the new term; `judge` returns `Executed`; `Lockstep::restored(stepper, ops, tick, state, request, term)` |
+| `Invalid::{Declined, Failed}` | Also `Invalid::DeclinedWith`, made with `declined_with` |
+| — | `messages::feature_of` |

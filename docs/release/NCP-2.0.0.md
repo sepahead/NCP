@@ -1,10 +1,10 @@
 # NCP 2.0.0 release record
 
-Status: prepared on 11 November 2026, and rebuilt on 14 November 2026 for revision 5 of the specification. The tag and the publication of the packages are owner actions; this record lists what they publish.
+Status: prepared on 11 November 2026, and rebuilt on 15 November 2026 for revision 6 of the specification. The tag and the publication of the packages are owner actions; this record lists what they publish.
 
 ## What 2.0.0 is
 
-- The [NCP 2 specification](../../spec/NCP-2.md), release candidate, revision 5, with the [rounds profile](../../spec/NCP-2-ROUNDS.md) and revision 3 of the [lockstep profile](../../spec/NCP-2-LOCKSTEP.md).
+- The [NCP 2 specification](../../spec/NCP-2.md), release candidate, revision 6, with the [rounds profile](../../spec/NCP-2-ROUNDS.md) and revision 4 of the [lockstep profile](../../spec/NCP-2-LOCKSTEP.md).
 - `sepahead-ncp` 2.0.0, the Python SDK (module `ncp`), standard library only: [`python/`](../../python/README.md).
 - `sepahead-ncp-core` 2.0.0, the Rust SDK (library `ncp`): [`rust/`](../../rust/README.md).
 - `sepahead-ncp-zenoh` 2.0.0, the optional Zenoh binding for Python and for Rust: [`bindings/zenoh/`](../../bindings/zenoh/README.md).
@@ -17,9 +17,9 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 67,841 | `5a6b053690063d0962528c65460566cdc7df7ce7cc7d3e67864ac7f5a7c3b0bb` |
-| `sepahead_ncp-2.0.0-py3-none-any.whl` | 105,788 | `ab74c5177a01096f2440888d87310d527b7458ae9e451bf666b36bd369de9911` |
-| `sepahead_ncp-2.0.0.tar.gz` | 101,385 | `d91e171c6129dd28a9970f92700c4d95f2a1b5fe5e958bd17611978333c81796` |
+| `sepahead-ncp-core-2.0.0.crate` | 72,490 | `2407260d075a3ecd0dd6eb6aeca148fa581bb4dd0a437777ebcc9e98991db9b4` |
+| `sepahead_ncp-2.0.0-py3-none-any.whl` | 109,226 | `41553672c2b2f404a1ae1cb6462058535291d76a631a5e62d388c7ef106b396e` |
+| `sepahead_ncp-2.0.0.tar.gz` | 105,331 | `d98701631e8f943b87f2789e4c3d7f6ff7c6e99a8c5b4d14cf6e050801dd9fa6` |
 | `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 13,613 | `f0d120d6fa8d94afa047ac5dc81b40e58cf6c2e91197803c83db5533419504c8` |
 | `sepahead_ncp_zenoh-2.0.0.tar.gz` | 12,506 | `2fd58008722a2121b49338ceef384630d626f860e4dc0229109d687d520481ae` |
 
@@ -64,8 +64,9 @@ Each gate is PASS, with its evidence, NOT RUN, or OPEN, which is a decision of t
 | Fault campaign on the Zenoh binding, with owner restarts, session expiry, delayed and repeated `open`, and replayed frames | NOT RUN |
 | Benchmark of the Zenoh binding | NOT RUN |
 | A consumer of the exchange over the byte-stream binding | PASS: CREBAIN's closed loop and NEST controller on revision 4 (CREBAIN `a1df34c`) |
-| A consumer of streams, of the Zenoh binding, of contract schemas, of authenticated frames, and of each profile | NOT RUN: none uses them yet |
-| Model check of the profiles | NOT RUN |
+| A consumer of streams, of the Zenoh binding, of contract schemas, of authenticated frames, of feature operations, and of each profile | NOT RUN: none uses them yet |
+| Model check of the lockstep profile | PASS with one fault, in the NCP 2 gate (`model/lockstep.py`, with its self-test). Two faults: an advisory run outside the gate, 10,514,136 worlds, every property holds |
+| Model check of the rounds profile | NOT RUN |
 | An implementation by another author | NOT RUN |
 | External review | NOT RUN |
 | Signatures, SBOM, and provenance of the published files | NOT RUN |

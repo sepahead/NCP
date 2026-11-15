@@ -111,6 +111,14 @@ def is_nonce(value: Any) -> bool:
     return type(value) is str and _NONCE.match(value) is not None
 
 
+def feature_of(op: str) -> str | None:
+    """The feature that a feature operation belongs to (section 15, rule 3): `F` for an operation
+    `F.N` whose `F` starts with `ncp.` and whose `N` has no `.`; otherwise None. `ncp.ping` is no
+    feature operation."""
+    feature, dot, name = op.rpartition(".")
+    return feature if dot and name and feature.startswith("ncp.") else None
+
+
 def is_code(value: Any) -> bool:
     return type(value) is str and _CODE.match(value) is not None
 

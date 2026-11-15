@@ -5,14 +5,15 @@
 //! that it is given. The Lean model in `formal/` states the same rules, and the gate compares the
 //! two. [`Owner`] drives [`step`] for one session and keeps its state.
 
-use crate::contract::Contract;
+use crate::contract::{Contract, RESERVED};
 use crate::events::{default_observer, Event, Observer};
 use crate::frame::{
     self, Array, Decoded, EncodeError, FrameError, Key, Verify, DEFAULT_BOUND, HANDSHAKE_BOUND,
     MAX_BOUND,
 };
 use crate::messages::{
-    check_request, detail, foreign, is_identity, is_name, MAX_FEATURES, MAX_RUN, PROTOCOL,
+    check_request, detail, feature_of, foreign, is_identity, is_name, MAX_FEATURES, MAX_RUN,
+    PROTOCOL,
 };
 use serde_json::{json, Map, Value};
 use std::fmt;
@@ -30,6 +31,10 @@ pub enum Invalid {
     /// Decline the request: the owner responds `declined` with `body_invalid` and the detail, and
     /// the request never runs. Make it with [`declined`].
     Declined(String),
+    /// Decline the request as [`Invalid::Declined`] does, with members of a profile in the body
+    /// of the response: only members whose names start with `ncp.` (section 15, rule 2). Make it
+    /// with [`declined_with`].
+    DeclinedWith(String, Map<String, Value>),
     /// The application failed while it checked the body: the session ends with `owner_failure`.
     Failed(AppError),
 }
@@ -37,6 +42,12 @@ pub enum Invalid {
 /// Decline a request with a detail, from a handler's `validate`.
 pub fn declined(detail: impl Into<String>) -> Invalid {
     Invalid::Declined(detail.into())
+}
+
+/// Decline a request with a detail and members of a profile, whose names start with `ncp.`, in
+/// the body of the response; for example the term of a declined take of the lockstep profile.
+pub fn declined_with(detail: impl Into<String>, members: Map<String, Value>) -> Invalid {
+    Invalid::DeclinedWith(detail.into(), members)
 }
 
 /// Returned by a handler's `open` to refuse a session: the owner rejects the `open` with the code
@@ -426,13 +437,17 @@ fn call<H: Handler + ?Sized>(
     let small = |outcome: &str, code: &str, body: Value| -> Result<Arc<Vec<u8>>, FrameError> {
         reply(outcome, Some(code), body, &[], None).map_err(FrameError::from)
     };
-    if !contract.has_operation(op) {
+    // A feature operation of a feature that the session enabled belongs to the profile that
+    // defines the feature: the handler serves it, and the contract and its schemas do not apply
+    // (rule 12; section 15, rule 3). Any other operation outside the contract is unknown.
+    let of_feature = feature_of(op).is_some_and(|feature| state.features.contains_key(feature));
+    if !of_feature && !contract.has_operation(op) {
         let response = small("declined", "unknown_op", json!({}))?;
         return Ok((response, note("admitted", "declined", Some("unknown_op"))));
     }
     let message = &decoded.message;
     let body = &message["body"];
-    if config.check_schemas {
+    if config.check_schemas && !of_feature {
         if let Some(mismatch) = contract.check_request(op, body) {
             let text = detail(&format!("request schema: {mismatch}"));
             let response = small("declined", "body_invalid", json!({"detail": text}))?;
@@ -453,20 +468,10 @@ fn call<H: Handler + ?Sized>(
         nonce: state.nonce.as_deref().unwrap_or_default(),
         decoded,
     };
-    match handler.validate(&request) {
-        Ok(()) => {}
-        Err(Invalid::Declined(text)) => {
-            let text = detail(&text);
-            let body = if text.is_empty() {
-                json!({})
-            } else {
-                json!({"detail": text})
-            };
-            let response = small("declined", "body_invalid", body)?;
-            let mut n = note("admitted", "declined", Some("body_invalid"));
-            n.detail = (!text.is_empty()).then_some(text);
-            return Ok((response, n));
-        }
+    let refusal = match handler.validate(&request) {
+        Ok(()) => None,
+        Err(Invalid::Declined(text)) => Some((text, Map::new())),
+        Err(Invalid::DeclinedWith(text, members)) => Some((text, members)),
         Err(Invalid::Failed(error)) => {
             let response = small("ended", "owner_failure", json!({}))?;
             let mut n = note("application_error", "ended", Some("owner_failure"));
@@ -474,6 +479,35 @@ fn call<H: Handler + ?Sized>(
             n.error = Some(error.to_string());
             return Ok((response, n));
         }
+    };
+    if let Some((text, members)) = refusal {
+        let text = detail(&text);
+        // A profile can add its own members, whose names start with "ncp." (section 15, rule 2),
+        // for example the term of a declined take of the lockstep profile.
+        let mut body: Map<String, Value> = members
+            .into_iter()
+            .filter(|(name, _)| name.starts_with(RESERVED))
+            .collect();
+        if !text.is_empty() {
+            body.insert("detail".into(), Value::String(text.clone()));
+        }
+        let bounded = reply(
+            "declined",
+            Some("body_invalid"),
+            Value::Object(body),
+            &[],
+            Some(state.bound),
+        );
+        let response = match bounded {
+            Ok(response) => response,
+            // Members that cannot be encoded, or that make the response larger than the session's
+            // bound: decline with the detail alone, which always fits.
+            Err(_) if text.is_empty() => small("declined", "body_invalid", json!({}))?,
+            Err(_) => small("declined", "body_invalid", json!({"detail": text}))?,
+        };
+        let mut n = note("admitted", "declined", Some("body_invalid"));
+        n.detail = (!text.is_empty()).then_some(text);
+        return Ok((response, n));
     }
     let result = match handler.execute(&request) {
         Ok(result) => result,
@@ -602,9 +636,22 @@ fn open<H: Handler + ?Sized>(
                          "body": {"bound": effective, "application": contract.application,
                                   "contract": contract.identity, "implementation": config.implementation,
                                   "nonce": nonce, "features": enabled}});
-    let response = Arc::new(
-        frame::encode_with(&message, &[], config.key.as_ref(), None).map_err(FrameError::from)?,
-    );
+    // The client reads the `open` response with the handshake bound (rule 7.1.3).
+    let response =
+        match frame::encode_with(&message, &[], config.key.as_ref(), Some(HANDSHAKE_BOUND)) {
+            Ok(response) => Arc::new(response),
+            Err(error) => {
+                let text = "the application granted features that cannot be sent";
+                handler.close("refused"); // the application opened a session that the owner refuses
+                let (state, response, mut n) = reject("refused", text)?;
+                n.kind = "application_error";
+                n.error = Some(match error {
+                    EncodeError::TooLarge(t) => format!("{} bytes exceed {}", t.size, t.limit),
+                    EncodeError::Invalid(error) => error.0,
+                });
+                return Ok((state, response, n));
+            }
+        };
     let next = OwnerState {
         session: Some(info.session.to_owned()),
         bound: effective,

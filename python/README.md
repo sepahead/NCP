@@ -136,7 +136,9 @@ result = client.call("act", {"ncp.round": {"agent": "drone-1", "round": k}, "thr
 record = ncp.RoundRecord.of(result, "drone-1")  # checks that the round applied this request
 ```
 
-For one simulation that steps through ticks, `ncp.Lockstep` and `ncp.LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and after a lost session, a new session tells the client whether its last step ran. The new session takes the ticks from the old one, so a delayed copy of that step can no longer run.
+For one simulation that steps through ticks, `ncp.Lockstep` and `ncp.LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and one opening at a time holds the ticks. After a lost session, a new session takes the ticks with the request `ncp.lockstep.take`, whose response tells the client whether its last step ran; a delayed copy of that step can no longer run, and a copy of an old `open` takes nothing.
+`LockstepClient.recover` returns `Executed.YES`, `NO`, or `UNKNOWN`, and goes on in the new session in each case; `LockstepClient.take()` takes the ticks again in the same session after a step that another opening's take declined.
+Make `Lockstep` the outermost handler of the owner: it holds a lock from the check of a take or a step to its execution, so a handler around it that declines after its check leaves every later take and step waiting. Other operations, and the application's `open`, pass through without that lock.
 
 ## Streams
 

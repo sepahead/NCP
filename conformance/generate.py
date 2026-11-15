@@ -39,7 +39,7 @@ from ncp import client as C  # noqa: E402
 from ncp import frame as F  # noqa: E402
 from ncp import transcript as T  # noqa: E402
 
-REVISION = 5
+REVISION = 6
 SESSION = "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b"
 NONCE = "00112233445566778899aabbccddeeff"
 KEY = bytes(range(32))
@@ -430,6 +430,20 @@ def scenarios() -> list[dict]:
                 {"repeat": 1, "expect": ["declined", "body_invalid"]},
                 {"seq": 2, "op": "flaky", "body": {"n": 2}, "ack": "last", "expect": ["ok", None]},
                 {"repeat": 1, "expect": ["rejected", "seq_stale"]},
+            ],
+        },
+        {
+            # Section 15, rule 3: a feature operation of a feature that the session did not enable,
+            # and any other operation that starts with "ncp.", is an unknown operation.
+            "name": "an operation of a feature that the session did not enable is unknown",
+            "steps": [
+                open_step,
+                {"seq": 1, "op": "ncp.lockstep.take", "body": {"term": 0}, "ack": "last",
+                 "expect": ["declined", "unknown_op"]},
+                {"repeat": 1, "expect": ["declined", "unknown_op"]},
+                {"seq": 2, "op": "ncp.nosuch", "body": {}, "ack": "last", "expect": ["declined", "unknown_op"]},
+                {"seq": 3, "op": "ncp.ping.x", "body": {}, "ack": "last", "expect": ["declined", "unknown_op"]},
+                {"seq": 4, "op": "step", "body": {"x": 1}, "ack": "last", "expect": ["ok", None]},
             ],
         },
         {

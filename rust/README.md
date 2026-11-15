@@ -138,7 +138,9 @@ The crate is tested on Linux and macOS. It also builds for Windows, without the 
 
 ## Profiles, streams, and transcripts
 
-`Lockstep` and `LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and after a lost session, a new session tells the client whether its last step ran. The new session takes the ticks from the old one, so a delayed copy of that step can no longer run.
+`Lockstep` and `LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and one opening at a time holds the ticks. After a lost session, a new session takes the ticks with the request `ncp.lockstep.take`, whose response tells the client whether its last step ran; a delayed copy of that step can no longer run, and a copy of an old `open` takes nothing.
+`LockstepClient::recover` returns `Executed::Yes`, `No`, or `Unknown`, and goes on in the new session in each case; `LockstepClient::take` takes the ticks again in the same session after a step that another opening's take declined.
+Make `Lockstep` the outermost handler of the owner: it reserves the clock from the check of a take or a step to its execution, so a handler around it that declines after its check leaves every later take and step waiting. The application and the clock share one lock, so while a step runs, every request of every session that reaches the application waits.
 `Publisher` numbers and chains the messages of a stream under a unique stream identifier; `Subscriber` reports each frame as accepted (with the number of lost messages before it), joined, a repeat, a conflict, a broken chain, an unknown contract, or a bad frame.
 `Tap` records the frames that a channel sends and receives (`with_tap` on a channel), with a hash chain over the records, and `transcript::verify` checks the digests, the sequence numbers, the acknowledgements, and the chain.
 A tap gives each record to the operating system before the frame is sent, so a transcript keeps every record up to a crash of the recording program.

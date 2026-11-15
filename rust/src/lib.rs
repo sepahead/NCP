@@ -38,8 +38,8 @@ pub use frame::{
 pub use lockstep::{Lockstep, LockstepClient, Stepper};
 pub use messages::{Executed, PROTOCOL};
 pub use owner::{
-    declined, AppError, Handler, Invalid, OpenInfo, Owner, OwnerState, Refused, Reply, Request,
-    IMPLEMENTATION,
+    declined, declined_with, AppError, Handler, Invalid, OpenInfo, Owner, OwnerState, Refused,
+    Reply, Request, IMPLEMENTATION,
 };
 pub use stream::{Delivery, Publisher, Subscriber};
 pub use transcript::Tap;

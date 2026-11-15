@@ -4,7 +4,8 @@
 # Usage: scripts/check_ncp2.sh [--quick]
 # PYTHON names the interpreter to test (default python3; NCP 2 needs Python 3.11 or later).
 # --quick runs 2,000 oracle traces, a model check with one fault, and 20,000 fuzzing cases,
-# instead of 20,000 traces, two faults, and 200,000 cases.
+# instead of 20,000 traces, two faults, and 200,000 cases. The check of the lockstep profile runs
+# with one fault in both modes.
 # NCP2_SKIP_LEAN=1 leaves out the Lean proofs and the Lean oracle (they need elan and lake).
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -49,12 +50,19 @@ examples="$root/rust/target/release/examples"
 echo "== The vectors against the Rust decoder and owner programs (python -m ncp conformance)"
 (cd python && "$python" -m ncp conformance --decoder "$examples/decode_corpus" --owner "$examples/conformance_owner")
 
-echo "== Python client with the Rust owner"
-NCP_RUST_EXAMPLES="$examples" "$python" -I python/tests/test_ncp.py BindingTests.test_python_client_with_the_rust_owner
+echo "== Python clients with the Rust owner and the Rust lockstep owner"
+NCP_RUST_EXAMPLES="$examples" "$python" -I python/tests/test_ncp.py \
+    BindingTests.test_python_client_with_the_rust_owner \
+    BindingTests.test_python_lockstep_client_with_the_rust_lockstep_owner
 
 echo "== Exhaustive model check of the SDK client and owner, up to $faults faults, with its mutation test"
 "$python" -I model/simulate.py --faults "$faults"
 "$python" -I model/simulate.py --faults "$faults" --self-test
+
+# One fault in both modes: with two, the search grows beyond 3 million worlds (model/README.md).
+echo "== Exhaustive check of the lockstep profile, up to 1 fault, with its mutation test"
+"$python" -I model/lockstep.py --faults 1
+"$python" -I model/lockstep.py --faults 1 --self-test
 
 echo "== The Rust owner against the Python owner, $traces traces"
 "$python" -I model/conformance.py --traces "$traces" --owner "$examples/model_owner"

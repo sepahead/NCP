@@ -2,7 +2,7 @@
 
 This guide explains NCP 2 for readers without a background in protocols.
 The [specification](../spec/NCP-2.md) is the exact definition; where this guide and the specification differ, the specification is correct.
-NCP 2.0 is a release candidate: revision 5 of the specification. The tag and the publication of the packages follow.
+NCP 2.0 is a release candidate: revision 6 of the specification. The tag and the publication of the packages follow.
 
 ## What NCP is for
 
@@ -54,6 +54,11 @@ In a session, at most one call can be in this state, and it is always the last o
 
 A client that follows the rules gets `rejected` for a request other than `open` only in one case: the owner lost the session, by a restart or by expiry, and a delayed copy of the `open` request opened it again. An earlier copy of the request may have run before the loss, so the client ends the session and treats the request as possibly executed.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-verdicts-dark.svg">
+  <img src="diagrams/ncp2-verdicts-light.svg" alt="Three columns sort every NCP 2 answer by what the client may conclude. Executed: ok and result_too_large. Not executed: the declined codes, shutdown, bad_frame, and a rejected open. Possibly executed: every other rejection, owner_failure, session_expired, a code that the client does not know, and the four local events.">
+</picture>
+
 ## When something goes wrong
 
 | What happens | What NCP 2 does | What the client learns |
@@ -74,6 +79,13 @@ A client that follows the rules gets `rejected` for a request other than `open` 
 </picture>
 
 These rules are proved for the owner (see [How we know that it works](#how-we-know-that-it-works)).
+
+The owner checks each frame in a fixed order. A frame leaves at the first check that fails. Apart from an `open`, which opens the session, no check before the admission changes anything.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-ladder-dark.svg">
+  <img src="diagrams/ncp2-ladder-light.svg" alt="Thirteen checks in the order of section 7.3 of the specification. A frame leaves at the first check that fails, with the outcome and code shown beside it. A frame that passes ten checks is admitted, and the owner keeps every answer from that point.">
+</picture>
 
 ## Large data
 
@@ -111,9 +123,19 @@ Because each request names the response before it, a verifier can check the whol
   <img src="diagrams/ncp2-transcript-light.svg" alt="Three numbered cards: record each frame first, the chain of requests and responses, and the check afterwards. Below them, the eight frames of one session in two rows: request 0 open, response 0 ok, then two steps, close, and their responses, each joined to the next. A note says what a transcript shows and that it is not signed.">
 </picture>
 
+## Steps of a simulation
+
+A simulation step changes state that outlives the session, so a lost session leaves a question: did the last step run?
+The [lockstep profile](../spec/NCP-2-LOCKSTEP.md) numbers the steps with ticks, and one opening at a time holds them. After a lost session, the client opens a new one and takes the ticks with a request. The response gives the final tick, so the client learns whether its last step ran, and no copy of the old step can run afterwards. An `open` only reports the tick, so a copy of an old `open` takes nothing.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-lockstep-dark.svg">
+  <img src="diagrams/ncp2-lockstep-light.svg" alt="A time line of a client and an owner in four steps: a step is delayed, the client recovers in a new session and takes the ticks with a request, a copy of the first open arrives, and the delayed step arrives. Two cards compare the result: with a session name as the holder, the step ran after the verdict that it did not; when only a take takes the ticks, it is declined.">
+</picture>
+
 ## How fast it is
 
-These times were measured with revision 2 of the SDKs. Revisions 3 to 5 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again.
+These times were measured with revision 2 of the SDKs. Revisions 3 to 6 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again.
 One call with a small result took 9.0 µs between two Rust programs and 38.8 µs between two Python programs, on one laptop ([comparison protocol 2](../benchmarks/comparison/README.md#results-of-protocol-2)).
 NCP 1.0.1 took 36.1 µs and 469 µs. Over all pairs of languages and sizes, NCP 2 was 4.0 to 167 times faster.
 
@@ -163,10 +185,10 @@ A second run gave every other tool the same fingerprint check as NCP 2, added by
 ## How we know that it works
 
 - **Proofs.** A model of the owner's rules and of a client that follows the client rules, written in the Lean proof assistant, has nineteen proved claims for every possible sequence of inputs: for example, that the owner runs each request at most once and in order, that two openings with different nonces share no request, and that every verdict "ran" or "did not run" of the client is true ([`formal/`](../formal/README.md)). Eleven injected defects each break the proof of the claim that forbids them. The proofs cover the models, not the program code.
-- **Model check.** A program drives the real client and owner of the Python SDK through every reachable state of small sessions, about 2.6 million states, in which messages are lost, repeated, delayed, or reordered, the owner restarts or stops, and a faulty client sends wrong requests. It checks all eight properties of the specification in every state ([`model/`](../model/README.md)). Its first run found the gap that the client rule for a rejected request now closes.
+- **Model check.** A program drives the real client and owner of the Python SDK through every reachable state of small sessions, about 2.6 million states, in which messages are lost, repeated, delayed, or reordered, the owner restarts or stops, and a faulty client sends wrong requests. It checks all eight properties of the specification in every state ([`model/`](../model/README.md)). Its first run found the gap that the client rule for a rejected request now closes. A second check does the same for the lockstep profile, with copies of every frame, restarts, and a second client: while the owner keeps its latest clock, a step that recovery says did not run never runs. After a restart to an earlier saved clock, "did not run" means that the step is not in the owner's state, as the profile says.
 - **The real owners against the proved model.** The Python and Rust owners give the same answer as the compiled Lean model on 20,000 random traces with copies, restarts, and stops ([`model/`](../model/README.md)).
 - **Shared tests.** The Rust and Python versions pass the same test vectors, every requirement of the specification is mapped to the checks that test it, and a test compares their answers on 200,000 random and damaged messages ([`conformance/`](../conformance/README.md)).
-- **Real faults.** In 8,730 trials with real programs, over pipes, Unix domain sockets, and TCP, with Rust and Python on both sides, a relay damaged, cut, or repeated messages, programs were killed, steps stalled, and messages were too large. No client accepted a wrong result, no owner ran a step twice, and no client was told something false about a step. Nine runs of up to 1,000,000 calls kept their memory and open files constant ([fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocol-5)). These trials ran with revision 2 of the SDKs, before the `declined` outcome and the nonce; they have not run again with revisions 3 to 5.
+- **Real faults.** In 8,730 trials with real programs, over pipes, Unix domain sockets, and TCP, with Rust and Python on both sides, a relay damaged, cut, or repeated messages, programs were killed, steps stalled, and messages were too large. No client accepted a wrong result, no owner ran a step twice, and no client was told something false about a step. Nine runs of up to 1,000,000 calls kept their memory and open files constant ([fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocol-5)). These trials ran with revision 2 of the SDKs, before the `declined` outcome and the nonce; they have not run again with revisions 3 to 6.
 - **Exact data.** Coupled to NEST, both versions received exactly the spikes that NEST recorded, each neuron and time, in all 96 trials of a content test, with up to 8 threads and 10,000 neurons: 42,026,126 spikes compared ([NEST campaign](../benchmarks/nest-campaign/README.md#results-of-content-protocol-2)).
 
 ## What NCP 2 does not do

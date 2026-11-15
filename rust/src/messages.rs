@@ -109,6 +109,14 @@ pub fn is_nonce(value: &Value) -> bool {
     value.as_str().is_some_and(|s| is_hex(s, 32))
 }
 
+/// The feature that a feature operation belongs to (section 15, rule 3): `F` for an operation
+/// `F.N` whose `F` starts with `ncp.` and whose `N` has no `.`; otherwise None. `ncp.ping` is no
+/// feature operation.
+pub fn feature_of(op: &str) -> Option<&str> {
+    let (feature, name) = op.rsplit_once('.')?;
+    (!name.is_empty() && feature.starts_with("ncp.")).then_some(feature)
+}
+
 /// Whether a string is a session identifier: a version 4 UUID in lowercase hyphenated form.
 pub fn is_session(s: &str) -> bool {
     let b = s.as_bytes();

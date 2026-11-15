@@ -1,6 +1,6 @@
 # NCP 2 specification
 
-Status: NCP 2.0, release candidate, revision 5 of 14 November 2026.
+Status: NCP 2.0, release candidate, revision 6 of 15 November 2026.
 The tag `v2.0.0` freezes this text. After the tag, section 19 lists errata. An erratum corrects the text and changes no behavior.
 This document is normative. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119 and RFC 8174 when, and only when, they appear in all capitals.
 The [design record](../docs/design/NCP-2-DESIGN.md) gives the reasons for each decision. [`ncp2-rules.json`](ncp2-rules.json) states the codes and outcomes of this document as data, and a check keeps the SDKs, the Lean model, and this text equal to it.
@@ -190,11 +190,12 @@ A stream message is an object with exactly these members (`att` is optional):
 
    The owner MUST choose each nonce from at least 128 bits of a cryptographically secure random generator. Two openings MUST NOT share a nonce, also across restarts of the owner. An owner therefore MUST NOT restore the state of an opening (section 7.2), for example from a snapshot: after a restart, it holds no session. The identity of the `open` response is the root of the session's hash chain, so different nonces make the chains of two openings disjoint (section 7.7, property 1).
    An owner enables only features that it knows and that the request lists. A client MUST NOT use a feature that the response does not list.
+   The `open` response MUST fit the bound 65,536 (rule 7.1.3). If the parameters of the features that the owner would enable do not fit, the owner refuses the session with `refused`.
    A client MUST ignore members of this body that it does not know. Later versions can add members.
    A client MUST check that `bound` is from 65,536 to the bound that it requested, that `nonce` has the form above, and that `features`, if present, is an object. Otherwise the session ends, and the `open` request is possibly executed. An owner of an earlier revision, which sends no nonce, therefore opens no session with a client of this revision.
 6. After the `open` response, both sides use the session bound for all frames of the session.
 7. A client that sends `open` again after a time limit sends the same frame, so that every copy names the same session.
-8. An opening is not at most once: a delayed copy of `open` can open the session again after the owner lost it (rule 7.6.4). What an owner does when it accepts `open` must therefore be safe to repeat.
+8. An opening is not at most once: a delayed copy of `open` can open the session again after the owner lost it (rule 7.6.4), and on the byte-stream binding a copy of `open` on another connection opens a session there. What an owner does when it accepts `open` must therefore be safe to repeat. A profile MUST NOT let the acceptance of `open` change state that outlives the session, and an application SHOULD NOT. Such a change belongs in a request other than `open`, for example a feature operation (section 15, rule 3): an owner admits that request at most once, and only in the opening whose `open` response the request acknowledges (section 7.7, property 1).
 
 ### 7.2 Owner state
 
@@ -229,8 +230,9 @@ The owner handles one frame of a session at a time, in arrival order, with these
 12. Execute the request:
     - For `close`, end the session and respond `ok` with an empty object as body. The owner ignores the body of `close`.
     - For `ncp.ping`, respond `ok` with an empty object as body. The owner does not call the application.
-    - If the contract has no such operation, respond `declined` with `unknown_op`.
-    - If the application finds the body invalid before it changes any state, respond `declined` with `body_invalid`. The body can say why in its member `detail`.
+    - For a feature operation (section 15, rule 3) of a feature that the owner enabled for this session, the profile that defines the feature is the application in the bullets below that name the application, and the contract and its schemas (section 11) do not apply to the request.
+    - For any other operation that the contract does not have, respond `declined` with `unknown_op`. This includes every other operation whose name starts with `ncp.`.
+    - If the application finds the body invalid before it changes any state, respond `declined` with `body_invalid`. The body can say why in its member `detail`, and a profile can add members whose names start with `ncp.` (section 15, rule 2). If the response with those members would exceed the session bound, or they cannot be encoded, the owner leaves them out.
     - If the application fails while it checks the body, respond `ended` with `owner_failure`.
     - Otherwise call the application. If it returns a result, respond `ok` with the result. If it raises an error, respond `ended` with `owner_failure`.
     - If the JSON region of the `ok` response would exceed 1,048,576 bytes, respond `ended` with `result_too_large` and the body `{"json": J, "limit": 1048576}`, where `J` is the size of the JSON region that the response would need. Otherwise, if the `ok` response would exceed the session bound, respond `ended` with `result_too_large` and the body `{"size": S, "bound": B}`, where `S` is the frame size that the response would need.
@@ -300,7 +302,7 @@ Under these assumptions, for every network that loses, repeats, delays, or reord
 7. **The client is told the truth.** Each verdict of a client that follows section 7.6 is true when the client reaches it, and it stays true. The verdict is "executed" after `ok` and `result_too_large`, "not executed" after `declined`, `shutdown`, and `bad_frame`, and "possibly executed" after all other `ended` codes, after `rejected` in reply to a request other than `open`, and after local failures. A response that names no request gives "not executed" only with the code `bad_frame` or `shutdown` and a body that binds it to the client's chain (rule 7.6.2), and "possibly executed" otherwise. At most one request of a session is possibly executed, and it is the last request of the session.
 8. **One hash chain.** Each admitted request names the identity of the response before it, and each response names the identity of its request. The identity of the last response commits to every admitted request and response of the session.
 
-[`formal/`](../formal/README.md) states which of these properties the Lean proofs establish, for which part of the system, and under which assumptions. [`model/`](../model/README.md) checks all eight properties against the reference SDKs in every reachable state of bounded runs. Both include restarts of the owner and the expiry of sessions. Neither models a crash of the client: a client that crashes keeps no verdict, and properties 1 to 3, 5, 6, and 8 do not depend on the client.
+[`formal/`](../formal/README.md) states which of these properties the Lean proofs establish, for which part of the system, and under which assumptions. [`model/`](../model/README.md) checks all eight properties against the Python SDK in every reachable state of bounded runs, and compares the Python and Rust owners with the Lean model on random traces. Both include restarts of the owner and the expiry of sessions. Neither models a crash of the client: a client that crashes keeps no verdict, and properties 1 to 3, 5, 6, and 8 do not depend on the client.
 
 ## 8. Streams
 
@@ -486,7 +488,7 @@ Two values are equal if they have the same JSON type and the same value. An inte
 - Without authenticated frames, the digest protects against accidental damage only. A peer that can write to the binding can make frames with valid digests.
 - Bounds limit memory. Receivers check lengths before they allocate.
 - If an application turns off the digest comparison (section 3, rule 5), damage between the two endpoints is not detected while the session runs. Identities, the hash chain, and transcript verification do not change.
-- Applications that need authority for physical actions add their own signed authority in their contract. NCP does not decide who may move a machine.
+- Applications that need authority for physical actions add their own signed authority to the messages that their contract defines. NCP does not decide who may move a machine.
 
 ### 13.2 Authenticated frames
 
@@ -499,6 +501,7 @@ Two endpoints that share a secret key `K` of at least 32 bytes MAY authenticate 
 5. Each endpoint gets `K` out of band, for example from a file that only its user can read. NCP does not exchange keys.
 
 Authenticated frames protect from end to end against every party without the key, also across Zenoh routers. They do not prevent the replay of a frame that an endpoint made: the rules bind each response that a client trusts to its request or to the owner's chain, and a request replayed to another session or opening fails the checks of rules 7.3.4 to 7.3.9. They do not hide the content of frames. A sender and a receiver of a session cannot prove to a third party which of them made a frame, because both hold `K`.
+A key therefore names a group of programs, not one: every holder of `K` can make every frame that the others accept, also the messages of a stream that it only subscribes to. Where frames must be told apart by the program that made them, use one key, and one owner or one stream, for each pair of programs. NCP gives the application no identity of its peer. An application that needs one takes it from the binding, for example from the client certificate of TLS (section 13.3) or the credentials of a Unix domain socket, or from a signed token in the messages that its contract defines (section 13.1).
 
 ### 13.3 TLS for TCP
 
@@ -506,8 +509,8 @@ A TCP endpoint MAY use TLS 1.3 with certificates on both sides. The server MUST 
 
 ## 14. Conformance
 
-An implementation conforms if it passes the vectors in [`conformance/`](../conformance/README.md) for the parts that it implements: frames, arrays, owner rules, client rules, streams, transcripts, contracts and schemas, and authenticated frames. The bindings and the profiles have no vectors yet; the tests of the SDKs check them.
-The vectors give exact inputs and the expected outcome, code, verdict, and state. [`conformance/requirements.json`](../conformance/requirements.json) maps each MUST and MUST NOT of this document to the vectors that test it.
+An implementation conforms if it passes the vectors in [`conformance/`](../conformance/README.md) for the parts that it implements: frames, arrays, owner rules, client rules, streams, transcripts, contracts and schemas, and authenticated frames. The bindings and the profiles have no vectors yet; the tests of the SDKs check them, and the lockstep check of [`model/`](../model/README.md) checks the lockstep profile in every reachable state of bounded runs.
+The vectors give exact inputs and the expected outcome, code, verdict, and state. [`conformance/requirements.json`](../conformance/requirements.json) maps each requirement of this document and of its two profiles to the checks that test it: vectors, tests of the SDKs and the bindings, model properties, and Lean claims.
 The command `python -m ncp conformance` runs the vectors against another implementation's decoder and owner programs.
 
 ## 15. Reserved names
@@ -516,6 +519,7 @@ These names are reserved for this specification, its later versions, and NCP pro
 
 1. Operation names and feature names that start with `ncp.`. This document defines `ncp.ping` (rule 7.3.12).
 2. Object members, at any level of a body or a contract, whose names start with `ncp.`. This document defines `ncp.array` (section 5), `ncp.end` (section 8), and `ncp.schema` (section 11).
+3. Feature operations. An operation name `F.N` is a feature operation of the feature `F` if `F` starts with `ncp.` and `N` is not empty and contains no `.`; the feature of such an operation is its name before the last `.`. `ncp.ping` is no feature operation. The profile that defines the feature defines the operation, its body, and its result. An owner executes a feature operation only in a session for which it enabled the feature (rule 7.3.12). In every other session, the operation gets `declined` with `unknown_op`, as an operation that the contract does not have. A contract cannot name a feature operation (section 11, rule 1). The [lockstep profile](NCP-2-LOCKSTEP.md) defines `ncp.lockstep.take`.
 
 ## 16. Threads, processes, and clusters (informative)
 
@@ -535,7 +539,7 @@ A profile adds rules for one kind of application. It changes nothing in this doc
 | Profile | Purpose |
 | --- | --- |
 | [Rounds](NCP-2-ROUNDS.md) | One owner applies the requests of many agents in rounds, in a fixed order, and tells each agent which requests each round applied. |
-| [Lockstep](NCP-2-LOCKSTEP.md) | Each step names the tick that it advances to and the state that it answers. A client that lost a session learns from a new session whether its last step ran. |
+| [Lockstep](NCP-2-LOCKSTEP.md) | Each step names the tick that it advances to and the state that it answers. One opening holds the ticks; a client takes them with a request, and a client that lost a session learns from the response of that request whether its last step ran. |
 
 ## 18. When not to use NCP (informative)
 

@@ -1,11 +1,12 @@
 # Model checks of NCP 2
 
-Two programs check the reference SDKs against the exchange rules of [section 7](../spec/NCP-2.md).
+Three programs check the reference SDKs against the exchange rules of [section 7](../spec/NCP-2.md) and the [lockstep profile](../spec/NCP-2-LOCKSTEP.md).
 They complement the Lean proofs in [`../formal`](../formal/README.md). The proofs cover a model of the rules for all inputs. These programs cover the real code for many inputs.
 
 | Program | What it checks | Against |
 | --- | --- | --- |
 | [`simulate.py`](simulate.py) | The Python client and owner together, in every reachable state of bounded runs with faults | The eight properties of section 7.7, and progress without faults |
+| [`lockstep.py`](lockstep.py) | The Python owner with the lockstep profile and a stepping client, in every reachable state of bounded runs with faults | Six safety properties, a stable holder, and progress without faults |
 | [`conformance.py`](conformance.py) | The Python and Rust owners, on random traces | The Lean model of the owner, compiled into an oracle |
 
 ## simulate.py: an exhaustive check of the client and owner
@@ -52,6 +53,36 @@ Rule 7.6.4 of revision 3 closes the gap: a rejection of a request other than `op
 - Only the Python client and owner run here. The Rust client applies the same rules, and the shared client vectors test it.
 - The model has no clocks, and it has one session for each owner.
 
+## lockstep.py: an exhaustive check of the lockstep profile
+
+The program works as `simulate.py` does: the real owner of the Python SDK (`ncp.owner.step` with the real `ncp.Lockstep`) and the pure client machine of `ncp.client` exchange real frames, and a small program drives the client: open, take, step, step. After a step that is possibly executed, it opens a new session and takes the ticks; the verdict comes from `ncp.lockstep.judge`, which `LockstepClient.recover` also uses.
+After a recovery without a verdict, the client goes on from the clock of the take, as `LockstepClient.recover` does.
+It explores two shapes: one owner for each connection (a byte stream, where a copy of a frame arrives on a new connection) and one owner for each session identifier (as the Zenoh servers keep them), each with new session identifiers and with one identifier reused for all sessions.
+Delay, reordering, and time limits are free. The faults are a copy of any frame that the client sent, the loss of a frame, the expiry of a session, a restart that keeps the clock, a restart to the same tick with another state, a restart to an earlier saved clock with its state (the initial clock included, as after a restart without a saved clock), and another client that takes the ticks and steps.
+
+In every reachable world it checks:
+
+- **S1.** A step with the verdict "did not run" never runs, and "ran" is true. After a restart to an earlier saved clock, the verdict describes the owner's state, as section 7 of the profile says: "did not run" then means that the step was not in that state when the take ran.
+- **S2.** A step runs only in the opening whose take ran last.
+- **S3.** The ticks count the steps in the owner's state, once each.
+- **S4.** A recovery gives a verdict, unless another client stepped or the owner restored another state or an earlier clock.
+- **S5.** Accepting an `open` changes neither the clock nor the holder.
+- **S6.** After "did not run", the state when the take ran was the state that the step answered.
+- **L1.** No frame takes the ticks from the client's opening while the owner holds it, unless another client takes them.
+- **Progress.** Runs without faults and time limits finish. The search checks it in each world where only faults could still happen.
+
+With one fault, the search reaches 469,268 worlds, and every property holds. On an Apple M4 Max it takes 15 to 90 seconds, depending on the load.
+Its self-test injects twelve known defects, at least one for each property, and detects each. Among them are the holder by session identifier of revision 2 of the profile and the takeover in `open` of revision 3.
+Two of them, a take that ignores the term and a take that does not raise it, break only L1: the term keeps the holder stable, and the verdicts do not depend on it.
+
+### Limits
+
+- The runs are bounded: one stepping client with two steps, at most three sessions, and one fault in the gate. An advisory run outside the gate on 15 November 2026 checked two faults with `--max-worlds 60000000`: 8,087,105 worlds for the byte stream and 2,427,031 for Zenoh, in about 20 minutes, and every property held.
+- Each owner step is atomic in the search, so the wait of a take for a running step is outside it. The SDK tests check that wait in both languages.
+- The check does not cover an application that fails in a step (profile, rule 5.5), `result_too_large`, a stopping owner, bad frames, or more than one stepping client: the other client is atomic and steps once.
+- The program drives the session client of the SDK and its own stepping program, and shares only `judge` with `LockstepClient`. The checks of `LockstepClient` and `take` on the responses (profile, rules 3.4, 6.1, 6.2, and 6.3) have SDK tests in both languages instead.
+- Only the Python SDK runs here. The Rust SDK has the same rules, and its tests replay the cases that the search found.
+
 ## conformance.py: the owners against the Lean model
 
 The program sends the same random traces to three owners: the compiled Lean model (`--oracle`), the Python owner, and an external owner program (`--owner`).
@@ -74,9 +105,11 @@ From the repository root:
 ```text
 python3 model/simulate.py --faults 2                 # the exhaustive check
 python3 model/simulate.py --faults 2 --self-test     # its mutation test
+python3 model/lockstep.py --faults 1                 # the lockstep profile
+python3 model/lockstep.py --faults 1 --self-test     # its mutation test
 python3 model/conformance.py --traces 20000 --oracle formal/.lake/build/bin/ncp2-oracle \
     --owner rust/target/release/examples/model_owner
 python3 model/conformance.py --traces 20000 --self-test --oracle formal/.lake/build/bin/ncp2-oracle
 ```
 
-[`../scripts/check_ncp2.sh`](../scripts/check_ncp2.sh) runs all four.
+[`../scripts/check_ncp2.sh`](../scripts/check_ncp2.sh) runs all six.

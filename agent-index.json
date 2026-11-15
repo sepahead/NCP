@@ -1,7 +1,7 @@
 {
   "schema": "sepahead.agent-index.v1",
   "repository": "sepahead/NCP",
-  "summary": "Neuro-Cybernetic Protocol: NCP 2 (release candidate, revision 5 of spec/NCP-2.md; Python and Rust SDKs, optional Zenoh binding, Lean models, model checks, and vectors) and the NCP 1 surfaces that stay until their consumers move: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
+  "summary": "Neuro-Cybernetic Protocol: NCP 2 (release candidate, revision 6 of spec/NCP-2.md; Python and Rust SDKs, optional Zenoh binding, Lean models, model checks, and vectors) and the NCP 1 surfaces that stay until their consumers move: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
   "entry_documents": [
     {"path": "AGENTS.md", "role": "operating contract for agents"},
     {"path": "README.md", "role": "overview"},
@@ -14,7 +14,7 @@
     {"path": "docs/governance/owner-decisions-2026-10-01.md", "role": "owner decisions, including when the v1.0.0 tag may follow"},
     {"path": "spec/NCP-2.md", "role": "NCP 2 specification, release candidate"},
     {"path": "spec/ncp2-rules.json", "role": "NCP 2 codes, outcomes, and limits as data"},
-    {"path": "conformance/requirements.json", "role": "each NCP 2 requirement mapped to its checks"},
+    {"path": "conformance/requirements.json", "role": "each NCP 2 requirement, of the specification and its profiles, mapped to its checks"},
     {"path": "docs/design/NCP-2-DESIGN.md", "role": "NCP 2 design record"},
     {"path": "docs/design/NCP-2-MIGRATION.md", "role": "how consumers move to NCP 2 and between its revisions"}
   ],

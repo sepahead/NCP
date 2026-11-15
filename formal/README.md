@@ -128,6 +128,7 @@ This follows the pattern of AWS Cedar: a proved model, and differential tests of
 - **Liveness under faults.** No claim says that a request sent again eventually gets a response. `FaultFreeProgress` covers only a network that delivers every frame once, in order, and unchanged.
 - **Sizes and time.** Whether a result is too large for the session is an input of the model. The model does not compute frame sizes, and it has no clocks.
 - **Streams, transcripts, and bindings.** Sections 8 to 10 are tested, not modeled.
+- **Features and profiles.** The model has no features: the operations that an application knows are fixed for each application. The routing of feature operations to their profile in each session (rule 7.3.12) and the profiles are outside the proofs and the oracle traces. The SDK tests, and for the lockstep profile [`../model/lockstep.py`](../model/lockstep.py), check them.
 - **The abstraction.** The model represents bodies, sessions, and identities by numbers. A difference between the text of the specification and the model would go unnoticed by the proofs. The oracle traces against the real owners check that step.
 
 ## Commands

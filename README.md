@@ -17,7 +17,7 @@ Each application describes its own steps and data in a contract.
 
 ## NCP 2
 
-**NCP 2.0 is a release candidate: revision 5 of the specification, and packages of version 2.0.0. The tag and the publication follow.** NCP 2 replaces the three protocol families of NCP 1, below, with one protocol. The projects that use NCP 1 move to NCP 2 before NCP 1 leaves the main branch.
+**NCP 2.0 is a release candidate: revision 6 of the specification, and packages of version 2.0.0. The tag and the publication follow.** NCP 2 replaces the three protocol families of NCP 1, below, with one protocol. The projects that use NCP 1 move to NCP 2 before NCP 1 leaves the main branch.
 [NCP 2 in plain words](docs/NCP-2-GUIDE.md) explains it with figures for readers without a background in protocols.
 The [specification](spec/NCP-2.md) is the exact definition, and the [design record](docs/design/NCP-2-DESIGN.md) gives the reason for each decision and the alternatives that were measured.
 
@@ -40,8 +40,8 @@ Up to 1,788 spikes per call, NCP 2 was also faster than gRPC and Zenoh in Rust, 
 When every other system made the same SHA-256 check as NCP 2, NCP 2 was the fastest at every size, 1 MiB included, in both languages ([comparison protocol 2](benchmarks/comparison/README.md#results-of-protocol-2)).
 
 - The SDKs: [Python](python/README.md), which uses only the standard library, and [Rust](rust/README.md). The optional [Zenoh binding](bindings/zenoh/README.md), for both languages, carries the same frames between computers, with mutual TLS and access control.
-- Nineteen claims about the owner and the client are proved in Lean for every sequence of inputs ([`formal/`](formal/README.md)). The SDKs are not proved: the Python and Rust owners give the same answers as the compiled Lean model on 20,000 random traces, and an exhaustive check drives the real Python client and owner through about 2.6 million states with faults ([`model/`](model/README.md)).
-- The measurements in this section were made with revision 2 of the SDKs. Revisions 3 to 5 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks and the fault campaign have not run again.
+- Nineteen claims about the owner and the client are proved in Lean for every sequence of inputs ([`formal/`](formal/README.md)). The SDKs are not proved: the Python and Rust owners give the same answers as the compiled Lean model on 20,000 random traces, and an exhaustive check drives the real Python client and owner through about 2.6 million states with faults, and the lockstep profile through about 470,000 ([`model/`](model/README.md)).
+- The measurements in this section were made with revision 2 of the SDKs. Revisions 3 to 6 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks and the fault campaign have not run again.
 - [What NCP 2 changes from NCP 1](docs/design/NCP-1-SHORTCOMINGS.md) maps each known shortcoming of NCP 1 to its fix and its check, and lists the work that is still open.
 - [NCP 2 compared with other tools](docs/design/NCP-2-COMPARISON.md) lists what NCP 2 adds, what it lacks, and when another tool fits better, with a source for each statement.
 - The projects that use NCP move to NCP 2 one at a time, in the order of the [migration plan](docs/design/NCP-2-MIGRATION.md). NCP 1 stays available until the last one has moved.

@@ -1,6 +1,6 @@
 {
  "spec": "spec/NCP-2.md",
- "revision": 5,
+ "revision": 6,
  "contract": "{\"ncp_contract\":1,\"application\":\"conformance\",\"version\":\"2\",\"operations\":{\"step\":{},\"fail\":{},\"big\":{},\"flaky\":{},\"typed\":{\"ncp.schema\":{\"request\":{\"type\":\"object\",\"required\":[\"n\"],\"properties\":{\"n\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9},\"v\":{\"ncp.array\":{\"dtype\":\"f64\",\"shape\":[null]}}},\"additionalProperties\":false}}}},\"streams\":{\"sensor\":{}}}",
  "contract_identity": "bce9be2b19db76efb4e796d5ee0f8bbdfce3a1486d522bf2649b7903db2dd7d0",
  "session": "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b",
@@ -12876,6 +12876,74 @@
      "expect": [
       "rejected",
       "seq_stale"
+     ]
+    }
+   ]
+  },
+  {
+   "name": "an operation of a feature that the session did not enable is unknown",
+   "steps": [
+    {
+     "seq": 0,
+     "op": "open",
+     "ack": "none",
+     "open": {
+      "bound": 65536
+     },
+     "expect": [
+      "ok",
+      null
+     ]
+    },
+    {
+     "seq": 1,
+     "op": "ncp.lockstep.take",
+     "body": {
+      "term": 0
+     },
+     "ack": "last",
+     "expect": [
+      "declined",
+      "unknown_op"
+     ]
+    },
+    {
+     "repeat": 1,
+     "expect": [
+      "declined",
+      "unknown_op"
+     ]
+    },
+    {
+     "seq": 2,
+     "op": "ncp.nosuch",
+     "body": {},
+     "ack": "last",
+     "expect": [
+      "declined",
+      "unknown_op"
+     ]
+    },
+    {
+     "seq": 3,
+     "op": "ncp.ping.x",
+     "body": {},
+     "ack": "last",
+     "expect": [
+      "declined",
+      "unknown_op"
+     ]
+    },
+    {
+     "seq": 4,
+     "op": "step",
+     "body": {
+      "x": 1
+     },
+     "ack": "last",
+     "expect": [
+      "ok",
+      null
      ]
     }
    ]

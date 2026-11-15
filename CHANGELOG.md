@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NCP 2.0 release candidate, revision 6 (15 November 2026; tag and publication follow)
+
+A second advisory consult by a language model (read-only, not certification evidence) found that
+recovery in the lockstep profile could still give a false "did not run": on the Zenoh binding with
+a reused session identifier, with a client opened before the step, and after a restart to the same
+tick with another state. A copy of `open` also took the ticks from the live client. All come from
+one choice: the takeover happened at `open`, which rule 7.1.8 says can be repeated.
+[`docs/design/NCP-2-DESIGN.md`](docs/design/NCP-2-DESIGN.md#15-revision-6) gives each decision with
+its check, and
+[`docs/design/NCP-2-MIGRATION.md`](docs/design/NCP-2-MIGRATION.md#9-from-revision-5-to-revision-6-of-ncp-2)
+lists the changes for programs.
+
+- **Breaking: lockstep profile revision 4.** An `open` only reports the clock, now with a term. The
+  feature operation `ncp.lockstep.take` takes the ticks and returns the final clock, from which a
+  recovery reads its verdict; "did not run" needs the whole clock that the client knew. A late take
+  of an abandoned session is declined by its term.
+- **Wire: feature operations** (section 15, rule 3, and rule 7.3.12). An operation `F.N` of an
+  enabled feature `F` goes to its profile, without the contract; in every other session it stays
+  `declined` with `unknown_op`. Rule 7.1.8: a profile MUST NOT let the acceptance of `open` change
+  state that outlives the session. One owner scenario vector.
+- **A model check of the lockstep profile**, `model/lockstep.py`, in the gate: the Python SDK's owner
+  and client in every reachable state with one fault, restarts to an earlier saved clock included,
+  six safety properties, a stable holder, progress, and a self-test of twelve known defects, at least
+  one for each property.
+- **Fixed after a third advisory review of the draft** (read-only, not certification evidence):
+  - The Rust lockstep client reported `Error::Usage`, whose `executed()` is No, after a step or a
+    take that ran with a malformed `ok`, and after a recovery without a verdict. Both SDKs now end
+    the session with `local.protocol` and the request executed; a recovery without a verdict
+    returns Unknown and goes on from the clock of the take.
+  - A take named the term of the `open` response, not the term that the owner told last
+    (profile, rule 4.1). `LockstepClient` keeps the term, and `take()` takes the ticks again in the
+    same session.
+  - The largest values and tick 0 (profile rules 5.2, 5.4, and 5.7): a take at the largest term is
+    declined without `ncp.lockstep`, an owner at the largest tick declines every step, both SDKs
+    bound the restored tick, and the state digest starts as the application's digest.
+  - Owner responses with data of the handler are bounded: `ncp.` members of a `declined` body that
+    do not fit the session bound are left out, and an `open` whose response would not fit 65,536
+    bytes is refused (rules 7.3.12 and 7.1.5).
+  - The lockstep check never fired its progress property; it now does, and it explores restarts to
+    an earlier saved clock. `conformance/requirements.json` now maps every normative line of both
+    profiles.
+- Both SDKs: a profile can add members whose names start with `ncp.` to a `declined` body; Rust gains
+  `Lockstep::restored`. Three figures in the guide: the verdict map, the owner's checks in order, and
+  lockstep recovery.
+- Section 13.2 says whom a key identifies: a group of programs, so one key for each pair of programs
+  whose frames must be told apart.
+
 ### NCP 2.0 release candidate, revision 5 (14 November 2026; tag and publication follow)
 
 An advisory review of revision 4 by a language model (read-only, not certification evidence) found no

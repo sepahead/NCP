@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Check conformance/requirements.json against spec/NCP-2.md and the checks that it names.
+"""Check conformance/requirements.json against spec/NCP-2.md, its profiles, and the checks that it
+names.
 
 The specification promises that the file maps each requirement to the checks that test it
 (section 14). This script enforces the promise:
 
 1. Every line of the specification with MUST, MUST NOT, SHOULD, SHOULD NOT, or REQUIRED, and every
    numbered rule of sections 7.3, 7.6, and 8, has exactly one entry with the same text and section.
+   So has every such line of a profile, and every numbered rule of the sections of a profile that
+   state its rules; the section "Changes" of a profile records history and is not read.
    A changed requirement therefore needs a reviewed entry.
 2. Every entry names at least one check, or says why it is untested. Only a SHOULD, or a rule for
    deployments, may stay untested.
@@ -28,12 +31,23 @@ HEADING = re.compile(r"^(#{2,3}) (\d+(?:\.\d+)?)\.? ")
 NUMBERED_SECTIONS = ("7.3", "7.6", "8")
 # Sections that describe the checks rather than state requirements.
 META_SECTIONS = ("14",)
+# The profiles, with the sections that state their rules.
+PROFILES = {
+    "spec/NCP-2-LOCKSTEP.md": ("3", "4", "5", "6"),
+    "spec/NCP-2-ROUNDS.md": ("3", "4", "5"),
+}
 
 
-def extract(spec: str) -> list[tuple[str, str]]:
-    """(section, text) of each requirement line, in document order."""
+def extract(
+    spec: str,
+    numbered_sections: tuple[str, ...] = NUMBERED_SECTIONS,
+    meta_sections: tuple[str, ...] = META_SECTIONS,
+    history: bool = False,
+) -> list[tuple[str, str]]:
+    """(section, text) of each requirement line, in document order. With `history`, a section
+    whose title starts with "Changes" records history, and its lines are not read."""
     found: list[tuple[str, str]] = []
-    section, fence = "", False
+    section, fence, changes = "", False, False
     for line in spec.split("\n"):
         if line.startswith("```"):
             fence = not fence
@@ -43,12 +57,16 @@ def extract(spec: str) -> list[tuple[str, str]]:
         heading = HEADING.match(line)
         if heading:
             section = heading.group(2)
+            if history and heading.group(1) == "##":
+                changes = line[heading.end():].startswith("Changes")
+            continue
+        if changes:
             continue
         text = line.strip()
         numbered = re.match(r"^(\d+)\. ", text)
-        if section in NUMBERED_SECTIONS and numbered and not line.startswith(" "):
+        if section in numbered_sections and numbered and not line.startswith(" "):
             found.append((f"{section}.{numbered.group(1)}", text))
-        elif KEYWORD.search(text) and "RFC 2119" not in text and section not in META_SECTIONS:
+        elif KEYWORD.search(text) and "RFC 2119" not in text and section not in meta_sections:
             found.append((section, text))
     return found
 
@@ -84,7 +102,7 @@ def main() -> int:
         "zenoh-python": test_names(zenoh / "python" / "tests", r"def (test_[a-z0-9_]+)"),
         "zenoh-rust": test_names(zenoh / "rust" / "tests", r"#\[test\]\s*\n\s*fn ([a-z0-9_]+)"),
     }
-    simulate = (ROOT / "model" / "simulate.py").read_text(encoding="utf-8")
+    models = {name: (ROOT / "model" / f"{name}.py").read_text(encoding="utf-8") for name in ("simulate", "lockstep")}
     claims = set(re.findall(r"^def ([A-Z][A-Za-z0-9]*) : Prop", (ROOT / "formal" / "Statements.lean").read_text(
         encoding="utf-8"), re.MULTILINE))
     gate = (ROOT / "scripts" / "check_ncp2.sh").read_text(encoding="utf-8")
@@ -112,7 +130,8 @@ def main() -> int:
             if rest == "conformance":
                 return (ROOT / "model" / "conformance.py").is_file()
             script, _, prop = rest.partition(":")
-            return script == "simulate" and re.search(rf"^\s+{re.escape(prop)} ", simulate, re.MULTILINE) is not None
+            source = models.get(script)
+            return source is not None and re.search(rf"^\s+{re.escape(prop)} ", source, re.MULTILINE) is not None
         if kind == "lean":
             return rest in claims
         if kind == "fuzz":
@@ -122,38 +141,51 @@ def main() -> int:
         return False
 
     failures: list[str] = []
-    wanted = extract(spec)
+    counts = {"untested": 0, "references": 0}
+
+    def review(name: str, wanted: list[tuple[str, str]], entries: list[dict]) -> None:
+        have = [(entry["section"], entry["text"]) for entry in entries]
+        for item in wanted:
+            if have.count(item) != 1:
+                failures.append(f"{name}, section {item[0]}: no single entry for: {item[1][:100]}")
+        for item in have:
+            if item not in wanted:
+                failures.append(f"{name}, section {item[0]}: an entry for a line that the document does not have: "
+                                f"{item[1][:100]}")
+        for entry in entries:
+            where = f"{name}, section {entry['section']}: {entry['text'][:60]}"
+            covered = entry.get("covered_by", [])
+            counts["references"] += len(covered)
+            if entry.get("untested"):
+                counts["untested"] += 1
+                if covered:
+                    failures.append(f"{where}: both covered and untested")
+                if "MUST" in KEYWORD.findall(entry["text"]) and "deployment" not in entry["untested"]:
+                    failures.append(f"{where}: a MUST that is untested and is not a rule for deployments")
+            elif not covered:
+                failures.append(f"{where}: no check and no reason")
+            for reference in covered:
+                if not exists(reference):
+                    failures.append(f"{where}: the reference {reference!r} does not exist")
+
     entries = document["requirements"]
-    have = [(entry["section"], entry["text"]) for entry in entries]
-    for item in wanted:
-        if have.count(item) != 1:
-            failures.append(f"section {item[0]}: no single entry for: {item[1][:100]}")
-    for item in have:
-        if item not in wanted:
-            failures.append(f"section {item[0]}: an entry for a line that the specification does not have: {item[1][:100]}")
-    untested = 0
-    for entry in entries:
-        where = f"section {entry['section']}: {entry['text'][:60]}"
-        covered = entry.get("covered_by", [])
-        if entry.get("untested"):
-            untested += 1
-            if covered:
-                failures.append(f"{where}: both covered and untested")
-            if "MUST" in KEYWORD.findall(entry["text"]) and "deployment" not in entry["untested"]:
-                failures.append(f"{where}: a MUST that is untested and is not a rule for deployments")
-        elif not covered:
-            failures.append(f"{where}: no check and no reason")
-        for reference in covered:
-            if not exists(reference):
-                failures.append(f"{where}: the reference {reference!r} does not exist")
+    review("spec/NCP-2.md", extract(spec), entries)
+    profiles = document.get("profiles", {})
+    for path in sorted(set(profiles) - set(PROFILES)):
+        failures.append(f"{path}: not a profile that this check reads")
+    in_profiles = 0
+    for path, sections in PROFILES.items():
+        text = (ROOT / path).read_text(encoding="utf-8")
+        listed = profiles.get(path, [])
+        in_profiles += len(listed)
+        review(path, extract(text, sections, (), history=True), listed)
     for failure in failures:
         print(failure, file=sys.stderr)
     if failures:
         print(f"requirements: {len(failures)} problems", file=sys.stderr)
         return 1
-    references = sum(len(entry.get("covered_by", [])) for entry in entries)
-    print(f"requirements: {len(entries)} requirements of spec/NCP-2.md, {references} references to checks, "
-          f"{untested} untested with a reason")
+    print(f"requirements: {len(entries)} requirements of spec/NCP-2.md and {in_profiles} of its {len(PROFILES)} "
+          f"profiles, {counts['references']} references to checks, {counts['untested']} untested with a reason")
     return 0
 
 

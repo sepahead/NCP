@@ -445,6 +445,103 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(server.sessions, 0)
 
 
+class Holding(Direct):
+    """Direct, but it holds back every frame with the sequence number `hold`, as a slow network
+    delays a request."""
+
+    def __init__(self, server, hold: int) -> None:
+        super().__init__(server)
+        self.hold, self.held, self.frames = hold, [], []
+
+    def send(self, frame: bytes) -> None:
+        self.frames.append(bytes(frame))
+        if F.decode(frame, F.MAX_BOUND, check_digest=False).message["seq"] == self.hold:
+            self.held.append(bytes(frame))
+            return
+        super().send(frame)
+
+
+class LockstepRoutingTests(unittest.TestCase):
+    """The lockstep profile behind the routing of the Python server, which keeps one owner for each
+    session identifier (profile revision 4; finding R1 of the review of revision 5)."""
+
+    WORLD = ncp.Contract.from_bytes(
+        b'{"ncp_contract":1,"application":"world","version":"1","operations":{"step":{}},"streams":{}}'
+    )
+
+    class World:
+        def __init__(self) -> None:
+            self.position = 0
+
+        def validate(self, request) -> None:
+            pass
+
+        def execute(self, request) -> dict:
+            self.position += request.body["dx"]
+            return {"position": self.position}
+
+        def state(self) -> str:
+            return f"p{self.position}"
+
+    def setUp(self) -> None:
+        self.lockstep = ncp.Lockstep(self.World(), ["step"])
+
+        def make_owner() -> ncp.Owner:
+            return ncp.Owner(self.WORLD, self.lockstep, observer=QUIET)
+
+        self.server = ncp_zenoh.Server(None, "test/lockstep", make_owner, observer=QUIET)
+
+    def tearDown(self) -> None:
+        self.server.stop(0.0)
+
+    def client(self, channel, session: str | None = None) -> ncp.Client:
+        return ncp.Client(channel, self.WORLD, features={"ncp.lockstep": {}}, session=session, timeout=0.2,
+                          retries=1, observer=QUIET)
+
+    def test_a_recovery_that_reuses_its_session_identifier_gives_no_verdict(self) -> None:
+        session = str(uuid.uuid4())
+        channel = Holding(self.server, hold=3)  # open 0, take 1, step 2; step 3 is delayed
+        stepper = ncp.LockstepClient(self.client(channel, session))
+        stepper.step("step", {"dx": 2})
+        with self.assertRaises(ncp.Ended) as caught:
+            stepper.step("step", {"dx": 1})
+        self.assertEqual(caught.exception.executed, ncp.Executed.UNKNOWN)
+        # The same open reaches the session that the server still holds: it is stale there.
+        with self.assertRaises(ncp.Rejected) as rejected:
+            stepper.recover(self.client(Direct(self.server), session))
+        self.assertEqual(rejected.exception.code, "seq_stale")
+        self.assertIsNotNone(stepper.uncertain)
+        # The delayed step arrives and runs; no verdict said that it would not.
+        replies: queue.SimpleQueue = queue.SimpleQueue()
+        self.server._on_query(FakeQuery(channel.held[0], replies))
+        self.assertEqual(outcome(replies.get(timeout=5)), ("ok", None))
+        # A recovery with a new session identifier takes the ticks and finds that it ran.
+        self.assertEqual(stepper.recover(self.client(Direct(self.server))), ncp.Executed.YES)
+        self.assertEqual((stepper.tick, stepper.state), (2, "p3"))
+        self.assertEqual(stepper.step("step", {"dx": 10}).body["position"], 13)
+
+    def test_a_copy_of_open_takes_nothing_and_a_late_take_is_declined(self) -> None:
+        abandoned = self.client(Holding(self.server, hold=1))  # its take is delayed
+        abandoned.open()  # its report names term 0
+        with self.assertRaises(ncp.Ended):
+            abandoned.call("ncp.lockstep.take", {"term": 0})
+        channel = Holding(self.server, hold=-1)  # it holds nothing back and records its frames
+        stepper = ncp.LockstepClient(self.client(channel))  # it takes with term 0, so the term is 1
+        stepper.step("step", {"dx": 1})
+        holder = self.lockstep.holder
+        replies: queue.SimpleQueue = queue.SimpleQueue()
+        # A copy of the stepper's open reaches its session again: it is stale and takes nothing.
+        self.server._on_query(FakeQuery(channel.frames[0], replies))
+        self.assertEqual(outcome(replies.get(timeout=5)), ("rejected", "seq_stale"))
+        # The late take names term 0, but the term is 1: declined, with the owner's term.
+        self.server._on_query(FakeQuery(abandoned.channel.held[0], replies))
+        answer = F.decode(replies.get(timeout=5), F.MAX_BOUND).message
+        self.assertEqual((answer["outcome"], answer["code"]), ("declined", "body_invalid"))
+        self.assertEqual(answer["body"]["ncp.lockstep"], {"term": 1})
+        self.assertEqual(self.lockstep.holder, holder)
+        self.assertEqual(stepper.step("step", {"dx": 1}).body["position"], 2)
+
+
 class KeyedRoutingTests(unittest.TestCase):
     """A server with a key (section 13.2), driven directly: it checks each frame's authentication
     code before it reads the message, and authenticates the responses that it makes itself."""

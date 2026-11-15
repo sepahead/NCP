@@ -49,4 +49,7 @@ name = "decode_corpus"
 [[example]]
 name = "conformance_owner"
 
+[[example]]
+name = "lockstep_owner"
+
 [workspace]

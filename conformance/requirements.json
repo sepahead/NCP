@@ -1,7 +1,7 @@
 {
   "ncp_requirements": 1,
   "spec": "spec/NCP-2.md",
-  "about": "Each normative line of the specification and the checks that test it. scripts/check_ncp2_requirements.py requires one entry for each line that has MUST, MUST NOT, SHOULD, SHOULD NOT, or REQUIRED, and for each numbered rule of sections 7.3, 7.6, and 8, and checks that every reference exists.",
+  "about": "Each normative line of the specification and of its profiles, and the checks that test it. scripts/check_ncp2_requirements.py requires one entry for each line that has MUST, MUST NOT, SHOULD, SHOULD NOT, or REQUIRED, for each numbered rule of sections 7.3, 7.6, and 8 of the specification, and for each numbered rule of the sections of a profile that state its rules, and checks that every reference exists.",
   "references": {
     "vectors:PART": "the whole part of conformance/vectors.json",
     "vectors:PART:NAME": "the case with this name (frames, messages, auth, scenarios, clients, transcripts, contracts)",
@@ -10,6 +10,7 @@
     "test:python:NAME": "a test function in python/tests",
     "test:rust:NAME": "a test function in rust/tests",
     "model:simulate:PROPERTY": "a property that model/simulate.py checks in every reachable state",
+    "model:lockstep:PROPERTY": "a property that model/lockstep.py checks in every reachable state of the lockstep profile",
     "model:conformance": "the oracle traces of model/conformance.py",
     "lean:CLAIM": "a claim of formal/Statements.lean, proved in formal/Audit.lean",
     "fuzz": "the differential fuzzing of conformance/fuzz.py",
@@ -206,6 +207,14 @@
     },
     {
       "section": "7.1",
+      "text": "The `open` response MUST fit the bound 65,536 (rule 7.1.3). If the parameters of the features that the owner would enable do not fit, the owner refuses the session with `refused`.",
+      "covered_by": [
+        "test:python:test_features_that_cannot_be_sent_refuse_the_open",
+        "test:rust:features_that_cannot_be_sent_refuse_the_open"
+      ]
+    },
+    {
+      "section": "7.1",
       "text": "A client MUST ignore members of this body that it does not know. Later versions can add members.",
       "covered_by": [
         "test:python:test_unknown_codes_are_handled_by_outcome",
@@ -217,6 +226,18 @@
       "text": "A client MUST check that `bound` is from 65,536 to the bound that it requested, that `nonce` has the form above, and that `features`, if present, is an object. Otherwise the session ends, and the `open` request is possibly executed. An owner of an earlier revision, which sends no nonce, therefore opens no session with a client of this revision.",
       "covered_by": [
         "vectors:clients:open responses that break section 7.1"
+      ]
+    },
+    {
+      "section": "7.1",
+      "text": "8. An opening is not at most once: a delayed copy of `open` can open the session again after the owner lost it (rule 7.6.4), and on the byte-stream binding a copy of `open` on another connection opens a session there. What an owner does when it accepts `open` must therefore be safe to repeat. A profile MUST NOT let the acceptance of `open` change state that outlives the session, and an application SHOULD NOT. Such a change belongs in a request other than `open`, for example a feature operation (section 15, rule 3): an owner admits that request at most once, and only in the opening whose `open` response the request acknowledges (section 7.7, property 1).",
+      "covered_by": [
+        "model:lockstep:S5",
+        "test:python:test_an_open_only_reports_the_clock",
+        "test:rust:an_open_only_reports_the_clock",
+        "test:python:test_a_copy_of_an_old_open_takes_nothing",
+        "test:rust:a_copy_of_an_old_open_takes_nothing",
+        "test:zenoh-python:test_a_copy_of_open_takes_nothing_and_a_late_take_is_declined"
       ]
     },
     {
@@ -342,7 +363,11 @@
         "test:python:test_close_and_ping",
         "lean:FaultFreeProgress",
         "lean:DeclinedIsFinal",
-        "model:conformance"
+        "model:conformance",
+        "test:python:test_a_take_fences_the_steps_of_earlier_openings",
+        "test:rust:a_take_fences_the_steps_of_earlier_openings",
+        "test:python:test_a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+        "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation"
       ]
     },
     {
@@ -771,5 +796,347 @@
         "vectors:contracts:operation ncp.x"
       ]
     }
-  ]
+  ],
+  "profiles": {
+    "spec/NCP-2-LOCKSTEP.md": [
+      {
+        "section": "3.1",
+        "text": "1. A client asks for the profile with the feature `ncp.lockstep` and an empty object as its parameters in its `open` request (specification, section 7.1). An owner ignores members of these parameters.",
+        "covered_by": [
+          "test:python:test_steps_carry_the_tick_and_the_state",
+          "test:rust:lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran"
+        ]
+      },
+      {
+        "section": "3.2",
+        "text": "2. An owner that serves the profile enables the feature with the parameters `{\"tick\": T, \"state\": S, \"request\": R, \"term\": E}`: its clock at one instant.",
+        "covered_by": [
+          "test:python:test_an_open_only_reports_the_clock",
+          "test:rust:an_open_only_reports_the_clock"
+        ]
+      },
+      {
+        "section": "3.3",
+        "text": "3. **`open` reads.** Accepting an `open` MUST NOT change the clock or the holder (specification, rule 7.1.8). The clock in an `open` response is a report, not a final value: a step of the holder can run after it.",
+        "covered_by": [
+          "model:lockstep:S5",
+          "test:python:test_a_copy_of_an_old_open_takes_nothing",
+          "test:rust:a_copy_of_an_old_open_takes_nothing",
+          "test:python:test_a_rejected_open_takes_nothing",
+          "test:rust:a_rejected_open_takes_nothing",
+          "test:zenoh-python:test_a_copy_of_open_takes_nothing_and_a_late_take_is_declined"
+        ]
+      },
+      {
+        "section": "3.4",
+        "text": "4. A client MUST NOT send a take or a lockstep step in a session whose `open` response does not enable the feature with these four members. Parameters without `term` come from an owner of an earlier revision of this profile; the client then ends the session.",
+        "covered_by": [
+          "test:python:test_an_owner_without_a_term_ends_the_session",
+          "test:rust:an_owner_without_a_term_ends_the_session"
+        ]
+      },
+      {
+        "section": "4.1",
+        "text": "1. The body of a take MUST be an object with exactly the member `term`: the term that the owner told the client last in this session, in the `open` response or in a later response.",
+        "covered_by": [
+          "test:python:test_a_take_names_the_last_term_that_the_owner_told",
+          "test:rust:a_take_names_the_last_term_that_the_owner_told",
+          "test:python:test_a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+          "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation"
+        ]
+      },
+      {
+        "section": "4.2",
+        "text": "2. The body of a request of a lockstep operation MUST be an object with the member `ncp.tick`: an object with exactly the members `tick`, the tick that the step advances to, and `state`, the state digest that the step answers.",
+        "covered_by": [
+          "test:python:test_a_closed_request_schema_admits_the_tick",
+          "test:rust:a_closed_request_schema_admits_the_tick",
+          "test:python:test_steps_carry_the_tick_and_the_state"
+        ]
+      },
+      {
+        "section": "4.3",
+        "text": "3. A client sets `tick` to the tick of the last clock that it accepted in this session plus 1, and `state` to the state digest of that clock. That clock is the body of the `ok` response to its take, or `ncp.tick` in the `ok` response to its last step after that. It is never the clock of an `open` response.",
+        "covered_by": [
+          "test:python:test_steps_carry_the_tick_and_the_state",
+          "test:rust:lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran",
+          "model:lockstep:S3"
+        ]
+      },
+      {
+        "section": "5.1",
+        "text": "1. **One at a time.** From the check of a take (rule 5.2) or of a lockstep step (rule 5.4) to the end of its execution, the owner MUST NOT check or execute another take or lockstep step of any session. A take therefore waits for a step that is running. An `open` response reports the clock as it is before or after a step, never in the middle of one.",
+        "covered_by": [
+          "test:python:test_a_take_waits_for_a_checked_step_and_an_open_does_not",
+          "test:rust:a_take_waits_for_a_checked_step_and_an_open_does_not",
+          "test:python:test_a_step_waits_for_a_checked_take",
+          "test:rust:a_step_waits_for_a_checked_take"
+        ]
+      },
+      {
+        "section": "5.2",
+        "text": "2. **Take, check.** The owner declines a take with `body_invalid` (specification, section 7.3, rule 12) if its body is not as rule 4.1 says, or if `term` is not the owner's term. Nothing changes. After a wrong term, the body of the response MUST have the member `ncp.lockstep` with the value `{\"term\": E}`, the owner's term. An owner whose term is 9,007,199,254,740,991 declines every take that names it, without the member `ncp.lockstep`: no take can raise that term.",
+        "covered_by": [
+          "test:python:test_a_delayed_take_of_an_abandoned_opening_is_declined",
+          "test:rust:a_delayed_take_of_an_abandoned_opening_is_declined",
+          "test:python:test_no_take_raises_the_largest_term",
+          "test:rust:no_take_raises_the_largest_term",
+          "test:python:test_a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+          "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+          "model:lockstep:L1"
+        ]
+      },
+      {
+        "section": "5.3",
+        "text": "3. **Take, execution.** Otherwise the take counts as executed: the opening of the request's session becomes the holder, and the owner raises its term by 1. The body of the `ok` response is `{\"tick\": T, \"state\": S, \"request\": R, \"term\": E}`: the clock after the take. This clock is final for every other opening: rule 5.4 declines each of their steps until one of them takes the ticks. The owner MUST identify the holder by its opening, for example by its nonce, and MUST NOT identify it by the session identifier.",
+        "covered_by": [
+          "test:python:test_a_take_fences_the_steps_of_earlier_openings",
+          "test:rust:a_take_fences_the_steps_of_earlier_openings",
+          "test:python:test_a_recovery_with_the_same_session_identifier_fences_the_old_opening",
+          "test:rust:a_recovery_with_the_same_session_identifier_fences_the_old_opening",
+          "model:lockstep:S2",
+          "model:lockstep:L1"
+        ]
+      },
+      {
+        "section": "5.4",
+        "text": "4. **Step, check.** The owner declines a request of a lockstep operation with `body_invalid` if the body has no `ncp.tick` member as rule 4.2 defines it, if the opening of the request's session is not the holder, if `tick` is not the owner's tick plus 1, or if `state` is not the owner's state digest. An owner whose tick is 9,007,199,254,740,991 declines every lockstep step. The request never executes. If the opening is not the holder, the body of the response MUST have the member `ncp.lockstep` with the value `{\"term\": E}`.",
+        "covered_by": [
+          "test:python:test_a_take_fences_the_steps_of_earlier_openings",
+          "test:rust:a_take_fences_the_steps_of_earlier_openings",
+          "test:python:test_no_step_follows_the_largest_tick",
+          "test:rust:no_step_follows_the_largest_tick",
+          "model:lockstep:S2",
+          "model:lockstep:S3"
+        ]
+      },
+      {
+        "section": "5.5",
+        "text": "5. **Step, execution.** Otherwise the owner executes the step. The step counts as executed when the owner starts to execute it, also if the application then fails (specification, section 7.3, rule 12). The owner then sets its tick to `tick`, its state digest to the application's digest of the new state, or `null` if the application cannot give one, and R to the identity of the request. The term does not change. The body of the `ok` response is an object: the application's result, with the member `ncp.tick` set to `{\"tick\": T, \"state\": S, \"request\": R}`.",
+        "covered_by": [
+          "test:python:test_a_step_whose_application_fails_counts_as_executed",
+          "test:rust:a_lockstep_step_whose_application_fails_counts_as_executed",
+          "model:lockstep:S3"
+        ]
+      },
+      {
+        "section": "5.6",
+        "text": "6. Other operations do not change the clock or the holder. An operation that is not a lockstep operation MUST NOT change the state that the state digest describes: an application whose other operations change that state serves them as lockstep operations. The owner declines every other operation of the feature `ncp.lockstep` with `body_invalid`.",
+        "covered_by": [
+          "test:python:test_a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+          "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation"
+        ]
+      },
+      {
+        "section": "5.7",
+        "text": "7. **Restart.** An owner that restarts holds no session (specification, rule 7.1.5), and no opening is the holder. It MAY restore its clock. It MUST then restore T, S, and R from one saved clock that belongs to the application state that it restored. It MAY restore E with them; otherwise its term is 0. An owner that restores no clock starts at its initial tick, with S the application's digest of its initial state and R `null`. An application can save the clock with the state that a step produces: T is `tick` of the step, S its digest of the new state, and R the identity of the request.",
+        "covered_by": [
+          "test:python:test_a_restart_to_the_same_tick_with_another_state_gives_no_verdict",
+          "test:rust:a_restart_to_the_same_tick_with_another_state_gives_no_verdict",
+          "model:lockstep:S1",
+          "model:lockstep:S4"
+        ]
+      },
+      {
+        "section": "5.8",
+        "text": "8. **Details.** The member `detail` of a `declined` response SHOULD be one of these texts, with the number in place of N or E. In the two rows for a body, E, T, and S stay as they are:",
+        "covered_by": [
+          "test:python:test_a_step_waits_for_a_checked_take",
+          "test:rust:a_step_waits_for_a_checked_take",
+          "test:python:test_no_step_follows_the_largest_tick",
+          "test:rust:no_step_follows_the_largest_tick",
+          "test:python:test_no_take_raises_the_largest_term",
+          "test:rust:no_take_raises_the_largest_term",
+          "test:python:test_a_delayed_take_of_an_abandoned_opening_is_declined",
+          "test:rust:a_delayed_take_of_an_abandoned_opening_is_declined"
+        ]
+      },
+      {
+        "section": "5",
+        "text": "A client MUST NOT act on `detail`. It acts on the outcome and on the member `ncp.lockstep`.",
+        "covered_by": [
+          "test:python:test_a_take_whose_term_moved_is_sent_again",
+          "test:rust:a_take_whose_term_moved_is_sent_again",
+          "test:python:test_a_client_stops_after_three_takes_whose_term_moved",
+          "test:rust:a_client_stops_after_three_takes_whose_term_moved"
+        ]
+      },
+      {
+        "section": "6.1",
+        "text": "1. **Start.** A client that steps sends a take with the term of the `open` response before its first step. After the `ok` response, its opening is the holder, and the body is the owner's clock. The client MUST check that `term` in the body is the term of its request plus 1. A client that only reads the clock, for example a monitor, sends no take.",
+        "covered_by": [
+          "test:python:test_the_client_checks_the_term_of_the_take",
+          "test:rust:the_client_checks_the_term_of_the_take"
+        ]
+      },
+      {
+        "section": "6.2",
+        "text": "2. **A declined take.** A `declined` response to a take whose body has `ncp.lockstep` means that another take ran after the owner told the client the term. The client MAY send a take again in the same session, with the term of that body. It SHOULD stop after 3 takes without an `ok` response, and report that another client takes the ticks.",
+        "covered_by": [
+          "test:python:test_a_take_whose_term_moved_is_sent_again",
+          "test:rust:a_take_whose_term_moved_is_sent_again",
+          "test:python:test_a_client_stops_after_three_takes_whose_term_moved",
+          "test:rust:a_client_stops_after_three_takes_whose_term_moved"
+        ]
+      },
+      {
+        "section": "6.3",
+        "text": "3. After an `ok` response to a step, the client MUST check that `ncp.tick` names the tick of its request and the identity of its request. The client then knows the owner's clock: the tick, the state digest, and R.",
+        "covered_by": [
+          "test:python:test_the_client_checks_the_tick_and_the_request_of_a_step",
+          "test:rust:the_client_checks_the_tick_and_the_request_of_a_step"
+        ]
+      },
+      {
+        "section": "6.4",
+        "text": "4. After a `declined` response to a step, the step did not run, and it never will. If the body has `ncp.lockstep`, another opening took the ticks, and the client MAY take them again in the same session, with the term of that body (rules 4.1, 6.1, and 6.2).",
+        "covered_by": [
+          "test:python:test_a_take_names_the_last_term_that_the_owner_told",
+          "test:rust:a_take_names_the_last_term_that_the_owner_told"
+        ]
+      },
+      {
+        "section": "6.5",
+        "text": "5. **Recovery.** If a step is possibly executed (specification, section 7.7, property 7), the client opens a new session with the feature and a new session identifier (specification, rule 7.1.1), and sends a take there (rule 6.1). It MUST send that take after the step became possibly executed. The client reaches its verdict from the body of the `ok` response to that take, and from no other response:",
+        "covered_by": [
+          "test:python:test_a_recovery_reads_its_verdict_from_the_take",
+          "test:rust:a_recovery_reads_its_verdict_from_the_take",
+          "test:python:test_the_verdict_of_a_recovery",
+          "test:rust:the_verdict_of_a_recovery",
+          "test:python:test_a_recovery_that_reaches_the_old_opening_gives_no_verdict",
+          "test:rust:a_recovery_that_reaches_the_old_opening_gives_no_verdict",
+          "test:zenoh-python:test_a_recovery_that_reuses_its_session_identifier_gives_no_verdict",
+          "model:lockstep:S1",
+          "model:lockstep:S4",
+          "model:lockstep:S6"
+        ]
+      },
+      {
+        "section": "6",
+        "text": "- Any other body means that the owner's clock changed in another way, for example by the step of another client or by a restart. The client MUST then treat the step as possibly executed. Its opening holds the ticks, and the body is the owner's clock, so the client can go on from it.",
+        "covered_by": [
+          "test:python:test_a_recovery_that_finds_the_step_of_another_session_gives_no_verdict",
+          "test:rust:a_recovery_that_finds_the_step_of_another_session_gives_no_verdict",
+          "test:python:test_a_restart_to_the_same_tick_with_another_state_gives_no_verdict",
+          "test:rust:a_restart_to_the_same_tick_with_another_state_gives_no_verdict",
+          "model:lockstep:S1"
+        ]
+      },
+      {
+        "section": "6.6",
+        "text": "6. **A take without a response.** If a take is possibly executed, the client opens a new session and sends a take there. It needs no verdict for the old take: the new take makes the new opening the holder in both cases, and rule 5.2 declines the old take if it arrives later.",
+        "covered_by": [
+          "test:python:test_a_delayed_take_of_an_abandoned_opening_is_declined",
+          "test:rust:a_delayed_take_of_an_abandoned_opening_is_declined",
+          "model:lockstep:L1"
+        ]
+      }
+    ],
+    "spec/NCP-2-ROUNDS.md": [
+      {
+        "section": "3.1",
+        "text": "1. The body of a request of the round operation MUST be an object with the member `ncp.round`: an object with exactly the members `agent`, the name of a member, and `round`, the number of a round. The other members of the body belong to the application.",
+        "covered_by": [
+          "test:python:test_invalid_round_requests_are_declined_and_change_nothing"
+        ]
+      },
+      {
+        "section": "3.2",
+        "text": "2. A client sends round K + 1 only after the response to its request for round K, as the specification requires for any two requests of a session.",
+        "covered_by": [
+          "test:python:test_rounds_follow_each_other_in_lockstep"
+        ]
+      },
+      {
+        "section": "4.1",
+        "text": "1. The owner declines a request of the round operation with `body_invalid` (specification, section 7.3, rule 12) if any of these holds:",
+        "covered_by": [
+          "test:python:test_invalid_round_requests_are_declined_and_change_nothing",
+          "test:python:test_a_member_without_a_request_at_the_deadline_is_excluded_and_does_not_delay_later_rounds",
+          "test:python:test_a_failed_step_ends_the_sessions_of_its_round_and_stops_the_rounds"
+        ]
+      },
+      {
+        "section": "4",
+        "text": "A declined request never executes, and the session goes on. The body of the response SHOULD say which of these held, in its member `detail`.",
+        "covered_by": [
+          "test:python:test_invalid_round_requests_are_declined_and_change_nothing"
+        ]
+      },
+      {
+        "section": "4.2",
+        "text": "2. Otherwise the owner accepts the request: it binds the member to the session, if the member was not bound, and adds the request to the round. A round opens when the owner accepts its first request.",
+        "covered_by": [
+          "test:python:test_a_round_applies_the_requests_in_member_order_whatever_their_arrival",
+          "test:python:test_invalid_round_requests_are_declined_and_change_nothing"
+        ]
+      },
+      {
+        "section": "4.3",
+        "text": "3. A round closes when it has a request of every member that is not excluded, or when the deadline has passed since it opened, whichever comes first. A request that the owner accepted belongs to its round: the owner MUST NOT close a round between accepting a request and adding it.",
+        "covered_by": [
+          "test:python:test_a_request_that_the_owner_accepted_before_the_deadline_is_in_the_round",
+          "test:python:test_a_member_without_a_request_at_the_deadline_is_excluded_and_does_not_delay_later_rounds"
+        ]
+      },
+      {
+        "section": "4.4",
+        "text": "4. When round K closes, every member that is not excluded and has no request in round K is excluded from every later round.",
+        "covered_by": [
+          "test:python:test_a_member_without_a_request_at_the_deadline_is_excluded_and_does_not_delay_later_rounds"
+        ]
+      },
+      {
+        "section": "4.5",
+        "text": "5. The owner then applies the requests of round K once, in member order, and responds to each of them with `ok`. The body of each response is an object: the application's result for that member, with the member `ncp.round_record`:",
+        "covered_by": [
+          "test:python:test_a_round_applies_the_requests_in_member_order_whatever_their_arrival"
+        ]
+      },
+      {
+        "section": "4.6",
+        "text": "6. Every response of round K carries the same record.",
+        "covered_by": [
+          "test:python:test_a_round_applies_the_requests_in_member_order_whatever_their_arrival",
+          "test:python:test_rounds_follow_each_other_in_lockstep"
+        ]
+      },
+      {
+        "section": "4.7",
+        "text": "7. When the session of a member ends, the member is no longer bound. A new session can bind it, unless the member is excluded.",
+        "covered_by": [
+          "test:python:test_a_member_whose_session_ended_may_take_a_new_session"
+        ]
+      },
+      {
+        "section": "4.8",
+        "text": "8. If the application fails to apply round K, the owner responds `ended` with `owner_failure` to every request of round K, and rule 1.7 declines every later request of the round operation.",
+        "covered_by": [
+          "test:python:test_a_failed_step_ends_the_sessions_of_its_round_and_stops_the_rounds"
+        ]
+      },
+      {
+        "section": "4",
+        "text": "The owner MUST be able to accept requests of other sessions while requests of the open round wait for it to close. Serve each session in its own thread or task, as the Unix domain socket, TCP, and Zenoh servers of the reference SDKs do.",
+        "covered_by": [
+          "test:python:test_rounds_over_a_unix_domain_socket",
+          "test:python:test_rounds_follow_each_other_in_lockstep"
+        ]
+      },
+      {
+        "section": "5.1",
+        "text": "1. After an `ok` response to a request of the round operation, a client MUST check that `agents` in `ncp.round_record` lists its member, and that the same row of `requests` holds the identity of its request. If not, the client MUST treat the response as a protocol error.",
+        "covered_by": [
+          "test:python:test_an_agent_checks_that_the_record_lists_its_own_request"
+        ]
+      },
+      {
+        "section": "5.2",
+        "text": "2. A client whose request was declined because its member is excluded can expect no later round to apply a request of that member.",
+        "covered_by": [
+          "test:python:test_a_member_without_a_request_at_the_deadline_is_excluded_and_does_not_delay_later_rounds"
+        ]
+      }
+    ]
+  }
 }

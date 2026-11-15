@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1944" viewBox="0 0 1600 1944" role="img" aria-labelledby="ncp2-lockstep-title ncp2-lockstep-desc">
+<title id="ncp2-lockstep-title">Lockstep recovery: a delayed step and a copy of open</title>
+<desc id="ncp2-lockstep-desc">A step is delayed, the client recovers in a new session, and a copy of the first open arrives. With a session name as holder, the late step ran after the verdict that it did not. With an opening as holder, it is declined. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
+<defs>
+<style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
+<marker id="ncp2-lockstep-arrow-lapis" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#8DB2D8"/></marker>
+<marker id="ncp2-lockstep-arrow-pomegranate" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#E6A095"/></marker>
+<marker id="ncp2-lockstep-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#6FC1BD"/></marker>
+<pattern id="ncp2-lockstep-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
+</defs>
+<rect width="1600" height="1944" fill="#131D26"/>
+<rect x="1369.3" y="18" width="178.7" height="38" rx="19" fill="#8DB2D8"/>
+<path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="152" width="300" height="122" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M52 166 L52 166 Q52 152 66 152 L338 152 Q352 152 352 166 L352 166 Z" fill="#8DB2D8"/>
+<rect x="560" y="152" width="300" height="122" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M560 166 L560 166 Q560 152 574 152 L846 152 Q860 152 860 166 L860 166 Z" fill="#6FC1BD"/>
+<rect x="900" y="304" width="648" height="206" rx="14" fill="#1A2631" stroke="#8DB2D8" stroke-width="3"/>
+<path d="M900 318 L900 318 Q900 304 914 304 L1534 304 Q1548 304 1548 318 L1548 318 Z" fill="#8DB2D8"/>
+<circle cx="938" cy="355" r="21.2" fill="#8DB2D8"/>
+<path d="M926 384 L1522 384" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="524" width="648" height="352" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M900 538 L900 538 Q900 524 914 524 L1534 524 Q1548 524 1548 538 L1548 538 Z" fill="#6FC1BD"/>
+<circle cx="938" cy="575" r="21.2" fill="#6FC1BD"/>
+<path d="M926 604 L1522 604" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="890" width="648" height="239" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
+<path d="M900 904 L900 904 Q900 890 914 890 L1534 890 Q1548 890 1548 904 L1548 904 Z" fill="#E6A095"/>
+<circle cx="938" cy="941" r="21.2" fill="#E6A095"/>
+<path d="M926 970 L1522 970" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="900" y="1143" width="648" height="206" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
+<path d="M900 1157 L900 1157 Q900 1143 914 1143 L1534 1143 Q1548 1143 1548 1157 L1548 1157 Z" fill="#E6A095"/>
+<circle cx="938" cy="1194" r="21.2" fill="#E6A095"/>
+<path d="M926 1223 L1522 1223" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<path d="M202 274 L202 1373" stroke="#AAB7BE" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
+<path d="M710 274 L710 1373" stroke="#AAB7BE" stroke-width="3" fill="none" stroke-linecap="butt" stroke-dasharray="4 8"/>
+<rect x="470" y="388" width="155.7" height="38" rx="19" fill="#E6A095"/>
+<rect x="234" y="990.5" width="369.4" height="38" rx="19" fill="#E6A095"/>
+<rect x="234" y="1227" width="244.1" height="38" rx="19" fill="#E6A095"/>
+<rect x="52" y="1469" width="732" height="238" rx="14" fill="#1A2631" stroke="#E6A095" stroke-width="3"/>
+<path d="M52 1483 L52 1483 Q52 1469 66 1469 L770 1469 Q784 1469 784 1483 L784 1483 Z" fill="#E6A095"/>
+<path d="M78 1581 L758 1581" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="816" y="1469" width="732" height="238" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
+<path d="M816 1483 L816 1483 Q816 1469 830 1469 L1534 1469 Q1548 1469 1548 1483 L1548 1483 Z" fill="#6FC1BD"/>
+<path d="M842 1581 L1522 1581" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
+<rect x="52" y="1741" width="1496" height="163" rx="10" fill="#1E3240"/>
+<rect x="52" y="1741" width="10" height="163" rx="5" fill="#D8AA45"/>
+<path d="M208 407 L470 407" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-lapis)"/>
+<path d="M208 580 L704 580" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-lapis)"/>
+<path d="M704 660 L208 660" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-turquoise)"/>
+<path d="M208 740 L704 740" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-lapis)"/>
+<path d="M704 820 L208 820" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-turquoise)"/>
+<path d="M603.4 1009.5 L704 1009.5" fill="none" stroke="#E6A095" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-pomegranate)"/>
+<path d="M478.1 1246 L704 1246" fill="none" stroke="#E6A095" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-pomegranate)"/>
+<text x="1458.6" y="43.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 6</text>
+<text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">NCP 2 LOCKSTEP</text>
+<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">A lost step gets one verdict, and it stays true</text>
+<text x="78" y="212" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Client</text>
+<text x="78" y="244" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Steps the world</text>
+<text x="586" y="212" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Owner</text>
+<text x="586" y="244" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Keeps one clock</text>
+<text x="938" y="363.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">1</text>
+<text x="970" y="364" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A step is on its way</text>
+<text x="926" y="422" class="r" font-size="25" fill="#ECE5D5">The client sends step s for tick 42 in its first opening.</text>
+<text x="926" y="455" class="r" font-size="25" fill="#ECE5D5">No response arrives in time. The call ends: s possibly</text>
+<text x="926" y="488" class="r" font-size="25" fill="#ECE5D5">ran.</text>
+<text x="938" y="583.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">2</text>
+<text x="970" y="584" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Recover in a new session</text>
+<text x="926" y="642" class="r" font-size="25" fill="#ECE5D5">The client opens a new session. The open response</text>
+<text x="926" y="675" class="r" font-size="25" fill="#ECE5D5">reports the clock and takes nothing. A take request,</text>
+<text x="926" y="708" class="r" font-size="25" fill="#ECE5D5">which acknowledges that response, makes the new</text>
+<text x="926" y="741" class="r" font-size="25" fill="#ECE5D5">opening the holder and returns the final clock: tick</text>
+<text x="926" y="774" class="r" font-size="25" fill="#ECE5D5">41. The client concludes that s did not run, and never</text>
+<text x="926" y="807" class="r" font-size="25" fill="#ECE5D5">will.</text>
+<text x="938" y="949.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">3</text>
+<text x="970" y="950" class="s" font-size="28" fill="#ECE5D5" font-weight="700">A copy of the first open</text>
+<text x="926" y="1008" class="r" font-size="25" fill="#ECE5D5">A party on the path sends the first open again, on a</text>
+<text x="926" y="1041" class="r" font-size="25" fill="#ECE5D5">third connection. The owner accepts it as a third</text>
+<text x="926" y="1074" class="r" font-size="25" fill="#ECE5D5">opening, with the same session name and a new</text>
+<text x="926" y="1107" class="r" font-size="25" fill="#ECE5D5">nonce.</text>
+<text x="938" y="1202.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">4</text>
+<text x="970" y="1203" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The delayed step arrives</text>
+<text x="926" y="1261" class="r" font-size="25" fill="#ECE5D5">Step s reaches the first opening, whose owner still</text>
+<text x="926" y="1294" class="r" font-size="25" fill="#ECE5D5">waits for its next request. What happens depends on</text>
+<text x="926" y="1327" class="r" font-size="25" fill="#ECE5D5">what the holder is.</text>
+<text x="547.8" y="413.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">DELAYED</text>
+<text x="339" y="391" class="s" font-size="25" fill="#ECE5D5" font-weight="600" text-anchor="middle">step s, tick 42</text>
+<text x="456" y="564" class="s" font-size="25" fill="#ECE5D5" font-weight="600" text-anchor="middle">open, a new session</text>
+<text x="456" y="644" class="s" font-size="25" fill="#ECE5D5" font-weight="600" text-anchor="middle">ok, report: tick 41, term 7</text>
+<text x="456" y="724" class="s" font-size="25" fill="#ECE5D5" font-weight="600" text-anchor="middle">take, term 7</text>
+<text x="456" y="804" class="s" font-size="25" fill="#ECE5D5" font-weight="600" text-anchor="middle">ok, final: tick 41, term 8</text>
+<text x="418.7" y="1016" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">COPY OF THE FIRST OPEN</text>
+<text x="356" y="1252.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">STEP s ARRIVES</text>
+<text x="52" y="1443" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">WHEN THE DELAYED STEP ARRIVES</text>
+<text x="78" y="1529" class="s" font-size="28" fill="#ECE5D5" font-weight="700">The holder is a session name</text>
+<text x="78" y="1561" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Until revision 4</text>
+<text x="78" y="1619" class="r" font-size="25" fill="#ECE5D5">The copy of open made the session name the holder again.</text>
+<text x="78" y="1652" class="r" font-size="25" fill="#ECE5D5">Step s ran, and the world moved to tick 42. The verdict that</text>
+<text x="78" y="1685" class="r" font-size="25" fill="#ECE5D5">s did not run was false.</text>
+<text x="842" y="1529" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Only a take takes the ticks</text>
+<text x="842" y="1561" class="s" font-size="25" fill="#6FC1BD" font-weight="600">From revision 6</text>
+<text x="842" y="1619" class="r" font-size="25" fill="#ECE5D5">The second opening took the ticks with its take, and the copy</text>
+<text x="842" y="1652" class="r" font-size="25" fill="#ECE5D5">of open took nothing. Step s is declined and never runs. The</text>
+<text x="842" y="1685" class="r" font-size="25" fill="#ECE5D5">verdict stays true.</text>
+<text x="84" y="1779" class="s" font-size="24" fill="#AAB7BE" font-weight="600">WHAT A COPY CAN STILL DO</text>
+<text x="84" y="1817" class="r" font-size="25" fill="#ECE5D5">A copy of open opens a session and reads the clock. It cannot take the ticks: a take must acknowledge the open response of its</text>
+<text x="84" y="1850" class="r" font-size="25" fill="#ECE5D5">own opening, which holds a fresh nonce. An exhaustive check of the Python SDK with one fault found no false verdict. The</text>
+<text x="84" y="1883" class="r" font-size="25" fill="#ECE5D5">profile is not proved.</text>
+</svg>

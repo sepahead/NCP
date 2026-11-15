@@ -9,20 +9,22 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 
 ## NCP 2
 
-The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 5
+The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 6
 of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
 
 - **The SDKs are not proved.** The Lean proofs cover models of the owner and of a client. The
   owners are tested against the compiled model on random traces, and both SDKs against the shared
   vectors; these tests cover many inputs, not all ([`formal/`](formal/README.md)).
-- **Bounded model check.** The exhaustive check of the SDK client and owner covers four calls and
+- **Bounded model checks.** The exhaustive check of the SDK client and owner covers four calls and
   up to two faults ([`model/`](model/README.md)). Client verdicts across a restart of the owner are
-  checked there, not proved.
+  checked there, not proved. The check of the lockstep profile covers one stepping client with two
+  steps, three sessions, and one fault in the gate (two in an advisory run), and only the Python
+  SDK; the rounds profile has none.
 - **One author.** The same author wrote the specification, both SDKs, the vectors, the Lean models,
   and the model check. The two SDKs are two implementations by one author; no independent
   implementation exists.
 - **Evidence of revision 2.** The benchmarks and the fault campaign ran with revision 2 of the SDKs
-  on one macOS laptop. They have not run again for revisions 3 to 5, not on Linux, and not with the
+  on one macOS laptop. They have not run again for revisions 3 to 6, not on Linux, and not with the
   Zenoh binding.
 - **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. Windows is
   not tested. The Rust SDK takes nonces and session identifiers from the generator of the
