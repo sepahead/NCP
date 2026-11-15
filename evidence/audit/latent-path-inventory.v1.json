@@ -184,8 +184,8 @@
       {
         "path": "Cargo.lock",
         "bytes": 93050,
-        "sha256": "98e70e477c600d686e89d28b69087fe4e2acfef8d58bd593ce312d796e68405f",
-        "git_blob_oid": "846f9c3804118f18456c31591d6a08c41d90b5d7",
+        "sha256": "08458b787e912f8910de9f167e9c4604c91cbfcfb42d516fa671c53f1a5ae1cc",
+        "git_blob_oid": "43fa5ce8cf830cb414b020bf4b5127be4e7ea1df",
         "indexed": true
       },
       {
@@ -5490,8 +5490,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 153800,
-        "sha256": "f37a12259390abf18f42e19465874f63aa6ae27013be65b816fa1e34ec7e3d7f",
-        "git_blob_oid": "d8ff22b675d00e079140dfe7b70ce004a7b4005f",
+        "sha256": "cd45a7d64c592a122318465597e028377a70ee861fa7ea07e1593772682672e9",
+        "git_blob_oid": "84777ced69b431698d10262b7f121b781d8d8b2e",
         "indexed": true
       },
       {
@@ -5504,22 +5504,22 @@
       {
         "path": "evidence/supply-chain/provenance-policy.v1.json",
         "bytes": 1698,
-        "sha256": "3bcba8d2e7b94f318e974bcaa1cba21a4b4b85ff612c9eee14ed18de4d8fd4c9",
-        "git_blob_oid": "e723aec331e2059b52030b4564ed189ead9bd9b8",
+        "sha256": "5f510bb0fcd93ba25a65d9a387b58b94b2abf57fd31d7736a0aee2f3b24a723d",
+        "git_blob_oid": "73d8e1e59dd6ab1d269b73186bdb4b9cf6c08187",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/sbom.cdx.json",
         "bytes": 298835,
-        "sha256": "3e15b4e40e09d19274232769c4e9cdc17b63fac421ff5edd7de0dc2c53c6098b",
-        "git_blob_oid": "fe6bf86b8dc243a51bbcb0fa7c640c0a775869c0",
+        "sha256": "db3571578b0bd8a7cfb4964c5489272fc260546bff112d2cde2b31127192a22e",
+        "git_blob_oid": "b60e13711e9d87a964f5284a189289d40f27fecb",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/vulnerability-report.v1.json",
         "bytes": 2575,
-        "sha256": "650e355ee378694ff06e9ca7ef9f50d53e4618f1ffb2f4d9fb9833c493fc23d4",
-        "git_blob_oid": "299274841be8fa01ad29086bc8e2d8ef1e3c2d8c",
+        "sha256": "4a97ec57b7ac451ea268bb06b5aac0442afdc45a1e5d73c2c8a29fd1edd2f985",
+        "git_blob_oid": "b57eaabc01b2f62afa7747e71776a5e0c87fa57c",
         "indexed": true
       },
       {

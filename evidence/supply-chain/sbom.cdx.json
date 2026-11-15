@@ -10137,7 +10137,7 @@
         "pkg:cargo/once_cell@1.21.4",
         "pkg:cargo/socket2@0.6.4",
         "pkg:cargo/tracing@0.1.44",
-        "pkg:cargo/windows-sys@0.52.0"
+        "pkg:cargo/windows-sys@0.61.2"
       ],
       "ref": "pkg:cargo/quinn-udp@0.5.16"
     },
@@ -11815,7 +11815,7 @@
       "version": "1.0.0-rc.1"
     }
   },
-  "serialNumber": "urn:uuid:8a930a26-4646-50c6-9b4a-f55c521bd9a4",
+  "serialNumber": "urn:uuid:ccd0131b-6b3e-5584-be10-95290ef0d58a",
   "specVersion": "1.6",
   "version": 1
 }
