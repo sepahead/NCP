@@ -194,7 +194,12 @@ jobs:
 
   publication:
     name: publication diagrams + PDF
-    runs-on: ubuntu-latest
+    # The cross-toolchain rebuild passed on ubuntu-24.04 (TeX Live 2023, librsvg
+    # 2.58). Since ubuntu-latest became ubuntu-26.04 on 11 November 2026, its
+    # LuaTeX writes a figure Form XObject with two /Group keys, which the strict
+    # PDF parser rejects. Keep the image that the comparison was validated on
+    # until the publication toolchain moves.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout

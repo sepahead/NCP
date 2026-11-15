@@ -92,9 +92,9 @@
       },
       {
         "path": ".github/workflows/ci.yml",
-        "bytes": 36311,
-        "sha256": "943d9c98bd3819b8d3d7396d9c60e38d7745955a8db802301114ab57243858b6",
-        "git_blob_oid": "31d92822422ad0e343b76ce1c24012f4ea2e2e5c",
+        "bytes": 36673,
+        "sha256": "ad629cd51eefa3f2a5272110cec35491540dd049c9d5c9867839fc1d8303ee91",
+        "git_blob_oid": "b8f25d5f1ac19f02f14ac9b6752d0f12ed5ac5ae",
         "indexed": true
       },
       {
