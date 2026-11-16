@@ -302,9 +302,9 @@
       },
       {
         "path": "README.md",
-        "bytes": 32982,
-        "sha256": "57cdb3f8e2e612a43659e9d0528b78380142389f79efb77fd144675c36a37043",
-        "git_blob_oid": "60291635e1d585911f11d57a8cc424b75a4da912",
+        "bytes": 33059,
+        "sha256": "b13c91bedeadd8808015b5f39479601272dc784fb733520244b880abaa6a1f9b",
+        "git_blob_oid": "f0809d210370695a96e8da71f6e2d53a8a01b77a",
         "indexed": true
       },
       {
@@ -4530,9 +4530,9 @@
       },
       {
         "path": "docs/design/NCP-2-MIGRATION.md",
-        "bytes": 22578,
-        "sha256": "5a5e2838c63334c806fb68ac4c15464f17ee18a1ed43b01040e4982cdbeb30c5",
-        "git_blob_oid": "2bc551bc6eabf2e511a7293d8423d56e3e775678",
+        "bytes": 25080,
+        "sha256": "b7f68bb99bd7e0d79bd7f2432e8189a84fe90992c79d79d70199b8bb4a8f9bf9",
+        "git_blob_oid": "ef5d98635c0fe34a09fef70c302a5f2b388bfec5",
         "indexed": true
       },
       {
@@ -4705,16 +4705,16 @@
       },
       {
         "path": "docs/diagrams/ncp2-lockstep-dark.svg",
-        "bytes": 12670,
-        "sha256": "7a36be75949d44f0238c0f3f4c450924058508df056fdf707cdfccf79fb922a5",
-        "git_blob_oid": "9b8cba5ef3ce0706f140b390271f80e827c802c6",
+        "bytes": 12716,
+        "sha256": "383562ec014f4940744f28c583a55b77fba17815fde927ae0a52a7a5271f6e62",
+        "git_blob_oid": "a7199fc75be59e9104860b662617595f2fe5e336",
         "indexed": true
       },
       {
         "path": "docs/diagrams/ncp2-lockstep-light.svg",
-        "bytes": 12670,
-        "sha256": "59e6cfec2bb107aa6288c9a8e78dcedbc05cb81f8a7a5a539354fff916e28ac0",
-        "git_blob_oid": "d6d5497418b787b0b84add804da20e9b2f9fd7cc",
+        "bytes": 12716,
+        "sha256": "c41d5aa74b8015d17188f95521a2fa1a6497aa6f73a0f1fae9c0b8b3c3d45c77",
+        "git_blob_oid": "62a847b605ff19d948842c9a508bb51b24509eeb",
         "indexed": true
       },
       {
@@ -5532,8 +5532,8 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 153800,
-        "sha256": "89899a1aa9d900a77fa2a68660e0c314a6d6d89fbb4431897a07ff57521dfd17",
-        "git_blob_oid": "bad1e39ff78dfc6ca5eae4b622aaacf487955996",
+        "sha256": "46b5800b3cba411dc1ebc87f6ef8fecbc432cd2bdda0eb62a532fb0145ab4b5d",
+        "git_blob_oid": "a2a9cf4a28d3fe5daab88a224d0240be86b0f53e",
         "indexed": true
       },
       {
@@ -11264,9 +11264,9 @@
       },
       {
         "path": "scripts/gen_diagrams.py",
-        "bytes": 168613,
-        "sha256": "5b09999bd4e8346e201268c844ce8fa529a2f529647aaeb3f1153200d7abf11d",
-        "git_blob_oid": "3053d8e245480c43c1bfed89f3795ba68334e5b4",
+        "bytes": 168670,
+        "sha256": "a159892bbe0b245957b4a6d27607395d15275f057ceaa8bbb359c7e455245d29",
+        "git_blob_oid": "9531f5ef07d083373bb813b2cda6ac4ca2da37d2",
         "indexed": true
       },
       {

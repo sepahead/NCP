@@ -54,7 +54,7 @@
 <path d="M478.1 1246 L704 1246" fill="none" stroke="#743E37" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-pomegranate)"/>
 <text x="1458.6" y="43.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 6</text>
 <text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">NCP 2 LOCKSTEP</text>
-<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">A lost step gets one verdict, and it stays true</text>
+<text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">A lost step gets a true verdict about the owner's state, or none</text>
 <text x="78" y="212" class="s" font-size="28" fill="#2C3E50" font-weight="700">Client</text>
 <text x="78" y="244" class="s" font-size="25" fill="#1F6968" font-weight="600">Steps the world</text>
 <text x="586" y="212" class="s" font-size="28" fill="#2C3E50" font-weight="700">Owner</text>
@@ -104,6 +104,6 @@
 <text x="842" y="1685" class="r" font-size="25" fill="#2C3E50">verdict stays true.</text>
 <text x="84" y="1779" class="s" font-size="24" fill="#4D5C64" font-weight="600">WHAT A COPY CAN STILL DO</text>
 <text x="84" y="1817" class="r" font-size="25" fill="#2C3E50">A copy of open opens a session and reads the clock. It cannot take the ticks: a take must acknowledge the open response of its</text>
-<text x="84" y="1850" class="r" font-size="25" fill="#2C3E50">own opening, which holds a fresh nonce. An exhaustive check of the Python SDK with one fault found no false verdict. The</text>
-<text x="84" y="1883" class="r" font-size="25" fill="#2C3E50">profile is not proved.</text>
+<text x="84" y="1850" class="r" font-size="25" fill="#2C3E50">own opening, which holds a fresh nonce. An exhaustive check of the Python SDK with one fault found no verdict that the</text>
+<text x="84" y="1883" class="r" font-size="25" fill="#2C3E50">owner's state contradicts. The profile is not proved.</text>
 </svg>

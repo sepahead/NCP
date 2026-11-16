@@ -229,3 +229,17 @@ Revision 6 (15 November 2026) closes the findings of the design record, [section
 | — | `lockstep::{TAKE, TAKE_ATTEMPTS, MAX_TERM, MAX_TICK, Known, take, judge}`; `take(client, term)` returns the clock and the new term; `judge` returns `Executed`; `Lockstep::restored(stepper, ops, tick, state, request, term)` |
 | `Invalid::{Declined, Failed}` | Also `Invalid::DeclinedWith`, made with `declined_with` |
 | — | `messages::feature_of` |
+
+### Open work after revision 6
+
+An advisory design review of revision 6 (16 November 2026, read-only, not certification evidence) found no defect in the exchange. It ranks the work that the remaining consumers need, in this order:
+
+1. Before the tag, the owner decides which parts it freezes. The review recommends a freeze of sections 3 to 7 without 6.3, rules 1 to 9 of section 9.1, sections 10, 12, 14, and 15, section 11 without 11.1, and the rules of section 13.2 that say where the authentication code sits. Streams (sections 6.3 and 8), the Zenoh binding, schemas, the key and TLS guidance, and both profiles stay provisional, each with its own revision. Text to add before a freeze: a verifier ignores unknown members of a transcript header; a client ignores unknown members of a body whose outcome is not `ok`; one key for each address; the revision of a profile in its feature parameters; a new key prefix for an incompatible Zenoh revision; and the supported platforms.
+2. The revision in the implementation string, for example `ncp-python/2.0.0-rc.6`, so that an `open` response and a transcript say which rules made them. The tagged commit then says `2.0.0`.
+3. The fault campaign and one benchmark block on the tagged revision, and a decoder, owner, and client by another author for the frozen parts.
+4. Lockstep revision 5: a history identity in the clock, so that a recovery after a restore to an earlier saved clock gives no verdict instead of "did not run"; the revision of the profile on the wire; reasons for its refusals; and openings that may only read. Then CREBAIN's world, which already checks a tick and a state digest in its own contract, as its first consumer.
+5. Decline reasons that programs can read: a body member `ncp.reason` with a registered name.
+6. A stream profile for sensors and advisories: the stream type in the identifier, a start message, time, liveness, explicit gaps and drops, references by identity, and an announcement. First users: Galadriel and CREBAIN's world.
+7. An authority profile for commands, in which the body is the owner and issues a lease with a term; the peer of the binding reaches the `open` handler. First users: CREBAIN's application and Haldir with its epoch 22.
+8. Rounds revision 3, with a recovery, a clock, and a chained round identity, when a consumer needs many agents in one world.
+9. A composition document whose identity a run names, so that a set of transcripts can show that it is the complete record of one declared run.

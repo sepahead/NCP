@@ -298,6 +298,8 @@ They do not describe an implemented local-v1 runtime or close any gate.
 
 ## Implementations and verification
 
+The packages, figure, and evidence classes of this section belong to NCP 1.
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/evidence-ladder-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/evidence-ladder-light.svg">

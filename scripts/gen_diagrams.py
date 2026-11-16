@@ -4008,7 +4008,7 @@ def ncp2_lockstep():
         "With a session name as holder, the late step ran after the verdict that it did not. With an "
         "opening as holder, it is declined. " + NCP2_UNRELEASED,
     )
-    y = header(c, "NCP 2 LOCKSTEP", "A lost step gets one verdict, and it stays true",
+    y = header(c, "NCP 2 LOCKSTEP", "A lost step gets a true verdict about the owner's state, or none",
                f"REVISION {NCP2_RULES['revision']}")
     notes_x = 900
     notes_w = WIDTH - MARGIN - notes_x
@@ -4074,7 +4074,8 @@ def ncp2_lockstep():
         c, "lockstep-boundary", results[0].box.bottom + 34, "WHAT A COPY CAN STILL DO",
         "A copy of open opens a session and reads the clock. It cannot take the ticks: a take must "
         "acknowledge the open response of its own opening, which holds a fresh nonce. An exhaustive "
-        "check of the Python SDK with one fault found no false verdict. The profile is not proved.",
+        "check of the Python SDK with one fault found no verdict that the owner's state contradicts. The profile "
+        "is not proved.",
     ).bottom
     return _finish(c, bottom)
 
