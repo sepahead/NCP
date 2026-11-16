@@ -1,0 +1,9 @@
+message calls       1282355 worlds   6790337 transitions  322.8 s: P1 to P8 and progress hold
+message failure       13167 worlds     48459 transitions    0.3 s: P1 to P8 and progress hold
+message large         13167 worlds     48459 transitions    0.3 s: P1 to P8 and progress hold
+message operations  1282355 worlds   6790337 transitions  235.4 s: P1 to P8 and progress hold
+stream  calls           165 worlds       196 transitions    0.0 s: P1 to P8 and progress hold
+stream  failure          85 worlds       100 transitions    0.0 s: P1 to P8 and progress hold
+stream  large            85 worlds       100 transitions    0.0 s: P1 to P8 and progress hold
+stream  operations      165 worlds       196 transitions    0.0 s: P1 to P8 and progress hold
+model check: 2591544 reachable worlds with up to 2 faults; every property holds

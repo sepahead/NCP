@@ -1,0 +1,65 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running tests/sessions.rs (/tmp/ncp-verify/rust/target/debug/deps/sessions-0c95c80e82a08ed5)
+
+running 58 tests
+test a_declined_answer_never_changes ... ok
+test a_lost_response_is_sent_again_and_executes_once ... ok
+test a_client_stops_after_three_takes_whose_term_moved ... ok
+test a_closed_request_schema_admits_the_tick ... ok
+test a_delayed_take_of_an_abandoned_opening_is_declined ... ok
+test a_recovery_reads_its_verdict_from_the_take ... ok
+test a_recovery_that_reaches_the_old_opening_gives_no_verdict ... ok
+test a_rejected_open_takes_nothing ... ok
+test a_lockstep_step_whose_application_fails_counts_as_executed ... ok
+test a_stopping_owner_admits_nothing_new ... ok
+test a_recovery_with_the_same_session_identifier_fences_the_old_opening ... ok
+test a_recovery_that_finds_the_step_of_another_session_gives_no_verdict ... ok
+test a_copy_of_an_old_open_takes_nothing ... ok
+test a_take_needs_its_body_and_the_profile_defines_no_other_operation ... ok
+test a_tap_records_a_frame_before_sending_it_and_a_dropped_tap_closes ... ok
+test a_restart_to_the_same_tick_with_another_state_gives_no_verdict ... ok
+test a_take_whose_term_moved_is_sent_again ... ok
+test a_keyed_transcript_and_an_authenticated_session ... ok
+test a_take_names_the_last_term_that_the_owner_told ... ok
+test an_owner_without_a_term_ends_the_session ... ok
+test an_open_only_reports_the_clock ... ok
+test a_take_fences_the_steps_of_earlier_openings ... ok
+test each_opening_has_its_own_nonce ... ok
+test arrays_of_every_dtype_round_trip ... ok
+test no_step_follows_the_largest_tick ... ok
+test call_all_sends_every_request_before_it_reads_a_response ... ok
+test a_bad_frame_ends_a_tcp_connection ... ok
+test a_unix_server_serves_sessions_and_removes_its_socket ... ok
+test remote_addresses_need_permission ... ok
+test no_take_raises_the_largest_term ... ok
+test ok_and_declined_advance_the_session ... ok
+test several_contracts_and_the_handler_hooks ... ok
+test streams_detect_loss_repeats_conflicts_and_forgery ... ok
+test lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran ... ok
+test features_that_cannot_be_sent_refuse_the_open ... ok
+test the_client_checks_the_term_of_the_take ... ok
+test the_frame_identity_of_short_input_does_not_panic ... ok
+test the_json_padding_is_exact ... ok
+test the_client_checks_the_tick_and_the_request_of_a_step ... ok
+test the_request_schema_of_the_contract ... ok
+test the_verdict_of_a_recovery ... ok
+test the_subscriber_applies_its_bound_to_each_frame ... ok
+test a_full_server_refuses_an_open_and_stop_sends_the_shutdown_response ... ok
+test the_digest_check_can_be_turned_off_only_on_local_links ... ok
+test call_all_returns_the_error_of_one_session_in_its_place ... ok
+test unknown_codes_are_handled_by_outcome ... ok
+test transcripts_detect_tampering ... ok
+test tcp_session_with_transcripts ... ok
+test endings_report_whether_the_request_executed ... ok
+test profile_members_that_cannot_be_encoded_leave_the_detail ... ok
+test a_child_channel_ends_its_child ... ok
+test rust_client_with_the_python_owner ... ok
+test encoders_refuse_frames_that_receivers_must_reject ... ok
+test a_take_waits_for_a_checked_step_and_an_open_does_not ... ok
+test a_step_waits_for_a_checked_take ... ok
+test a_child_on_a_socket_pair_takes_a_time_limit ... ok
+test a_time_limit_ends_a_stalled_call ... ok
+test an_idle_session_ends_with_the_shutdown_response ... ok
+
+test result: ok. 58 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+

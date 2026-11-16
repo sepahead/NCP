@@ -1,0 +1,4 @@
+stream, new session identifiers          5259265 worlds   12997642 transitions  223.5 s: S1 to S6, L1, and progress hold
+stream, one session identifier           2106563 worlds    6022651 transitions   72.3 s: S1 to S6, L1, and progress hold
+lockstep check: 7365828 reachable worlds with up to 2 faults; every property holds
+python3 -I -B model/lockstep.py --faults 2 --shape $cfg --max-worlds 12000000  260.74s user 3.23s system 88% cpu 4:56.62 total

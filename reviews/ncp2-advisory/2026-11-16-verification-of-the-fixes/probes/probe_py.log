@@ -1,0 +1,28 @@
+== P1a: the ok response of a take lacks 'state' (owner broke rule 5.3)
+LockstepClient(...): raised KeyError: 'state'
+  owner: holder is this opening: True term 1 ; client.ended: False
+== P1b: the ok response of a take lacks 'request'
+LockstepClient(...): raised KeyError: 'request'
+  owner: holder is this opening: True ; client.ended: False
+== P1c: the ok response of a step has ncp.tick without 'state'
+stepper.step(...): raised KeyError: 'state'
+  owner tick 1 position 2 ; client knows tick 0 state p0 ; uncertain None ; client.ended False
+  next stepper.step(...): raised Declined: body_invalid: tick: the next tick is 2
+== P2: LockstepClient.take() after three declined takes names a stale term
+stepper.take() (3 moving terms): raised Declined: body_invalid: term: the term is 4
+  owner term 4 ; stepper.term 1 ; terms named so far [0, 1, 2, 3]
+stepper.take() again: returned None
+  terms named by the second take(): [1, 4] ; owner term now 5 ; told last before it: 4 (the body of the last decline)
+== P3: recover after a malformed take response keeps uncertain (can retry)
+step (lost response): raised Ended: local.closed (executed: unknown): broke code=local.closed executed=unknown
+  uncertain (2, '68439b1857508d9cc20adb9ad9f88703216957b37beb19e3d5c3763ae73d1d6e')
+recover(bad owner): raised Ended: local.protocol (executed: yes): the response of the take does not carry the clock code=local.protocol executed=yes
+  uncertain (2, '68439b1857508d9cc20adb9ad9f88703216957b37beb19e3d5c3763ae73d1d6e') ; bad.ended True
+recover(good owner): returned <Executed.YES: 'yes'>
+  tick 2 state p2 uncertain None
+== P12: an application open grants an Array in a feature parameter
+open with an Array parameter: raised TypeError: Object of type Array is not JSON serializable
+  app.closed []
+== P13: Declined body with an Array member (Python owner)
+  declined body: {'detail': 'no', 'ncp.x': Array('u8', (4,), <4 bytes>)}
+  ping after: returned {}

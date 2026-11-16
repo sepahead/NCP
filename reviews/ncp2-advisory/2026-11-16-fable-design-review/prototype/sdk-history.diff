@@ -1,0 +1,29 @@
+--- /tmp/ncp-design/python/ncp/lockstep.py	2026-11-16 00:58:18
++++ /tmp/ncp-design-proto/python/ncp/lockstep.py	2026-11-16 16:17:38
+@@ -9,6 +9,7 @@
+ 
+ from __future__ import annotations
+ 
++import secrets
+ import threading
+ from collections.abc import Iterable
+ from typing import Any
+@@ -78,7 +79,9 @@
+         state: str | None = _INITIAL,
+         request: str | None = None,
+         term: int = 0,
++        history: str | None = None,
+     ) -> None:
++        self.history = history if history is not None else secrets.token_hex(16)
+         if state is _INITIAL:
+             digest = getattr(handler, "state", None)
+             state = digest() if digest is not None else None
+@@ -106,7 +109,7 @@
+     def clock(self) -> dict[str, Any]:
+         """The tick, the state digest, the request that produced the tick, and the term."""
+         with self._clock:
+-            return {"tick": self.tick, "state": self.state, "request": self.request, "term": self.term}
++            return {"tick": self.tick, "state": self.state, "request": self.request, "term": self.term, "history": self.history}
+ 
+     def open(self, info: OpenInfo) -> dict[str, Any]:
+         opener = getattr(self.handler, "open", None)

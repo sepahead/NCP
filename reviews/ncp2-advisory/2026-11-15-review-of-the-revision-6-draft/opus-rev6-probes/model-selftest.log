@@ -1,0 +1,11 @@
+mutant holder_by_session          caught by S2 (stream, one session identifier)
+mutant constant_nonce             caught by L1 (stream)
+mutant takeover_in_open           caught by S5 (stream)
+mutant take_without_term          caught by L1 (stream)
+mutant verdict_from_open_report   caught by S6 (stream)
+mutant verdict_ignores_request    caught by S1 (stream)
+mutant step_skips_holder_check    caught by S2 (stream)
+mutant take_keeps_term            caught by L1 (stream)
+mutant verdict_ignores_state      caught by S6 (stream)
+self-test: 9 of 9 known defects detected
+python3 -I -B model/lockstep.py --faults 1 --self-test  50.79s user 1.90s system 80% cpu 1:05.31 total

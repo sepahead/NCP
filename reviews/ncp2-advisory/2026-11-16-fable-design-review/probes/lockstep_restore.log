@@ -1,0 +1,4 @@
+1. checkpoint saved at {'tick': 1, 'state': 'p2', 'request': 'c4227bad639a29ca07ebdfe192a22e0c95589305564941952f680d8840b30f32', 'term': 1}
+2. step for tick 2: local.closed executed: unknown | owner tick: 2 | effects: [('actuator moved', 2), ('actuator moved', 1)]
+3. after the restore, recover() -> no | the owner executed that step once before the restart: True
+RESULT: the verdict is no for a step that executed; the profile defines this as "not in the current state" (section 7, Restarts).

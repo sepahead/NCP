@@ -1,0 +1,2 @@
+VIOLATION (stream) S1: S1: 'did not run' for a step that ran
+  trace: L sends open -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame -> L takes a response -> L sends step -> an owner takes a frame -> a time limit -> L sends open -> the owner restarts to an earlier saved clock -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame

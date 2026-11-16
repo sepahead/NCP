@@ -1,0 +1,36 @@
+#### precise
+stream, new session identifiers: 184276 worlds, every property holds
+    unknown, not clean: 948
+zenoh, new session identifiers: 132027 worlds, every property holds
+    unknown, not clean: 948
+stream, one session identifier: 133195 worlds, every property holds
+    unknown, not clean: 948
+zenoh, one session identifier: 19770 worlds, every property holds
+    unknown, not clean: 240
+#### own
+stream, new session identifiers: 185594 worlds, every property holds
+    unknown, clean (a verdict was possible): 394
+    unknown, not clean: 948
+zenoh, new session identifiers: 133345 worlds, every property holds
+    unknown, clean (a verdict was possible): 394
+    unknown, not clean: 948
+stream, one session identifier: 134513 worlds, every property holds
+    unknown, clean (a verdict was possible): 394
+    unknown, not clean: 948
+zenoh, one session identifier: 19770 worlds, every property holds
+    unknown, not clean: 240
+#### own-precise
+stream, new session identifiers: VIOLATION S4: S4: precise: no verdict although the state at the take was clean: (1, 'p100', 'c17c39660f4e4966e639ccc5b91c75d6bf62b0d977c6ebf6c3f7d2bf025e4793'), L knew (1, 'p100', 'c17c39660f4e4966e639ccc5b91c75d6bf62b0d977c6ebf6c3f7d2bf025e4793')
+  trace: L sends open -> another client takes the ticks and steps -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame -> L takes a response -> L sends step -> a time limit -> L sends open -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame
+    unknown, clean (a verdict was possible): 1
+    unknown, not clean: 2
+zenoh, new session identifiers: VIOLATION S4: S4: precise: no verdict although the state at the take was clean: (1, 'p100', 'c17c39660f4e4966e639ccc5b91c75d6bf62b0d977c6ebf6c3f7d2bf025e4793'), L knew (1, 'p100', 'c17c39660f4e4966e639ccc5b91c75d6bf62b0d977c6ebf6c3f7d2bf025e4793')
+  trace: L sends open -> another client takes the ticks and steps -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame -> L takes a response -> L sends step -> a time limit -> L sends open -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame
+    unknown, clean (a verdict was possible): 1
+    unknown, not clean: 2
+stream, one session identifier: VIOLATION S4: S4: precise: no verdict although the state at the take was clean: (1, 'p100', 'c17c39660f4e4966e639ccc5b91c75d6bf62b0d977c6ebf6c3f7d2bf025e4793'), L knew (1, 'p100', 'c17c39660f4e4966e639ccc5b91c75d6bf62b0d977c6ebf6c3f7d2bf025e4793')
+  trace: L sends open -> another client takes the ticks and steps -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame -> L takes a response -> L sends step -> a time limit -> L sends open -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame
+    unknown, clean (a verdict was possible): 1
+    unknown, not clean: 2
+zenoh, one session identifier: 19770 worlds, every property holds
+    unknown, not clean: 240

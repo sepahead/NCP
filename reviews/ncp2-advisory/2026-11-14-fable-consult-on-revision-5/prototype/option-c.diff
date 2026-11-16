@@ -1,0 +1,140 @@
+--- python/ncp/owner.py	2026-11-14 23:10:12
++++ proto/python/ncp/owner.py	2026-11-14 23:27:05
+@@ -260,10 +260,14 @@
+     message = decoded.message
+     contract, nonce = state.contract, state.nonce
+     assert contract is not None and nonce is not None
+-    if op not in contract.operations:
++    # PROTOTYPE (consult rev5): a feature operation F.N of an enabled feature F that starts with
++    # "ncp." belongs to the profile; the contract and its schemas do not apply (proposed 15.3).
++    feature = op.rpartition(".")[0]
++    of_feature = feature.startswith("ncp.") and feature in state.features
++    if not of_feature and op not in contract.operations:
+         return reply("declined", "unknown_op", {}), Note("admitted", "declined", "unknown_op")
+     body = message["body"]
+-    if config.check_schemas:
++    if config.check_schemas and not of_feature:
+         mismatch = contract.check_request(op, body)
+         if mismatch is not None:
+             text = detail(f"request schema: {mismatch}")
+@@ -285,6 +289,8 @@
+     except Declined as declined:
+         text = detail(declined.detail)
+         body_out = {"detail": text} if text else {}
++        if type(declined.body) is dict:
++            body_out = {**{k: v for k, v in declined.body.items() if k.startswith("ncp.")}, **body_out}
+         return reply("declined", "body_invalid", body_out), Note("admitted", "declined", "body_invalid", text or None)
+     except Exception as error:  # noqa: BLE001 - a failure while checking ends the session (rule 12)
+         return reply("ended", "owner_failure", {}), Note(
+--- python/ncp/lockstep.py	2026-11-14 23:10:12
++++ proto/python/ncp/lockstep.py	2026-11-14 23:27:05
+@@ -18,6 +18,8 @@
+ 
+ FEATURE = "ncp.lockstep"
+ TICK = "ncp.tick"
++TAKE = "ncp.lockstep.take"
++TAKE_ATTEMPTS = 3
+ MAX_STATE = 128
+ 
+ 
+@@ -58,6 +60,7 @@
+         self.handler, self.ops = handler, frozenset(ops)
+         self.tick, self.state, self.request = tick, state, request
+         self.holder: str | None = None
++        self.term = 0
+         self._lock = threading.Lock()
+         self._local = threading.local()
+ 
+@@ -68,12 +71,25 @@
+             # The opening takes over the ticks (profile, rule 3.3). A checked step holds the lock
+             # until it has run, so the tick read here is final for every earlier opening, also of
+             # the same session identifier: validate declines their later steps.
+-            with self._lock:
+-                self.holder = info.nonce
+-                granted[FEATURE] = {"tick": self.tick, "state": self.state, "request": self.request}
++            with self._lock:  # a report from one instant; it changes nothing (rule 7.1.8)
++                granted[FEATURE] = self._clock()
+         return granted
+ 
++    def _clock(self) -> dict[str, Any]:
++        return {"tick": self.tick, "state": self.state, "request": self.request, "term": self.term}
++
+     def validate(self, request: Request) -> None:
++        if request.op == TAKE:
++            body = request.body
++            if type(body) is not dict or body.keys() != {"term"} or type(body["term"]) is not int:
++                raise Declined('a take needs the body {"term": E}')
++            self._lock.acquire()  # waits for a running step
++            if body["term"] != self.term:
++                term = self.term
++                self._lock.release()
++                raise Declined(f"term: the term is {term}", body={FEATURE: {"term": term}})
++            self._local.held = True
++            return
+         if request.op not in self.ops:
+             self.handler.validate(request)
+             return
+@@ -98,6 +114,14 @@
+         self._local.held = True  # execute follows in this thread and releases the lock
+ 
+     def execute(self, request: Request) -> Any:
++        if request.op == TAKE:
++            try:
++                self.holder, self.term = request.nonce, self.term + 1
++                return self._clock()
++            finally:
++                if getattr(self._local, "held", False):
++                    self._local.held = False
++                    self._lock.release()
+         if request.op not in self.ops:
+             return self.handler.execute(request)
+         try:
+@@ -145,7 +169,7 @@
+     def __init__(self, client: Client) -> None:
+         if not client.opened:
+             client.open()
+-        tick, state, _ = _granted(client)
++        tick, state, _ = _take(client)
+         self.client = client
+         self.tick: int = tick
+         self.state: str | None = state
+@@ -190,10 +214,10 @@
+         uncertain, identity = self.uncertain
+         if not client.opened:
+             client.open()
+-        tick, state, last = _granted(client)
++        tick, state, last = _take(client)  # the verdict comes from the take, never from the open
+         if tick == uncertain and identity is not None and last == identity:
+             verdict = Executed.YES
+-        elif tick == uncertain - 1:
++        elif tick == uncertain - 1 and state == self.state:
+             verdict = Executed.NO
+         else:
+             raise ProtocolError(f"the owner is at tick {tick}; the uncertain step was tick {uncertain}")
+@@ -213,3 +237,26 @@
+     ):
+         raise ProtocolError("the owner did not enable ncp.lockstep")
+     return granted["tick"], granted.get("state"), granted.get("request")
++
++
++def _take(client: Client) -> tuple[int, str | None, str | None]:
++    """Take the ticks in the opening of `client` and return the final tick, state digest, and
++    request identity (proposed profile revision 4). A declined take names the term; try again."""
++    granted = client.enabled.get(FEATURE)
++    if type(granted) is not dict or type(granted.get("term")) is not int:
++        raise ProtocolError("the owner did not enable ncp.lockstep revision 4")
++    term = granted["term"]
++    for _ in range(TAKE_ATTEMPTS):
++        try:
++            body = client.call(TAKE, {"term": term}).body
++        except Declined as declined:
++            moved = declined.body.get(FEATURE) if type(declined.body) is dict else None
++            if type(moved) is not dict or type(moved.get("term")) is not int:
++                raise
++            term = moved["term"]
++            continue
++        if (type(body) is not dict or type(body.get("tick")) is not int or not _state_ok(body.get("state"))
++                or body.get("term") != term + 1):
++            raise ProtocolError("the take response does not carry the clock")
++        return body["tick"], body.get("state"), body.get("request")
++    raise ProtocolError("the term keeps moving: another client takes the ticks")

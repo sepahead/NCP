@@ -1,0 +1,4 @@
+zenoh, new session identifiers           2023082 worlds    6247445 transitions   77.2 s: S1 to S6, L1, and progress hold
+zenoh, one session identifier             403949 worlds    1279084 transitions   20.6 s: S1 to S6, L1, and progress hold
+lockstep check: 2427031 reachable worlds with up to 2 faults; every property holds
+python3 -I -B model/lockstep.py --faults 2 --shape zenoh --max-worlds 6000000  97.11s user 0.77s system 100% cpu 1:37.67 total

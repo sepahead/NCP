@@ -1,0 +1,38 @@
+...........................................................
+----------------------------------------------------------------------
+Ran 107 tests in 2.386s
+
+OK (skipped=4)
+test_a_client_stops_after_three_takes_whose_term_moved (__main__.LockstepTests.test_a_client_stops_after_three_takes_whose_term_moved) ... ok
+test_a_closed_request_schema_admits_the_tick (__main__.LockstepTests.test_a_closed_request_schema_admits_the_tick) ... ok
+test_a_copy_of_an_old_open_takes_nothing (__main__.LockstepTests.test_a_copy_of_an_old_open_takes_nothing) ... ok
+test_a_delayed_take_of_an_abandoned_opening_is_declined (__main__.LockstepTests.test_a_delayed_take_of_an_abandoned_opening_is_declined) ... ok
+test_a_new_session_tells_whether_the_last_step_ran (__main__.LockstepTests.test_a_new_session_tells_whether_the_last_step_ran) ... ok
+test_a_recovery_reads_its_verdict_from_the_take (__main__.LockstepTests.test_a_recovery_reads_its_verdict_from_the_take) ... ok
+test_a_recovery_that_finds_the_step_of_another_session_gives_no_verdict (__main__.LockstepTests.test_a_recovery_that_finds_the_step_of_another_session_gives_no_verdict) ... ok
+test_a_recovery_that_reaches_the_old_opening_gives_no_verdict (__main__.LockstepTests.test_a_recovery_that_reaches_the_old_opening_gives_no_verdict) ... ok
+test_a_recovery_with_the_same_session_identifier_fences_the_old_opening (__main__.LockstepTests.test_a_recovery_with_the_same_session_identifier_fences_the_old_opening) ... ok
+test_a_rejected_open_takes_nothing (__main__.LockstepTests.test_a_rejected_open_takes_nothing) ... ok
+test_a_restart_to_the_same_tick_with_another_state_gives_no_verdict (__main__.LockstepTests.test_a_restart_to_the_same_tick_with_another_state_gives_no_verdict) ... ok
+test_a_step_waits_for_a_checked_take (__main__.LockstepTests.test_a_step_waits_for_a_checked_take) ... ok
+test_a_step_whose_application_fails_counts_as_executed (__main__.LockstepTests.test_a_step_whose_application_fails_counts_as_executed) ... ok
+test_a_take_fences_the_steps_of_earlier_openings (__main__.LockstepTests.test_a_take_fences_the_steps_of_earlier_openings) ... ok
+test_a_take_names_the_last_term_that_the_owner_told (__main__.LockstepTests.test_a_take_names_the_last_term_that_the_owner_told) ... ok
+test_a_take_needs_its_body_and_the_profile_defines_no_other_operation (__main__.LockstepTests.test_a_take_needs_its_body_and_the_profile_defines_no_other_operation) ... ok
+test_a_take_waits_for_a_checked_step_and_an_open_does_not (__main__.LockstepTests.test_a_take_waits_for_a_checked_step_and_an_open_does_not) ... ok
+test_a_take_whose_term_moved_is_sent_again (__main__.LockstepTests.test_a_take_whose_term_moved_is_sent_again) ... ok
+test_an_open_only_reports_the_clock (__main__.LockstepTests.test_an_open_only_reports_the_clock) ... ok
+test_an_owner_without_a_term_ends_the_session (__main__.LockstepTests.test_an_owner_without_a_term_ends_the_session) ... ok
+test_features_that_cannot_be_sent_refuse_the_open (__main__.LockstepTests.test_features_that_cannot_be_sent_refuse_the_open) ... ok
+test_no_step_follows_the_largest_tick (__main__.LockstepTests.test_no_step_follows_the_largest_tick) ... ok
+test_no_take_raises_the_largest_term (__main__.LockstepTests.test_no_take_raises_the_largest_term) ... ok
+test_profile_members_that_cannot_be_encoded_leave_the_detail (__main__.LockstepTests.test_profile_members_that_cannot_be_encoded_leave_the_detail) ... ok
+test_steps_carry_the_tick_and_the_state (__main__.LockstepTests.test_steps_carry_the_tick_and_the_state) ... ok
+test_the_client_checks_the_term_of_the_take (__main__.LockstepTests.test_the_client_checks_the_term_of_the_take) ... ok
+test_the_client_checks_the_tick_and_the_request_of_a_step (__main__.LockstepTests.test_the_client_checks_the_tick_and_the_request_of_a_step) ... ok
+test_the_verdict_of_a_recovery (__main__.LockstepTests.test_the_verdict_of_a_recovery) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 0.226s
+
+OK

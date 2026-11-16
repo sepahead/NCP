@@ -1,0 +1,21 @@
+stream   2357682 worlds    5671163 transitions   68.1 s: every property holds
+lockstep check, profile revision 4: 2357682 worlds with up to 2 faults
+       68.33 real        67.67 user         0.63 sys
+          1943879680  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              119868  page reclaims
+                  47  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  18  voluntary context switches
+                1805  involuntary context switches
+       1167914742932  instructions retired
+        271571963485  cycles elapsed
+          1933444848  peak memory footprint
+exit 0

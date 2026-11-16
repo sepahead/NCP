@@ -1,0 +1,43 @@
+test a_copy_of_an_old_open_takes_nothing ... ok
+test a_tap_records_a_frame_before_sending_it_and_a_dropped_tap_closes ... ok
+test a_keyed_transcript_and_an_authenticated_session ... ok
+test a_take_whose_term_moved_is_sent_again ... ok
+test arrays_of_every_dtype_round_trip ... ok
+test a_bad_frame_ends_a_tcp_connection ... ok
+test each_opening_has_its_own_nonce ... ok
+test a_take_fences_the_steps_of_earlier_openings ... ok
+test an_open_only_reports_the_clock ... ok
+test remote_addresses_need_permission ... ok
+test no_take_raises_the_largest_term ... ok
+test call_all_sends_every_request_before_it_reads_a_response ... ok
+test ok_and_declined_advance_the_session ... ok
+test streams_detect_loss_repeats_conflicts_and_forgery ... ok
+test several_contracts_and_the_handler_hooks ... ok
+test the_frame_identity_of_short_input_does_not_panic ... ok
+test the_json_padding_is_exact ... ok
+test lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran ... ok
+test the_request_schema_of_the_contract ... ok
+test the_verdict_of_a_recovery ... ok
+test the_digest_check_can_be_turned_off_only_on_local_links ... ok
+test the_subscriber_applies_its_bound_to_each_frame ... ok
+test unknown_codes_are_handled_by_outcome ... ok
+test call_all_returns_the_error_of_one_session_in_its_place ... ok
+test transcripts_detect_tampering ... ok
+test tcp_session_with_transcripts ... ok
+test a_full_server_refuses_an_open_and_stop_sends_the_shutdown_response ... ok
+test a_unix_server_serves_sessions_and_removes_its_socket ... ok
+test endings_report_whether_the_request_executed ... ok
+test encoders_refuse_frames_that_receivers_must_reject ... ok
+test a_child_channel_ends_its_child ... ok
+test rust_client_with_the_python_owner ... ok
+test a_step_waits_for_a_checked_take ... ok
+test a_take_waits_for_a_checked_step_and_an_open_does_not ... ok
+test a_child_on_a_socket_pair_takes_a_time_limit ... ok
+test a_time_limit_ends_a_stalled_call ... ok
+test an_idle_session_ends_with_the_shutdown_response ... ok
+
+test result: ok. 49 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+cargo test --offline --locked --test sessions 2>&1  18.09s user 3.26s system 146% cpu 14.554 total
+tail -40  0.00s user 0.00s system 0% cpu 14.554 total
+exit=0

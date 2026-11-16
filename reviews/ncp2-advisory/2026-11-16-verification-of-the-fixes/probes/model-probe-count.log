@@ -1,0 +1,59 @@
+stream, new session identifiers: 184276 worlds, every property holds
+    S1 weakened branch used: no for a step that ran before an older restart: 60
+    progress checked: 1
+    terminal worlds, phase done, faults 0: 240
+    terminal worlds, phase done, faults 1: 8311
+    terminal worlds, phase stuck, faults 0: 564
+    terminal worlds, phase stuck, faults 1: 20920
+    unknown excused by w.older: 91
+    unknown excused by w.other: 687
+    unknown excused by w.rewound: 170
+    unknown, not clean: 948
+    verdict no: 3765
+    verdict unknown: 948
+    verdict yes: 4304
+    verdicts: 9017
+zenoh, new session identifiers: 132027 worlds, every property holds
+    S1 weakened branch used: no for a step that ran before an older restart: 60
+    progress checked: 1
+    terminal worlds, phase done, faults 0: 240
+    terminal worlds, phase done, faults 1: 5334
+    terminal worlds, phase stuck, faults 0: 564
+    terminal worlds, phase stuck, faults 1: 11850
+    unknown excused by w.older: 91
+    unknown excused by w.other: 687
+    unknown excused by w.rewound: 170
+    unknown, not clean: 948
+    verdict no: 2701
+    verdict unknown: 948
+    verdict yes: 2760
+    verdicts: 6409
+stream, one session identifier: 133195 worlds, every property holds
+    S1 weakened branch used: no for a step that ran before an older restart: 60
+    progress checked: 1
+    terminal worlds, phase done, faults 0: 240
+    terminal worlds, phase done, faults 1: 5415
+    terminal worlds, phase stuck, faults 0: 564
+    terminal worlds, phase stuck, faults 1: 14781
+    unknown excused by w.older: 91
+    unknown excused by w.other: 687
+    unknown excused by w.rewound: 170
+    unknown, not clean: 948
+    verdict no: 2637
+    verdict unknown: 948
+    verdict yes: 2848
+    verdicts: 6433
+zenoh, one session identifier: 19770 worlds, every property holds
+    S1 weakened branch used: no for a step that ran before an older restart: 50
+    progress checked: 1
+    terminal worlds, phase done, faults 0: 21
+    terminal worlds, phase done, faults 1: 1186
+    terminal worlds, phase stuck, faults 0: 7
+    terminal worlds, phase stuck, faults 1: 245
+    unknown excused by w.older: 75
+    unknown excused by w.rewound: 165
+    unknown, not clean: 240
+    verdict no: 280
+    verdict unknown: 240
+    verdict yes: 100
+    verdicts: 620

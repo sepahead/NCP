@@ -2463,7 +2463,10 @@ def _classification(path: str, token_id: str, line: str) -> tuple[str, str, list
         "CHANGELOG.md",
         "PERFORMANCE.md",
         "scripts/plot_perf.py",
-    } or path.startswith(("docs/0.8", "docs/plots/", "docs/wire-0.8-")):
+    } or path.startswith(
+        # Archived advisory reviews: non-normative records of what a reviewer read and ran.
+        ("docs/0.8", "docs/plots/", "docs/wire-0.8-", "reviews/ncp2-advisory/")
+    ):
         return "HISTORICAL_OR_INFORMATIVE", "NOT_CURRENT_RELEASE_EVIDENCE", [path]
     if (
         token_id == "M006"

@@ -1,0 +1,23 @@
+----------------------------------------------------------------------
+Ran 10 tests in 1.234s
+
+OK
+----------------------------------------------------------------------
+Ran 9 tests in 0.024s
+
+OK
+----------------------------------------------------------------------
+Ran 7 tests in 35.475s
+
+OK
+--- model faults=1
+message calls         51205 worlds    222470 transitions    1.4 s: P1 to P8 and progress hold
+message failure        1277 worlds      3560 transitions    0.0 s: P1 to P8 and progress hold
+message large          1277 worlds      3560 transitions    0.0 s: P1 to P8 and progress hold
+message operations    51205 worlds    222470 transitions    1.4 s: P1 to P8 and progress hold
+stream  calls           165 worlds       196 transitions    0.0 s: P1 to P8 and progress hold
+stream  failure          85 worlds       100 transitions    0.0 s: P1 to P8 and progress hold
+stream  large            85 worlds       100 transitions    0.0 s: P1 to P8 and progress hold
+stream  operations      165 worlds       196 transitions    0.0 s: P1 to P8 and progress hold
+model check: 105464 reachable worlds with up to 1 faults; every property holds
+python3 -I model/simulate.py --faults 1  2.85s user 0.04s system 99% cpu 2.902 total

@@ -1,0 +1,8 @@
+first message of stream 0 -> accepted
+first message of stream 1 -> accepted
+first message of stream 2 -> accepted
+first message of stream 3 -> accepted
+first message of stream 4 -> accepted
+replayed first message of stream 0 -> accepted
+message 3 of stream 0 (message 2 lost) -> accepted lost: 1
+old message 3 into a new subscriber -> joined

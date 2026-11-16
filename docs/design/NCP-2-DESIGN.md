@@ -2,6 +2,7 @@
 
 Status: decided on 23 October 2026 by the owner (option B of the council review). Revision 3 of the specification, of 13 November 2026, adds the decisions of section 12, revision 4 of the same day those of section 13, revision 5, of 14 November 2026, those of section 14, and revision 6, of 15 November 2026, those of section 15.
 The normative rules are in the [specification](../../spec/NCP-2.md). This record explains why.
+The advisory reviews that led to the decisions of sections 13 to 15 are kept in [`reviews/ncp2-advisory/`](../../reviews/ncp2-advisory/README.md), with their probes and prototypes.
 
 ## 1. The problem
 

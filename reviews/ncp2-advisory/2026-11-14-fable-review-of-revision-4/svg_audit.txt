@@ -1,0 +1,336 @@
+assets/logo-dark.svg
+   bytes=7252 role=img labelledby=True title=1 desc=1 w=180 h=180 vb=0 0 180 180 texts=0 paths=28 minfont=None media=False
+   T: NCP paired contract rails
+   D: UNRELEASED NCP protocol candidate. Opposed rails carry an amber request and a distinct blue outcome between independent peers. The open center represents an interface. The exchange repeats slowly; reduced motion keeps the mark still. This artwork provides no certification.
+assets/logo-light.svg
+   bytes=7252 role=img labelledby=True title=1 desc=1 w=180 h=180 vb=0 0 180 180 texts=0 paths=28 minfont=None media=False
+   T: NCP paired contract rails
+   D: UNRELEASED NCP protocol candidate. Opposed rails carry an amber request and a distinct blue outcome between independent peers. The open center represents an interface. The exchange repeats slowly; reduced motion keeps the mark still. This artwork provides no certification.
+benchmarks/comparison/results-2/figures/calls_dark.svg
+   bytes=219869 role=img labelledby=True title=1 desc=1 w=828pt h=532.8pt vb=0 0 828 532.8 texts=0 paths=306 minfont=None media=False
+   T: Time of one call for NCP 2 and other systems
+   D: Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. Each panel shows a dot for the call time of each arm on a log scale, with a line for the range of the block medians. Values are in summary.md.
+benchmarks/comparison/results-2/figures/calls_light.svg
+   bytes=219869 role=img labelledby=True title=1 desc=1 w=828pt h=532.8pt vb=0 0 828 532.8 texts=0 paths=306 minfont=None media=False
+   T: Time of one call for NCP 2 and other systems
+   D: Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. Each panel shows a dot for the call time of each arm on a log scale, with a line for the range of the block medians. Values are in summary.md.
+benchmarks/comparison/results-2/figures/decomposition_dark.svg
+   bytes=84567 role=img labelledby=True title=1 desc=1 w=828pt h=180pt vb=0 0 828 180 texts=0 paths=141 minfont=None media=False
+   T: Where the time of an NCP 2 call goes
+   D: Stacked horizontal bars for Rust and Python and each N: the raw pipe floor, the rest of NCP 2, and the digest comparison, each panel on its own linear scale. Parts smaller than the spread of their block medians are drawn light. Values are in summary.md.
+benchmarks/comparison/results-2/figures/decomposition_light.svg
+   bytes=84567 role=img labelledby=True title=1 desc=1 w=828pt h=180pt vb=0 0 828 180 texts=0 paths=141 minfont=None media=False
+   T: Where the time of an NCP 2 call goes
+   D: Stacked horizontal bars for Rust and Python and each N: the raw pipe floor, the rest of NCP 2, and the digest comparison, each panel on its own linear scale. Parts smaller than the spread of their block medians are drawn light. Values are in summary.md.
+benchmarks/comparison/results-2/figures/integrity_dark.svg
+   bytes=193456 role=img labelledby=True title=1 desc=1 w=828pt h=532.8pt vb=0 0 828 532.8 texts=0 paths=279 minfont=None media=False
+   T: Time of one call with the same integrity check
+   D: Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. NCP 2 over a pipe, a Unix socket, and TCP in blue; gRPC, ZeroMQ, HTTP/1.1, Zenoh, and the raw pipe, each with a SHA-256 digest of every message checked by the receiver, in gray. Values are in summary.md.
+benchmarks/comparison/results-2/figures/integrity_light.svg
+   bytes=193456 role=img labelledby=True title=1 desc=1 w=828pt h=532.8pt vb=0 0 828 532.8 texts=0 paths=279 minfont=None media=False
+   T: Time of one call with the same integrity check
+   D: Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. NCP 2 over a pipe, a Unix socket, and TCP in blue; gRPC, ZeroMQ, HTTP/1.1, Zenoh, and the raw pipe, each with a SHA-256 digest of every message checked by the receiver, in gray. Values are in summary.md.
+benchmarks/comparison/results-2/figures/tails_dark.svg
+   bytes=106379 role=img labelledby=True title=1 desc=1 w=828pt h=302.4pt vb=0 0 828 302.4 texts=0 paths=138 minfont=None media=False
+   T: Tail call times at N = 127
+   D: For each arm, the median, 95th, and 99th percentile call times on a log scale, as circle, triangle, and square. NCP 2 in blue. Values are in summary.md.
+benchmarks/comparison/results-2/figures/tails_light.svg
+   bytes=106379 role=img labelledby=True title=1 desc=1 w=828pt h=302.4pt vb=0 0 828 302.4 texts=0 paths=138 minfont=None media=False
+   T: Tail call times at N = 127
+   D: For each arm, the median, 95th, and 99th percentile call times on a log scale, as circle, triangle, and square. NCP 2 in blue. Values are in summary.md.
+benchmarks/comparison/results-2/figures/versions_dark.svg
+   bytes=95018 role=img labelledby=True title=1 desc=1 w=619.2pt h=481.248pt vb=0 0 619.2 481.248 texts=0 paths=83 minfont=None media=False
+   T: NCP 2 against NCP 1.0.1
+   D: Dumbbell chart: for each language pair and N, the call time of NCP 1.0.1 and of NCP 2 on a log scale, joined by a line, with the ratio. Values are in summary.md.
+benchmarks/comparison/results-2/figures/versions_light.svg
+   bytes=95018 role=img labelledby=True title=1 desc=1 w=619.2pt h=481.248pt vb=0 0 619.2 481.248 texts=0 paths=83 minfont=None media=False
+   T: NCP 2 against NCP 1.0.1
+   D: Dumbbell chart: for each language pair and N, the call time of NCP 1.0.1 and of NCP 2 on a log scale, joined by a line, with the ratio. Values are in summary.md.
+benchmarks/comparison/results/figures/calls_dark.svg
+   bytes=220946 role=img labelledby=True title=1 desc=1 w=828pt h=532.8pt vb=0 0 828 532.8 texts=0 paths=308 minfont=None media=False
+   T: Time of one call for NCP 2 and other systems
+   D: Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. Each panel shows a dot for the call time of each arm on a log scale, with a line for the range of the block medians. Values are in summary.md.
+benchmarks/comparison/results/figures/calls_light.svg
+   bytes=220946 role=img labelledby=True title=1 desc=1 w=828pt h=532.8pt vb=0 0 828 532.8 texts=0 paths=308 minfont=None media=False
+   T: Time of one call for NCP 2 and other systems
+   D: Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. Each panel shows a dot for the call time of each arm on a log scale, with a line for the range of the block medians. Values are in summary.md.
+benchmarks/comparison/results/figures/decomposition_dark.svg
+   bytes=82522 role=img labelledby=True title=1 desc=1 w=828pt h=180pt vb=0 0 828 180 texts=0 paths=138 minfont=None media=False
+   T: Where the time of an NCP 2 call goes
+   D: Stacked horizontal bars for Rust and Python and each N: the raw pipe floor, the rest of NCP 2, and the digest comparison, each panel on its own linear scale. Parts smaller than the spread of their block medians are drawn light. Values are in summary.md.
+benchmarks/comparison/results/figures/decomposition_light.svg
+   bytes=82522 role=img labelledby=True title=1 desc=1 w=828pt h=180pt vb=0 0 828 180 texts=0 paths=138 minfont=None media=False
+   T: Where the time of an NCP 2 call goes
+   D: Stacked horizontal bars for Rust and Python and each N: the raw pipe floor, the rest of NCP 2, and the digest comparison, each panel on its own linear scale. Parts smaller than the spread of their block medians are drawn light. Values are in summary.md.
+benchmarks/comparison/results/figures/tails_dark.svg
+   bytes=107017 role=img labelledby=True title=1 desc=1 w=828pt h=302.4pt vb=0 0 828 302.4 texts=0 paths=139 minfont=None media=False
+   T: Tail call times at N = 127
+   D: For each arm, the median, 95th, and 99th percentile call times on a log scale, as circle, triangle, and square. NCP 2 in blue. Values are in summary.md.
+benchmarks/comparison/results/figures/tails_light.svg
+   bytes=107017 role=img labelledby=True title=1 desc=1 w=828pt h=302.4pt vb=0 0 828 302.4 texts=0 paths=139 minfont=None media=False
+   T: Tail call times at N = 127
+   D: For each arm, the median, 95th, and 99th percentile call times on a log scale, as circle, triangle, and square. NCP 2 in blue. Values are in summary.md.
+benchmarks/comparison/results/figures/versions_dark.svg
+   bytes=95142 role=img labelledby=True title=1 desc=1 w=619.2pt h=481.248pt vb=0 0 619.2 481.248 texts=0 paths=83 minfont=None media=False
+   T: NCP 2 against NCP 1.0.1
+   D: Dumbbell chart: for each language pair and N, the call time of NCP 1.0.1 and of NCP 2 on a log scale, joined by a line, with the ratio. Values are in summary.md.
+benchmarks/comparison/results/figures/versions_light.svg
+   bytes=95142 role=img labelledby=True title=1 desc=1 w=619.2pt h=481.248pt vb=0 0 619.2 481.248 texts=0 paths=83 minfont=None media=False
+   T: NCP 2 against NCP 1.0.1
+   D: Dumbbell chart: for each language pair and N, the call time of NCP 1.0.1 and of NCP 2 on a log scale, joined by a line, with the ratio. Values are in summary.md.
+benchmarks/multi-agent/results/figures/fanout_dark.svg
+   bytes=149125 role=img labelledby=True title=1 desc=1 w=489.6pt h=403.2pt vb=0 0 489.6 403.2 texts=0 paths=244 minfont=None media=False
+   T: One host and N owners: the time of one round
+   D: Four panels: a Rust host and a Python host, with owners that answer at once or wait 1 ms. Each shows the median time of one round, one request to each of 1 to 256 owners, for call_all, eight threads that each use call_all, one thread for each session, one call after another, and plain pipes without 
+benchmarks/multi-agent/results/figures/fanout_light.svg
+   bytes=149125 role=img labelledby=True title=1 desc=1 w=489.6pt h=403.2pt vb=0 0 489.6 403.2 texts=0 paths=244 minfont=None media=False
+   T: One host and N owners: the time of one round
+   D: Four panels: a Rust host and a Python host, with owners that answer at once or wait 1 ms. Each shows the median time of one round, one request to each of 1 to 256 owners, for call_all, eight threads that each use call_all, one thread for each session, one call after another, and plain pipes without 
+benchmarks/multi-agent/results/figures/mpi_dark.svg
+   bytes=59094 role=img labelledby=True title=1 desc=1 w=489.6pt h=201.6pt vb=0 0 489.6 201.6 texts=0 paths=96 minfont=None media=False
+   T: The rank-0 owner of an MPI program: the time of one call
+   D: Three panels, for 0, 1788, and 87381 spikes per call. Each shows the median time of one call to an owner without MPI and to an owner made of 1, 2, 4, or 8 MPI ranks that serves the session from rank 0. Bars span the three block medians.
+benchmarks/multi-agent/results/figures/mpi_light.svg
+   bytes=59094 role=img labelledby=True title=1 desc=1 w=489.6pt h=201.6pt vb=0 0 489.6 201.6 texts=0 paths=96 minfont=None media=False
+   T: The rank-0 owner of an MPI program: the time of one call
+   D: Three panels, for 0, 1788, and 87381 spikes per call. Each shows the median time of one call to an owner without MPI and to an owner made of 1, 2, 4, or 8 MPI ranks that serves the session from rank 0. Bars span the three block medians.
+benchmarks/multi-agent/results/figures/rounds_dark.svg
+   bytes=55775 role=img labelledby=True title=1 desc=1 w=489.6pt h=244.8pt vb=0 0 489.6 244.8 texts=0 paths=87 minfont=None media=False
+   T: N agents and one owner: rounds and the order of arrival
+   D: The median time of one round with 1 to 256 agents that share one Python owner, which applies their requests in rounds, in a fixed order, or each request when it arrives. Bars span the three block medians.
+benchmarks/multi-agent/results/figures/rounds_light.svg
+   bytes=55775 role=img labelledby=True title=1 desc=1 w=489.6pt h=244.8pt vb=0 0 489.6 244.8 texts=0 paths=87 minfont=None media=False
+   T: N agents and one owner: rounds and the order of arrival
+   D: The median time of one round with 1 to 256 agents that share one Python owner, which applies their requests in rounds, in a fixed order, or each request when it arrives. Bars span the three block medians.
+benchmarks/nest-campaign/results-5/figures/overhead_dark.svg
+   bytes=81876 role=img labelledby=True title=1 desc=1 w=489.6pt h=221.04pt vb=0 0 489.6 221.04 texts=0 paths=110 minfont=None media=False
+   T: Time that the coupling adds to each 1 ms step of a NEST network
+   D: Brunel network with 1,000 and 10,000 neurons on 1, 4, and 8 NEST threads, one exchange after every 1 ms of simulated time. NCP 2 adds 23 to 32 µs with a Rust host and 50 to 61 µs with a Python host. NCP 1.0.1 adds 228 to 248 µs and 492 to 524 µs. A raw round trip without a protocol takes 8 to 11 µs.
+benchmarks/nest-campaign/results-5/figures/overhead_light.svg
+   bytes=81876 role=img labelledby=True title=1 desc=1 w=489.6pt h=221.04pt vb=0 0 489.6 221.04 texts=0 paths=110 minfont=None media=False
+   T: Time that the coupling adds to each 1 ms step of a NEST network
+   D: Brunel network with 1,000 and 10,000 neurons on 1, 4, and 8 NEST threads, one exchange after every 1 ms of simulated time. NCP 2 adds 23 to 32 µs with a Rust host and 50 to 61 µs with a Python host. NCP 1.0.1 adds 228 to 248 µs and 492 to 524 µs. A raw round trip without a protocol takes 8 to 11 µs.
+benchmarks/nest-campaign/results-5/figures/spikes_dark.svg
+   bytes=76910 role=img labelledby=True title=1 desc=1 w=489.6pt h=160.56pt vb=0 0 489.6 160.56 texts=0 paths=97 minfont=None media=False
+   T: Time that the coupling adds when each step returns its spikes
+   D: Brunel network on 4 NEST threads; each exchange returns the spikes of its step. NCP 2 adds 36 to 119 µs with a Rust host and 68 to 160 µs with a Python host. NCP 1.0.1 adds 434 to 1,365 µs and 810 to 2,481 µs; with 10,000 neurons at 5 ms it was not run, because some steps exceed its 64 KiB frame. A 
+benchmarks/nest-campaign/results-5/figures/spikes_light.svg
+   bytes=76910 role=img labelledby=True title=1 desc=1 w=489.6pt h=160.56pt vb=0 0 489.6 160.56 texts=0 paths=97 minfont=None media=False
+   T: Time that the coupling adds when each step returns its spikes
+   D: Brunel network on 4 NEST threads; each exchange returns the spikes of its step. NCP 2 adds 36 to 119 µs with a Rust host and 68 to 160 µs with a Python host. NCP 1.0.1 adds 434 to 1,365 µs and 810 to 2,481 µs; with 10,000 neurons at 5 ms it was not run, because some steps exceed its 64 KiB frame. A 
+docs/diagrams/admission-dark.svg
+   bytes=11931 role=img labelledby=True title=1 desc=1 w=1600 h=1189 vb=0 0 1600 1189 texts=46 paths=35 minfont=24.0 media=False
+   T: NCP body command admission
+   D: The body bounds, authenticates, and decodes each command once, finds its exact position, and checks the live grant. ESTOP selects a preallocated latch, HOLD cuts Active authority, and Active needs a single-use token. Proposed design for the UNRELEASED 1.0 candidate. It is not release or certificatio
+docs/diagrams/admission-light.svg
+   bytes=11931 role=img labelledby=True title=1 desc=1 w=1600 h=1189 vb=0 0 1600 1189 texts=46 paths=35 minfont=24.0 media=False
+   T: NCP body command admission
+   D: The body bounds, authenticates, and decodes each command once, finds its exact position, and checks the live grant. ESTOP selects a preallocated latch, HOLD cuts Active authority, and Active needs a single-use token. Proposed design for the UNRELEASED 1.0 candidate. It is not release or certificatio
+docs/diagrams/closed-loop-dark.svg
+   bytes=10315 role=img labelledby=True title=1 desc=1 w=1600 h=1073 vb=0 0 1600 1073 texts=39 paths=31 minfont=24.0 media=False
+   T: NCP closed-loop evidence boundary
+   D: A feedback cycle runs from plant state through sensing, a retained source record, a controller proposal, body admission, and disposition to actuator input. NCP records three software events. It cannot measure the physical response or establish stability. UNRELEASED. It is not release or certificatio
+docs/diagrams/closed-loop-light.svg
+   bytes=10315 role=img labelledby=True title=1 desc=1 w=1600 h=1073 vb=0 0 1600 1073 texts=39 paths=31 minfont=24.0 media=False
+   T: NCP closed-loop evidence boundary
+   D: A feedback cycle runs from plant state through sensing, a retained source record, a controller proposal, body admission, and disposition to actuator input. NCP records three software events. It cannot measure the physical response or establish stability. UNRELEASED. It is not release or certificatio
+docs/diagrams/ecosystem-dark.svg
+   bytes=9742 role=img labelledby=True title=1 desc=1 w=1600 h=1213 vb=0 0 1600 1213 texts=44 paths=26 minfont=24.0 media=False
+   T: NCP ecosystem dependency direction
+   D: Consumers depend on NCP through thin role adapters. NCP imports no consumer code. Eleven role subjects need separate installed qualification, and all are NOT RUN. Integrated Haldir uses four processes. MUSIC owns shared-clock coupling. Proposed design for the UNRELEASED 1.0 candidate. It is not rele
+docs/diagrams/ecosystem-light.svg
+   bytes=9742 role=img labelledby=True title=1 desc=1 w=1600 h=1213 vb=0 0 1600 1213 texts=44 paths=26 minfont=24.0 media=False
+   T: NCP ecosystem dependency direction
+   D: Consumers depend on NCP through thin role adapters. NCP imports no consumer code. Eleven role subjects need separate installed qualification, and all are NOT RUN. Integrated Haldir uses four processes. MUSIC owns shared-clock coupling. Proposed design for the UNRELEASED 1.0 candidate. It is not rele
+docs/diagrams/evidence-ladder-dark.svg
+   bytes=7395 role=img labelledby=True title=1 desc=1 w=1600 h=1289 vb=0 0 1600 1289 texts=30 paths=12 minfont=24.0 media=False
+   T: NCP evidence classes and permitted claims
+   D: Five evidence classes run from source controls to release. Each class permits only its own claim. The NCP 1.0 candidate has local and selected native evidence. Its independent and external gates are NOT RUN, and it is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/evidence-ladder-light.svg
+   bytes=7395 role=img labelledby=True title=1 desc=1 w=1600 h=1289 vb=0 0 1600 1289 texts=30 paths=12 minfont=24.0 media=False
+   T: NCP evidence classes and permitted claims
+   D: Five evidence classes run from source controls to release. Each class permits only its own claim. The NCP 1.0 candidate has local and selected native evidence. Its independent and external gates are NOT RUN, and it is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/exchange-dark.svg
+   bytes=9762 role=img labelledby=True title=1 desc=1 w=1600 h=1641 vb=0 0 1600 1641 texts=37 paths=25 minfont=24.0 media=False
+   T: NCP modular request and outcome exchange
+   D: A client sends one exact request. The owner returns retained bytes for an exact duplicate, admits new work without side effects, reserves storage, executes once, and retains the outcome until an exact acknowledgement. The local SDK 1.0.1 is released; applications and wire 1.0 remain UNRELEASED. It i
+docs/diagrams/exchange-light.svg
+   bytes=9762 role=img labelledby=True title=1 desc=1 w=1600 h=1641 vb=0 0 1600 1641 texts=37 paths=25 minfont=24.0 media=False
+   T: NCP modular request and outcome exchange
+   D: A client sends one exact request. The owner returns retained bytes for an exact duplicate, admits new work without side effects, reserves storage, executes once, and retains the outcome until an exact acknowledgement. The local SDK 1.0.1 is released; applications and wire 1.0 remain UNRELEASED. It i
+docs/diagrams/fsm-dark.svg
+   bytes=10010 role=img labelledby=True title=1 desc=1 w=1600 h=1334 vb=0 0 1600 1334 texts=37 paths=24 minfont=24.0 media=False
+   T: NCP current plant-admission state model
+   D: The current compatibility governor starts in HOLD after valid configuration. It enters Active only with fresh input and live authority. An admitted ESTOP, a geofence breach, a link burst, or sustained sensor silence latches ESTOP. Only a deployment reset leaves ESTOP. Invalid configuration fails clo
+docs/diagrams/fsm-light.svg
+   bytes=10010 role=img labelledby=True title=1 desc=1 w=1600 h=1334 vb=0 0 1600 1334 texts=37 paths=24 minfont=24.0 media=False
+   T: NCP current plant-admission state model
+   D: The current compatibility governor starts in HOLD after valid configuration. It enters Active only with fresh input and live authority. An admitted ESTOP, a geofence breach, a link burst, or sustained sensor silence latches ESTOP. Only a deployment reset leaves ESTOP. Invalid configuration fails clo
+docs/diagrams/lifecycle-dark.svg
+   bytes=10021 role=img labelledby=True title=1 desc=1 w=1600 h=1257 vb=0 0 1600 1257 texts=39 paths=26 minfont=24.0 media=False
+   T: NCP session lifecycle mutation owner
+   D: One slot per namespace moves from free to pending, then to terminal directly or through ambiguous reconciliation. Terminal commit publishes the result and high-water before it frees the slot. Exact retries return the retained result. Proposed design for the UNRELEASED 1.0 candidate. It is not releas
+docs/diagrams/lifecycle-light.svg
+   bytes=10021 role=img labelledby=True title=1 desc=1 w=1600 h=1257 vb=0 0 1600 1257 texts=39 paths=26 minfont=24.0 media=False
+   T: NCP session lifecycle mutation owner
+   D: One slot per namespace moves from free to pending, then to terminal directly or through ambiguous reconciliation. Terminal commit publishes the result and high-water before it frees the slot. Exact retries return the retained result. Proposed design for the UNRELEASED 1.0 candidate. It is not releas
+docs/diagrams/ncp2-bindings-dark.svg
+   bytes=7693 role=img labelledby=True title=1 desc=1 w=1600 h=1008 vb=0 0 1600 1008 texts=44 paths=14 minfont=24.0 media=False
+   T: NCP 2 links, streams, and rounds
+   D: The same NCP 2 frames travel over a pipe pair, a Unix domain socket, TCP, and Zenoh for networks that can lose messages. Streams carry live data, and rounds let many agents share one owner. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-bindings-light.svg
+   bytes=7693 role=img labelledby=True title=1 desc=1 w=1600 h=1008 vb=0 0 1600 1008 texts=44 paths=14 minfont=24.0 media=False
+   T: NCP 2 links, streams, and rounds
+   D: The same NCP 2 frames travel over a pipe pair, a Unix domain socket, TCP, and Zenoh for networks that can lose messages. Streams carry live data, and rounds let many agents share one owner. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-call-dark.svg
+   bytes=9987 role=img labelledby=True title=1 desc=1 w=1600 h=1489 vb=0 0 1600 1489 texts=40 paths=24 minfont=24.0 media=False
+   T: An NCP 2 session: one round trip for each step
+   D: A client opens a session, sends two steps and a close, and gets one response for each. Each request carries the identity of the last response as its receipt, so the session forms one hash chain. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-call-light.svg
+   bytes=9987 role=img labelledby=True title=1 desc=1 w=1600 h=1489 vb=0 0 1600 1489 texts=40 paths=24 minfont=24.0 media=False
+   T: An NCP 2 session: one round trip for each step
+   D: A client opens a session, sends two steps and a close, and gets one response for each. Each request carries the identity of the last response as its receipt, so the session forms one hash chain. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-frame-dark.svg
+   bytes=9560 role=img labelledby=True title=1 desc=1 w=1600 h=1018 vb=0 0 1600 1018 texts=53 paths=15 minfont=24.0 media=False
+   T: One NCP 2 frame
+   D: A frame has a 12-byte header, the JSON text, binary attachments, and a 32-byte SHA-256 digest of all bytes before it. The digest is the frame's identity; a receiver checks it before parsing. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-frame-light.svg
+   bytes=9560 role=img labelledby=True title=1 desc=1 w=1600 h=1018 vb=0 0 1600 1018 texts=53 paths=15 minfont=24.0 media=False
+   T: One NCP 2 frame
+   D: A frame has a 12-byte header, the JSON text, binary attachments, and a 32-byte SHA-256 digest of all bytes before it. The digest is the frame's identity; a receiver checks it before parsing. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-loop-dark.svg
+   bytes=10110 role=img labelledby=True title=1 desc=1 w=1600 h=1059 vb=0 0 1600 1059 texts=52 paths=20 minfont=24.0 media=False
+   T: Spiking controllers in NEST fly simulated drones over NCP 2
+   D: A loop host runs spiking controllers in NEST and CREBAIN worlds, each with its own NCP 2 session. Three controllers flew five drones in two worlds to within 2.6 cm of their targets, and the check confirmed all 2,400 controller responses. NCP 2 is UNRELEASED. It is not release or certification eviden
+docs/diagrams/ncp2-loop-light.svg
+   bytes=10110 role=img labelledby=True title=1 desc=1 w=1600 h=1059 vb=0 0 1600 1059 texts=52 paths=20 minfont=24.0 media=False
+   T: Spiking controllers in NEST fly simulated drones over NCP 2
+   D: A loop host runs spiking controllers in NEST and CREBAIN worlds, each with its own NCP 2 session. Three controllers flew five drones in two worlds to within 2.6 cm of their targets, and the check confirmed all 2,400 controller responses. NCP 2 is UNRELEASED. It is not release or certification eviden
+docs/diagrams/ncp2-outcomes-dark.svg
+   bytes=12826 role=img labelledby=True title=1 desc=1 w=1600 h=1425 vb=0 0 1600 1425 texts=79 paths=26 minfont=24.0 media=False
+   T: What an NCP 2 response tells the client
+   D: Every response is ok, declined, rejected, or ended. Eight cards show what happens to damaged, lost, repeated, and late messages, after an owner failure, a restart or a stop of the owner, and when the connection breaks. At most one call is possibly executed. NCP 2 is UNRELEASED. It is not release or 
+docs/diagrams/ncp2-outcomes-light.svg
+   bytes=12826 role=img labelledby=True title=1 desc=1 w=1600 h=1425 vb=0 0 1600 1425 texts=79 paths=26 minfont=24.0 media=False
+   T: What an NCP 2 response tells the client
+   D: Every response is ok, declined, rejected, or ended. Eight cards show what happens to damaged, lost, repeated, and late messages, after an owner failure, a restart or a stop of the owner, and when the connection breaks. At most one call is possibly executed. NCP 2 is UNRELEASED. It is not release or 
+docs/diagrams/ncp2-transcript-dark.svg
+   bytes=9522 role=img labelledby=True title=1 desc=1 w=1600 h=1083 vb=0 0 1600 1083 texts=41 paths=16 minfont=24.0 media=False
+   T: An NCP 2 transcript and its hash chain
+   D: A program records each frame before it sends it. Requests and responses name each other by digest, so a session forms one hash chain that a verifier checks. A transcript does not show who produced the frames. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-transcript-light.svg
+   bytes=9522 role=img labelledby=True title=1 desc=1 w=1600 h=1083 vb=0 0 1600 1083 texts=41 paths=16 minfont=24.0 media=False
+   T: An NCP 2 transcript and its hash chain
+   D: A program records each frame before it sends it. Requests and responses name each other by digest, so a session forms one hash chain that a verifier checks. A transcript does not show who produced the frames. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-why-dark.svg
+   bytes=9906 role=img labelledby=True title=1 desc=1 w=1600 h=1093 vb=0 0 1600 1093 texts=54 paths=2 minfont=24.0 media=False
+   T: Why NCP 2 exists: built-in guarantees and fast calls
+   D: A table compares NCP 2 with gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 builds in four guarantees that the others do not, and has the fastest small call in Rust and Python. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/ncp2-why-light.svg
+   bytes=9906 role=img labelledby=True title=1 desc=1 w=1600 h=1093 vb=0 0 1600 1093 texts=54 paths=2 minfont=24.0 media=False
+   T: Why NCP 2 exists: built-in guarantees and fast calls
+   D: A table compares NCP 2 with gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 builds in four guarantees that the others do not, and has the fastest small call in Rust and Python. NCP 2 is UNRELEASED. It is not release or certification evidence.
+docs/diagrams/overview-dark.svg
+   bytes=10397 role=img labelledby=True title=1 desc=1 w=1600 h=979 vb=0 0 1600 979 texts=51 paths=22 minfont=24.0 media=False
+   T: NCP admission and plane overview
+   D: Five shared gates bound raw bytes, authenticate the transport principal, check wire and stable core, check session and stream state, and deliver a typed frame to a finite plane queue. Action adds a body effect gate. Proposed design for the UNRELEASED 1.0 candidate. It is not release or certification
+docs/diagrams/overview-light.svg
+   bytes=10397 role=img labelledby=True title=1 desc=1 w=1600 h=979 vb=0 0 1600 979 texts=51 paths=22 minfont=24.0 media=False
+   T: NCP admission and plane overview
+   D: Five shared gates bound raw bytes, authenticate the transport principal, check wire and stable core, check session and stream state, and deliver a typed frame to a finite plane queue. Action adds a body effect gate. Proposed design for the UNRELEASED 1.0 candidate. It is not release or certification
+docs/diagrams/payload-transfer-dark.svg
+   bytes=8654 role=img labelledby=True title=1 desc=1 w=1600 h=873 vb=0 0 1600 873 texts=38 paths=15 minfont=24.0 media=False
+   T: NCP bounded payload transfer
+   D: A receiver reserves the complete declared length, admits only the next verified chunk, and seals the payload after the complete SHA-256 digest matches. Chunks are at most 32,768 bytes and payloads at most 8,388,608 bytes. The local SDK 1.0.1 is released; applications and wire 1.0 remain UNRELEASED. 
+docs/diagrams/payload-transfer-light.svg
+   bytes=8654 role=img labelledby=True title=1 desc=1 w=1600 h=873 vb=0 0 1600 873 texts=38 paths=15 minfont=24.0 media=False
+   T: NCP bounded payload transfer
+   D: A receiver reserves the complete declared length, admits only the next verified chunk, and seals the payload after the complete SHA-256 digest matches. Chunks are at most 32,768 bytes and payloads at most 8,388,608 bytes. The local SDK 1.0.1 is released; applications and wire 1.0 remain UNRELEASED. 
+docs/diagrams/queue-admission-dark.svg
+   bytes=8633 role=img labelledby=True title=1 desc=1 w=1600 h=1118 vb=0 0 1600 1118 texts=34 paths=18 minfont=24.0 media=False
+   T: NCP finite plane queue admission
+   D: Each plane queue limits both item count and retained bytes. A plane policy selects allowed victims or rejects. One atomic owner step records the loss, removes victims, and installs the item. This is proposed design for the UNRELEASED 1.0 candidate. It is not release or certification evidence.
+docs/diagrams/queue-admission-light.svg
+   bytes=8633 role=img labelledby=True title=1 desc=1 w=1600 h=1118 vb=0 0 1600 1118 texts=34 paths=18 minfont=24.0 media=False
+   T: NCP finite plane queue admission
+   D: Each plane queue limits both item count and retained bytes. A plane policy selects allowed victims or rejects. One atomic owner step records the loss, removes victims, and installs the item. This is proposed design for the UNRELEASED 1.0 candidate. It is not release or certification evidence.
+docs/diagrams/runtime-dark.svg
+   bytes=10028 role=img labelledby=True title=1 desc=1 w=1600 h=926 vb=0 0 1600 926 texts=44 paths=26 minfont=24.0 media=False
+   T: NCP prepared runtime and hot path
+   D: Preparation compiles immutable handles once. Each frame then passes six stages: bound, verify, decode once, locate, admit in one short owner step, and hand off to a finite queue. Proposed design for the UNRELEASED 1.0 candidate. Stage ceilings are targets, not measurements. It is not release or cert
+docs/diagrams/runtime-light.svg
+   bytes=10028 role=img labelledby=True title=1 desc=1 w=1600 h=926 vb=0 0 1600 926 texts=44 paths=26 minfont=24.0 media=False
+   T: NCP prepared runtime and hot path
+   D: Preparation compiles immutable handles once. Each frame then passes six stages: bound, verify, decode once, locate, admit in one short owner step, and hand off to a finite queue. Proposed design for the UNRELEASED 1.0 candidate. Stage ceilings are targets, not measurements. It is not release or cert
+docs/diagrams/sequence-dark.svg
+   bytes=9395 role=img labelledby=True title=1 desc=1 w=1600 h=1445 vb=0 0 1600 1445 texts=36 paths=24 minfont=24.0 media=False
+   T: NCP simulation session sequence
+   D: A client opens one simulation session after the wire and stable-core check. The simulator reserves a step window, executes positions strictly in order, and matches each result by generation, position, and request digest. Proposed design for the UNRELEASED 1.0 candidate. It is not release or certific
+docs/diagrams/sequence-light.svg
+   bytes=9395 role=img labelledby=True title=1 desc=1 w=1600 h=1445 vb=0 0 1600 1445 texts=36 paths=24 minfont=24.0 media=False
+   T: NCP simulation session sequence
+   D: A client opens one simulation session after the wire and stable-core check. The simulator reserves a step window, executes positions strictly in order, and matches each result by generation, position, and request digest. Proposed design for the UNRELEASED 1.0 candidate. It is not release or certific
+docs/diagrams/system-map-dark.svg
+   bytes=9368 role=img labelledby=True title=1 desc=1 w=1600 h=1231 vb=0 0 1600 1231 texts=39 paths=21 minfont=24.0 media=False
+   T: NCP modular system map
+   D: A host selects independent applications and connects each one through the NCP contract. NCP owns message identity, retained outcomes, acknowledgements, and bounded byte buffers. Each application owns its own state. The local SDK 1.0.1 is released; applications and wire 1.0 remain UNRELEASED. It is n
+docs/diagrams/system-map-light.svg
+   bytes=9368 role=img labelledby=True title=1 desc=1 w=1600 h=1231 vb=0 0 1600 1231 texts=39 paths=21 minfont=24.0 media=False
+   T: NCP modular system map
+   D: A host selects independent applications and connects each one through the NCP contract. NCP owns message identity, retained outcomes, acknowledgements, and bounded byte buffers. Each application owns its own state. The local SDK 1.0.1 is released; applications and wire 1.0 remain UNRELEASED. It is n
+docs/diagrams/topology-dark.svg
+   bytes=6955 role=img labelledby=True title=1 desc=1 w=1600 h=1182 vb=0 0 1600 1182 texts=31 paths=14 minfont=24.0 media=False
+   T: NCP commander, body, and observer topology
+   D: A commander and a body exchange control, perception, and action traffic on four core planes. Observers receive a read-only projection. The body is the final software authority before the actuator. Candidate wire of the UNRELEASED 1.0 candidate. It is not release or certification evidence.
+docs/diagrams/topology-light.svg
+   bytes=6955 role=img labelledby=True title=1 desc=1 w=1600 h=1182 vb=0 0 1600 1182 texts=31 paths=14 minfont=24.0 media=False
+   T: NCP commander, body, and observer topology
+   D: A commander and a body exchange control, perception, and action traffic on four core planes. Observers receive a read-only projection. The body is the final software authority before the actuator. Candidate wire of the UNRELEASED 1.0 candidate. It is not release or certification evidence.
+docs/diagrams/versioning-dark.svg
+   bytes=7178 role=img labelledby=True title=1 desc=1 w=1600 h=1026 vb=0 0 1600 1026 texts=29 paths=16 minfont=24.0 media=False
+   T: NCP identity domains and native session gate
+   D: Package, wire, stable-core, complete-contract, compact-proto, and release identities are separate. A native session needs a canonical same-major wire and the exact stable core. Other identities are evidence only. Candidate of the UNRELEASED 1.0 line. It is not release or certification evidence.
+docs/diagrams/versioning-light.svg
+   bytes=7178 role=img labelledby=True title=1 desc=1 w=1600 h=1026 vb=0 0 1600 1026 texts=29 paths=16 minfont=24.0 media=False
+   T: NCP identity domains and native session gate
+   D: Package, wire, stable-core, complete-contract, compact-proto, and release identities are separate. A native session needs a canonical same-major wire and the exact stable core. Other identities are evidence only. Candidate of the UNRELEASED 1.0 line. It is not release or certification evidence.
+docs/figures/nest-3.10.0-stepwise-control.svg
+   bytes=90595 role=img labelledby=True title=1 desc=1 w=1150 h=768.45 vb=0 0 431 288 texts=54 paths=0 minfont=5.4 media=False
+   T: Stepwise NEST control: overhead, speed and threading under NEST 3.10.0
+   D: Three panels measured on 13 October 2026 with NEST 3.10.0 on an Apple MacBook Pro with an M4 Max chip and 128 GB of memory, at NCP commit 6feba8d. Panel a: prepared 1 ms chunks cost 1.10 times one Run call, 10 ms chunks 1.008 times and 100 ms chunks 1.002 times; a NEST 3.9.0 build gave 1.145 in the 
+docs/figures/nest-3.9.0-stepwise-control.svg
+   bytes=84188 role=img labelledby=True title=1 desc=1 w=1150 h=768.45 vb=0 0 431 288 texts=50 paths=0 minfont=5.6 media=False
+   T: Stepwise NEST control: overhead, speed and threading
+   D: Three panels measured with NEST 3.9.0 on one workstation at NCP commit 2819dae. Panel a: prepared chunked advancement costs 1.45 times one Run call for 1 ms chunks, 1.05 times for 10 ms chunks and 1.007 times for 100 ms chunks, with equal aggregate spike counts. Panel b: biological seconds per wall-
+docs/figures/nest-coupling.svg
+   bytes=90004 role=img labelledby=True title=1 desc=1 w=1150 h=672.39 vb=0 0 431 252 texts=41 paths=0 minfont=5.4 media=False
+   T: Coupling NEST to a peer process through the NCP local SDK and MUSIC
+   D: Preregistered benchmark of 13 October 2026 on an Apple MacBook Pro with an M4 Max chip and 128 GB of memory: NEST 3.10.0, 1,000 neurons, one thread, 2 s of biological time per run, five shuffled rounds. Panel a: median wall time per run for six arms at exchange intervals of 1, 2, 5 and 10 ms; MUSIC 
+docs/figures/stale-predecessor.svg
+   bytes=67545 role=img labelledby=True title=1 desc=1 w=1150 h=506.96 vb=0 0 431 190 texts=31 paths=0 minfont=4.6 media=False
+   T: A one-step stale command can make a loop unstable
+   D: Two recurrences of the teaching model x(k+1) = x(k) + u(k+1). With u(k+1) = -1.5 x(k) the error halves and changes sign at every step. With the stale command u(k+1) = -1.5 x(k-1) the error oscillates and grows by the factor square root of 1.5 per step.
+docs/local-v1/architecture.svg
+   bytes=6281 role=img labelledby=True title=1 desc=1 w=1000 h=680 vb=0 0 1000 680 texts=27 paths=10 minfont=16.0 media=False
+   T: NCP development-reference ownership
+   D: This bounded development example has Engram coordinate four native owners through separate private NCP request and result pipes. Neural and body owners mutate their own state. Capture and monitoring cannot command. This example does not define the complete final product scope.
+docs/local-v1/step-order.svg
+   bytes=4313 role=img labelledby=True title=1 desc=1 w=1000 h=240 vb=0 0 1000 240 texts=20 paths=7 minfont=12.0 media=False
+   T: Exact local step order
+   D: Source snapshot, neural advance, proposal, body application, next snapshot, and capture closure are distinct ordered states. A missing or indeterminate pair blocks dependent progress.
+docs/plots/overlap_dark.svg
+   bytes=67508 role=img labelledby=True title=1 desc=1 w=732.7725pt h=317.509969pt vb=0 0 732.7725 317.509969 texts=33 paths=30 minfont=7.0 media=False
+   T: Historical NCP overlap illustration
+   D: Historical, non-normative developer illustration of analytic overlap and retained serial and thread values. It does not qualify the UNRELEASED 1.0.0-rc.1 candidate and is not current transport performance, release evidence, capacity evidence, or certification.
+docs/plots/overlap_light.svg
+   bytes=67508 role=img labelledby=True title=1 desc=1 w=732.7725pt h=317.509969pt vb=0 0 732.7725 317.509969 texts=33 paths=30 minfont=7.0 media=False
+   T: Historical NCP overlap illustration
+   D: Historical, non-normative developer illustration of analytic overlap and retained serial and thread values. It does not qualify the UNRELEASED 1.0.0-rc.1 candidate and is not current transport performance, release evidence, capacity evidence, or certification.
+docs/plots/realtime_dark.svg
+   bytes=92491 role=img labelledby=True title=1 desc=1 w=621.672748pt h=319.029656pt vb=0 0 621.672748 319.029656 texts=19 paths=27 minfont=7.0 media=False
+   T: Historical NCP real-time-factor sweep
+   D: Historical, non-normative local NEST 3.8.0 sweep of real-time factor by OpenMP threads. It does not qualify the UNRELEASED 1.0.0-rc.1 candidate and is not release evidence, a capacity claim, or certification; the 17–20k crossing is interpolated.
+docs/plots/realtime_light.svg
+   bytes=92491 role=img labelledby=True title=1 desc=1 w=621.672748pt h=319.029656pt vb=0 0 621.672748 319.029656 texts=19 paths=27 minfont=7.0 media=False
+   T: Historical NCP real-time-factor sweep
+   D: Historical, non-normative local NEST 3.8.0 sweep of real-time factor by OpenMP threads. It does not qualify the UNRELEASED 1.0.0-rc.1 candidate and is not release evidence, a capacity claim, or certification; the 17–20k crossing is interpolated.

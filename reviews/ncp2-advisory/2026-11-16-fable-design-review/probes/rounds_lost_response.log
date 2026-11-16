@@ -1,0 +1,5 @@
+1. round 1 applied: [(1, ['a', 'b'])] | a: Ended local.closed executed: unknown
+2. a's new open response features: {} (no report of the round or of a's last request)
+3. a sends round 1 again -> Declined body_invalid | detail: round 1 is not open; the next round is 2 | body members: ['detail']
+3. a sends round 2 -> ok {'seen': 2}
+RESULT: a never receives its result of round 1; it learns that round 1 closed only from the free text of `detail`, and that its request was applied only by inference (round 2 is accepted).

@@ -1,0 +1,6 @@
+stream, new session identifiers           171174 worlds     340222 transitions   35.2 s: S1 to S6, L1, and progress hold
+zenoh, new session identifiers            119967 worlds     282422 transitions   22.2 s: S1 to S6, L1, and progress hold
+stream, one session identifier            119587 worlds     254799 transitions   17.2 s: S1 to S6, L1, and progress hold
+zenoh, one session identifier              16049 worlds      44929 transitions    4.5 s: S1 to S6, L1, and progress hold
+lockstep check: 426777 reachable worlds with up to 1 faults; every property holds
+python3 -I -B model/lockstep.py --faults 1  58.45s user 2.08s system 75% cpu 1:19.69 total

@@ -372,6 +372,7 @@ Measured timing and resource results must state their exact host, workload, and 
 - [NCP System Design report](output/pdf/ncp-system-design.pdf)
 - [System-design PDF build and comparison](docs/publication/README.md)
 - [Closed-loop identity, timing, and stability](docs/implementation/CLOSED_LOOP_MATH.md)
+- [Advisory reviews of NCP 2, with their probes and prototypes](reviews/ncp2-advisory/README.md)
 - [Documentation style](DOCUMENTATION_STYLE.md)
 - [Contribution workflow](CONTRIBUTING.md)
 - [Versioning policy](VERSIONING.md)

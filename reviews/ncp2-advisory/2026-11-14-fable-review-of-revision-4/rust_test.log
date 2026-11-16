@@ -1,0 +1,40 @@
+test a_lost_response_is_sent_again_and_executes_once ... ok
+test each_opening_has_its_own_nonce ... ok
+test arrays_of_every_dtype_round_trip ... ok
+test a_session_that_takes_over_the_ticks_fences_the_steps_of_earlier_sessions ... ok
+test a_recovery_that_finds_the_step_of_another_session_gives_no_verdict ... ok
+test remote_addresses_need_permission ... ok
+test ok_and_declined_advance_the_session ... ok
+test a_unix_server_serves_sessions_and_removes_its_socket ... ok
+test streams_detect_loss_repeats_conflicts_and_forgery ... ok
+test call_all_returns_the_error_of_one_session_in_its_place ... ok
+test a_keyed_transcript_and_an_authenticated_session ... ok
+test the_frame_identity_of_short_input_does_not_panic ... ok
+test the_json_padding_is_exact ... ok
+test call_all_sends_every_request_before_it_reads_a_response ... ok
+test the_subscriber_applies_its_bound_to_each_frame ... ok
+test lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran ... ok
+test the_request_schema_of_the_contract ... ok
+test several_contracts_and_the_handler_hooks ... ok
+test unknown_codes_are_handled_by_outcome ... ok
+test transcripts_detect_tampering ... ok
+test the_digest_check_can_be_turned_off_only_on_local_links ... ok
+test endings_report_whether_the_request_executed ... ok
+test tcp_session_with_transcripts ... ok
+test encoders_refuse_frames_that_receivers_must_reject ... ok
+test a_full_server_refuses_an_open_and_stop_sends_the_shutdown_response ... ok
+test a_child_channel_ends_its_child ... ok
+test rust_client_with_the_python_owner ... ok
+test a_takeover_waits_for_a_checked_step_and_reads_its_tick ... ok
+test a_child_on_a_socket_pair_takes_a_time_limit ... ok
+test a_time_limit_ends_a_stalled_call ... ok
+test an_idle_session_ends_with_the_shutdown_response ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+   Doc-tests ncp
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,21 @@
+warning: unused import: `Error`
+ --> examples/verify_probes.rs:7:56
+  |
+7 |     AppError, Channel, ChannelError, Client, Contract, Error, Handler, Invalid, Lockstep,
+  |                                                        ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `sepahead-ncp-core` (example "verify_probes") generated 1 warning (run `cargo fix --example "verify_probes" -p sepahead-ncp-core` to apply 1 suggestion)
+== R1: the ok response of a take lacks 'state' and 'request'
+  accepted: tick 0 state None request None term 1 (owner state Some("p0"))
+== R2: the ok response of a step has ncp.tick without 'state'
+  accepted: client tick 1 state None; owner tick 1 state Some("p2")
+  next step: Declined { code: "body_invalid", detail: "state: the step answers another state", body: Object {"detail": String("state: the step answers another state")} } executed No
+== R3: LockstepClient::take() after three declined takes names a stale term
+  take(): Declined { code: "body_invalid", detail: "term: the term is 4", body: Object {"detail": String("term: the term is 4"), "ncp.lockstep": Object {"term": Number(4)}} }
+  owner term 4; stepper.term 1; terms named [Number(0), Number(1), Number(2), Number(3)]
+  second take() ok
+  terms named by the second take(): [Number(1), Number(4)]; owner term now 5
+== R4: Lockstep::new with an application digest of 200 characters
+  accepted; the initial S is None

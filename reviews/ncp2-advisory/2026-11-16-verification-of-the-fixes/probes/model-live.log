@@ -1,0 +1,101 @@
+== stream, new session identifiers: 184276 worlds
+    ('done', 'a copy of a frame on another connection', 'no time limit'): 6
+    ('done', 'a copy of a frame on another connection', 'timed'): 5043
+    ('done', 'a request is lost', 'timed'): 119
+    ('done', 'a response is lost', 'timed'): 103
+    ('done', 'another client takes the ticks and steps', 'no time limit'): 5
+    ('done', 'another client takes the ticks and steps', 'timed'): 1786
+    ('done', 'no fault', 'no time limit'): 1
+    ('done', 'no fault', 'timed'): 239
+    ('done', 'the owner restarts', 'no time limit'): 4
+    ('done', 'the owner restarts', 'timed'): 368
+    ('done', 'the owner restarts to an earlier saved clock', 'no time limit'): 3
+    ('done', 'the owner restarts to an earlier saved clock', 'timed'): 492
+    ('done', 'the owner restarts with another state', 'no time limit'): 4
+    ('done', 'the owner restarts with another state', 'timed'): 378
+    ('stuck', 'a copy of a frame on another connection', 'timed'): 10735
+    ('stuck', 'a request is lost', 'timed'): 715
+    ('stuck', 'a response is lost', 'timed'): 564
+    ('stuck', 'another client takes the ticks and steps', 'timed'): 5504
+    ('stuck', 'no fault', 'timed'): 564
+    ('stuck', 'the owner restarts', 'timed'): 1176
+    ('stuck', 'the owner restarts to an earlier saved clock', 'timed'): 986
+    ('stuck', 'the owner restarts with another state', 'timed'): 1240
+== zenoh, new session identifiers: 135531 worlds
+    ('done', 'a copy of a frame', 'no time limit'): 8
+    ('done', 'a copy of a frame', 'timed'): 1618
+    ('done', 'a request is lost', 'timed'): 119
+    ('done', 'a response is lost', 'timed'): 103
+    ('done', 'a session expires', 'no time limit'): 4
+    ('done', 'a session expires', 'timed'): 586
+    ('done', 'another client takes the ticks and steps', 'no time limit'): 5
+    ('done', 'another client takes the ticks and steps', 'timed'): 1786
+    ('done', 'no fault', 'no time limit'): 1
+    ('done', 'no fault', 'timed'): 239
+    ('done', 'the owner restarts', 'no time limit'): 4
+    ('done', 'the owner restarts', 'timed'): 368
+    ('done', 'the owner restarts to an earlier saved clock', 'no time limit'): 3
+    ('done', 'the owner restarts to an earlier saved clock', 'timed'): 492
+    ('done', 'the owner restarts with another state', 'no time limit'): 4
+    ('done', 'the owner restarts with another state', 'timed'): 378
+    ('stuck', 'a copy of a frame', 'timed'): 564
+    ('stuck', 'a request is lost', 'timed'): 715
+    ('stuck', 'a response is lost', 'timed'): 564
+    ('stuck', 'a session expires', 'timed'): 1779
+    ('stuck', 'another client takes the ticks and steps', 'timed'): 5504
+    ('stuck', 'no fault', 'timed'): 564
+    ('stuck', 'the owner restarts', 'timed'): 1176
+    ('stuck', 'the owner restarts to an earlier saved clock', 'timed'): 986
+    ('stuck', 'the owner restarts with another state', 'timed'): 1240
+== stream, one session identifier: 133195 worlds
+    ('done', 'a copy of a frame on another connection', 'no time limit'): 6
+    ('done', 'a copy of a frame on another connection', 'timed'): 2147
+    ('done', 'a request is lost', 'timed'): 119
+    ('done', 'a response is lost', 'timed'): 103
+    ('done', 'another client takes the ticks and steps', 'no time limit'): 5
+    ('done', 'another client takes the ticks and steps', 'timed'): 1786
+    ('done', 'no fault', 'no time limit'): 1
+    ('done', 'no fault', 'timed'): 239
+    ('done', 'the owner restarts', 'no time limit'): 4
+    ('done', 'the owner restarts', 'timed'): 368
+    ('done', 'the owner restarts to an earlier saved clock', 'no time limit'): 3
+    ('done', 'the owner restarts to an earlier saved clock', 'timed'): 492
+    ('done', 'the owner restarts with another state', 'no time limit'): 4
+    ('done', 'the owner restarts with another state', 'timed'): 378
+    ('stuck', 'a copy of a frame on another connection', 'timed'): 4596
+    ('stuck', 'a request is lost', 'timed'): 715
+    ('stuck', 'a response is lost', 'timed'): 564
+    ('stuck', 'another client takes the ticks and steps', 'timed'): 5504
+    ('stuck', 'no fault', 'timed'): 564
+    ('stuck', 'the owner restarts', 'timed'): 1176
+    ('stuck', 'the owner restarts to an earlier saved clock', 'timed'): 986
+    ('stuck', 'the owner restarts with another state', 'timed'): 1240
+== zenoh, one session identifier: 21305 worlds
+    ('done', 'a copy of a frame', 'no time limit'): 8
+    ('done', 'a copy of a frame', 'timed'): 110
+    ('done', 'a request is lost', 'timed'): 6
+    ('done', 'a response is lost', 'timed'): 6
+    ('done', 'a session expires', 'no time limit'): 4
+    ('done', 'a session expires', 'timed'): 280
+    ('done', 'another client takes the ticks and steps', 'no time limit'): 3
+    ('done', 'another client takes the ticks and steps', 'timed'): 60
+    ('done', 'no fault', 'no time limit'): 1
+    ('done', 'no fault', 'timed'): 20
+    ('done', 'the owner restarts', 'no time limit'): 4
+    ('done', 'the owner restarts', 'timed'): 280
+    ('done', 'the owner restarts to an earlier saved clock', 'no time limit'): 3
+    ('done', 'the owner restarts to an earlier saved clock', 'timed'): 202
+    ('done', 'the owner restarts with another state', 'no time limit'): 4
+    ('done', 'the owner restarts with another state', 'timed'): 283
+    ('stuck', 'a copy of a frame', 'timed'): 7
+    ('stuck', 'a request is lost', 'timed'): 13
+    ('stuck', 'a response is lost', 'timed'): 7
+    ('stuck', 'a session expires', 'timed'): 60
+    ('stuck', 'another client takes the ticks and steps', 'no time limit'): 2
+    ('stuck', 'another client takes the ticks and steps', 'timed'): 30
+    ('stuck', 'no fault', 'timed'): 7
+    ('stuck', 'the owner restarts', 'timed'): 60
+    ('stuck', 'the owner restarts to an earlier saved clock', 'timed'): 34
+    ('stuck', 'the owner restarts with another state', 'timed'): 64
+  stuck without a time limit after 'another client takes the ticks and steps':
+      L sends open -> an owner takes a frame -> L takes a response -> L sends take -> an owner takes a frame -> L takes a response -> L sends step -> another client takes the ticks and steps -> an owner takes a frame -> L takes a response -> L sends open -> an owner takes a frame -> L takes a response -> L sends open -> an owner takes a frame -> L takes a response  [index 2, done 0, ran 1]

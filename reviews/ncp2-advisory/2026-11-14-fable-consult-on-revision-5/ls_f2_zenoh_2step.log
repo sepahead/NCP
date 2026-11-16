@@ -1,0 +1,21 @@
+zenoh    1388036 worlds    4544855 transitions   53.3 s: every property holds
+lockstep check, profile revision 4: 1388036 worlds with up to 2 faults
+       53.51 real        53.17 user         0.31 sys
+          1116028928  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               69340  page reclaims
+                  47  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                1447  involuntary context switches
+        928228220323  instructions retired
+        211247777689  cycles elapsed
+          1105200304  peak memory footprint
+exit 0

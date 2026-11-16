@@ -1,0 +1,24 @@
+message calls       1282355 worlds   6790337 transitions   43.7 s: P1 to P8 and progress hold
+message failure       13167 worlds     48459 transitions    0.3 s: P1 to P8 and progress hold
+message large         13167 worlds     48459 transitions    0.3 s: P1 to P8 and progress hold
+message operations  1282355 worlds   6790337 transitions   46.2 s: P1 to P8 and progress hold
+stream  calls           165 worlds       196 transitions    0.0 s: P1 to P8 and progress hold
+stream  failure          85 worlds       100 transitions    0.0 s: P1 to P8 and progress hold
+stream  large            85 worlds       100 transitions    0.0 s: P1 to P8 and progress hold
+stream  operations      165 worlds       196 transitions    0.0 s: P1 to P8 and progress hold
+model check: 2591544 reachable worlds with up to 2 faults; every property holds
+python3 -I model/simulate.py --faults 2  89.08s user 0.98s system 99% cpu 1:30.50 total
+mutant owner_skips_ack_check            caught by P3 (message, calls)
+mutant owner_accepts_gaps               caught by P2 (message, calls)
+mutant owner_forgets_kept_request       caught by P6 (message, calls)
+mutant owner_executes_after_end         caught by P7 (message, calls)
+mutant owner_declined_not_kept          caught by progress (message, calls)
+mutant owner_constant_nonce             caught by P1 (message, calls)
+mutant owner_ignores_stop               caught by P5 (message, calls)
+mutant client_skips_request_match       caught by P4 (message, calls)
+mutant client_timeout_not_executed      caught by P5 (message, calls)
+mutant client_trusts_session_expired    caught by P5 (message, calls)
+mutant client_trusts_rejected_call      caught by P5 (message, calls)
+mutant client_trusts_unbound_nameless   caught by P5 (stream, calls)
+self-test: 12 of 12 known defects detected
+python3 -I model/simulate.py --faults 2 --self-test  91.83s user 0.82s system 99% cpu 1:32.76 total

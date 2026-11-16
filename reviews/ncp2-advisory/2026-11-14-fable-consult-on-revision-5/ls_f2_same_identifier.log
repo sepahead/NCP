@@ -1,0 +1,7 @@
+stream   1995372 worlds    5791356 transitions   65.5 s: every property holds
+zenoh     138275 worlds     474373 transitions    6.8 s: every property holds
+lockstep check, profile revision 4: 2133647 worlds with up to 2 faults
+real 72.53
+user 72.06
+sys 0.45
+exit 0

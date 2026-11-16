@@ -1,0 +1,14 @@
+mutant owner_skips_ack_check            caught by P3 (message, calls)
+mutant owner_accepts_gaps               caught by P2 (message, calls)
+mutant owner_forgets_kept_request       caught by P6 (message, calls)
+mutant owner_executes_after_end         caught by P7 (message, calls)
+mutant owner_declined_not_kept          caught by progress (message, calls)
+mutant owner_constant_nonce             caught by P1 (message, calls)
+mutant owner_ignores_stop               caught by P5 (message, calls)
+mutant client_skips_request_match       caught by P4 (message, calls)
+mutant client_timeout_not_executed      caught by P5 (message, calls)
+mutant client_trusts_session_expired    caught by P5 (message, calls)
+mutant client_trusts_rejected_call      caught by P5 (message, calls)
+mutant client_trusts_unbound_nameless   caught by P5 (stream, calls)
+self-test: 12 of 12 known defects detected
+done

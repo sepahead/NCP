@@ -1,0 +1,26 @@
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.154
+   Compiling serde v1.0.229
+   Compiling libc v0.2.191
+   Compiling digest v0.11.3
+   Compiling cpufeatures v0.3.1
+   Compiling socket2 v0.6.5
+   Compiling sha2 v0.11.1
+   Compiling sepahead-ncp-core v2.0.0 (/private/tmp/ncp-rev5-consult.CEnlPy/rust)
+    Finished `release` profile [optimized] target(s) in 9.39s
+     Running tests/sessions.rs (/tmp/ncp-rev5-consult.CEnlPy/target-rust/release/deps/sessions-02f9667c2dee902f)
+
+running 8 tests
+test each_opening_has_its_own_nonce ... ok
+test a_closed_request_schema_admits_the_tick ... ok
+test a_lockstep_step_whose_application_fails_counts_as_executed ... ok
+test a_recovery_with_the_same_session_identifier_fences_the_old_opening ... ok
+test a_copy_of_an_old_open_does_not_give_the_ticks_back ... ok
+test a_recovery_that_finds_the_step_of_another_session_gives_no_verdict ... ok
+test a_session_that_takes_over_the_ticks_fences_the_steps_of_earlier_sessions ... ok
+test lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 0.00s
+
+exit 0
