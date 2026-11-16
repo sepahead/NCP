@@ -29,8 +29,8 @@ lists the changes for programs.
   state that outlives the session. One owner scenario vector.
 - **A model check of the lockstep profile**, `model/lockstep.py`, in the gate: the Python SDK's owner
   and client in every reachable state with one fault, restarts to an earlier saved clock included,
-  six safety properties, a stable holder, progress, and a self-test of twelve known defects, at least
-  one for each property.
+  six safety properties, a stable holder, progress, and a self-test of thirteen known defects, at
+  least one for each property.
 - **Fixed after a third advisory review of the draft** (read-only, not certification evidence):
   - The Rust lockstep client reported `Error::Usage`, whose `executed()` is No, after a step or a
     take that ran with a malformed `ok`, and after a recovery without a verdict. Both SDKs now end
@@ -48,6 +48,17 @@ lists the changes for programs.
   - The lockstep check never fired its progress property; it now does, and it explores restarts to
     an earlier saved clock. `conformance/requirements.json` now maps every normative line of both
     profiles.
+- **Fixed after a verification of those fixes** (read-only, advisory; it stopped at a usage limit
+  after four checkpoints):
+  - A take or a step whose `ok` response lacks a member of the clock now ends the session with
+    `local.protocol` and the request executed, in both SDKs; Python raised `KeyError`.
+  - `LockstepClient.take()` keeps the term that a decline names, so the next take names it
+    (profile, rule 4.1); a recovery whose take is declined ends that session.
+  - The owner keeps only plain JSON in feature parameters and in the `ncp.` members of a
+    `declined` body, as the Rust SDK; `Lockstep::new` refuses a state digest of the wrong length.
+  - The lockstep check excused a recovery without a verdict after any step of another client or
+    any restart; the excuse is now exact, and a thirteenth defect shows the difference. The
+    requirements map covers the numbered rules of section 15.
 - Both SDKs: a profile can add members whose names start with `ncp.` to a `declined` body; Rust gains
   `Lockstep::restored`. Three figures in the guide: the verdict map, the owner's checks in order, and
   lockstep recovery.

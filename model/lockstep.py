@@ -29,8 +29,9 @@ In every reachable world, the search checks:
                 in that state when the take ran
   S2 holder     a step runs only in the opening whose take succeeded last
   S3 ticks      the steps that run produce the ticks 1, 2, 3, ..., each once
-  S4 verdict    a recovery gives a verdict, unless another client stepped or the owner restored
-                another state or an earlier clock (profile, rule 6.5)
+  S4 verdict    a recovery gives a verdict whenever its take finds the state that L's known clock
+                describes, or that state after L's uncertain step: the clock changed in no other
+                way (profile, rule 6.5)
   S5 open reads accepting an open changes neither the clock nor the holder (rule 3.3, and rule
                 7.1.8 of the specification)
   S6 resend     after the verdict "did not run", the owner's state when L's take ran was the state
@@ -38,8 +39,8 @@ In every reachable world, the search checks:
                 sent again
   L1 stable     while the owner holds L's opening and that opening took the ticks, no frame takes
                 them from it, unless another client takes them
-  progress      without faults and time limits, L finishes its script: checked in each world
-                where only faults could still happen
+  progress      without faults and time limits, L finishes its script: checked in the world
+                where no transition other than a fault remains
 
 `--same-session` makes L use one session identifier for all its sessions. `--self-test` injects
 each defect of MUTANTS in turn and requires the search to find a violation; it tries both shapes,
@@ -89,6 +90,7 @@ MUTANTS = (
     "step_moves_two_ticks",  # a step advances the tick by 2 (rule 5.5)
     "judge_never_decides",  # a recovery never gives a verdict (rule 6.5)
     "take_always_declined",  # the owner declines every take, so no client can step (rule 5.3)
+    "verdict_needs_own_request",  # no verdict unless the request that L knew is one of its own (rule 6.5)
 )
 
 
@@ -224,6 +226,8 @@ class Stepper:
     report: tuple | None = None  # the clock in the report of its last open
     holds: bool = False  # its current opening took the ticks
     opening: int | None = None  # ghost: the opening of its current session
+    known_current: tuple = ()  # ghost: the steps in the owner's state that L's known clock describes
+    known_epoch: int = 0  # ghost: the state epoch of L's known clock
 
 
 @dataclasses.dataclass(frozen=True)
@@ -246,7 +250,9 @@ class World:
     older: bool = False  # the owner restored an earlier saved clock
     current: tuple = ()  # the identities of the steps in the owner's state, in order
     history: tuple = ((0, "p0", None, 0),)  # tick, state, request, position: after each of current
-    taken: tuple = ()  # ghost: sorted (opening, (the clock, current) when the take of that opening ran)
+    taken: tuple = ()  # ghost: sorted (opening, (the clock, current, epoch) when the take of that opening ran)
+    epoch: int = 0  # ghost: raised by a restart that restores another state
+    after_step: tuple = ()  # ghost: (identity, (current, epoch) right after that step ran), in order
 
 
 def put(items: tuple, item: object) -> tuple:
@@ -288,6 +294,11 @@ class Search:
         self.next_nonce = 1
         self.config = O.OwnerConfig((CONTRACT,), max_bound=F.HANDSHAKE_BOUND, nonce=self.nonce)
         self.cache: dict = {}
+
+    def own(self, w: World) -> set:
+        """The identities of the steps that L sent (for the mutant verdict_needs_own_request)."""
+        return {F.decode(frame, F.MAX_BOUND).identity for _key, frame in w.sent
+                if F.decode(frame, F.MAX_BOUND).message.get("op") == "step"}
 
     def nonce(self) -> str:
         return "0" * 32 if self.mutant == "constant_nonce" else f"{self.next_nonce:032x}"
@@ -331,7 +342,7 @@ class Search:
                         and after.session is not None and LS.FEATURE in after.features)
         if took:
             holder = opening
-            changes["taken"] = tuple(sorted({**dict(w.taken), opening: (clock, w.current)}.items()))
+            changes["taken"] = tuple(sorted({**dict(w.taken), opening: (clock, w.current, w.epoch)}.items()))
         changes["holder"] = holder
         if note.executed and request["op"] == "step":
             identity = decoded.identity
@@ -341,6 +352,7 @@ class Search:
             require(w.rewound or clock[0] == len(w.current) + 1, "S3", "the tick does not count the steps that ran")
             changes["ran"] = w.ran + (identity,)
             changes["current"] = w.current + (identity,)
+            changes["after_step"] = w.after_step + ((identity, (w.current + (identity,), w.epoch)),)
             changes["history"] = w.history + ((clock[0], clock[1], clock[2], clock[5]),)
         cs = w.stepper.cs
         if cs is not None and cs.pending is not None and key == self.key_of(w.stepper.index):
@@ -393,13 +405,22 @@ class Search:
             return w, s
         tick, identity = s.uncertain
         verdict = self.judge(s.known, s.uncertain, taken)
+        at_take = dict(w.taken).get(s.opening)
+        if self.mutant == "verdict_needs_own_request" and s.known[2] is not None and s.known[2] not in self.own(w):
+            verdict = ncp.Executed.UNKNOWN
         if verdict is ncp.Executed.UNKNOWN:
-            if w.other or w.rewound or w.older:
-                # The clock changed in another way: no verdict is truthful. The step stays possibly
-                # executed, and L goes on from the clock of the take.
+            # A verdict is possible when the take found the state that L's known clock describes, or
+            # that state after L's step: the clock changed in no other way.
+            clean = (
+                at_take is not None
+                and at_take[2] == s.known_epoch
+                and at_take[1] in (s.known_current, s.known_current + (identity,))
+            )
+            if not clean:
+                # No verdict is truthful. The step stays possibly executed, and L goes on from the
+                # clock of the take.
                 return w, dataclasses.replace(s, uncertain=None)
             raise Violation("S4", f"the recovery gave no verdict: the take returned {taken}, L knew {s.known}")
-        at_take = dict(w.taken).get(s.opening)
         if verdict is ncp.Executed.YES:
             require(identity in w.ran, "S1", "'ran' for a step that did not run")
         elif w.older:
@@ -410,7 +431,7 @@ class Search:
         else:
             require(identity not in w.ran, "S1", "'did not run' for a step that ran")
         if verdict is ncp.Executed.NO:
-            require(w.other or (at_take is not None and at_take[0][1:3] == s.known[1:3]), "S6",
+            require(at_take is not None and at_take[0][1:3] == s.known[1:3], "S6",
                     "'did not run', but when the take ran, the owner's state was not the state that the step answered")
         w = dataclasses.replace(w, verdicts=w.verdicts + ((identity, verdict.value),))
         return w, dataclasses.replace(s, done=s.done + (verdict is ncp.Executed.YES), uncertain=None)
@@ -438,7 +459,10 @@ class Search:
                 if s.phase == "stuck":
                     return dataclasses.replace(w, stepper=s, to_client=())
                 phase = "done" if s.done >= STEPS else "step"
-                return dataclasses.replace(w, stepper=dataclasses.replace(s, known=taken, phase=phase, holds=True))
+                at = dict(w.taken)[s.opening]
+                s = dataclasses.replace(s, known=taken, phase=phase, holds=True, known_current=at[1],
+                                        known_epoch=at[2])
+                return dataclasses.replace(w, stepper=s)
             if isinstance(verdict, O.Declined) and type(verdict.body) is dict:
                 moved = verdict.body.get(LS.FEATURE, {}).get("term")
                 if type(moved) is int and moved != s.term and s.takes < LS.TAKE_ATTEMPTS:
@@ -448,8 +472,10 @@ class Search:
             member = verdict.body[LS.TICK]
             require(identity in w.ran, "S1", "an ok for a step that did not run")
             done = s.done + 1
+            after = dict(w.after_step)[identity]
             s = dataclasses.replace(s, known=(member["tick"], member["state"], member["request"]), done=done,
-                                    phase="done" if done >= STEPS else "step")
+                                    phase="done" if done >= STEPS else "step", known_current=after[0],
+                                    known_epoch=after[1])
             return dataclasses.replace(w, stepper=s, verdicts=w.verdicts + ((identity, "yes"),))
         if isinstance(verdict, O.Declined) or (isinstance(verdict, C.Ended) and verdict.executed is ncp.Executed.NO):
             require(identity not in w.ran, "S1", "'did not run' for a step that ran")
@@ -529,7 +555,7 @@ class Search:
                                                 stepper=dataclasses.replace(s, holds=False), **f)
                 out.append(("the owner restarts", restarted))
                 other_state = c[5] + 1000  # the same tick, but the application restored another state
-                rewound = dataclasses.replace(restarted, rewound=True, current=(),
+                rewound = dataclasses.replace(restarted, rewound=True, current=(), epoch=w.epoch + 1,
                                               history=((c[0], f"p{other_state}", "restored", other_state),),
                                               clock=(c[0], f"p{other_state}", "restored", 0, None, other_state))
                 out.append(("the owner restarts with another state", rewound))

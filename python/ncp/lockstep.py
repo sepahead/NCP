@@ -43,6 +43,12 @@ def _term_ok(value: Any) -> bool:
     return type(value) is int and 0 <= value <= MAX_TERM
 
 
+def _told_term(declined: Declined) -> int | None:
+    """The owner's term that a `declined` response names in its member `ncp.lockstep`, if any."""
+    moved = declined.body.get(FEATURE) if type(declined.body) is dict else None
+    return moved["term"] if type(moved) is dict and _term_ok(moved.get("term")) else None
+
+
 class Lockstep:
     """A handler that applies the lockstep profile around an application handler.
 
@@ -241,7 +247,13 @@ class LockstepClient:
         example after a step that was declined because another opening took them (rule 6.4)."""
         if self.uncertain is not None:
             raise UsageError("a step is possibly executed: call recover with a new client")
-        (self.tick, self.state, self.request), self.term = take(self.client, self.term)
+        try:
+            (self.tick, self.state, self.request), self.term = take(self.client, self.term)
+        except Declined as declined:
+            told = _told_term(declined)  # the owner told a newer term: the next take names it (rule 4.1)
+            if told is not None:
+                self.term = told
+            raise
 
     def step(self, op: str, body: dict[str, Any]) -> Result:
         """Send one lockstep step. If the call ends with the step possibly executed, `uncertain`
@@ -254,9 +266,9 @@ class LockstepClient:
             result = self.client.call(op, {**body, TICK: {"tick": self.tick + 1, "state": self.state}})
         except Declined as declined:
             # The holder check names the owner's term: another opening took the ticks (rule 6.4).
-            moved = declined.body.get(FEATURE) if type(declined.body) is dict else None
-            if type(moved) is dict and _term_ok(moved.get("term")):
-                self.term = moved["term"]
+            told = _told_term(declined)
+            if told is not None:
+                self.term = told
             raise
         except Ended as ended:
             if ended.executed is Executed.UNKNOWN:
@@ -268,10 +280,11 @@ class LockstepClient:
         member = result.body.get(TICK) if type(result.body) is dict else None
         if (
             type(member) is not dict
-            or type(member.get("tick")) is not int
+            or not {"tick", "state", "request"} <= member.keys()
+            or type(member["tick"]) is not int
             or member["tick"] != self.tick + 1
-            or not _state_ok(member.get("state"))
-            or type(member.get("request")) is not str
+            or not _state_ok(member["state"])
+            or type(member["request"]) is not str
             or member["request"] != result.request
         ):
             # The step ran, but the owner broke the profile (rule 6.3): the clock is unknown, and
@@ -291,12 +304,18 @@ class LockstepClient:
         The opening of `client` takes the ticks (profile, rule 5.3), so a copy of the step that is
         still on its way can no longer run. The verdict comes from the response of the take, never
         from the `open` response, whose report can be older. With every verdict, the client goes on
-        in the new session from the owner's clock."""
+        in the new session from the owner's clock. If the take is declined, recover ends the session
+        of `client` and raises: the step stays possibly executed; recover again with a new client."""
         if self.uncertain is None:
             raise UsageError("no step is possibly executed")
         if not client.opened:
             client.open()
-        taken, term = take(client)
+        try:
+            taken, term = take(client)
+        except Declined:
+            # The client does not go on in this session, whose term moved: try again with a new client.
+            _end(client)
+            raise
         verdict = judge((self.tick, self.state, self.request), self.uncertain, taken)
         self.client, self.uncertain, self.term = client, None, term
         self.tick, self.state, self.request = taken
@@ -325,6 +344,7 @@ def report(client: Client) -> dict[str, Any]:
     granted = client.enabled.get(FEATURE)
     if (
         type(granted) is not dict
+        or not {"tick", "state", "request", "term"} <= granted.keys()
         or type(granted.get("tick")) is not int
         or granted["tick"] < 0
         or not _state_ok(granted.get("state"))
@@ -367,24 +387,20 @@ def take(client: Client, term: int | None = None) -> tuple[Known, int]:
         try:
             result = client.call(TAKE, {"term": term})
         except Declined as declined:
-            moved = declined.body.get(FEATURE) if type(declined.body) is dict else None
-            if (
-                attempt == TAKE_ATTEMPTS
-                or type(moved) is not dict
-                or not _term_ok(moved.get("term"))
-                or moved["term"] == term
-            ):
+            told = _told_term(declined)
+            if attempt == TAKE_ATTEMPTS or told is None or told == term:
                 raise
-            term = moved["term"]
+            term = told
             continue
         body = result.body
         if (
             type(body) is not dict
-            or type(body.get("tick")) is not int
+            or not {"tick", "state", "request", "term"} <= body.keys()
+            or type(body["tick"]) is not int
             or body["tick"] < 0
-            or not _state_ok(body.get("state"))
-            or not (body.get("request") is None or type(body.get("request")) is str)
-            or not _term_ok(body.get("term"))
+            or not _state_ok(body["state"])
+            or not (body["request"] is None or type(body["request"]) is str)
+            or not _term_ok(body["term"])
             or body["term"] != term + 1
         ):
             _end(client)

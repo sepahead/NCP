@@ -367,7 +367,10 @@
         "test:python:test_a_take_fences_the_steps_of_earlier_openings",
         "test:rust:a_take_fences_the_steps_of_earlier_openings",
         "test:python:test_a_take_needs_its_body_and_the_profile_defines_no_other_operation",
-        "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation"
+        "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+        "vectors:scenarios:an operation of a feature that the session did not enable is unknown",
+        "test:python:test_profile_members_that_cannot_be_encoded_leave_the_detail",
+        "test:rust:profile_members_that_cannot_be_encoded_leave_the_detail"
       ]
     },
     {
@@ -795,6 +798,35 @@
       "covered_by": [
         "vectors:contracts:operation ncp.x"
       ]
+    },
+    {
+      "section": "15.1",
+      "text": "1. Operation names and feature names that start with `ncp.`. This document defines `ncp.ping` (rule 7.3.12).",
+      "covered_by": [
+        "vectors:contracts:operation ncp.x",
+        "test:python:test_close_and_ping"
+      ]
+    },
+    {
+      "section": "15.2",
+      "text": "2. Object members, at any level of a body or a contract, whose names start with `ncp.`. This document defines `ncp.array` (section 5), `ncp.end` (section 8), and `ncp.schema` (section 11).",
+      "covered_by": [
+        "vectors:schemas:additionalProperties",
+        "vectors:schemas:ncp.array",
+        "test:python:test_a_closed_request_schema_admits_the_tick",
+        "test:rust:a_closed_request_schema_admits_the_tick"
+      ]
+    },
+    {
+      "section": "15.3",
+      "text": "3. Feature operations. An operation name `F.N` is a feature operation of the feature `F` if `F` starts with `ncp.` and `N` is not empty and contains no `.`; the feature of such an operation is its name before the last `.`. `ncp.ping` is no feature operation. The profile that defines the feature defines the operation, its body, and its result. An owner executes a feature operation only in a session for which it enabled the feature (rule 7.3.12). In every other session, the operation gets `declined` with `unknown_op`, as an operation that the contract does not have. A contract cannot name a feature operation (section 11, rule 1). The [lockstep profile](NCP-2-LOCKSTEP.md) defines `ncp.lockstep.take`.",
+      "covered_by": [
+        "vectors:scenarios:an operation of a feature that the session did not enable is unknown",
+        "test:python:test_a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+        "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+        "test:python:test_a_closed_request_schema_admits_the_tick",
+        "test:rust:a_closed_request_schema_admits_the_tick"
+      ]
     }
   ],
   "profiles": {
@@ -804,7 +836,9 @@
         "text": "1. A client asks for the profile with the feature `ncp.lockstep` and an empty object as its parameters in its `open` request (specification, section 7.1). An owner ignores members of these parameters.",
         "covered_by": [
           "test:python:test_steps_carry_the_tick_and_the_state",
-          "test:rust:lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran"
+          "test:rust:lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran",
+          "test:python:test_an_owner_ignores_the_members_of_the_feature_parameters",
+          "test:rust:an_owner_ignores_the_members_of_the_feature_parameters"
         ]
       },
       {
@@ -842,7 +876,9 @@
           "test:python:test_a_take_names_the_last_term_that_the_owner_told",
           "test:rust:a_take_names_the_last_term_that_the_owner_told",
           "test:python:test_a_take_needs_its_body_and_the_profile_defines_no_other_operation",
-          "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation"
+          "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+          "test:python:test_a_take_that_fails_keeps_the_term_that_the_owner_told",
+          "test:rust:a_take_that_fails_keeps_the_term_that_the_owner_told"
         ]
       },
       {
@@ -859,8 +895,7 @@
         "text": "3. A client sets `tick` to the tick of the last clock that it accepted in this session plus 1, and `state` to the state digest of that clock. That clock is the body of the `ok` response to its take, or `ncp.tick` in the `ok` response to its last step after that. It is never the clock of an `open` response.",
         "covered_by": [
           "test:python:test_steps_carry_the_tick_and_the_state",
-          "test:rust:lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran",
-          "model:lockstep:S3"
+          "test:rust:lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_ran"
         ]
       },
       {
@@ -924,7 +959,9 @@
         "text": "6. Other operations do not change the clock or the holder. An operation that is not a lockstep operation MUST NOT change the state that the state digest describes: an application whose other operations change that state serves them as lockstep operations. The owner declines every other operation of the feature `ncp.lockstep` with `body_invalid`.",
         "covered_by": [
           "test:python:test_a_take_needs_its_body_and_the_profile_defines_no_other_operation",
-          "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation"
+          "test:rust:a_take_needs_its_body_and_the_profile_defines_no_other_operation",
+          "test:python:test_other_operations_change_neither_the_clock_nor_the_holder",
+          "test:rust:other_operations_change_neither_the_clock_nor_the_holder"
         ]
       },
       {
@@ -958,7 +995,9 @@
           "test:python:test_a_take_whose_term_moved_is_sent_again",
           "test:rust:a_take_whose_term_moved_is_sent_again",
           "test:python:test_a_client_stops_after_three_takes_whose_term_moved",
-          "test:rust:a_client_stops_after_three_takes_whose_term_moved"
+          "test:rust:a_client_stops_after_three_takes_whose_term_moved",
+          "test:python:test_a_client_acts_on_the_member_and_not_on_the_detail",
+          "test:rust:a_client_acts_on_the_member_and_not_on_the_detail"
         ]
       },
       {
@@ -966,7 +1005,9 @@
         "text": "1. **Start.** A client that steps sends a take with the term of the `open` response before its first step. After the `ok` response, its opening is the holder, and the body is the owner's clock. The client MUST check that `term` in the body is the term of its request plus 1. A client that only reads the clock, for example a monitor, sends no take.",
         "covered_by": [
           "test:python:test_the_client_checks_the_term_of_the_take",
-          "test:rust:the_client_checks_the_term_of_the_take"
+          "test:rust:the_client_checks_the_term_of_the_take",
+          "test:python:test_a_response_without_a_member_of_the_clock_ends_the_session",
+          "test:rust:a_response_without_a_member_of_the_clock_ends_the_session"
         ]
       },
       {
@@ -984,7 +1025,9 @@
         "text": "3. After an `ok` response to a step, the client MUST check that `ncp.tick` names the tick of its request and the identity of its request. The client then knows the owner's clock: the tick, the state digest, and R.",
         "covered_by": [
           "test:python:test_the_client_checks_the_tick_and_the_request_of_a_step",
-          "test:rust:the_client_checks_the_tick_and_the_request_of_a_step"
+          "test:rust:the_client_checks_the_tick_and_the_request_of_a_step",
+          "test:python:test_a_response_without_a_member_of_the_clock_ends_the_session",
+          "test:rust:a_response_without_a_member_of_the_clock_ends_the_session"
         ]
       },
       {
@@ -1008,7 +1051,9 @@
           "test:zenoh-python:test_a_recovery_that_reuses_its_session_identifier_gives_no_verdict",
           "model:lockstep:S1",
           "model:lockstep:S4",
-          "model:lockstep:S6"
+          "model:lockstep:S6",
+          "test:python:test_a_recovery_whose_take_is_declined_ends_its_session",
+          "test:rust:a_recovery_whose_take_is_declined_keeps_the_step_uncertain"
         ]
       },
       {

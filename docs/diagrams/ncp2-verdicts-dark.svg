@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1261" viewBox="0 0 1600 1261" role="img" aria-labelledby="ncp2-verdicts-title ncp2-verdicts-desc">
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1294" viewBox="0 0 1600 1294" role="img" aria-labelledby="ncp2-verdicts-title ncp2-verdicts-desc">
 <title id="ncp2-verdicts-title">What each NCP 2 answer lets the client conclude</title>
 <desc id="ncp2-verdicts-desc">Three columns sort every outcome, code, and local event by the client's verdict: executed, not executed, or possibly executed. The codes come from spec/ncp2-rules.json. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
 <style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
 <pattern id="ncp2-verdicts-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="1261" fill="#131D26"/>
+<rect width="1600" height="1294" fill="#131D26"/>
 <rect x="1369.3" y="18" width="178.7" height="38" rx="19" fill="#8DB2D8"/>
 <path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
@@ -46,8 +46,8 @@
 <rect x="1238" y="884" width="284" height="46" rx="10" fill="#1F3340" stroke="#E6A095" stroke-width="2"/>
 <rect x="942" y="938" width="284" height="46" rx="10" fill="#1F3340" stroke="#E6A095" stroke-width="2"/>
 <rect x="1238" y="938" width="284" height="46" rx="10" fill="#1F3340" stroke="#E6A095" stroke-width="2"/>
-<rect x="52" y="1025" width="1496" height="196" rx="10" fill="#1E3240"/>
-<rect x="52" y="1025" width="10" height="196" rx="5" fill="#D8AA45"/>
+<rect x="52" y="1025" width="1496" height="229" rx="10" fill="#1E3240"/>
+<rect x="52" y="1025" width="10" height="229" rx="5" fill="#D8AA45"/>
 <text x="1458.6" y="43.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 6</text>
 <text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">NCP 2 VERDICTS</text>
 <text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">Every answer has one place</text>
@@ -102,6 +102,7 @@
 <text x="84" y="1063" class="s" font-size="24" fill="#AAB7BE" font-weight="600">HOW TO READ IT</text>
 <text x="84" y="1101" class="r" font-size="25" fill="#ECE5D5">A client acts on the outcome first and on the code second. After a code that it does not know: rejected means that the frame was</text>
 <text x="84" y="1134" class="r" font-size="25" fill="#ECE5D5">not admitted, declined means that the request never executes, and ended means possibly executed.</text>
-<text x="84" y="1167" class="r" font-size="25" fill="#ECE5D5">* In a response that names no request, bad_frame and shutdown count as not executed only when the body binds the response to</text>
-<text x="84" y="1200" class="r" font-size="25" fill="#ECE5D5">the client's chain. Otherwise the request is possibly executed.</text>
+<text x="84" y="1167" class="r" font-size="25" fill="#ECE5D5">A rejected open leaves no session. A delayed copy of that open can still open one later (rule 7.1.8), but the client is not in it.</text>
+<text x="84" y="1200" class="r" font-size="25" fill="#ECE5D5">* In a response that names no request, bad_frame and shutdown count as not executed only when the body binds the response to</text>
+<text x="84" y="1233" class="r" font-size="25" fill="#ECE5D5">the client's chain. Otherwise the request is possibly executed.</text>
 </svg>

@@ -211,8 +211,8 @@ Revision 6 (15 November 2026) closes the findings of the design record, [section
 | --- | --- |
 | `ncp.Lockstep(handler, ops, tick=..., state=..., request=...)`: `open` takes the ticks; the state digest starts as `None` | `open` reports; `ncp.lockstep.take` takes them; also `term`, `term=` to restore it, and `clock()`. Without `state=`, the digest starts as the application's `state()`. `tick` and `term` are at most 2**53 − 1 |
 | `ncp.LockstepClient(client)` reads the report | Also takes the ticks; also `request`, the request that produced the tick, `term`, the term that the owner told last, and `take()`, which takes the ticks again in the same session |
-| `LockstepClient.recover(client)`: verdict from the report, by the tick; `ProtocolError` without a verdict | Verdict from the take, by the whole clock: `ncp.lockstep.judge`. Without a verdict, it returns `Executed.UNKNOWN`; with every verdict, it goes on in the new session |
-| `LockstepClient.step` after an `ok` without the tick: `ProtocolError` | Ends the session and raises `Ended` with `local.protocol`, executed `YES` |
+| `LockstepClient.recover(client)`: verdict from the report, by the tick; `ProtocolError` without a verdict | Verdict from the take, by the whole clock: `ncp.lockstep.judge`. Without a verdict, it returns `Executed.UNKNOWN`; with every verdict, it goes on in the new session. If the take is declined, it ends that session and raises |
+| `LockstepClient.step` after an `ok` without the tick: `ProtocolError` | Ends the session and raises `Ended` with `local.protocol`, executed `YES`; so does a take or a step whose clock lacks a member |
 | — | `ncp.lockstep.take(client, term=None)`, which returns the clock and the new term, `ncp.lockstep.report(client)`, `TAKE`, `TAKE_ATTEMPTS`, `MAX_TERM`, `MAX_TICK` |
 | — | `ncp.messages.feature_of(op)` |
 | A handler's `Declined(detail, body=...)`: the owner kept only `detail` | The owner also keeps the members of `body` whose names start with `ncp.` |
@@ -223,9 +223,9 @@ Revision 6 (15 November 2026) closes the findings of the design record, [section
 | --- | --- |
 | `lockstep::Clock { tick, state, request, holder }` | Also `term` |
 | `LockstepClient { tick, state, uncertain }` | Also `request` and `term`; `new` also takes the ticks; `take()` takes them again in the same session |
-| `LockstepClient::recover`: `Error::Usage` without a verdict | `Ok(Executed::Unknown)` without a verdict; with every verdict, it goes on in the new session |
-| `LockstepClient::step` after an `ok` without the tick: `Error::Usage`, whose `executed()` is No | Ends the session and returns `Error::Ended` with `local.protocol`, executed Yes |
-| `Lockstep::new`: the state digest starts as `None` | The application's `state()` |
+| `LockstepClient::recover`: `Error::Usage` without a verdict | `Ok(Executed::Unknown)` without a verdict; with every verdict, it goes on in the new session. If the take is declined, it ends that session and fails |
+| `LockstepClient::step` after an `ok` without the tick: `Error::Usage`, whose `executed()` is No | Ends the session and returns `Error::Ended` with `local.protocol`, executed Yes; so does a take or a step whose clock lacks a member |
+| `Lockstep::new`: the state digest starts as `None` | The application's `state()`; it panics if that digest does not have 1 to 128 characters |
 | — | `lockstep::{TAKE, TAKE_ATTEMPTS, MAX_TERM, MAX_TICK, Known, take, judge}`; `take(client, term)` returns the clock and the new term; `judge` returns `Executed`; `Lockstep::restored(stepper, ops, tick, state, request, term)` |
 | `Invalid::{Declined, Failed}` | Also `Invalid::DeclinedWith`, made with `declined_with` |
 | — | `messages::feature_of` |

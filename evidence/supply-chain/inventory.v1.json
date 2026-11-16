@@ -1693,8 +1693,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/requirements.json",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "5dbfe09068e01a9028323c300c6e365784ba4fad17f0ca5559a18966deef4b24",
-      "size_bytes": 59468
+      "sha256": "a960bd406399a8206ef3fbc5a79adc5af26908b01127fb2f0b3de8acc7ecb170",
+      "size_bytes": 62804
     },
     {
       "classification": "conformance-fixture",
@@ -2625,7 +2625,7 @@
         "scripts/diagram_font_metrics.v1.json"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "e4c4dbef3d0812923f42725d0b5367de06776eead35524c87b9b0a65be22c0ae"
+      "sha256": "5b09999bd4e8346e201268c844ce8fa529a2f529647aaeb3f1153200d7abf11d"
     },
     {
       "outputs": [

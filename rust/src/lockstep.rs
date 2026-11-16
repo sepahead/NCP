@@ -41,6 +41,21 @@ fn term_of(value: &Value) -> Option<u64> {
     value.as_u64().filter(|term| *term <= MAX_TERM)
 }
 
+/// The owner's term that a `declined` response names in its member `ncp.lockstep`, if any.
+fn told_term(error: &Error) -> Option<u64> {
+    match error {
+        Error::Declined { body, .. } => term_of(&body[FEATURE]["term"]),
+        _ => None,
+    }
+}
+
+/// Whether an object has each of the members `names`, `null` included.
+fn has_members(value: &Value, names: &[&str]) -> bool {
+    value
+        .as_object()
+        .is_some_and(|object| names.iter().all(|name| object.contains_key(*name)))
+}
+
 /// The application of a lockstep owner: an ordinary handler, and the digest of its state.
 pub trait Stepper: Handler {
     /// A digest of the application's state after the last step: 1 to 128 characters, or None.
@@ -95,10 +110,17 @@ pub struct Lockstep<S: Stepper> {
 impl<S: Stepper> Lockstep<S> {
     /// A lockstep handler for the operations `ops` of `stepper`, from tick 0, with the
     /// application's digest of its state now (profile, rule 5.7).
+    ///
+    /// # Panics
+    ///
+    /// If the application's digest does not have 1 to 128 characters: a wrong digest would let a
+    /// recovery compare clocks that do not describe the state.
     pub fn new(stepper: S, ops: &[&str]) -> Lockstep<S> {
-        let state = stepper
-            .state()
-            .filter(|s| state_ok(&Value::from(s.as_str())));
+        let state = stepper.state();
+        assert!(
+            state_ok(&state.clone().map_or(Value::Null, Value::from)),
+            "the application's state digest must have 1 to 128 characters"
+        );
         let clock = Clock {
             state,
             ..Clock::default()
@@ -374,7 +396,8 @@ fn reported_term<C: Channel>(client: &Client<C>) -> Result<u64, Error> {
     let term = enabled
         .get(FEATURE)
         .filter(|g| {
-            g["tick"].is_u64()
+            has_members(g, &["tick", "state", "request", "term"])
+                && g["tick"].is_u64()
                 && state_ok(&g["state"])
                 && (g["request"].is_null() || g["request"].is_string())
         })
@@ -416,7 +439,8 @@ pub fn take<C: Channel>(client: &mut Client<C>, term: Option<u64>) -> Result<(Kn
         match client.call(TAKE, json!({"term": term}), &[]) {
             Ok(result) => {
                 let body = &result.message["body"];
-                let valid = body["tick"].is_u64()
+                let valid = has_members(body, &["tick", "state", "request", "term"])
+                    && body["tick"].is_u64()
                     && state_ok(&body["state"])
                     && (body["request"].is_null() || body["request"].is_string())
                     && term_of(&body["term"]) == Some(term + 1);
@@ -488,9 +512,19 @@ impl<C: Channel> LockstepClient<C> {
                 "a step is possibly executed: recover with a new client".into(),
             ));
         }
-        let ((tick, state, request), term) = take(&mut self.client, Some(self.term))?;
-        (self.tick, self.state, self.request, self.term) = (tick, state, request, term);
-        Ok(())
+        match take(&mut self.client, Some(self.term)) {
+            Ok(((tick, state, request), term)) => {
+                (self.tick, self.state, self.request, self.term) = (tick, state, request, term);
+                Ok(())
+            }
+            Err(error) => {
+                // The owner told a newer term: the next take names it (rule 4.1).
+                if let Some(term) = told_term(&error) {
+                    self.term = term;
+                }
+                Err(error)
+            }
+        }
     }
 
     /// The client of the session.
@@ -519,7 +553,8 @@ impl<C: Channel> LockstepClient<C> {
         match self.client.call(op, Value::Object(body), arrays) {
             Ok(result) => {
                 let member = &result.message["body"][TICK];
-                if member["tick"].as_u64() != Some(self.tick + 1)
+                if !has_members(member, &["tick", "state", "request"])
+                    || member["tick"].as_u64() != Some(self.tick + 1)
                     || !state_ok(&member["state"])
                     || !member["request"].is_string()
                     || member["request"] != result.message["request"]
@@ -542,8 +577,8 @@ impl<C: Channel> LockstepClient<C> {
                 match &error {
                     // The holder check names the owner's term: another opening took the ticks
                     // (rule 6.4).
-                    Error::Declined { body, .. } => {
-                        if let Some(term) = term_of(&body[FEATURE]["term"]) {
+                    Error::Declined { .. } => {
+                        if let Some(term) = told_term(&error) {
                             self.term = term;
                         }
                     }
@@ -580,7 +615,9 @@ impl<C: Channel> LockstepClient<C> {
     /// The opening of `client` takes the ticks (profile, rule 5.3), so a copy of the step that is
     /// still on its way can no longer run. The verdict comes from the response of the take,
     /// never from the `open` response, whose report can be older. With every verdict, the client
-    /// goes on in the new session from the owner's clock.
+    /// goes on in the new session from the owner's clock. If the take is declined, recover ends
+    /// the session of `client` and fails: the step stays possibly executed; recover again with a
+    /// new client.
     pub fn recover(&mut self, mut client: Client<C>) -> Result<Executed, Error> {
         let Some(uncertain) = self.uncertain.clone() else {
             return Err(Error::Usage("no step is possibly executed".into()));
@@ -588,7 +625,14 @@ impl<C: Channel> LockstepClient<C> {
         if !client.opened() {
             client.open()?;
         }
-        let (taken, term) = take(&mut client, None)?;
+        let (taken, term) = match take(&mut client, None) {
+            Ok(taken) => taken,
+            Err(error @ Error::Declined { .. }) => {
+                let _ = client.close(); // the client does not go on in this session
+                return Err(error);
+            }
+            Err(error) => return Err(error),
+        };
         let known = (self.tick, self.state.clone(), self.request.clone());
         let verdict = judge(&known, &uncertain, &taken);
         self.client = client;

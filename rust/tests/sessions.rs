@@ -2155,6 +2155,278 @@ fn a_client_stops_after_three_takes_whose_term_moved() {
     client.ping().expect("the session goes on");
 }
 
+/// A client of `handler` over a channel that holds back requests once it breaks, with the feature.
+fn held_with<H: Handler>(handler: H) -> Client<Held<H>> {
+    Client::new(
+        Held {
+            owner: Owner::new(contract(), handler),
+            inbox: VecDeque::new(),
+            held: Vec::new(),
+            frames: Vec::new(),
+            broken: false,
+        },
+        &contract(),
+    )
+    .with_features(lockstep_features())
+    .with_observer(quiet())
+}
+
+/// A lockstep owner where another opening takes the ticks just before each take, while
+/// `contest` is set.
+struct Contested {
+    inner: Lockstep<World>,
+    contest: Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl Handler for Contested {
+    fn open(&mut self, info: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
+        self.inner.open(info)
+    }
+    fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
+        if self.contest.load(Ordering::SeqCst) && request.op == ncp::lockstep::TAKE {
+            let body = json!({"term": self.inner.clock().term});
+            let identity = "0".repeat(64);
+            let nonce = "f".repeat(32);
+            let other = Request {
+                body: &body,
+                identity: &identity,
+                nonce: &nonce,
+                ..*request
+            };
+            self.inner.validate(&other)?;
+            self.inner.execute(&other).map_err(Invalid::Failed)?;
+        }
+        self.inner.validate(request)
+    }
+    fn execute(&mut self, request: &Request<'_>) -> Result<Reply, AppError> {
+        self.inner.execute(request)
+    }
+}
+
+#[test]
+fn a_take_that_fails_keeps_the_term_that_the_owner_told() {
+    // Profile rule 4.1: the next take names the term of the last decline.
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let contest = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let contested = Contested {
+        inner: lockstep.share(),
+        contest: contest.clone(),
+    };
+    let mut stepper = LockstepClient::new(held_with(contested)).expect("lockstep"); // term 1
+    contest.store(true, Ordering::SeqCst);
+    match stepper.take() {
+        Err(Error::Declined { body, .. }) => {
+            assert_eq!(body[ncp::lockstep::FEATURE], json!({"term": 4}));
+        }
+        unexpected => panic!("expected declined, got {unexpected:?}"),
+    }
+    assert_eq!(stepper.term, 4);
+    contest.store(false, Ordering::SeqCst);
+    let sent = stepper.client().channel_mut().frames.len();
+    stepper.take().expect("take");
+    assert_eq!(stepper.client().channel_mut().frames.len(), sent + 1); // one take, with term 4
+    assert_eq!((stepper.term, lockstep.clock().term), (5, 5));
+}
+
+#[test]
+fn a_recovery_whose_take_is_declined_keeps_the_step_uncertain() {
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let contest = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let contested = |contest: &Arc<std::sync::atomic::AtomicBool>| Contested {
+        inner: lockstep.share(),
+        contest: contest.clone(),
+    };
+    let mut stepper = LockstepClient::new(held_with(contested(&contest))).expect("lockstep");
+    stepper.step("echo", json!({"dx": 2}), &[]).expect("step");
+    stepper.client().channel_mut().broken = true;
+    let error = stepper
+        .step("echo", json!({"dx": 1}), &[])
+        .expect_err("the connection broke");
+    assert_eq!(error.executed(), Executed::Unknown);
+    contest.store(true, Ordering::SeqCst);
+    let refused = stepper.recover(held_with(contested(&contest)));
+    assert!(
+        matches!(&refused, Err(Error::Declined { .. })),
+        "{refused:?}"
+    );
+    assert!(stepper.uncertain.is_some()); // still possibly executed
+    contest.store(false, Ordering::SeqCst);
+    // The other opening's takes moved only the term, and the lost step never arrived: the clock is
+    // the one that the client knew, so the step did not run.
+    let verdict = stepper
+        .recover(held_with(contested(&contest)))
+        .expect("recover");
+    assert_eq!(verdict, Executed::No);
+}
+
+#[test]
+fn a_response_without_a_member_of_the_clock_ends_the_session() {
+    // Profile rules 5.3 and 6.1: the take's body has all four members; rule 6.3: ncp.tick has all
+    // three.
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let lacking_take = Altered {
+        inner: lockstep.share(),
+        alter: |op, body| {
+            if op == ncp::lockstep::TAKE {
+                if let Some(object) = body.as_object_mut() {
+                    object.remove("state");
+                }
+            }
+        },
+    };
+    let mut client = memory_of(
+        Owner::new(contract(), lacking_take).with_observer(quiet()),
+        false,
+        0,
+    )
+    .with_features(lockstep_features());
+    client.open().expect("open");
+    match ncp::lockstep::take(&mut client, None) {
+        Err(Error::Ended { code, executed, .. }) => {
+            assert_eq!((code.as_str(), executed), ("local.protocol", Executed::Yes));
+        }
+        unexpected => panic!("expected an ending, got {unexpected:?}"),
+    }
+    assert!(client.ended());
+    let lacking_step = Altered {
+        inner: lockstep.share(),
+        alter: |op, body| {
+            if op == "echo" {
+                if let Some(object) = body[ncp::lockstep::TICK].as_object_mut() {
+                    object.remove("state");
+                }
+            }
+        },
+    };
+    let client = memory_of(
+        Owner::new(contract(), lacking_step).with_observer(quiet()),
+        false,
+        0,
+    )
+    .with_features(lockstep_features());
+    let mut stepper = LockstepClient::new(client).expect("lockstep");
+    match stepper.step("echo", json!({"dx": 2}), &[]) {
+        Err(Error::Ended { code, executed, .. }) => {
+            assert_eq!((code.as_str(), executed), ("local.protocol", Executed::Yes));
+        }
+        unexpected => panic!("expected an ending, got {unexpected:?}"),
+    }
+    assert_eq!((stepper.tick, lockstep.clock().tick), (1, 1));
+    assert!(stepper.client().ended());
+}
+
+#[test]
+fn other_operations_change_neither_the_clock_nor_the_holder() {
+    // Profile rule 5.6.
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let mut stepper = LockstepClient::new(held_session(&lockstep, true)).expect("lockstep");
+    stepper.step("echo", json!({"dx": 2}), &[]).expect("step");
+    let before = lockstep.clock();
+    let result = stepper
+        .client()
+        .call("big", json!({}), &[])
+        .expect("another operation");
+    assert_eq!(result.message["body"]["position"], 2);
+    let after = lockstep.clock();
+    assert_eq!(
+        (
+            after.tick,
+            after.state,
+            after.request,
+            after.term,
+            after.holder
+        ),
+        (
+            before.tick,
+            before.state,
+            before.request,
+            before.term,
+            before.holder
+        )
+    );
+}
+
+#[test]
+fn a_client_acts_on_the_member_and_not_on_the_detail() {
+    // Profile rule 5.8: the detail says 99, the member says 5; the client names 5.
+    struct Misleading(Arc<Mutex<Vec<u64>>>);
+    impl Handler for Misleading {
+        fn open(&mut self, _: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
+            let mut granted = Map::new();
+            granted.insert(
+                ncp::lockstep::FEATURE.into(),
+                json!({"tick": 0, "state": null, "request": null, "term": 0}),
+            );
+            Ok(granted)
+        }
+        fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
+            let term = request.body["term"].as_u64().unwrap_or(u64::MAX);
+            self.0.lock().expect("lock").push(term);
+            if term == 5 {
+                return Ok(());
+            }
+            let mut members = Map::new();
+            members.insert(ncp::lockstep::FEATURE.into(), json!({"term": 5}));
+            Err(ncp::declined_with("term: the term is 99", members))
+        }
+        fn execute(&mut self, _: &Request<'_>) -> Result<Reply, AppError> {
+            Ok(json!({"tick": 0, "state": null, "request": null, "term": 6}).into())
+        }
+    }
+    let named = Arc::new(Mutex::new(Vec::new()));
+    let mut client = memory_of(
+        Owner::new(contract(), Misleading(named.clone())).with_observer(quiet()),
+        false,
+        0,
+    )
+    .with_features(lockstep_features());
+    client.open().expect("open");
+    let taken = ncp::lockstep::take(&mut client, None).expect("take");
+    assert_eq!(taken, ((0, None, None), 6));
+    assert_eq!(*named.lock().expect("lock"), vec![0, 5]);
+}
+
+#[test]
+fn an_owner_ignores_the_members_of_the_feature_parameters() {
+    // Profile rule 3.1.
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let mut features = Map::new();
+    features.insert(
+        ncp::lockstep::FEATURE.into(),
+        json!({"tick": 99, "other": true}),
+    );
+    let mut client = held_session(&lockstep, true).with_features(features);
+    client.open().expect("open");
+    assert_eq!(
+        client.enabled()[ncp::lockstep::FEATURE],
+        json!({"tick": 0, "state": "p0", "request": null, "term": 0})
+    );
+    let mut stepper = LockstepClient::new(client).expect("lockstep");
+    let result = stepper.step("echo", json!({"dx": 1}), &[]).expect("step");
+    assert_eq!(result.message["body"]["position"], 1);
+}
+
+#[should_panic(expected = "state digest")]
+#[test]
+fn an_application_digest_of_the_wrong_length_is_refused() {
+    // Terms: a state digest has 1 to 128 characters; a wrong one is refused at the start.
+    struct Wordy;
+    impl Handler for Wordy {
+        fn validate(&mut self, _: &Request<'_>) -> Result<(), Invalid> {
+            Ok(())
+        }
+        fn execute(&mut self, _: &Request<'_>) -> Result<Reply, AppError> {
+            Ok(json!({}).into())
+        }
+    }
+    impl Stepper for Wordy {
+        fn state(&self) -> Option<String> {
+            Some("x".repeat(200))
+        }
+    }
+    let _ = Lockstep::new(Wordy, &["echo"]);
+}
+
 #[test]
 fn the_verdict_of_a_recovery() {
     use ncp::lockstep::judge;

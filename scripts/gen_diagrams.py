@@ -3990,6 +3990,8 @@ def ncp2_verdicts():
             "A client acts on the outcome first and on the code second. After a code that it does not "
             "know: rejected means that the frame was not admitted, declined means that the request never "
             "executes, and ended means possibly executed.",
+            "A rejected open leaves no session. A delayed copy of that open can still open one later "
+            "(rule 7.1.8), but the client is not in it.",
             "* In a response that names no request, bad_frame and shutdown count as not executed only "
             "when the body binds the response to the client's chain. Otherwise the request is possibly executed.",
         ],

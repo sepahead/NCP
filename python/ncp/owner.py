@@ -124,7 +124,9 @@ class Handler(Protocol):
 
     Two methods are optional. `open(info)` is called when the owner accepts an `open`; it returns
     the features that it enables, as {name: parameters}, or raises `Refused`. `close(reason)` is
-    called once when the session ends: reason "closed", "ended", "lost", "shutdown", or "expired".
+    called once when the session ends: reason "closed", "ended", "lost", "shutdown", or "expired";
+    and "refused" when the owner refuses an `open` after the handler's `open` granted features that
+    cannot be sent (rule 7.1.5).
     """
 
     def validate(self, request: Request) -> None: ...
@@ -163,6 +165,15 @@ class Note:
     detail: str | None = None
     executed: bool = False  # the application's execute was called
     error: BaseException | None = None
+
+
+def _plain_json(value: Any) -> bool:
+    """Whether a value is plain JSON: no array attachment, and no number that JSON cannot carry."""
+    try:
+        json.dumps(value, allow_nan=False)
+    except (TypeError, ValueError, RecursionError):
+        return False
+    return True
 
 
 def _features(value: Any) -> bool:
@@ -297,7 +308,7 @@ def _call(
             body_out.update(
                 (name, value)
                 for name, value in declined.body.items()
-                if type(name) is str and name.startswith(RESERVED)
+                if type(name) is str and name.startswith(RESERVED) and _plain_json(value)
             )
         try:
             response = reply("declined", "body_invalid", body_out, limit=state.bound)
@@ -386,16 +397,18 @@ def _open(
         # Only features that the client asked for, each with parameters that are an object.
         enabled = {name: dict(params) for name, params in granted.items() if name in features and type(params) is dict}
     effective = min(bound, config.max_bound)
-    opened = {
-        "bound": effective,
-        "application": contract.application,
-        "contract": contract.identity,
-        "implementation": config.implementation,
-        "nonce": nonce,
-        "features": enabled,
-    }
     try:
-        # The client reads the `open` response with the handshake bound (rule 7.1.3).
+        # Feature parameters are plain JSON, and the client reads the `open` response with the
+        # handshake bound (rule 7.1.3).
+        enabled = json.loads(json.dumps(enabled, allow_nan=False))
+        opened = {
+            "bound": effective,
+            "application": contract.application,
+            "contract": contract.identity,
+            "implementation": config.implementation,
+            "nonce": nonce,
+            "features": enabled,
+        }
         response = reply("ok", None, opened, limit=F.HANDSHAKE_BOUND)
     except Exception as error:  # noqa: BLE001 - feature parameters that cannot be sent
         text = "the application granted features that cannot be sent"
@@ -415,7 +428,7 @@ def _open(
         contract=contract,
         run=run,
         nonce=nonce,
-        features=json.loads(json.dumps(enabled)),
+        features=enabled,
     )
     return new_state, response, Note("opened", "ok")
 

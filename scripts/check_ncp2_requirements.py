@@ -6,7 +6,7 @@ The specification promises that the file maps each requirement to the checks tha
 (section 14). This script enforces the promise:
 
 1. Every line of the specification with MUST, MUST NOT, SHOULD, SHOULD NOT, or REQUIRED, and every
-   numbered rule of sections 7.3, 7.6, and 8, has exactly one entry with the same text and section.
+   numbered rule of sections 7.3, 7.6, 8, and 15, has exactly one entry with the same text and section.
    So has every such line of a profile, and every numbered rule of the sections of a profile that
    state its rules; the section "Changes" of a profile records history and is not read.
    A changed requirement therefore needs a reviewed entry.
@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 KEYWORD = re.compile(r"\b(MUST|SHOULD|REQUIRED)\b")
 HEADING = re.compile(r"^(#{2,3}) (\d+(?:\.\d+)?)\.? ")
-NUMBERED_SECTIONS = ("7.3", "7.6", "8")
+NUMBERED_SECTIONS = ("7.3", "7.6", "8", "15")
 # Sections that describe the checks rather than state requirements.
 META_SECTIONS = ("14",)
 # The profiles, with the sections that state their rules.

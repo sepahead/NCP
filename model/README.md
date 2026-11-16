@@ -65,14 +65,14 @@ In every reachable world it checks:
 - **S1.** A step with the verdict "did not run" never runs, and "ran" is true. After a restart to an earlier saved clock, the verdict describes the owner's state, as section 7 of the profile says: "did not run" then means that the step was not in that state when the take ran.
 - **S2.** A step runs only in the opening whose take ran last.
 - **S3.** The ticks count the steps in the owner's state, once each.
-- **S4.** A recovery gives a verdict, unless another client stepped or the owner restored another state or an earlier clock.
+- **S4.** A recovery gives a verdict whenever its take finds the state that the client's known clock describes, or that state after the client's uncertain step: the clock changed in no other way. Ghost records of the steps in the owner's state make this exact, so a step of another client, or a restart, excuses no verdict that was still possible.
 - **S5.** Accepting an `open` changes neither the clock nor the holder.
 - **S6.** After "did not run", the state when the take ran was the state that the step answered.
 - **L1.** No frame takes the ticks from the client's opening while the owner holds it, unless another client takes them.
-- **Progress.** Runs without faults and time limits finish. The search checks it in each world where only faults could still happen.
+- **Progress.** Runs without faults and time limits finish. The search checks it in the world where no transition other than a fault remains; without faults, that world is the end of the one run.
 
 With one fault, the search reaches 469,268 worlds, and every property holds. On an Apple M4 Max it takes 15 to 90 seconds, depending on the load.
-Its self-test injects twelve known defects, at least one for each property, and detects each. Among them are the holder by session identifier of revision 2 of the profile and the takeover in `open` of revision 3.
+Its self-test injects thirteen known defects, at least one for each property, and detects each. Among them are the holder by session identifier of revision 2 of the profile and the takeover in `open` of revision 3.
 Two of them, a take that ignores the term and a take that does not raise it, break only L1: the term keeps the holder stable, and the verdicts do not depend on it.
 
 ### Limits

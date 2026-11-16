@@ -139,7 +139,8 @@ pub trait Handler {
         Ok(Map::new())
     }
     /// Called once when the session ends: reason "closed", "ended", "lost", "shutdown", or
-    /// "expired".
+    /// "expired"; and "refused" when the owner refuses an `open` after the handler's `open`
+    /// granted features that cannot be sent (rule 7.1.5).
     fn close(&mut self, _reason: &str) {}
 }
 
