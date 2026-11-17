@@ -1236,11 +1236,13 @@ class BindingTests(unittest.TestCase):
             self.assertEqual((stepper.tick, stepper.state, first.body["position"]), (1, "p2", 2))
             monitor = session()
             monitor.open()
-            report = {"tick": 1, "state": "p2", "request": first.request, "term": 1}
+            report = {"rev": 5, "tick": 1, "state": "p2", "request": first.request, "term": 1,
+                      "history": stepper.history, "take": True}
             self.assertEqual(monitor.enabled["ncp.lockstep"], report)
             with self.assertRaises(ncp.Declined) as declined:
                 monitor.call("step", {"dx": 5, "ncp.tick": {"tick": 2, "state": "p2"}})
             self.assertTrue(declined.exception.detail.startswith("holder:"), declined.exception.detail)
+            self.assertEqual((declined.exception.code, declined.exception.reason), ("conflict", "ncp.lockstep.holder"))
             self.assertEqual(declined.exception.body["ncp.lockstep"], {"term": 1})
             # The connection breaks after the step was sent: it possibly ran.
             channel.cut = True
