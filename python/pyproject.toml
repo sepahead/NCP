@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sepahead-ncp"
-version = "2.0.0"
+version = "2.0.0rc7"
 description = "NCP 2: at-most-once exchanges with a truthful outcome, and hash-chained streams, between independent programs (reference SDK, standard library only)"
 readme = "README.md"
 requires-python = ">=3.11"

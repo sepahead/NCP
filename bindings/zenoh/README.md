@@ -4,7 +4,7 @@ This directory holds the Zenoh binding of [specification section 9.2](../../spec
 Use it when the programs of a closed loop run on different computers, or when a network can lose messages. On one computer, pipes and Unix domain sockets (section 9.1) are simpler and faster.
 
 The binding is optional. The NCP 2 core packages do not depend on Zenoh: the Python SDK uses only the standard library, and the Rust SDK keeps its four dependencies. Both binding packages are tested with Zenoh 1.10.2 and accept later 1.x releases. They use TCP and TLS links only: no QUIC, no shared memory, and no compression.
-The packages are version 2.0.0, like the rest of NCP 2.0, which is prepared for release; the tag and the publication follow.
+The packages are version 2.0.0rc7 (Python) and 2.0.0-rc.7 (Rust), the release candidate of revision 7 of NCP 2.0; the tag and the publication follow.
 
 ## How it works
 

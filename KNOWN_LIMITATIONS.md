@@ -9,7 +9,7 @@ hidden by a version bump, optimistic default, model review, or local-only test.
 
 ## NCP 2
 
-The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 6
+The rest of this document describes the NCP 1.0 candidate. NCP 2, a release candidate (revision 7
 of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
 
 - **The SDKs are not proved.** The Lean proofs cover models of the owner and of a client. The
@@ -24,15 +24,18 @@ of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
   and the model check. The two SDKs are two implementations by one author; no independent
   implementation exists.
 - **Evidence of revision 2.** The benchmarks and the fault campaign ran with revision 2 of the SDKs
-  on one macOS laptop. They have not run again for revisions 3 to 6, not on Linux, and not with the
+  on one macOS laptop. They have not run again for revisions 3 to 7, not on Linux, and not with the
   Zenoh binding.
-- **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. Windows is
-  not tested. The Rust SDK takes nonces and session identifiers from the generator of the
+- **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. The
+  supported platforms are Linux and macOS; Windows is not tested. The Rust SDK takes nonces and session identifiers from the generator of the
   operating system, through `getrandom`, on every platform; if that generator fails, the SDK panics
   rather than use a weaker source (rule 7.1.5).
 - **Recovery.** A session does not survive a restart of its owner; the last request is then
-  possibly executed. The lockstep profile tells a client whether its last step ran, for an owner
-  that keeps its state.
+  possibly executed. The lockstep profile tells a client whether its last step ran. After a
+  restore after which a step can have started, it gives no verdict rather than a false one. The
+  rounds profile has no recovery of a lost request yet.
+- **Profiles without consumers.** No consumer uses the lockstep or the rounds profile, decline
+  reasons, or `ncp.reasons` in a contract yet.
 - **Streams** give no delivery guarantee.
 - **Not run:** an external security review, a clean-room reproduction, signatures, an SBOM and
   provenance for the 2.0.0 artifacts, and their publication.

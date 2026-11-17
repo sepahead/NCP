@@ -4,6 +4,7 @@ The Rust core of [NCP 2](https://github.com/sepahead/NCP/blob/main/spec/NCP-2.md
 
 - Crate name: `sepahead-ncp-core`. Library name: `ncp`.
 - Rust 1.88 or later. No `unsafe` code.
+- Version `2.0.0-rc.7`: the release candidate of revision 7 of the specification. `ncp::IMPLEMENTATION` names it in every `open` response and transcript header.
 - Dependencies: `serde` and `serde_json` for JSON, `sha2` for SHA-256 (with the ARMv8 and x86 instructions), `socket2` to set socket buffer sizes, and `getrandom` for the random generator of the operating system, from which nonces and session identifiers come.
 
 Add it from a checkout of this repository:
@@ -80,6 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 `validate` must not change state: a declined request leaves the application as it was.
+Decline a valid request that the application's state does not permit now with `Err(ncp::conflict("world.busy", "busy"))`, and add a reason to any decline with `.reason(...)`. A reason is a name for programs; list the reasons of an operation in its contract with `"ncp.reasons": ["world.busy"]`, and the owner gives no other reason of the application for it. Act on the code and `Error::reason()`, never on the detail, which is for people.
 `execute` runs each admitted request at most once, also when the client sends a request again after a lost response.
 Dropping the channel of `spawn` ends the child.
 
@@ -89,7 +91,7 @@ Dropping the channel of `spawn` ends the child.
 
 | Error | Executed | Meaning |
 | --- | --- | --- |
-| `Error::Declined { code, .. }` | No, and never | The owner admitted the request and did not execute it. `code` is `body_invalid` or `unknown_op`. The session goes on. |
+| `Error::Declined { code, .. }` | No, and never | The owner admitted the request and did not execute it. `code` is `body_invalid`, `conflict`, or `unknown_op`, and `Error::reason()` names the owner's reason for programs, if any. The session goes on. |
 | `Error::Ended { code, executed, .. }` | `Yes`, `No`, or `Unknown` | The session is over. `code` is the owner's code, or a local one: `local.timeout`, `local.closed`, `local.protocol`, or `local.bad_frame`. `request` is the identity of the request that `executed` is about. |
 | `Error::Rejected { code, .. }` | No | Only for `open`: the owner opened no session. |
 | `Error::Usage(reason)` | No | The client refused the call before it sent anything, for example a call after the session ended, or a request larger than the session bound. |
@@ -138,8 +140,9 @@ The crate is tested on Linux and macOS. It also builds for Windows, without the 
 
 ## Profiles, streams, and transcripts
 
-`Lockstep` and `LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and one opening at a time holds the ticks. After a lost session, a new session takes the ticks with the request `ncp.lockstep.take`, whose response tells the client whether its last step ran; a delayed copy of that step can no longer run, and a copy of an old `open` takes nothing.
-`LockstepClient::recover` returns `Executed::Yes`, `No`, or `Unknown`, and goes on in the new session in each case; `LockstepClient::take` takes the ticks again in the same session after a step that another opening's take declined.
+`Lockstep` and `LockstepClient` implement revision 5 of the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and one opening at a time holds the ticks. After a lost session, a new session takes the ticks with the request `ncp.lockstep.take`, whose response tells the client whether its last step ran; a delayed copy of that step can no longer run, and a copy of an old `open` takes nothing.
+Ask for the feature with `ncp::lockstep::parameters()`. `LockstepClient::recover` returns `Executed::Yes`, `No`, or `Unknown`, and goes on in the new session in each case; `LockstepClient::take` takes the ticks again in the same session after a step declined with the reason `ncp.lockstep.holder`.
+The clock has a history identity. `Lockstep::restored` takes it as its last argument: pass `Some(history)` only if no step started after the saved clock, and `None` otherwise, so that the owner draws a new one and a client that lost a step gets no verdict rather than a false "did not run". Serve monitors with `lockstep.reader()`: they read the clock and cannot take the ticks.
 Make `Lockstep` the outermost handler of the owner: it reserves the clock from the check of a take or a step to its execution, so a handler around it that declines after its check leaves every later take and step waiting. The application and the clock share one lock, so while a step runs, every request of every session that reaches the application waits.
 `Publisher` numbers and chains the messages of a stream under a unique stream identifier; `Subscriber` reports each frame as accepted (with the number of lost messages before it), joined, a repeat, a conflict, a broken chain, an unknown contract, or a bad frame.
 `Tap` records the frames that a channel sends and receives (`with_tap` on a channel), with a hash chain over the records, and `transcript::verify` checks the digests, the sequence numbers, the acknowledgements, and the chain.

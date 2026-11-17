@@ -34,7 +34,7 @@ from .messages import (
     reason_of,
 )
 
-IMPLEMENTATION = "ncp-python/2.0.0"
+IMPLEMENTATION = "ncp-python/2.0.0rc7"
 
 
 class Declined(CallError):

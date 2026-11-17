@@ -56,31 +56,32 @@ Rule 7.6.4 of revision 3 closes the gap: a rejection of a request other than `op
 
 ## lockstep.py: an exhaustive check of the lockstep profile
 
-The program works as `simulate.py` does: the real owner of the Python SDK (`ncp.owner.step` with the real `ncp.Lockstep`) and the pure client machine of `ncp.client` exchange real frames, and a small program drives the client: open, take, step, step. After a step that is possibly executed, it opens a new session and takes the ticks; the verdict comes from `ncp.lockstep.judge`, which `LockstepClient.recover` also uses.
+The program works as `simulate.py` does: the real owner of the Python SDK (`ncp.owner.step` with the real `ncp.Lockstep`, revision 5 of the profile) and the pure client machine of `ncp.client` exchange real frames, and a small program drives the client: open, take, step, step. It acts on the reasons of declines: after `ncp.lockstep.holder` it takes the ticks again in the same session, and after `ncp.lockstep.term` it sends the take again with the term of the facts. After a step that is possibly executed, it opens a new session and takes the ticks; the verdict comes from `ncp.lockstep.judge`, which `LockstepClient.recover` also uses.
 After a recovery without a verdict, the client goes on from the clock of the take, as `LockstepClient.recover` does.
 It explores two shapes: one owner for each connection (a byte stream, where a copy of a frame arrives on a new connection) and one owner for each session identifier (as the Zenoh servers keep them), each with new session identifiers and with one identifier reused for all sessions.
-Delay, reordering, and time limits are free. The faults are a copy of any frame that the client sent, the loss of a frame, the expiry of a session, a restart that keeps the clock, a restart to the same tick with another state, a restart to an earlier saved clock with its state (the initial clock included, as after a restart without a saved clock), and another client that takes the ticks and steps.
+Delay, reordering, and time limits are free. The faults are a copy of any frame that the client sent, the loss of a frame, the expiry of a session, a restart that keeps the latest clock with its history identity, a restart that keeps it with a new history identity, a restart to the same tick with another state, a restart to an earlier saved clock with its state and a new history identity (the initial clock included, as after a restart without a saved clock), and another client that takes the ticks and steps.
 
 In every reachable world it checks:
 
-- **S1.** A step with the verdict "did not run" never runs, and "ran" is true. After a restart to an earlier saved clock, the verdict describes the owner's state, as section 7 of the profile says: "did not run" then means that the step was not in that state when the take ran.
+- **S1.** A step with the verdict "did not run" never runs, before or after, also across a restart to an earlier saved clock; "ran" is true.
 - **S2.** A step runs only in the opening whose take ran last.
 - **S3.** The ticks count the steps in the owner's state, once each.
-- **S4.** A recovery gives a verdict whenever its take finds the state that the client's known clock describes, or that state after the client's uncertain step: the clock changed in no other way. Ghost records of the steps in the owner's state make this exact, so a step of another client, or a restart, excuses no verdict that was still possible.
+- **S4.** A recovery gives a verdict whenever its take finds the state that the client's known clock describes, with the same history identity, or that state after the client's uncertain step: the clock changed in no other way. Ghost records of the steps in the owner's state make this exact, so a step of another client, or a restart, excuses no verdict that was still possible.
 - **S5.** Accepting an `open` changes neither the clock nor the holder.
 - **S6.** After "did not run", the state when the take ran was the state that the step answered.
+- **S7.** Every decline of the profile names a true reason with true facts: the opening is not the holder, the term moved, the tick or the state is not the owner's, or a value is the largest. A body that no state accepts has no reason.
 - **L1.** No frame takes the ticks from the client's opening while the owner holds it, unless another client takes them.
 - **Progress.** Runs without faults and time limits finish. The search checks it in the world where no transition other than a fault remains; without faults, that world is the end of the one run.
 
-With one fault, the search reaches 469,268 worlds, and every property holds. On an Apple M4 Max it takes 15 to 90 seconds, depending on the load.
-Its self-test injects thirteen known defects, at least one for each property, and detects each. Among them are the holder by session identifier of revision 2 of the profile and the takeover in `open` of revision 3.
+With one fault, the search reaches 565,424 worlds, and every property holds. On an Apple M4 Max it takes 60 to 120 seconds, depending on the load.
+Its self-test injects seventeen known defects, at least one for each property, and detects each. Among them are the holder by session identifier of revision 2 of the profile, the takeover in `open` of revision 3, the verdict of revision 4 without the history identity, a restore that keeps the history identity, and two wrong reasons. A step of the holder with a wrong tick is not reachable in the search, so the facts of `ncp.lockstep.tick` have SDK tests instead.
 Two of them, a take that ignores the term and a take that does not raise it, break only L1: the term keeps the holder stable, and the verdicts do not depend on it.
 
 ### Limits
 
-- The runs are bounded: one stepping client with two steps, at most three sessions, and one fault in the gate. An advisory run outside the gate on 15 November 2026 checked two faults with `--max-worlds 60000000`: 8,087,105 worlds for the byte stream and 2,427,031 for Zenoh, in about 20 minutes, and every property held.
+- The runs are bounded: one stepping client with two steps, at most three sessions, and one fault in the gate. An advisory run outside the gate on 15 November 2026 checked revision 4 of the profile with two faults; revision 5 has not had a run with two faults.
 - Each owner step is atomic in the search, so the wait of a take for a running step is outside it. The SDK tests check that wait in both languages.
-- The check does not cover an application that fails in a step (profile, rule 5.5), `result_too_large`, a stopping owner, bad frames, or more than one stepping client: the other client is atomic and steps once.
+- The check does not cover an application that fails in a step (profile, rule 5.5), `result_too_large`, a stopping owner, bad frames, readers (rule 3.5), or more than one stepping client: the other client is atomic and steps once.
 - The program drives the session client of the SDK and its own stepping program, and shares only `judge` with `LockstepClient`. The checks of `LockstepClient` and `take` on the responses (profile, rules 3.4, 6.1, 6.2, and 6.3) have SDK tests in both languages instead.
 - Only the Python SDK runs here. The Rust SDK has the same rules, and its tests replay the cases that the search found.
 

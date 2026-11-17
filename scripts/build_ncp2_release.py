@@ -35,6 +35,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -153,22 +154,34 @@ def rust_dependencies(crate: Path) -> list[dict]:
     ]
 
 
+def python_spelling(version: str) -> str:
+    """The Python (PEP 440) spelling of a Rust (Semantic Versioning) version: 2.0.0-rc.7 is
+    2.0.0rc7, and a release version is the same in both."""
+    match = re.fullmatch(r"(\d+\.\d+\.\d+)(?:-rc\.(\d+))?", version)
+    if match is None:
+        raise SystemExit(f"{version} is neither a release version nor a release candidate X.Y.Z-rc.N")
+    return match.group(1) + (f"rc{match.group(2)}" if match.group(2) else "")
+
+
 def check_versions() -> str:
     """Every package has the same version, each binding requires that core version or a later
     compatible one, and the Python SDK names the version in its `implementation`. Returns the
-    version. The requirements are ranges, not exact versions: an exact requirement in a library
+    version, in the Python spelling. Before the tag, the version is the release candidate of the
+    revision of the specification, 2.0.0rc7 in Python and 2.0.0-rc.7 in Rust; the tagged commit
+    says 2.0.0. The requirements are ranges, not exact versions: an exact requirement in a library
     forces every consumer onto that one version of the dependency."""
     python = {n: tomllib.loads((d / "pyproject.toml").read_text())["project"] for n, d in PYTHON_PACKAGES.items()}
     rust = {n: tomllib.loads((d / "Cargo.toml").read_text()) for n, d in CRATES.items()}
     versions = {f"{n} (Python)": p["version"] for n, p in python.items()}
-    versions |= {f"{n} (Rust)": c["package"]["version"] for n, c in rust.items()}
+    versions |= {f"{n} (Rust)": python_spelling(c["package"]["version"]) for n, c in rust.items()}
     if len(set(versions.values())) != 1:
         raise SystemExit(f"the package versions differ: {versions}")
     version = python["sepahead-ncp"]["version"]
     major = int(version.split(".")[0])
     if f"sepahead-ncp>={version},<{major + 1}" not in python["sepahead-ncp-zenoh"]["dependencies"]:
         raise SystemExit(f"the Python binding does not require sepahead-ncp>={version},<{major + 1}")
-    if rust["sepahead-ncp-zenoh"]["dependencies"]["sepahead-ncp-core"].get("version") != version:
+    core = rust["sepahead-ncp-zenoh"]["dependencies"]["sepahead-ncp-core"].get("version")
+    if core != rust["sepahead-ncp-core"]["package"]["version"]:
         raise SystemExit(f"the Rust binding does not require sepahead-ncp-core {version}")
     for name, manifest in rust.items():
         exact = [d for d, spec in manifest["dependencies"].items() if str(spec.get("version", spec) if isinstance(spec, dict) else spec).startswith("=")]

@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NCP 2.0 release candidate, revision 7 (17 November 2026; tag and publication follow)
+
+An advisory design review of revision 6 (read-only, not certification evidence) found no defect in
+the exchange. It found that a restore of a lockstep owner to an earlier saved clock gave the verdict
+"did not run" for a step that had run, and text that a freeze needs.
+[`docs/design/NCP-2-DESIGN.md`](docs/design/NCP-2-DESIGN.md#16-revision-7) gives each decision
+with its check, and
+[`docs/design/NCP-2-MIGRATION.md`](docs/design/NCP-2-MIGRATION.md#10-from-revision-6-to-revision-7-of-ncp-2)
+lists the changes for programs.
+
+- **Wire: decline reasons.** The code `conflict` (the body is valid, the owner's current state does
+  not permit the request) next to `body_invalid`, and the member `ncp.reason` with a reason that a
+  program acts on. Reasons of profiles are registered in `spec/ncp2-rules.json`; an operation of a
+  contract can list its application's reasons in `ncp.reasons`. A reason never changes a verdict.
+  The Lean model gains the code, and its proofs hold unchanged; the owner model check gains an
+  application whose verdict depends on its state, and a mutant that does not keep a `conflict`.
+- **Breaking: lockstep profile revision 5.** A history identity in the clock: "did not run" needs
+  it, so a restore after which a step can have started gives no verdict instead of a false one.
+  The revision on the wire, `{"rev": [5]}`; codes, reasons, and facts for every decline; readers,
+  which may only read the clock; `unknown_op` for an operation of the feature that the profile does
+  not define; and what a verifier of a transcript can check. The model check's property S1 is now
+  strict across restores, and a new property S7 checks every reason; seventeen known defects.
+- **Breaking: rounds profile revision 3.** The feature `ncp.rounds` with its revision, a report of
+  the last closed round and a history identity, reasons for every decline, and a restart rule. Its
+  recovery of a lost request stays open work, and the profile says so.
+- **Text that a freeze needs.** A client ignores unknown members of a body whose outcome is not
+  `ok` (6.2); a verifier ignores unknown members of a transcript header (10.1); one key for each
+  address (13.2); a later incompatible Zenoh binding takes another key prefix (9.2); every profile
+  puts its revision on the wire, registers its reasons, and says what a verifier can check (17).
+- **Versions.** The packages carry the release candidate of the revision, `2.0.0rc7` (Python) and
+  `2.0.0-rc.7` (Rust), and so do the implementation strings of `open` responses and transcripts;
+  the tagged commit says `2.0.0`. Supported platforms: Linux and macOS; Windows is not tested.
+
 ### NCP 2.0 release candidate, revision 6 (15 November 2026; tag and publication follow)
 
 A second advisory consult by a language model (read-only, not certification evidence) found that

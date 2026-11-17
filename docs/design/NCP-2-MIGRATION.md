@@ -243,3 +243,55 @@ An advisory design review of revision 6 (16 November 2026, read-only, not certif
 7. An authority profile for commands, in which the body is the owner and issues a lease with a term; the peer of the binding reaches the `open` handler. First users: CREBAIN's application and Haldir with its epoch 22.
 8. Rounds revision 3, with a recovery, a clock, and a chained round identity, when a consumer needs many agents in one world.
 9. A composition document whose identity a run names, so that a set of transcripts can show that it is the complete record of one declared run.
+
+## 10. From revision 6 to revision 7 of NCP 2
+
+Revision 7 (17 November 2026) closes the findings of the design record, [section 16](NCP-2-DESIGN.md#16-revision-7). Its wire changes are additions for the exchange, and breaking changes for both profiles, which no consumer uses yet. A consumer of the exchange needs no change of its code when it moves its pin; it changes the version that it requires to `2.0.0rc7` (Python) or `2.0.0-rc.7` (Rust).
+
+### What changes on the wire
+
+- The code `conflict` with the outcome `declined`, next to `body_invalid` and `unknown_op`. A client of revision 6 already treats it as a code that it does not know: `declined`, not executed.
+- The member `ncp.reason` in the body of a `declined` response and of a `rejected` response to `open` with `refused`, and the member `ncp.reasons` of an operation of a contract. A contract that adds `ncp.reasons` gets a new identity.
+- A profile declines an operation of its feature that it does not define with `unknown_op` (rule 7.3.12).
+- The implementation string of an `open` response and a transcript header names the release candidate: `ncp-python/2.0.0rc7`, `ncp-rust/2.0.0-rc.7`.
+- Lockstep profile revision 5. A client asks with `{"ncp.lockstep": {"rev": [5]}}`; an owner of revision 5 enables nothing for `{}`. The report is `{"rev": 5, "tick", "state", "request", "term", "history", "take"}`, and the body of an `ok` response to a take also has `history`. Declines of the profile carry `conflict` and a reason, except a body that no state accepts, and an operation of the feature that the profile does not define gets `unknown_op`.
+- Rounds profile revision 3. A client asks with `{"ncp.rounds": {"rev": [3]}}`, and the owner declines the round operation in a session without the feature. The report is `{"rev": 3, "closed": K, "history": H}`. Declines carry the codes, reasons, and facts of rule 5.1.
+
+### Python (`ncp`)
+
+| Revision 6 | Revision 7 |
+| --- | --- |
+| `ncp.Declined(detail, code=..., body=...)`: the owner always sent `body_invalid` | Also `reason=`. The owner sends `code` if it is `body_invalid` or `conflict`, and `ncp.reason`; a client's `Declined` has `.reason`. Any other code, a reason that is not a name, or an application reason that the operation's `ncp.reasons` does not list ends the session with `owner_failure` |
+| `ncp.Refused(detail)` | Also `reason=`; `ncp.Rejected` has `.reason` |
+| — | `ncp.Contract.reasons(op)` |
+| `ncp.Lockstep(handler, ops, tick=..., state=..., request=..., term=...)` | Also `history=`: pass it only with a saved clock after which no step started; without it, the owner draws a new history identity. `Lockstep.reader()` serves the clock to openings that may only read it |
+| `features={"ncp.lockstep": {}}` | `features={ncp.lockstep.FEATURE: ncp.lockstep.PARAMETERS}`, which is `{"rev": [5]}` |
+| `LockstepClient` knew `(tick, state, request)` | Also `history`; `ncp.lockstep.judge` and `take` use four members. `take` raises `UsageError` in an opening whose report says `"take": false` |
+| — | `ncp.lockstep.REVISION`, `PARAMETERS`, `REASONS`, and a constant for each reason |
+| `ncp.Rounds(...)` served the round operation in every session | Only in a session that enabled `ncp.rounds`: `features={ncp.rounds.FEATURE: ncp.rounds.PARAMETERS}`. Also `Rounds.history`, `ncp.rounds.report(client)`, `REVISION`, `PARAMETERS`, and `REASONS` |
+| Package version `2.0.0` | `2.0.0rc7`; `sepahead-ncp-zenoh` requires `sepahead-ncp>=2.0.0rc7,<3` |
+
+### Rust (`ncp`)
+
+| Revision 6 | Revision 7 |
+| --- | --- |
+| `Invalid::{Declined(String), DeclinedWith(String, Map), Failed}` | `Invalid::{Declined(Decline), Failed}`. `Decline { code, reason, detail, members }` with `DeclineCode::{BodyInvalid, Conflict, UnknownOp}`. `declined(detail)` and `declined_with(detail, members)` stay; new are `conflict(reason, detail)`, `Invalid::reason`, and `Invalid::members` |
+| `Refused(String)` | `Refused { detail, reason }`, made with `Refused::new(detail)` and `.reason(reason)` |
+| — | `Error::reason()`, `Contract::reasons(op)`, `messages::{REASON, reason_of}` |
+| `Lockstep::restored(stepper, ops, tick, state, request, term)` | Also `history: Option<String>`, as in Python. `Lockstep::reader()` |
+| `lockstep::Known` with three members; `Clock` without a history | Four members, the history last; `Clock::history`; `LockstepClient::history` |
+| `{"ncp.lockstep": {}}` | `lockstep::parameters()`, which is `{"rev": [5]}`; also `lockstep::{REVISION, REASONS, report}` and a constant for each reason |
+| Crate version `2.0.0` | `2.0.0-rc.7`; `sepahead-ncp-zenoh` requires `sepahead-ncp-core` `2.0.0-rc.7` |
+
+### Open work after revision 7
+
+These items remain, in the order of the advisory design review of revision 6:
+
+1. Before the tag, the owner decides which parts it freezes, and the status line of each part that stays provisional names its own revision. The text that the review asked to add before a freeze is in revision 7.
+2. The fault campaign and one benchmark block on the tagged revision, both gates in hosted CI at the tagged commit, and a decoder, owner, and client by another author for the frozen parts.
+3. CREBAIN's world as the first consumer of lockstep revision 5: it already checks a tick and a state digest in its own contract, without a holder or a recovery.
+4. A stream profile for sensors and advisories, first for Galadriel and CREBAIN's world.
+5. An authority profile for commands, with a lease and a term; first users CREBAIN's application and Haldir with its epoch 22, which is the owner's action.
+6. Rounds revision 4: the recovery of a lost request, a chained round identity, and a miss rule, with a model check, when a consumer needs many agents in one world.
+7. A composition document whose identity a run names.
+8. A function of the SDKs that checks the rules of a profile's section "Verification" on a transcript.

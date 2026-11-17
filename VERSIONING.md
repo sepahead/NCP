@@ -27,13 +27,20 @@ NCP has four separate identities:
 NCP 2 has one version for the protocol and its packages: 2.0.0. The magic of every frame and the
 member `ncp` of every message carry the protocol version 2.
 
-- Before the tag `v2.0.0`, the specification has revisions; revision 6 is current. The changelog
-  and sections 12 to 15 of the [design record](docs/design/NCP-2-DESIGN.md) state what each
+- Before the tag `v2.0.0`, the specification has revisions; revision 7 is current. The changelog
+  and sections 12 to 16 of the [design record](docs/design/NCP-2-DESIGN.md) state what each
   revision changed. The tag freezes the text; after it, section 19 of the specification lists errata,
   which change no behavior.
-- A later version can add codes and members of the `open` response without a new protocol
-  version: a receiver acts on the outcome of a code that it does not know, and a client ignores
-  members that it does not know (specification, sections 7.5 and 7.1).
+- Before the tag, the packages carry the release candidate of the current revision: `2.0.0rc7` in
+  Python and `2.0.0-rc.7` in Rust, and so do the implementation strings in `open` responses and
+  transcript headers, so that a record names the rules that made it. The commit that the tag names
+  changes them to `2.0.0`.
+- Each profile has its own revision, which its feature parameters carry (specification, section 17,
+  rule 1): lockstep revision 5, rounds revision 3.
+- A later version can add codes, reasons, and members of the `open` response and of the body of a
+  response whose outcome is not `ok` without a new protocol version: a receiver acts on the outcome
+  of a code that it does not know, treats a reason that it does not know as the code alone, and
+  ignores members that it does not know (specification, sections 6.2, 7.1, and 7.5).
 - The packages follow Semantic Versioning: a breaking change of an SDK interface needs a new major
   version, and each binding requires the core packages of its own major version.
 

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1944" viewBox="0 0 1600 1944" role="img" aria-labelledby="ncp2-lockstep-title ncp2-lockstep-desc">
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1977" viewBox="0 0 1600 1977" role="img" aria-labelledby="ncp2-lockstep-title ncp2-lockstep-desc">
 <title id="ncp2-lockstep-title">Lockstep recovery: a delayed step and a copy of open</title>
 <desc id="ncp2-lockstep-desc">A step is delayed, the client recovers in a new session, and a copy of the first open arrives. With a session name as holder, the late step ran after the verdict that it did not. With an opening as holder, it is declined. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
@@ -8,7 +8,7 @@
 <marker id="ncp2-lockstep-arrow-turquoise" viewBox="0 0 16 14" refX="16" refY="7" markerWidth="16" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L16,7 L0,14 z" fill="#6FC1BD"/></marker>
 <pattern id="ncp2-lockstep-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#D8AA45" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="1944" fill="#131D26"/>
+<rect width="1600" height="1977" fill="#131D26"/>
 <rect x="1369.3" y="18" width="178.7" height="38" rx="19" fill="#8DB2D8"/>
 <path d="M52 66 L1548 66" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#D8AA45" stroke-width="7" fill="none" stroke-linecap="butt"/>
@@ -43,8 +43,8 @@
 <rect x="816" y="1469" width="732" height="238" rx="14" fill="#1A2631" stroke="#6FC1BD" stroke-width="3"/>
 <path d="M816 1483 L816 1483 Q816 1469 830 1469 L1534 1469 Q1548 1469 1548 1483 L1548 1483 Z" fill="#6FC1BD"/>
 <path d="M842 1581 L1522 1581" stroke="#3D5263" stroke-width="2" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="1741" width="1496" height="163" rx="10" fill="#1E3240"/>
-<rect x="52" y="1741" width="10" height="163" rx="5" fill="#D8AA45"/>
+<rect x="52" y="1741" width="1496" height="196" rx="10" fill="#1E3240"/>
+<rect x="52" y="1741" width="10" height="196" rx="5" fill="#D8AA45"/>
 <path d="M208 407 L470 407" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-lapis)"/>
 <path d="M208 580 L704 580" fill="none" stroke="#8DB2D8" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-lapis)"/>
 <path d="M704 660 L208 660" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-turquoise)"/>
@@ -52,9 +52,9 @@
 <path d="M704 820 L208 820" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-turquoise)"/>
 <path d="M603.4 1009.5 L704 1009.5" fill="none" stroke="#E6A095" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-pomegranate)"/>
 <path d="M478.1 1246 L704 1246" fill="none" stroke="#E6A095" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-lockstep-arrow-pomegranate)"/>
-<text x="1458.6" y="43.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 6</text>
+<text x="1458.6" y="43.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 7</text>
 <text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">NCP 2 LOCKSTEP</text>
-<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">A lost step gets a true verdict about the owner's state, or none</text>
+<text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">A lost step gets a true verdict, or none</text>
 <text x="78" y="212" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Client</text>
 <text x="78" y="244" class="s" font-size="25" fill="#6FC1BD" font-weight="600">Steps the world</text>
 <text x="586" y="212" class="s" font-size="28" fill="#ECE5D5" font-weight="700">Owner</text>
@@ -104,6 +104,7 @@
 <text x="842" y="1685" class="r" font-size="25" fill="#ECE5D5">verdict stays true.</text>
 <text x="84" y="1779" class="s" font-size="24" fill="#AAB7BE" font-weight="600">WHAT A COPY CAN STILL DO</text>
 <text x="84" y="1817" class="r" font-size="25" fill="#ECE5D5">A copy of open opens a session and reads the clock. It cannot take the ticks: a take must acknowledge the open response of its</text>
-<text x="84" y="1850" class="r" font-size="25" fill="#ECE5D5">own opening, which holds a fresh nonce. An exhaustive check of the Python SDK with one fault found no verdict that the</text>
-<text x="84" y="1883" class="r" font-size="25" fill="#ECE5D5">owner's state contradicts. The profile is not proved.</text>
+<text x="84" y="1850" class="r" font-size="25" fill="#ECE5D5">own opening, which holds a fresh nonce. A restore that a step can have followed draws a new history identity, so it gives no</text>
+<text x="84" y="1883" class="r" font-size="25" fill="#ECE5D5">verdict instead of a false one. An exhaustive check of the Python SDK with one fault found no false verdict, also across restores.</text>
+<text x="84" y="1916" class="r" font-size="25" fill="#ECE5D5">The profile is not proved.</text>
 </svg>

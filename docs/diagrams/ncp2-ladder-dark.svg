@@ -79,7 +79,7 @@
 <path d="M362 1114 L362 1148" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
 <path d="M362 1210 L362 1244" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
 <path d="M362 1314 L362 1348" fill="none" stroke="#6FC1BD" stroke-width="4" stroke-linejoin="round" marker-end="url(#ncp2-ladder-arrow-turquoise)"/>
-<text x="1458.6" y="43.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 6</text>
+<text x="1458.6" y="43.5" class="s" font-size="24" fill="#10202B" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 7</text>
 <text x="52" y="46" class="s" font-size="24" fill="#AAB7BE" font-weight="700" letter-spacing="2">NCP 2 OWNER RULES</text>
 <text x="52" y="114" class="s" font-size="38" fill="#8DB2D8" font-weight="700">A frame leaves at the first check that fails</text>
 <text x="122" y="180" class="s" font-size="25" fill="#ECE5D5" font-weight="600">possibly executed</text>

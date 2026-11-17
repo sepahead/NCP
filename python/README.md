@@ -5,6 +5,7 @@ It uses only the Python standard library.
 
 - Distribution name: `sepahead-ncp`. Import name: `ncp`.
 - Python 3.11 or later. NumPy is optional: the SDK sends NumPy arrays as typed attachments when NumPy is installed.
+- Version `2.0.0rc7`: the release candidate of revision 7 of the specification. `ncp.IMPLEMENTATION` names it in every `open` response and transcript header.
 
 Install it from a checkout of this repository:
 
@@ -64,6 +65,7 @@ with ncp.Client(ncp.spawn([sys.executable, "owner.py"]), contract) as client:
 ```
 
 `validate` must not change state: a declined request leaves the application as it was.
+Decline a valid request that the application's state does not permit now with `raise ncp.Declined("busy", code="conflict", reason="world.busy")`. A reason is a name for programs; list the reasons of an operation in its contract with `"ncp.reasons": ["world.busy"]`, and the owner gives no other reason of the application for it. Act on `code` and `reason`, never on `detail`, which is for people.
 `execute` runs each admitted request at most once, also when the client sends a request again after a lost response.
 The `with` block opens the session and closes it; closing the channel of `spawn` ends the child.
 
@@ -73,7 +75,7 @@ The `with` block opens the session and closes it; closing the channel of `spawn`
 
 | Exception | Executed | Meaning |
 | --- | --- | --- |
-| `ncp.Declined` | No, and never | The owner admitted the request and did not execute it. `code` is `body_invalid` or `unknown_op`. The session goes on. |
+| `ncp.Declined` | No, and never | The owner admitted the request and did not execute it. `code` is `body_invalid`, `conflict`, or `unknown_op`, and `reason` names the owner's reason for programs, or is None. The session goes on. |
 | `ncp.Ended` | `executed`: `YES`, `NO`, or `UNKNOWN` | The session is over. `code` is the owner's code, or a local one: `local.timeout`, `local.closed`, `local.protocol`, or `local.bad_frame`. `request` is the identity of the request that `executed` is about. |
 | `ncp.Rejected` | No | Only for `open`: the owner opened no session. `code` says why, for example `refused`. |
 | `ncp.UsageError` | No | The client refused the call before it sent anything, for example a call after the session ended, or a request larger than the session bound. |
@@ -131,13 +133,16 @@ def step(round_number, inputs):  # inputs: (agent, body) in member order
 rounds = ncp.Rounds(contract, "act", ["drone-1", "drone-2"], step, deadline=1.0)
 server = ncp.UnixServer(rounds.owner, "/run/world/world.sock").start()
 
-# in each agent, k = 1, 2, 3, ...
+# in each agent: ask for revision 3 of the profile, then k = 1, 2, 3, ...
+client = ncp.Client(ncp.connect_unix("/run/world/world.sock"), contract,
+                    features={ncp.rounds.FEATURE: ncp.rounds.PARAMETERS})
 result = client.call("act", {"ncp.round": {"agent": "drone-1", "round": k}, "thrust": 0.4})
 record = ncp.RoundRecord.of(result, "drone-1")  # checks that the round applied this request
 ```
 
-For one simulation that steps through ticks, `ncp.Lockstep` and `ncp.LockstepClient` implement the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and one opening at a time holds the ticks. After a lost session, a new session takes the ticks with the request `ncp.lockstep.take`, whose response tells the client whether its last step ran; a delayed copy of that step can no longer run, and a copy of an old `open` takes nothing.
-`LockstepClient.recover` returns `Executed.YES`, `NO`, or `UNKNOWN`, and goes on in the new session in each case; `LockstepClient.take()` takes the ticks again in the same session after a step that another opening's take declined.
+For one simulation that steps through ticks, `ncp.Lockstep` and `ncp.LockstepClient` implement revision 5 of the [lockstep profile](https://github.com/sepahead/NCP/blob/main/spec/NCP-2-LOCKSTEP.md): each step names the tick that it advances to, and one opening at a time holds the ticks. After a lost session, a new session takes the ticks with the request `ncp.lockstep.take`, whose response tells the client whether its last step ran; a delayed copy of that step can no longer run, and a copy of an old `open` takes nothing.
+Open the client with `features={ncp.lockstep.FEATURE: ncp.lockstep.PARAMETERS}`. `LockstepClient.recover` returns `Executed.YES`, `NO`, or `UNKNOWN`, and goes on in the new session in each case; `LockstepClient.take()` takes the ticks again in the same session after a step declined with the reason `ncp.lockstep.holder`.
+The clock has a history identity. To restore a saved clock after a restart, pass `tick=`, `state=`, `request=`, and `term=`; pass `history=` too only if no step started after that clock was saved, for example because the application records the start of each step first. Otherwise the owner draws a new history identity, and a client that lost a step gets no verdict rather than a false "did not run". Serve monitors with `lockstep.reader()`, for example on a second socket: they read the clock and cannot take the ticks.
 Make `Lockstep` the outermost handler of the owner: it holds a lock from the check of a take or a step to its execution, so a handler around it that declines after its check leaves every later take and step waiting. Other operations, and the application's `open`, pass through without that lock.
 
 ## Streams

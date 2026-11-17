@@ -93,10 +93,11 @@ transport behavior together.
 NCP 2 replaces the NCP 1 surfaces once their consumers have moved
 ([design record](docs/design/NCP-2-DESIGN.md),
 [migration plan](docs/design/NCP-2-MIGRATION.md)). It is a release candidate:
-revision 6 of [`spec/NCP-2.md`](spec/NCP-2.md), with the profiles
+revision 7 of [`spec/NCP-2.md`](spec/NCP-2.md), with the profiles
 [`spec/NCP-2-ROUNDS.md`](spec/NCP-2-ROUNDS.md) and
-[`spec/NCP-2-LOCKSTEP.md`](spec/NCP-2-LOCKSTEP.md), and packages of version
-2.0.0. It is not tagged and not published.
+[`spec/NCP-2-LOCKSTEP.md`](spec/NCP-2-LOCKSTEP.md), and packages of the release
+candidate version 2.0.0rc7 (Python) and 2.0.0-rc.7 (Rust). It is not tagged and
+not published.
 
 Change an NCP 2 rule in one change that updates all of these together:
 

@@ -1,32 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1294" viewBox="0 0 1600 1294" role="img" aria-labelledby="ncp2-verdicts-title ncp2-verdicts-desc">
+<svg xmlns="http://www.w3.org/2000/svg" xml:lang="en" width="1600" height="1348" viewBox="0 0 1600 1348" role="img" aria-labelledby="ncp2-verdicts-title ncp2-verdicts-desc">
 <title id="ncp2-verdicts-title">What each NCP 2 answer lets the client conclude</title>
 <desc id="ncp2-verdicts-desc">Three columns sort every outcome, code, and local event by the client's verdict: executed, not executed, or possibly executed. The codes come from spec/ncp2-rules.json. NCP 2 is UNRELEASED. It is not release or certification evidence.</desc>
 <defs>
 <style>.s{font-family:'Source Sans Pro', 'Source Sans 3', Arial, 'Liberation Sans', 'Helvetica Neue', Helvetica, sans-serif}.r{font-family:'Latin Modern Roman', 'LM Roman 10', 'Times New Roman', 'Liberation Serif', Times, serif}</style>
 <pattern id="ncp2-verdicts-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(40)"><line x1="0" y1="0" x2="0" y2="12" stroke="#B28218" stroke-width="3"/></pattern>
 </defs>
-<rect width="1600" height="1294" fill="#F7F3E9"/>
+<rect width="1600" height="1348" fill="#F7F3E9"/>
 <rect x="1369.3" y="18" width="178.7" height="38" rx="19" fill="#1F3F60"/>
 <path d="M52 66 L1548 66" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <path d="M52 66 L260 66" stroke="#B28218" stroke-width="7" fill="none" stroke-linecap="butt"/>
-<rect x="52" y="156" width="330" height="835" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
+<rect x="52" y="156" width="330" height="889" rx="14" fill="#FBF9F3" stroke="#1F6968" stroke-width="3"/>
 <path d="M52 170 L52 170 Q52 156 66 156 L368 156 Q382 156 382 170 L382 170 Z" fill="#1F6968"/>
 <path d="M78 268 L356 268" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <rect x="78" y="398" width="278" height="46" rx="10" fill="#E4EDEE" stroke="#1F6968" stroke-width="2"/>
 <rect x="78" y="506" width="278" height="46" rx="10" fill="#E4EDEE" stroke="#1F6968" stroke-width="2"/>
-<rect x="414" y="156" width="470" height="835" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
+<rect x="414" y="156" width="470" height="889" rx="14" fill="#FBF9F3" stroke="#1F3F60" stroke-width="3"/>
 <path d="M414 170 L414 170 Q414 156 428 156 L870 156 Q884 156 884 170 L884 170 Z" fill="#1F3F60"/>
 <path d="M440 268 L858 268" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <rect x="440" y="398" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
 <rect x="440" y="452" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
-<rect x="440" y="560" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
+<rect x="440" y="506" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
 <rect x="440" y="614" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
-<rect x="440" y="722" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
+<rect x="440" y="668" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
 <rect x="440" y="776" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
 <rect x="440" y="830" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
 <rect x="440" y="884" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
 <rect x="440" y="938" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
-<rect x="916" y="156" width="632" height="835" rx="14" fill="#FBF9F3" stroke="#743E37" stroke-width="3"/>
+<rect x="440" y="992" width="418" height="46" rx="10" fill="#E4EDEE" stroke="#1F3F60" stroke-width="2"/>
+<rect x="916" y="156" width="632" height="889" rx="14" fill="#FBF9F3" stroke="#743E37" stroke-width="3"/>
 <path d="M916 170 L916 170 Q916 156 930 156 L1534 156 Q1548 156 1548 170 L1548 170 Z" fill="#743E37"/>
 <path d="M942 268 L1522 268" stroke="#C3D3D6" stroke-width="2" fill="none" stroke-linecap="butt"/>
 <rect x="942" y="398" width="284" height="46" rx="10" fill="#E4EDEE" stroke="#743E37" stroke-width="2"/>
@@ -46,9 +47,9 @@
 <rect x="1238" y="884" width="284" height="46" rx="10" fill="#E4EDEE" stroke="#743E37" stroke-width="2"/>
 <rect x="942" y="938" width="284" height="46" rx="10" fill="#E4EDEE" stroke="#743E37" stroke-width="2"/>
 <rect x="1238" y="938" width="284" height="46" rx="10" fill="#E4EDEE" stroke="#743E37" stroke-width="2"/>
-<rect x="52" y="1025" width="1496" height="229" rx="10" fill="#D2E0E2"/>
-<rect x="52" y="1025" width="10" height="229" rx="5" fill="#B28218"/>
-<text x="1458.6" y="43.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 6</text>
+<rect x="52" y="1079" width="1496" height="229" rx="10" fill="#D2E0E2"/>
+<rect x="52" y="1079" width="10" height="229" rx="5" fill="#B28218"/>
+<text x="1458.6" y="43.5" class="s" font-size="24" fill="#F7F3E9" font-weight="700" letter-spacing="1" text-anchor="middle">REVISION 7</text>
 <text x="52" y="46" class="s" font-size="24" fill="#4D5C64" font-weight="700" letter-spacing="2">NCP 2 VERDICTS</text>
 <text x="52" y="114" class="s" font-size="38" fill="#1F3F60" font-weight="700">Every answer has one place</text>
 <text x="78" y="216" class="s" font-size="28" fill="#2C3E50" font-weight="700">Executed</text>
@@ -66,15 +67,16 @@
 <text x="440" y="380" class="s" font-size="24" fill="#4D5C64" font-weight="600">declined</text>
 <text x="456" y="429" class="s" font-size="25" fill="#2C3E50" font-weight="600">unknown_op</text>
 <text x="456" y="483" class="s" font-size="25" fill="#2C3E50" font-weight="600">body_invalid</text>
-<text x="440" y="542" class="s" font-size="24" fill="#4D5C64" font-weight="600">ended</text>
-<text x="456" y="591" class="s" font-size="25" fill="#2C3E50" font-weight="600">shutdown *</text>
-<text x="456" y="645" class="s" font-size="25" fill="#2C3E50" font-weight="600">bad_frame *</text>
-<text x="440" y="704" class="s" font-size="24" fill="#4D5C64" font-weight="600">rejected, in reply to open</text>
-<text x="456" y="753" class="s" font-size="25" fill="#2C3E50" font-weight="600">body_invalid</text>
-<text x="456" y="807" class="s" font-size="25" fill="#2C3E50" font-weight="600">contract_mismatch</text>
-<text x="456" y="861" class="s" font-size="25" fill="#2C3E50" font-weight="600">bound_unacceptable</text>
-<text x="456" y="915" class="s" font-size="25" fill="#2C3E50" font-weight="600">refused</text>
-<text x="456" y="969" class="s" font-size="25" fill="#2C3E50" font-weight="600">any other code</text>
+<text x="456" y="537" class="s" font-size="25" fill="#2C3E50" font-weight="600">conflict</text>
+<text x="440" y="596" class="s" font-size="24" fill="#4D5C64" font-weight="600">ended</text>
+<text x="456" y="645" class="s" font-size="25" fill="#2C3E50" font-weight="600">shutdown *</text>
+<text x="456" y="699" class="s" font-size="25" fill="#2C3E50" font-weight="600">bad_frame *</text>
+<text x="440" y="758" class="s" font-size="24" fill="#4D5C64" font-weight="600">rejected, in reply to open</text>
+<text x="456" y="807" class="s" font-size="25" fill="#2C3E50" font-weight="600">body_invalid</text>
+<text x="456" y="861" class="s" font-size="25" fill="#2C3E50" font-weight="600">contract_mismatch</text>
+<text x="456" y="915" class="s" font-size="25" fill="#2C3E50" font-weight="600">bound_unacceptable</text>
+<text x="456" y="969" class="s" font-size="25" fill="#2C3E50" font-weight="600">refused</text>
+<text x="456" y="1023" class="s" font-size="25" fill="#2C3E50" font-weight="600">any other code</text>
 <text x="942" y="216" class="s" font-size="28" fill="#2C3E50" font-weight="700">Possibly executed</text>
 <text x="942" y="248" class="s" font-size="25" fill="#1F6968" font-weight="600">The honest unknown</text>
 <text x="942" y="306" class="r" font-size="25" fill="#2C3E50">The client cannot know. At most one request of a</text>
@@ -99,10 +101,10 @@
 <text x="1254" y="915" class="s" font-size="25" fill="#2C3E50" font-weight="600">local.closed</text>
 <text x="958" y="969" class="s" font-size="25" fill="#2C3E50" font-weight="600">local.protocol</text>
 <text x="1254" y="969" class="s" font-size="25" fill="#2C3E50" font-weight="600">local.bad_frame</text>
-<text x="84" y="1063" class="s" font-size="24" fill="#4D5C64" font-weight="600">HOW TO READ IT</text>
-<text x="84" y="1101" class="r" font-size="25" fill="#2C3E50">A client acts on the outcome first and on the code second. After a code that it does not know: rejected means that the frame was</text>
-<text x="84" y="1134" class="r" font-size="25" fill="#2C3E50">not admitted, declined means that the request never executes, and ended means possibly executed.</text>
-<text x="84" y="1167" class="r" font-size="25" fill="#2C3E50">A rejected open leaves no session. A delayed copy of that open can still open one later (rule 7.1.8), but the client is not in it.</text>
-<text x="84" y="1200" class="r" font-size="25" fill="#2C3E50">* In a response that names no request, bad_frame and shutdown count as not executed only when the body binds the response to</text>
-<text x="84" y="1233" class="r" font-size="25" fill="#2C3E50">the client's chain. Otherwise the request is possibly executed.</text>
+<text x="84" y="1117" class="s" font-size="24" fill="#4D5C64" font-weight="600">HOW TO READ IT</text>
+<text x="84" y="1155" class="r" font-size="25" fill="#2C3E50">A client acts on the outcome first and on the code second. After a code that it does not know: rejected means that the frame was</text>
+<text x="84" y="1188" class="r" font-size="25" fill="#2C3E50">not admitted, declined means that the request never executes, and ended means possibly executed.</text>
+<text x="84" y="1221" class="r" font-size="25" fill="#2C3E50">A rejected open leaves no session. A delayed copy of that open can still open one later (rule 7.1.8), but the client is not in it.</text>
+<text x="84" y="1254" class="r" font-size="25" fill="#2C3E50">* In a response that names no request, bad_frame and shutdown count as not executed only when the body binds the response to</text>
+<text x="84" y="1287" class="r" font-size="25" fill="#2C3E50">the client's chain. Otherwise the request is possibly executed.</text>
 </svg>
