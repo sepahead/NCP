@@ -17,7 +17,9 @@ requests of a faulty client or of a second writer in the session: a sequence gap
 acknowledgement, another request with the next sequence number, a request after the end (message);
 a broken connection, damaged frames, and a response that an attacker replaces with a nameless
 frame replayed from another connection (stream). The application declines bodies with
-"bad", fails on "fail", and returns a result too large for the session on "big".
+"bad", fails on "fail", and returns a result too large for the session on "big". Its verdict on a
+body with "busy" depends on its state, which the search chooses at each step: it declines with
+`conflict` and a reason, or it executes. A copy of a declined request must still never execute.
 
 In every reachable state, the search checks the properties of section 7.7:
 
@@ -80,6 +82,11 @@ SCRIPTS: dict[str, tuple[tuple, tuple]] = {
         (("open", None), ("missing", {}), ("ncp.ping", {}), ("close", {})),
         ("ok", "declined unknown_op", "ok", "ok"),
     ),
+    # A verdict that depends on the application's state: either is the application's decision.
+    "conflict": (
+        (("open", None), ("step", {"busy": True}), ("step", {"n": 2}), ("close", {})),
+        ("ok", ("declined conflict", "ok"), "ok", "ok"),
+    ),
 }
 
 # defect -> how it is injected (see Machines)
@@ -89,6 +96,7 @@ MUTANTS = (
     "owner_forgets_kept_request",
     "owner_executes_after_end",
     "owner_declined_not_kept",
+    "owner_conflict_not_kept",
     "owner_constant_nonce",
     "owner_ignores_stop",
     "client_skips_request_match",
@@ -111,11 +119,16 @@ def require(condition: bool, prop: str, text: str) -> None:
 
 
 class App:
-    """The harness's application. It keeps no state: the world records what it executes."""
+    """The harness's application. The world records what it executes. `free` is its state for a
+    body with "busy": the search sets it for each step of the owner."""
+
+    free = False
 
     def validate(self, request):
         if request.body.get("bad"):
             raise O.Declined("bad body")
+        if request.body.get("busy") and not self.free:
+            raise O.Declined("busy", code="conflict", reason="model.busy")
 
     def execute(self, request):
         if request.body.get("fail"):
@@ -164,10 +177,24 @@ class Machines:
         )
         self.owner_cache: dict = {}
         self.client_cache: dict = {}
+        self.busy_cache: dict = {}
 
-    def owner_step(self, o: O.OwnerState, frame: bytes, openings: int):
-        """(state before the step, state after, response, note, decoded request)."""
-        cache_key = (o, frame, openings)
+    def busy(self, frame: bytes) -> bool:
+        """Whether the application's verdict on the frame depends on its state."""
+        hit = self.busy_cache.get(frame)
+        if hit is None:
+            try:
+                body = F.decode(frame, F.MAX_BOUND).message.get("body")
+                hit = type(body) is dict and body.get("busy") is True
+            except F.FrameError:
+                hit = False
+            self.busy_cache[frame] = hit
+        return hit
+
+    def owner_step(self, o: O.OwnerState, frame: bytes, openings: int, free: bool = False):
+        """(state before the step, state after, response, note, decoded request). `free` is the
+        application's state for a body with "busy"."""
+        cache_key = (o, frame, openings, free)
         hit = self.owner_cache.get(cache_key)
         if hit is not None:
             return hit
@@ -186,8 +213,12 @@ class Machines:
         if m == "owner_ignores_stop":
             before = dataclasses.replace(before, stopping=False)
         self.nonce = openings + 1
+        self.app.free = free
         after, response, note = O.step(self.config, before, decoded, self.app)
-        if m == "owner_declined_not_kept" and F.decode(response, F.MAX_BOUND).message["outcome"] == "declined":
+        answer = F.decode(response, F.MAX_BOUND).message
+        if m == "owner_declined_not_kept" and answer["outcome"] == "declined":
+            after = before
+        if m == "owner_conflict_not_kept" and answer["code"] == "conflict":
             after = before
         result = (before, after, response, note, decoded)
         self.owner_cache[cache_key] = result
@@ -260,9 +291,9 @@ class Search:
         return World(O.OwnerState(), client, (), ())
 
     # The owner takes one frame.
-    def owner_takes(self, w: World, index: int) -> World:
+    def owner_takes(self, w: World, index: int, free: bool = False) -> World:
         frame = w.to_owner[index]
-        before, after, response, note, decoded = self.m.owner_step(w.owner, frame, w.openings)
+        before, after, response, note, decoded = self.m.owner_step(w.owner, frame, w.openings, free)
         request, request_id = decoded.message, decoded.identity
         message = F.decode(response, F.MAX_BOUND).message
         outcome, code = message["outcome"], message["code"]
@@ -346,6 +377,8 @@ class Search:
         owner_choices = ([0] if w.to_owner else []) if self.stream else distinct(w.to_owner)
         for index in owner_choices:
             out.append(("owner", self.owner_takes(w, index)))
+            if self.m.busy(w.to_owner[index]):
+                out.append(("owner, the application free", self.owner_takes(w, index, free=True)))
         client_choices = ([0] if w.to_client else []) if self.stream else distinct(w.to_client)
         for index in client_choices:
             out.append(("client", self.client_takes(w, index)))
@@ -450,7 +483,11 @@ class Search:
         c = w.client
         if c.pending is None and not self.can_call(w) and not w.to_owner and not w.to_client:
             got = tuple(v[3] if v[4] is None else f"{v[3]} {v[4]}" for v in w.verdicts)
-            require(got == self.expected, "progress", f"verdicts {got}, expected {self.expected}")
+            # An expected verdict can be a tuple: the verdicts that the application can decide.
+            fits = len(got) == len(self.expected) and all(
+                g == e or (type(e) is tuple and g in e) for g, e in zip(got, self.expected)
+            )
+            require(fits, "progress", f"verdicts {got}, expected {self.expected}")
 
     def run(self) -> tuple[int, int]:
         """Explore every reachable world. Return (worlds, transitions); raise Violation with a trace."""
