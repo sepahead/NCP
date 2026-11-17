@@ -579,7 +579,7 @@ impl<C: Channel> Client<C> {
     }
 
     /// Ask for features in the `open` request (section 7.1), for example
-    /// `{"ncp.lockstep": {}}`.
+    /// `{"ncp.lockstep": {"rev": [5]}}`.
     pub fn with_features(mut self, features: Map<String, Value>) -> Client<C> {
         self.features = Some(features);
         self

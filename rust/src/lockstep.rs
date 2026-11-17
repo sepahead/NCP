@@ -1,16 +1,19 @@
-//! The lockstep profile, revision 4 (spec/NCP-2-LOCKSTEP.md).
+//! The lockstep profile, revision 5 (spec/NCP-2-LOCKSTEP.md).
 //!
 //! Each step of a lockstep operation names the tick that it advances to and the state that it
-//! answers. The owner keeps its tick, state, and term across sessions. One opening at a time
-//! holds the ticks: the last one whose take (`ncp.lockstep.take`) succeeded. An `open` only
-//! reports the tick. A client that lost a session, with its last step possibly executed, opens a
-//! new session, takes the ticks, and learns from the response of the take whether that step ran.
+//! answers. The owner keeps its clock across sessions: the tick, the state digest, the request
+//! that produced the tick, the term, and the history identity, which changes when the owner
+//! restores a state after which a step can have started. One opening at a time holds the ticks:
+//! the last one whose take (`ncp.lockstep.take`) succeeded. An `open` only reports the clock. A
+//! client that lost a session, with its last step possibly executed, opens a new session, takes
+//! the ticks, and learns from the response of the take whether that step ran.
 
 use crate::client::{Channel, Client, Error};
 use crate::frame::{Array, Decoded, MAX_INTEGER};
-use crate::messages::{is_identity, Executed};
+use crate::messages::{is_identity, is_nonce, reason_of, Executed};
 use crate::owner::{
-    declined, declined_with, AppError, Handler, Invalid, OpenInfo, Refused, Reply, Request,
+    conflict, declined, AppError, Decline, DeclineCode, Handler, Invalid, OpenInfo, Refused, Reply,
+    Request,
 };
 use serde_json::{json, Map, Value};
 use std::sync::{Arc, Condvar, Mutex, PoisonError};
@@ -21,6 +24,29 @@ pub const FEATURE: &str = "ncp.lockstep";
 pub const TICK: &str = "ncp.tick";
 /// The feature operation that takes the ticks (profile, rules 5.2 and 5.3).
 pub const TAKE: &str = "ncp.lockstep.take";
+/// The revision of the profile that this module speaks (specification, section 17, rule 1).
+pub const REVISION: u64 = 5;
+/// A moved term (profile, rule 5.8): `conflict`, with the facts `{"term": E}`.
+pub const TERM_MOVED: &str = "ncp.lockstep.term";
+/// An opening that does not hold the ticks: `conflict`, with the facts `{"term": E}`.
+pub const NOT_HOLDER: &str = "ncp.lockstep.holder";
+/// A step to another tick than the next one: `conflict`, with the facts `{"next": T + 1}`.
+pub const NEXT_TICK: &str = "ncp.lockstep.tick";
+/// A step that answers another state: `conflict`.
+pub const OTHER_STATE: &str = "ncp.lockstep.state";
+/// The term or the tick is the largest: `conflict`.
+pub const LIMIT: &str = "ncp.lockstep.limit";
+/// An opening that may only read the clock: `body_invalid`.
+pub const READER: &str = "ncp.lockstep.reader";
+/// The reasons of the declines of the profile.
+pub const REASONS: [&str; 6] = [
+    TERM_MOVED,
+    NOT_HOLDER,
+    NEXT_TICK,
+    OTHER_STATE,
+    LIMIT,
+    READER,
+];
 /// The longest state digest.
 pub const MAX_STATE: usize = 128;
 /// How many takes a client sends in one session before it gives up on a term that keeps moving.
@@ -41,10 +67,58 @@ fn term_of(value: &Value) -> Option<u64> {
     value.as_u64().filter(|term| *term <= MAX_TERM)
 }
 
-/// The owner's term that a `declined` response names in its member `ncp.lockstep`, if any.
-fn told_term(error: &Error) -> Option<u64> {
+/// The parameters with which a client asks for the profile in its `open` request:
+/// `client.with_features(json!({ncp::lockstep::FEATURE: ncp::lockstep::parameters()}))`.
+pub fn parameters() -> Value {
+    json!({"rev": [REVISION]})
+}
+
+/// Whether a client's parameters list this revision (specification, section 17, rule 1).
+fn speaks(parameters: Option<&Value>) -> bool {
+    parameters
+        .and_then(|p| p.get("rev"))
+        .and_then(Value::as_array)
+        .is_some_and(|revisions| revisions.iter().any(|r| r.as_u64() == Some(REVISION)))
+}
+
+/// A decline of the profile with `conflict`, a reason, and its facts in the member `ncp.lockstep`.
+fn refused(reason: &str, detail: String, facts: Option<Value>) -> Invalid {
+    let mut members = Map::new();
+    if let Some(facts) = facts {
+        members.insert(FEATURE.to_owned(), facts);
+    }
+    conflict(reason, detail).members(members)
+}
+
+/// The clock in a report or in the body of the `ok` response to a take, if the body carries one.
+fn clock_of(body: &Value) -> Option<Known> {
+    let valid = body.get("state").is_some_and(state_ok)
+        && body
+            .get("request")
+            .is_some_and(|r| r.is_null() || is_identity(r))
+        && body.get("term").and_then(term_of).is_some()
+        && body.get("history").is_some_and(is_nonce);
+    let tick = body
+        .get("tick")?
+        .as_u64()
+        .filter(|tick| *tick <= MAX_TICK)?;
+    valid.then(|| {
+        (
+            tick,
+            body["state"].as_str().map(str::to_owned),
+            body["request"].as_str().map(str::to_owned),
+            body["history"].as_str().unwrap_or_default().to_owned(),
+        )
+    })
+}
+
+/// The owner's term that a `declined` response with `reason` names in its member
+/// `ncp.lockstep`, if any.
+fn told_term(error: &Error, reason: &str) -> Option<u64> {
     match error {
-        Error::Declined { body, .. } => term_of(&body[FEATURE]["term"]),
+        Error::Declined { body, .. } if reason_of(body) == Some(reason) => {
+            term_of(&body[FEATURE]["term"])
+        }
         _ => None,
     }
 }
@@ -62,7 +136,7 @@ pub trait Stepper: Handler {
     fn state(&self) -> Option<String>;
 }
 
-/// The tick, the state, and the term of a lockstep owner, shared by all its sessions.
+/// The clock of a lockstep owner, shared by all its sessions.
 #[derive(Debug, Clone, Default)]
 pub struct Clock {
     /// The last tick.
@@ -73,6 +147,9 @@ pub struct Clock {
     pub request: Option<String>,
     /// The number of takes since the owner started (profile, rule 5.3).
     pub term: u64,
+    /// The history identity: 32 lowercase hexadecimal characters that the owner draws when it
+    /// starts, unless it restores a clock after which no step started (profile, rule 5.7).
+    pub history: String,
     /// The nonce of the opening that holds the ticks: the opening whose take succeeded last. A
     /// session identifier does not name one opening: a copy of an old `open` opens the session
     /// again with another nonce (specification, rule 7.1.8).
@@ -82,9 +159,16 @@ pub struct Clock {
 }
 
 impl Clock {
-    /// The report of rule 3.2, which is also the body of the response to a take (rule 5.3).
-    fn report(&self) -> Value {
-        json!({"tick": self.tick, "state": self.state, "request": self.request, "term": self.term})
+    /// The body of the response to a take (rule 5.3).
+    fn body(&self) -> Value {
+        json!({"tick": self.tick, "state": self.state, "request": self.request, "term": self.term,
+               "history": self.history})
+    }
+
+    /// The report of rule 3.2: the revision, the clock, and whether the opening may take the ticks.
+    fn report(&self, take: bool) -> Value {
+        json!({"rev": REVISION, "tick": self.tick, "state": self.state, "request": self.request,
+               "term": self.term, "history": self.history, "take": take})
     }
 }
 
@@ -101,10 +185,14 @@ impl Clock {
 /// Use `Lockstep` as the outermost handler of the owner. A successful `validate` of a take or a
 /// step reserves the clock until `execute` runs; a handler around `Lockstep` that declines after
 /// it leaves the reservation, and every later take and step waits.
+///
+/// [`Lockstep::reader`] serves the same clock to openings that may only read it, for example on
+/// a second socket for monitors (profile, rule 3.5).
 #[derive(Debug)]
 pub struct Lockstep<S: Stepper> {
     shared: Arc<(Mutex<(S, Clock)>, Condvar)>,
     ops: Vec<String>,
+    reader: bool,
 }
 
 impl<S: Stepper> Lockstep<S> {
@@ -123,19 +211,25 @@ impl<S: Stepper> Lockstep<S> {
         );
         let clock = Clock {
             state,
+            history: crate::random_nonce(),
             ..Clock::default()
         };
         Lockstep {
             shared: Arc::new((Mutex::new((stepper, clock)), Condvar::new())),
             ops: ops.iter().map(|op| (*op).to_owned()).collect(),
+            reader: false,
         }
     }
 
     /// A lockstep handler whose application restored a saved clock (profile, rule 5.7): the
-    /// tick, the state digest, the identity of the request whose step produced the tick, and the
-    /// term, 0 if the application saved none. No opening holds the ticks. Fails if the state
-    /// digest does not have 1 to 128 characters, the request is not the identity of a request,
-    /// or the tick or the term is larger than [`MAX_INTEGER`].
+    /// tick, the state digest, the identity of the request whose step produced the tick, the
+    /// term, 0 if the application saved none, and the history identity. Pass `history` only if
+    /// no step started after that clock was saved: then a client that lost a step learns that it
+    /// did not run. Otherwise, with `None`, the owner draws a new history identity, and such a
+    /// client gets no verdict instead of a false one. No opening holds the ticks. Fails if the
+    /// state digest does not have 1 to 128 characters, the request is not the identity of a
+    /// request, the tick or the term is larger than [`MAX_INTEGER`], or the history identity is
+    /// not 32 lowercase hexadecimal characters.
     pub fn restored(
         stepper: S,
         ops: &[&str],
@@ -143,6 +237,7 @@ impl<S: Stepper> Lockstep<S> {
         state: Option<String>,
         request: Option<String>,
         term: u64,
+        history: Option<String>,
     ) -> Result<Lockstep<S>, Error> {
         if !state_ok(&state.clone().map_or(Value::Null, Value::from))
             || request
@@ -150,10 +245,14 @@ impl<S: Stepper> Lockstep<S> {
                 .is_some_and(|r| !is_identity(&Value::from(r)))
             || tick > MAX_TICK
             || term > MAX_TERM
+            || history
+                .as_deref()
+                .is_some_and(|h| !is_nonce(&Value::from(h)))
         {
             return Err(Error::Usage(
                 "a state digest has 1 to 128 characters, a request is the identity of a request, \
-                 and a tick and a term are at most 2^53 - 1"
+                 a tick and a term are at most 2^53 - 1, and a history identity has 32 lowercase \
+                 hexadecimal characters"
                     .into(),
             ));
         }
@@ -162,11 +261,13 @@ impl<S: Stepper> Lockstep<S> {
             state,
             request,
             term,
+            history: history.unwrap_or_else(crate::random_nonce),
             ..Clock::default()
         };
         Ok(Lockstep {
             shared: Arc::new((Mutex::new((stepper, clock)), Condvar::new())),
             ops: ops.iter().map(|op| (*op).to_owned()).collect(),
+            reader: false,
         })
     }
 
@@ -175,6 +276,17 @@ impl<S: Stepper> Lockstep<S> {
         Lockstep {
             shared: self.shared.clone(),
             ops: self.ops.clone(),
+            reader: self.reader,
+        }
+    }
+
+    /// A handler of the same application and clock for an opening that may only read the clock
+    /// (profile, rule 3.5): its report says `"take": false`, and its takes and lockstep steps are
+    /// declined with the reason `ncp.lockstep.reader`.
+    pub fn reader(&self) -> Lockstep<S> {
+        Lockstep {
+            reader: true,
+            ..self.share()
         }
     }
 
@@ -194,15 +306,19 @@ impl<S: Stepper> Handler for Lockstep<S> {
         // was checked and has not started. Either way it reports the clock between two steps.
         let mut guard = self.shared.0.lock().map_err(|_| Refused::new("lock"))?;
         let mut granted = guard.0.open(info)?;
-        if info.features.contains_key(FEATURE) {
+        granted.remove(FEATURE);
+        if speaks(info.features.get(FEATURE)) {
             // A report from one instant (profile, rule 3.2). It changes nothing outside the
             // session, so that a copy of this `open` takes nothing (rule 3.3).
-            granted.insert(FEATURE.to_owned(), guard.1.report());
+            granted.insert(FEATURE.to_owned(), guard.1.report(!self.reader));
         }
         Ok(granted)
     }
 
     fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
+        if self.reader && (request.op == TAKE || self.ops.iter().any(|op| op == request.op)) {
+            return Err(declined("reader: this opening may only read the clock").reason(READER));
+        }
         let (mutex, idle) = &*self.shared;
         let mut guard = mutex.lock().map_err(|_| Invalid::Failed("lock".into()))?;
         if request.op == TAKE {
@@ -224,17 +340,19 @@ impl<S: Stepper> Handler for Lockstep<S> {
             // A term that moved: another take ran after the owner told the client the term
             // (rule 5.2). The response names the owner's term.
             if term != guard.1.term {
-                let mut members = Map::new();
-                members.insert(FEATURE.to_owned(), json!({"term": guard.1.term}));
-                return Err(declined_with(
-                    format!("term: the term is {}", guard.1.term),
-                    members,
+                let term = guard.1.term;
+                return Err(refused(
+                    TERM_MOVED,
+                    format!("term: the term is {term}"),
+                    Some(json!({"term": term})),
                 ));
             }
             // The largest term, which no take can raise (rule 5.2).
             if guard.1.term >= MAX_TERM {
-                return Err(declined(
-                    "term: the term is the largest; no take can follow it",
+                return Err(refused(
+                    LIMIT,
+                    "term: the term is the largest; no take can follow it".into(),
+                    None,
                 ));
             }
             // The owner executes a validated request at once; reserve the clock until then.
@@ -246,18 +364,26 @@ impl<S: Stepper> Handler for Lockstep<S> {
             .strip_prefix(FEATURE)
             .is_some_and(|rest| rest.starts_with('.'))
         {
-            return Err(declined(format!(
-                "operation: the lockstep profile defines no operation {}; it defines {TAKE}",
-                request.op
-            )));
+            return Err(Invalid::Declined(Decline {
+                code: DeclineCode::UnknownOp,
+                detail: format!(
+                    "operation: the lockstep profile defines no operation {}; it defines {TAKE}",
+                    request.op
+                ),
+                ..Decline::default()
+            }));
         }
         if !self.ops.iter().any(|op| op == request.op) {
             return guard.0.validate(request);
         }
         let member = &request.body[TICK];
-        let valid_shape = member
-            .as_object()
-            .is_some_and(|m| m.len() == 2 && m.contains_key("tick") && m.contains_key("state"));
+        let valid_shape = member.as_object().is_some_and(|m| {
+            m.len() == 2
+                && m.get("tick")
+                    .and_then(Value::as_u64)
+                    .is_some_and(|tick| tick <= MAX_TICK)
+                && m.get("state").is_some_and(state_ok)
+        });
         if !valid_shape {
             return Err(declined(
                 "member: a lockstep step needs \"ncp.tick\": {\"tick\": T, \"state\": S}",
@@ -272,27 +398,34 @@ impl<S: Stepper> Handler for Lockstep<S> {
         }
         if guard.1.holder.as_deref() != Some(request.nonce) {
             // The term lets the client take the ticks again in this session (rule 6.4).
-            let mut members = Map::new();
-            members.insert(FEATURE.to_owned(), json!({"term": guard.1.term}));
-            return Err(declined_with(
-                "holder: this opening does not hold the ticks; send ncp.lockstep.take",
-                members,
+            return Err(refused(
+                NOT_HOLDER,
+                "holder: this opening does not hold the ticks; send ncp.lockstep.take".into(),
+                Some(json!({"term": guard.1.term})),
             ));
         }
         if guard.1.tick >= MAX_TICK {
-            return Err(declined(
-                "tick: the tick is the largest; no step can follow it",
+            return Err(refused(
+                LIMIT,
+                "tick: the tick is the largest; no step can follow it".into(),
+                None,
             ));
         }
-        if !member["tick"].is_u64() || member["tick"].as_u64() != Some(guard.1.tick + 1) {
-            return Err(declined(format!(
-                "tick: the next tick is {}",
-                guard.1.tick + 1
-            )));
+        let next = guard.1.tick + 1;
+        if member["tick"].as_u64() != Some(next) {
+            return Err(refused(
+                NEXT_TICK,
+                format!("tick: the next tick is {next}"),
+                Some(json!({"next": next})),
+            ));
         }
         let expected = guard.1.state.clone().map_or(Value::Null, Value::from);
         if member["state"] != expected {
-            return Err(declined("state: the step answers another state"));
+            return Err(refused(
+                OTHER_STATE,
+                "state: the step answers another state".into(),
+                None,
+            ));
         }
         guard.0.validate(request)?;
         // The owner executes a validated request at once; reserve the tick until then.
@@ -310,7 +443,7 @@ impl<S: Stepper> Handler for Lockstep<S> {
             // (rule 5.3). The clock is final: no step of another opening can run any more.
             guard.1.holder = Some(request.nonce.to_owned());
             guard.1.term += 1;
-            return Ok(guard.1.report().into());
+            return Ok(guard.1.body().into());
         }
         if !self.ops.iter().any(|op| op == request.op) {
             return guard.0.execute(request);
@@ -350,9 +483,9 @@ impl<S: Stepper> Handler for Lockstep<S> {
     }
 }
 
-/// What a client knows of the owner's clock: the tick, the state digest, and the identity of the
-/// request whose step produced the tick.
-pub type Known = (u64, Option<String>, Option<String>);
+/// What a client knows of the owner's clock: the tick, the state digest, the identity of the
+/// request whose step produced the tick, and the history identity.
+pub type Known = (u64, Option<String>, Option<String>, String);
 
 /// A client of a lockstep owner: it takes the ticks, adds the tick and the state to each step,
 /// and learns after a lost session whether its last step ran.
@@ -365,6 +498,8 @@ pub struct LockstepClient<C: Channel> {
     pub state: Option<String>,
     /// The identity of the request whose step produced the tick, if the client knows one.
     pub request: Option<String>,
+    /// The history identity of the owner's clock.
+    pub history: String,
     /// The term that the owner told last in this session (profile, rule 4.1).
     pub term: u64,
     /// The tick and the request identity of a step that is possibly executed.
@@ -389,42 +524,52 @@ fn broken<C: Channel>(
     }
 }
 
-/// The term in the report of the `open` response (profile, rule 3.2). The report can be older
-/// than the owner's clock by the time it arrives; only a take gives final values.
-fn reported_term<C: Channel>(client: &Client<C>) -> Result<u64, Error> {
-    let enabled = client.enabled();
-    let term = enabled
+/// The report of the `open` response (profile, rule 3.2): the revision, the clock, and whether
+/// the opening may take the ticks. It can be older than the owner's clock by the time it arrives;
+/// only a take gives final values. Fails if the owner did not enable this revision of the profile.
+pub fn report<C: Channel>(client: &Client<C>) -> Result<Map<String, Value>, Error> {
+    client
+        .enabled()
         .get(FEATURE)
+        .and_then(Value::as_object)
         .filter(|g| {
-            has_members(g, &["tick", "state", "request", "term"])
-                && g["tick"].is_u64()
-                && state_ok(&g["state"])
-                && (g["request"].is_null() || g["request"].is_string())
+            g.get("rev").and_then(Value::as_u64) == Some(REVISION)
+                && clock_of(&Value::Object((*g).clone())).is_some()
+                && g.get("take").is_some_and(Value::is_boolean)
         })
-        .and_then(|g| term_of(&g["term"]));
-    term.ok_or_else(|| {
-        Error::Usage("the owner did not enable ncp.lockstep (revision 4 of the profile)".into())
-    })
+        .cloned()
+        .ok_or_else(|| {
+            Error::Usage(format!(
+                "the owner did not enable ncp.lockstep (revision {REVISION} of the profile)"
+            ))
+        })
 }
 
 /// Take the ticks for the opening of `client` (profile, rules 5.2 and 5.3). Returns the final
-/// tick, state digest, and request identity, and the owner's new term.
+/// clock, tick, state digest, request identity, and history identity, and the owner's new term.
 ///
 /// `term` is the term that the owner told last in this session (rule 4.1), by default the term
-/// of the `open` response. A take that is declined because the term moved is sent again with
-/// the owner's term, at most [`TAKE_ATTEMPTS`] times in all; then, or if the term did not move,
-/// take returns the last [`Error::Declined`]. If the `open` response does not enable the feature
-/// with a term, take ends the session and fails (rule 3.4). If a take ran and its response does
-/// not carry the clock, take ends the session and returns [`Error::Ended`] with the code
-/// `local.protocol`: the take executed (rule 6.1).
+/// of the `open` response. A take that is declined with the reason `ncp.lockstep.term` is sent
+/// again with the owner's term, at most [`TAKE_ATTEMPTS`] times in all; then, or for another
+/// reason, take returns the last [`Error::Declined`]. If the `open` response does not enable this
+/// revision of the profile, take ends the session and fails (rule 3.4); if the opening may only
+/// read, take fails with [`Error::Usage`] and sends nothing (rule 3.5). If a take ran and its
+/// response does not carry the clock, take ends the session and returns [`Error::Ended`] with the
+/// code `local.protocol`: the take executed (rule 6.1).
 pub fn take<C: Channel>(client: &mut Client<C>, term: Option<u64>) -> Result<(Known, u64), Error> {
-    let told = match reported_term(client) {
-        Ok(term) => term,
+    let reported = match report(client) {
+        Ok(reported) => reported,
         Err(error) => {
             let _ = client.close(); // the session ends either way
             return Err(error);
         }
     };
+    if reported["take"] != Value::Bool(true) {
+        return Err(Error::Usage(
+            "this opening may only read the clock (take: false)".into(),
+        ));
+    }
+    let told = term_of(&reported["term"]).unwrap_or_default();
     let mut term = match term {
         None => told,
         Some(term) if term <= MAX_TERM => term,
@@ -439,28 +584,19 @@ pub fn take<C: Channel>(client: &mut Client<C>, term: Option<u64>) -> Result<(Kn
         match client.call(TAKE, json!({"term": term}), &[]) {
             Ok(result) => {
                 let body = &result.message["body"];
-                let valid = has_members(body, &["tick", "state", "request", "term"])
-                    && body["tick"].is_u64()
-                    && state_ok(&body["state"])
-                    && (body["request"].is_null() || body["request"].is_string())
-                    && term_of(&body["term"]) == Some(term + 1);
-                if !valid {
+                let known = clock_of(body).filter(|_| term_of(&body["term"]) == Some(term + 1));
+                let Some(known) = known else {
                     let request = result.message["request"].as_str().map(str::to_owned);
                     let detail = "the response of the take does not carry the clock";
                     return Err(broken(client, detail, body, request));
-                }
-                let known = (
-                    body["tick"].as_u64().unwrap_or_default(),
-                    body["state"].as_str().map(str::to_owned),
-                    body["request"].as_str().map(str::to_owned),
-                );
+                };
                 return Ok((known, term + 1));
             }
-            Err(Error::Declined { ref body, .. })
+            Err(ref error)
                 if attempt < TAKE_ATTEMPTS
-                    && term_of(&body[FEATURE]["term"]).is_some_and(|moved| moved != term) =>
+                    && told_term(error, TERM_MOVED).is_some_and(|moved| moved != term) =>
             {
-                term = term_of(&body[FEATURE]["term"]).unwrap_or_default();
+                term = told_term(error, TERM_MOVED).unwrap_or_default();
                 attempt += 1;
             }
             Err(error) => return Err(error),
@@ -468,13 +604,15 @@ pub fn take<C: Channel>(client: &mut Client<C>, term: Option<u64>) -> Result<(Kn
     }
 }
 
-/// The verdict of a recovery (profile, rule 6.5), from what the client knew before its uncertain
-/// step (`known`: tick, state digest, request), the tick and request identity of that step
-/// (`uncertain`), and the response of the take in the new opening (`taken`).
+/// The verdict of a recovery (profile, rule 6.5), from the clock that the client knew before its
+/// uncertain step (`known`: tick, state digest, request, history), the tick and request identity
+/// of that step (`uncertain`), and the clock in the response of the take in the new opening
+/// (`taken`).
 ///
 /// Yes if the take names the tick of the step and the identity of its request; No if it names
-/// exactly what the client knew, so that the step did not run and never will; otherwise Unknown:
-/// the owner's clock changed in another way, and the step stays possibly executed.
+/// exactly the clock that the client knew, its history included, so that the step did not run and
+/// never will; otherwise Unknown: the owner's clock changed in another way, and the step stays
+/// possibly executed.
 pub fn judge(known: &Known, uncertain: &(u64, Option<String>), taken: &Known) -> Executed {
     let (tick, identity) = uncertain;
     if taken.0 == *tick && identity.is_some() && taken.2 == *identity {
@@ -488,24 +626,25 @@ pub fn judge(known: &Known, uncertain: &(u64, Option<String>), taken: &Known) ->
 
 impl<C: Channel> LockstepClient<C> {
     /// Open `client`, which asks for the feature ([`Client::with_features`] with
-    /// `{"ncp.lockstep": {}}`), if it is not open yet, and take the ticks.
+    /// `{"ncp.lockstep": `[`parameters`]`()}`), if it is not open yet, and take the ticks.
     pub fn new(mut client: Client<C>) -> Result<LockstepClient<C>, Error> {
         if !client.opened() {
             client.open()?;
         }
-        let ((tick, state, request), term) = take(&mut client, None)?;
+        let ((tick, state, request, history), term) = take(&mut client, None)?;
         Ok(LockstepClient {
             client,
             tick,
             state,
             request,
+            history,
             term,
             uncertain: None,
         })
     }
 
     /// Take the ticks again in this session, with the term that the owner told last: for example
-    /// after a step that was declined because another opening took them (profile, rule 6.4).
+    /// after a step that was declined with the reason `ncp.lockstep.holder` (profile, rule 6.4).
     pub fn take(&mut self) -> Result<(), Error> {
         if self.uncertain.is_some() {
             return Err(Error::Usage(
@@ -513,13 +652,14 @@ impl<C: Channel> LockstepClient<C> {
             ));
         }
         match take(&mut self.client, Some(self.term)) {
-            Ok(((tick, state, request), term)) => {
-                (self.tick, self.state, self.request, self.term) = (tick, state, request, term);
+            Ok(((tick, state, request, history), term)) => {
+                (self.tick, self.state, self.request) = (tick, state, request);
+                (self.history, self.term) = (history, term);
                 Ok(())
             }
             Err(error) => {
                 // The owner told a newer term: the next take names it (rule 4.1).
-                if let Some(term) = told_term(&error) {
+                if let Some(term) = told_term(&error, TERM_MOVED) {
                     self.term = term;
                 }
                 Err(error)
@@ -578,7 +718,7 @@ impl<C: Channel> LockstepClient<C> {
                     // The holder check names the owner's term: another opening took the ticks
                     // (rule 6.4).
                     Error::Declined { .. } => {
-                        if let Some(term) = told_term(&error) {
+                        if let Some(term) = told_term(&error, NOT_HOLDER) {
                             self.term = term;
                         }
                     }
@@ -633,10 +773,15 @@ impl<C: Channel> LockstepClient<C> {
             }
             Err(error) => return Err(error),
         };
-        let known = (self.tick, self.state.clone(), self.request.clone());
+        let known = (
+            self.tick,
+            self.state.clone(),
+            self.request.clone(),
+            self.history.clone(),
+        );
         let verdict = judge(&known, &uncertain, &taken);
         self.client = client;
-        (self.tick, self.state, self.request) = taken;
+        (self.tick, self.state, self.request, self.history) = taken;
         self.term = term;
         self.uncertain = None;
         Ok(verdict)

@@ -36,12 +36,36 @@ pub enum Invalid {
     Failed(AppError),
 }
 
+/// The code of a decline of the application (rule 7.3.12).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum DeclineCode {
+    /// `body_invalid`: no state of the owner accepts the body.
+    #[default]
+    BodyInvalid,
+    /// `conflict`: the body is valid, but the owner's current state does not permit the request.
+    Conflict,
+    /// `unknown_op`: an operation of a feature that the profile of the feature does not define.
+    /// Only the profile of a feature that the session enabled gives it; for any other operation,
+    /// the owner treats it as a failure of the application.
+    UnknownOp,
+}
+
+impl DeclineCode {
+    /// The code on the wire.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            DeclineCode::BodyInvalid => "body_invalid",
+            DeclineCode::Conflict => "conflict",
+            DeclineCode::UnknownOp => "unknown_op",
+        }
+    }
+}
+
 /// A decline of the application (rule 7.3.12).
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Decline {
-    /// The code `conflict` if true: the body is valid, but the owner's current state does not
-    /// permit the request. Otherwise `body_invalid`: no state of the owner accepts the body.
-    pub conflict: bool,
+    /// The code.
+    pub code: DeclineCode,
     /// A reason for programs (section 7.5), in the format of an operation name. A reason that
     /// does not start with `ncp.` belongs to the application, and its contract can list the reasons
     /// of each operation (section 11).
@@ -72,7 +96,7 @@ pub fn declined_with(detail: impl Into<String>, members: Map<String, Value>) -> 
 /// a reason for programs and a detail for people, from a handler's `validate`.
 pub fn conflict(reason: impl Into<String>, detail: impl Into<String>) -> Invalid {
     Invalid::Declined(Decline {
-        conflict: true,
+        code: DeclineCode::Conflict,
         reason: Some(reason.into()),
         detail: detail.into(),
         members: Map::new(),
@@ -575,17 +599,18 @@ fn call<H: Handler + ?Sized>(
         }
     };
     if let Some(decline) = refusal {
-        let code = if decline.conflict {
-            "conflict"
-        } else {
-            "body_invalid"
-        };
+        let code = decline.code.as_str();
         let reasons = if of_feature {
             None
         } else {
             contract.reasons(op)
         };
-        if let Some(fault) = decline_fault(decline.reason.as_deref(), reasons.as_deref()) {
+        let fault = if decline.code == DeclineCode::UnknownOp && !of_feature {
+            Some("the application declined with unknown_op; it can give only body_invalid or conflict".into())
+        } else {
+            decline_fault(decline.reason.as_deref(), reasons.as_deref())
+        };
+        if let Some(fault) = fault {
             // A decline that NCP cannot send is a defect of the application while it checked the
             // body (rule 12): the session ends, and the client learns nothing false.
             let response = small("ended", "owner_failure", json!({}))?;

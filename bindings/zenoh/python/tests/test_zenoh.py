@@ -495,7 +495,7 @@ class LockstepRoutingTests(unittest.TestCase):
         self.server.stop(0.0)
 
     def client(self, channel, session: str | None = None) -> ncp.Client:
-        return ncp.Client(channel, self.WORLD, features={"ncp.lockstep": {}}, session=session, timeout=0.2,
+        return ncp.Client(channel, self.WORLD, features={"ncp.lockstep": {"rev": [5]}}, session=session, timeout=0.2,
                           retries=1, observer=QUIET)
 
     def test_a_recovery_that_reuses_its_session_identifier_gives_no_verdict(self) -> None:

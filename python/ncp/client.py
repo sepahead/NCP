@@ -297,7 +297,7 @@ class Client:
     `contract` is the application's `Contract`. `timeout` is the time limit for each response, in
     seconds; on a lossy channel, the client then sends the same frame again, at most `retries`
     times. `key` authenticates every frame (section 13.2). `features` asks for features at `open`
-    (section 7.1), for example {"ncp.lockstep": {}}.
+    (section 7.1), for example {"ncp.lockstep": {"rev": [5]}}.
 
     Use it as a context manager to open and close the session:
 

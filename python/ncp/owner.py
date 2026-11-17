@@ -183,9 +183,11 @@ class Note:
     error: BaseException | None = None
 
 
-def _decline_fault(code: Any, reason: Any, reasons: frozenset[str] | None) -> str | None:
-    """Why NCP cannot send a decline of the application (rule 7.3.12 and section 11), or None."""
-    if code not in APPLICATION_DECLINE_CODES:
+def _decline_fault(code: Any, reason: Any, reasons: frozenset[str] | None, of_feature: bool = False) -> str | None:
+    """Why NCP cannot send a decline of the application (rule 7.3.12 and section 11), or None. The
+    profile of a feature also declines an operation of its feature that it does not define, with
+    unknown_op."""
+    if code not in APPLICATION_DECLINE_CODES and not (of_feature and code == "unknown_op"):
         return f"the application declined with the code {code!r}; it can give only body_invalid or conflict"
     if reason is not None and not is_name(reason):
         return "the application declined with a reason that is not a name (section 7.5)"
@@ -330,7 +332,7 @@ def _call(
         handler.validate(request)
     except Declined as declined:
         code, reason = declined.code, declined.reason
-        fault = _decline_fault(code, reason, None if of_feature else contract.reasons(op))
+        fault = _decline_fault(code, reason, None if of_feature else contract.reasons(op), of_feature)
         if fault is not None:
             # A decline that NCP cannot send is a defect of the application while it checked the
             # body (rule 12): the session ends, and the client learns nothing false.

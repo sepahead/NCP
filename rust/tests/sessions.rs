@@ -1342,7 +1342,7 @@ fn lockstep_steps_carry_the_tick_and_a_new_session_tells_whether_the_last_step_r
     for (lose_response, expected) in [(true, Executed::Yes), (false, Executed::No)] {
         let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
         let mut features = Map::new();
-        features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+        features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
         let first = Client::new(
             Memory {
                 owner: Owner::new(contract(), lockstep.share()),
@@ -1442,7 +1442,7 @@ impl<H: Handler> Channel for Held<H> {
 fn held_session(lockstep: &Lockstep<World>, feature: bool) -> Client<Held<Lockstep<World>>> {
     let mut features = Map::new();
     if feature {
-        features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+        features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
     }
     Client::new(
         Held {
@@ -1503,6 +1503,162 @@ fn take_the_old_connection(
 }
 
 #[test]
+fn a_restore_to_an_earlier_saved_clock_gives_no_verdict() {
+    // Profile rules 5.7 and 6.5 (revision 5). The step of tick 2 runs, with an effect outside the
+    // state, and its response is lost. The owner restarts and restores the clock that it saved at
+    // tick 1: a step started after it, so the owner draws a new history identity. The client gets
+    // no verdict, never "did not run".
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let mut stepper = lose_a_step(&lockstep, None);
+    let saved = (
+        stepper.tick,
+        stepper.state.clone(),
+        stepper.request.clone(),
+        lockstep.clock().term,
+    );
+    let (held, mut old) = take_the_old_connection(&mut stepper, &lockstep);
+    let (outcome, _, _) = answer(&old.handle(held[0].clone()).expect("a response"));
+    assert_eq!((outcome.as_str(), lockstep.clock().tick), ("ok", 2));
+    let restored = Lockstep::restored(
+        World { position: 2 },
+        &["echo"],
+        saved.0,
+        saved.1,
+        saved.2,
+        saved.3,
+        None,
+    )
+    .expect("restored");
+    assert_ne!(restored.clock().history, lockstep.clock().history);
+    let verdict = stepper
+        .recover(held_session(&restored, true))
+        .expect("recover");
+    assert_eq!(verdict, Executed::Unknown);
+    assert_eq!(
+        (stepper.tick, stepper.history.clone()),
+        (1, restored.clock().history)
+    );
+}
+
+#[test]
+fn a_restart_that_keeps_the_latest_clock_and_its_history_gives_a_verdict() {
+    // Profile rule 5.7: no step started after the latest clock was saved, so the owner may restore
+    // its history identity, and "did not run" stays a verdict. Without it, no verdict.
+    for (keep, verdict) in [(true, Executed::No), (false, Executed::Unknown)] {
+        let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+        let mut stepper = lose_a_step(&lockstep, None); // the step of tick 2 never arrived
+        let clock = lockstep.clock();
+        let restarted = Lockstep::restored(
+            World { position: 2 },
+            &["echo"],
+            clock.tick,
+            clock.state,
+            clock.request,
+            clock.term,
+            keep.then_some(clock.history),
+        )
+        .expect("restored");
+        let recovered = stepper
+            .recover(held_session(&restarted, true))
+            .expect("recover");
+        assert_eq!(recovered, verdict, "keep {keep}");
+        let next = stepper.step("echo", json!({"dx": 1}), &[]).expect("step");
+        assert_eq!(next.message["body"]["position"], 3);
+    }
+    let wrong = Some("A".repeat(32));
+    let restored = Lockstep::restored(World { position: 0 }, &["echo"], 0, None, None, 0, wrong);
+    assert!(restored.is_err());
+}
+
+#[test]
+fn a_reader_opening_reads_the_clock_and_cannot_take_or_step() {
+    // Profile rule 3.5: the owner lets the openings of a service only read the clock.
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let mut stepper = LockstepClient::new(held_session(&lockstep, true)).expect("lockstep");
+    stepper.step("echo", json!({"dx": 2}), &[]).expect("step");
+    let mut monitor = held_session(&lockstep.reader(), true);
+    monitor.open().expect("open");
+    let report = ncp::lockstep::report(&monitor).expect("report");
+    assert_eq!(
+        (&report["tick"], &report["take"]),
+        (&json!(1), &json!(false))
+    );
+    assert_eq!(report["history"], json!(lockstep.clock().history));
+    assert!(matches!(
+        ncp::lockstep::take(&mut monitor, None),
+        Err(Error::Usage(_))
+    ));
+    for (op, body) in [
+        (ncp::lockstep::TAKE, json!({"term": report["term"]})),
+        (
+            "echo",
+            json!({"dx": 1, "ncp.tick": {"tick": 2, "state": "p2"}}),
+        ),
+    ] {
+        let refused = monitor.call(op, body, &[]).expect_err("declined");
+        assert_eq!(
+            (refused.code(), refused.reason()),
+            (Some("body_invalid"), Some(ncp::lockstep::READER))
+        );
+    }
+    let other = monitor
+        .call("big", json!({}), &[])
+        .expect("other operations pass");
+    assert_eq!(other.message["body"]["position"], 2);
+    let nonce = stepper.client().nonce().map(str::to_owned);
+    assert_eq!(lockstep.clock().holder, nonce);
+    let next = stepper.step("echo", json!({"dx": 1}), &[]).expect("step");
+    assert_eq!(next.message["body"]["position"], 3);
+}
+
+#[test]
+fn each_refusal_of_a_step_names_its_reason_and_its_facts() {
+    // Profile rule 5.8: conflict with a reason for a state that does not permit the step, and
+    // body_invalid without a reason for a body that no state accepts.
+    let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
+    let mut stepper = LockstepClient::new(held_session(&lockstep, true)).expect("lockstep");
+    let client = stepper.client();
+    for (member, reason, facts) in [
+        (
+            json!({"tick": 5, "state": "p0"}),
+            ncp::lockstep::NEXT_TICK,
+            json!({"next": 1}),
+        ),
+        (
+            json!({"tick": 1, "state": "other"}),
+            ncp::lockstep::OTHER_STATE,
+            Value::Null,
+        ),
+    ] {
+        let refused = client
+            .call("echo", json!({"dx": 1, "ncp.tick": member}), &[])
+            .expect_err("declined");
+        assert_eq!(
+            (refused.code(), refused.reason()),
+            (Some("conflict"), Some(reason))
+        );
+        if let Error::Declined { body, .. } = &refused {
+            assert_eq!(body[ncp::lockstep::FEATURE], facts);
+        }
+    }
+    for member in [
+        json!({"tick": "1", "state": "p0"}),
+        json!({"tick": 1}),
+        json!({"tick": -1, "state": "p0"}),
+        json!({"tick": 1, "state": ""}),
+    ] {
+        let refused = client
+            .call("echo", json!({"dx": 1, "ncp.tick": member}), &[])
+            .expect_err("declined");
+        assert_eq!(
+            (refused.code(), refused.reason()),
+            (Some("body_invalid"), None)
+        );
+    }
+    assert_eq!(lockstep.clock().tick, 0);
+}
+
+#[test]
 fn a_take_fences_the_steps_of_earlier_openings() {
     let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
     let mut stepper = lose_a_step(&lockstep, None);
@@ -1517,10 +1673,7 @@ fn a_take_fences_the_steps_of_earlier_openings() {
     assert_eq!(stepper.tick, 1);
     // The delayed request reaches the old opening after the recovery: it never runs.
     let (outcome, code, detail) = answer(&old.handle(held[0].clone()).expect("a response"));
-    assert_eq!(
-        (outcome.as_str(), code.as_str()),
-        ("declined", "body_invalid")
-    );
+    assert_eq!((outcome.as_str(), code.as_str()), ("declined", "conflict"));
     assert!(detail.contains("does not hold the ticks"), "{detail}");
     assert_eq!(lockstep.clock().tick, 1);
     let result = stepper
@@ -1562,7 +1715,8 @@ fn an_open_only_reports_the_clock() {
     monitor.open().expect("open");
     assert_eq!(
         monitor.enabled()[ncp::lockstep::FEATURE],
-        json!({"tick": 1, "state": "p2", "request": result.message["request"], "term": 1})
+        json!({"rev": 5, "tick": 1, "state": "p2", "request": result.message["request"],
+               "term": 1, "history": lockstep.clock().history, "take": true})
     );
     let nonce = stepper.client().nonce().map(str::to_owned);
     assert_eq!(lockstep.clock().holder, nonce);
@@ -1610,10 +1764,7 @@ fn a_copy_of_an_old_open_takes_nothing() {
     assert_eq!(lockstep.clock().holder, holder);
     // The delayed step reaches the first opening: it never runs, so "did not run" stays true.
     let (outcome, code, _) = answer(&old.handle(held[0].clone()).expect("a response"));
-    assert_eq!(
-        (outcome.as_str(), code.as_str()),
-        ("declined", "body_invalid")
-    );
+    assert_eq!((outcome.as_str(), code.as_str()), ("declined", "conflict"));
     let clock = lockstep.clock();
     assert_eq!((clock.tick, clock.state.as_deref()), (1, Some("p2")));
     // And the stepping client keeps going.
@@ -1633,10 +1784,7 @@ fn a_recovery_with_the_same_session_identifier_fences_the_old_opening() {
     let fresh = held_session(&lockstep, true).with_session(SESSION);
     assert_eq!(stepper.recover(fresh).expect("recover"), Executed::No);
     let (outcome, code, _) = answer(&old.handle(held[0].clone()).expect("a response"));
-    assert_eq!(
-        (outcome.as_str(), code.as_str()),
-        ("declined", "body_invalid")
-    );
+    assert_eq!((outcome.as_str(), code.as_str()), ("declined", "conflict"));
     assert_eq!(lockstep.clock().tick, 1);
     let result = stepper
         .step("echo", json!({"dx": 10}), &[])
@@ -1689,7 +1837,7 @@ fn joint_owner(lockstep: &Lockstep<World>) -> JointOwner {
 
 fn joint_session(owner: &JointOwner, session: &str) -> Client<Joint<Lockstep<World>>> {
     let mut features = Map::new();
-    features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
     Client::new(
         Joint {
             owner: owner.clone(),
@@ -1783,7 +1931,8 @@ fn a_delayed_take_of_an_abandoned_opening_is_declined() {
         .expect("the response")
         .message;
     assert_eq!(message["outcome"], "declined");
-    assert_eq!(message["code"], "body_invalid");
+    assert_eq!(message["code"], "conflict");
+    assert_eq!(message["body"]["ncp.reason"], ncp::lockstep::TERM_MOVED);
     assert_eq!(message["body"][ncp::lockstep::FEATURE], json!({"term": 1}));
     let nonce = stepper.client().nonce().map(str::to_owned);
     assert_eq!(lockstep.clock().holder, nonce);
@@ -1811,16 +1960,17 @@ fn a_take_needs_its_body_and_the_profile_defines_no_other_operation() {
     let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
     let mut client = held_session(&lockstep, true);
     client.open().expect("open");
-    for (op, body) in [
-        (ncp::lockstep::TAKE, json!({})),
-        (ncp::lockstep::TAKE, json!({"term": "0"})),
-        ("ncp.lockstep.other", json!({})),
+    for (op, body, expected) in [
+        (ncp::lockstep::TAKE, json!({}), "body_invalid"),
+        (ncp::lockstep::TAKE, json!({"term": "0"}), "body_invalid"),
+        ("ncp.lockstep.other", json!({}), "unknown_op"),
     ] {
-        let refused = client.call(op, body, &[]);
+        let refused = client.call(op, body, &[]).expect_err("declined");
         assert!(
-            matches!(&refused, Err(Error::Declined { code, .. }) if code == "body_invalid"),
+            matches!(&refused, Error::Declined { code, .. } if code == expected),
             "{op}: {refused:?}"
         );
+        assert_eq!(refused.reason(), None);
     }
     let clock = lockstep.clock();
     assert_eq!((clock.holder, clock.term, clock.tick), (None, 0, 0));
@@ -1838,6 +1988,7 @@ fn a_restart_to_the_same_tick_with_another_state_gives_no_verdict() {
         Some("p500".into()),
         Some("e".repeat(64)),
         0,
+        None,
     )
     .expect("restored");
     let verdict = stepper
@@ -1979,6 +2130,7 @@ fn no_step_follows_the_largest_tick() {
         Some("p0".into()),
         None,
         0,
+        None,
     )
     .expect("restored");
     let mut stepper = LockstepClient::new(held_session(&lockstep, true)).expect("lockstep");
@@ -1996,7 +2148,16 @@ fn no_step_follows_the_largest_tick() {
         "{refused:?}"
     );
     assert_eq!(lockstep.clock().tick, max);
-    assert!(Lockstep::restored(World { position: 0 }, &["echo"], max + 1, None, None, 0).is_err());
+    assert!(Lockstep::restored(
+        World { position: 0 },
+        &["echo"],
+        max + 1,
+        None,
+        None,
+        0,
+        None
+    )
+    .is_err());
 }
 
 #[test]
@@ -2020,7 +2181,7 @@ fn an_owner_without_a_term_ends_the_session() {
         }
     }
     let mut features = Map::new();
-    features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
     let mut client = memory_of(
         Owner::new(contract(), Earlier).with_observer(quiet()),
         false,
@@ -2037,8 +2198,8 @@ fn an_owner_without_a_term_ends_the_session() {
 fn no_take_raises_the_largest_term() {
     // Profile rule 5.2: the term stays an integer that a JSON number carries exactly.
     let max = ncp::lockstep::MAX_TERM;
-    let lockstep =
-        Lockstep::restored(World { position: 0 }, &["echo"], 0, None, None, max).expect("restored");
+    let lockstep = Lockstep::restored(World { position: 0 }, &["echo"], 0, None, None, max, None)
+        .expect("restored");
     let mut client = held_session(&lockstep, true);
     client.open().expect("open");
     match ncp::lockstep::take(&mut client, None) {
@@ -2054,7 +2215,16 @@ fn no_take_raises_the_largest_term() {
     }
     let clock = lockstep.clock();
     assert_eq!((clock.term, clock.holder), (max, None));
-    assert!(Lockstep::restored(World { position: 0 }, &["echo"], 0, None, None, max + 1).is_err());
+    assert!(Lockstep::restored(
+        World { position: 0 },
+        &["echo"],
+        0,
+        None,
+        None,
+        max + 1,
+        None
+    )
+    .is_err());
 }
 
 #[test]
@@ -2089,7 +2259,7 @@ fn a_closed_request_schema_admits_the_tick() {
     .expect("contract");
     let lockstep = Lockstep::new(World { position: 0 }, &["step"]);
     let mut features = Map::new();
-    features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
     let client = Client::new(
         Memory {
             owner: Owner::new(closed.clone(), lockstep.share()).with_observer(quiet()),
@@ -2167,7 +2337,7 @@ impl Handler for Altered {
 
 fn lockstep_features() -> Map<String, Value> {
     let mut features = Map::new();
-    features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
     features
 }
 
@@ -2268,7 +2438,8 @@ fn a_client_stops_after_three_takes_whose_term_moved() {
             let mut granted = Map::new();
             granted.insert(
                 ncp::lockstep::FEATURE.into(),
-                json!({"tick": 0, "state": null, "request": null, "term": self.term}),
+                json!({"rev": 5, "tick": 0, "state": null, "request": null, "term": self.term,
+                       "history": "c".repeat(32), "take": true}),
             );
             Ok(granted)
         }
@@ -2277,10 +2448,11 @@ fn a_client_stops_after_three_takes_whose_term_moved() {
             self.term += 1; // another client takes the ticks each time
             let mut members = Map::new();
             members.insert(ncp::lockstep::FEATURE.into(), json!({"term": self.term}));
-            Err(ncp::declined_with(
+            Err(ncp::conflict(
+                ncp::lockstep::TERM_MOVED,
                 format!("term: the term is {}", self.term),
-                members,
-            ))
+            )
+            .members(members))
         }
         fn execute(&mut self, _: &Request<'_>) -> Result<Reply, AppError> {
             Ok(json!({}).into())
@@ -2508,7 +2680,8 @@ fn a_client_acts_on_the_member_and_not_on_the_detail() {
             let mut granted = Map::new();
             granted.insert(
                 ncp::lockstep::FEATURE.into(),
-                json!({"tick": 0, "state": null, "request": null, "term": 0}),
+                json!({"rev": 5, "tick": 0, "state": null, "request": null, "term": 0,
+                       "history": "a".repeat(32), "take": true}),
             );
             Ok(granted)
         }
@@ -2520,10 +2693,12 @@ fn a_client_acts_on_the_member_and_not_on_the_detail() {
             }
             let mut members = Map::new();
             members.insert(ncp::lockstep::FEATURE.into(), json!({"term": 5}));
-            Err(ncp::declined_with("term: the term is 99", members))
+            Err(ncp::conflict(ncp::lockstep::TERM_MOVED, "term: the term is 99").members(members))
         }
         fn execute(&mut self, _: &Request<'_>) -> Result<Reply, AppError> {
-            Ok(json!({"tick": 0, "state": null, "request": null, "term": 6}).into())
+            Ok(json!({"tick": 0, "state": null, "request": null, "term": 6,
+                      "history": "a".repeat(32)})
+            .into())
         }
     }
     let named = Arc::new(Mutex::new(Vec::new()));
@@ -2535,28 +2710,46 @@ fn a_client_acts_on_the_member_and_not_on_the_detail() {
     .with_features(lockstep_features());
     client.open().expect("open");
     let taken = ncp::lockstep::take(&mut client, None).expect("take");
-    assert_eq!(taken, ((0, None, None), 6));
+    assert_eq!(taken, ((0, None, None, "a".repeat(32)), 6));
     assert_eq!(*named.lock().expect("lock"), vec![0, 5]);
 }
 
 #[test]
-fn an_owner_ignores_the_members_of_the_feature_parameters() {
-    // Profile rule 3.1.
+fn an_owner_reads_only_the_revisions_of_the_feature_parameters() {
+    // Profile rule 3.1, and specification section 17, rule 1: the owner enables the profile only
+    // for a client that lists revision 5, names that revision, and ignores the other members.
     let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
     let mut features = Map::new();
     features.insert(
         ncp::lockstep::FEATURE.into(),
-        json!({"tick": 99, "other": true}),
+        json!({"rev": [4, 5, 6], "tick": 99, "other": true}),
     );
     let mut client = held_session(&lockstep, true).with_features(features);
     client.open().expect("open");
     assert_eq!(
         client.enabled()[ncp::lockstep::FEATURE],
-        json!({"tick": 0, "state": "p0", "request": null, "term": 0})
+        json!({"rev": 5, "tick": 0, "state": "p0", "request": null, "term": 0,
+               "history": lockstep.clock().history, "take": true})
     );
     let mut stepper = LockstepClient::new(client).expect("lockstep");
     let result = stepper.step("echo", json!({"dx": 1}), &[]).expect("step");
     assert_eq!(result.message["body"]["position"], 1);
+    for parameters in [
+        json!({}),
+        json!({"rev": [4]}),
+        json!({"rev": 5}),
+        json!({"rev": [true, "5"]}),
+    ] {
+        let mut features = Map::new();
+        features.insert(ncp::lockstep::FEATURE.into(), parameters.clone());
+        let mut client = held_session(&lockstep, true).with_features(features);
+        client.open().expect("open");
+        assert!(
+            !client.enabled().contains_key(ncp::lockstep::FEATURE),
+            "{parameters}"
+        );
+        assert!(LockstepClient::new(client).is_err(), "{parameters}");
+    }
 }
 
 #[should_panic(expected = "state digest")]
@@ -2583,25 +2776,43 @@ fn an_application_digest_of_the_wrong_length_is_refused() {
 #[test]
 fn the_verdict_of_a_recovery() {
     use ncp::lockstep::judge;
-    let at = |tick: u64, state: &str, request: &str| {
-        (tick, Some(state.to_owned()), Some(request.to_owned()))
+    let at = |tick: u64, state: &str, request: &str, history: &str| {
+        (
+            tick,
+            Some(state.to_owned()),
+            Some(request.to_owned()),
+            history.to_owned(),
+        )
     };
-    let known = at(4, "s4", "r4");
+    let known = at(4, "s4", "r4", "h1");
     let step = (5, Some("r5".to_owned()));
-    assert_eq!(judge(&known, &step, &at(5, "s5", "r5")), Executed::Yes);
+    assert_eq!(
+        judge(&known, &step, &at(5, "s5", "r5", "h1")),
+        Executed::Yes
+    );
+    // A restored state that holds the step says so, whatever its history.
+    assert_eq!(
+        judge(&known, &step, &at(5, "s5", "r5", "h2")),
+        Executed::Yes
+    );
     assert_eq!(judge(&known, &step, &known), Executed::No);
     for taken in [
-        at(5, "s5", "other"),
-        at(4, "s4", "other"),
-        at(4, "other", "r4"),
-        at(3, "s3", "r3"),
-        at(6, "s6", "r6"),
+        at(5, "s5", "other", "h1"),
+        at(4, "s4", "other", "h1"),
+        at(4, "other", "r4", "h1"),
+        at(3, "s3", "r3", "h1"),
+        at(6, "s6", "r6", "h1"),
+        at(4, "s4", "r4", "h2"),
     ] {
         assert_eq!(judge(&known, &step, &taken), Executed::Unknown, "{taken:?}");
     }
     // Without the identity of its request, "ran" cannot be shown.
     assert_eq!(
-        judge(&known, &(5, None), &(5, Some("s5".into()), None)),
+        judge(
+            &known,
+            &(5, None),
+            &(5, Some("s5".into()), None, "h1".into())
+        ),
         Executed::Unknown
     );
 }
@@ -2644,7 +2855,7 @@ fn a_take_waits_for_a_checked_step_and_an_open_does_not() {
     let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
     let contract = contract();
     let mut features = Map::new();
-    features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
     let decoded = empty_decoded("r1");
     let mut first = lockstep.share();
     let take_body = json!({"term": 0});
@@ -2678,14 +2889,15 @@ fn a_take_waits_for_a_checked_step_and_an_open_does_not() {
         .clone();
     assert_eq!(
         report,
-        json!({"tick": 0, "state": "p0", "request": null, "term": 1})
+        json!({"rev": 5, "tick": 0, "state": "p0", "request": null, "term": 1,
+               "history": lockstep.clock().history, "take": true})
     );
     // A take of another opening waits until the checked step has run.
     let mut second = lockstep.share();
     let waiting = std::thread::spawn(move || {
         let contract = Contract::from_bytes(CONTRACT.to_vec()).expect("contract");
         let mut features = Map::new();
-        features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+        features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
         let decoded = empty_decoded("t2");
         let body = json!({"term": 1});
         let take = handler_request(
@@ -2705,7 +2917,8 @@ fn a_take_waits_for_a_checked_step_and_an_open_does_not() {
     first.execute(&step).expect("the step runs");
     assert_eq!(
         waiting.join().expect("the take"),
-        json!({"tick": 1, "state": "p3", "request": "r1", "term": 2})
+        json!({"tick": 1, "state": "p3", "request": "r1", "term": 2,
+               "history": lockstep.clock().history})
     );
     assert_eq!(lockstep.clock().holder.as_deref(), Some("n2"));
 }
@@ -2717,7 +2930,7 @@ fn a_step_waits_for_a_checked_take() {
     let lockstep = Lockstep::new(World { position: 0 }, &["echo"]);
     let contract = contract();
     let mut features = Map::new();
-    features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+    features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
     let decoded = empty_decoded("t");
     let mut first = lockstep.share();
     let take_body = json!({"term": 0});
@@ -2748,7 +2961,7 @@ fn a_step_waits_for_a_checked_take() {
     let waiting = std::thread::spawn(move || {
         let contract = Contract::from_bytes(CONTRACT.to_vec()).expect("contract");
         let mut features = Map::new();
-        features.insert(ncp::lockstep::FEATURE.into(), json!({}));
+        features.insert(ncp::lockstep::FEATURE.into(), ncp::lockstep::parameters());
         let decoded = empty_decoded("r1");
         let body = json!({"dx": 1, "ncp.tick": {"tick": 1, "state": "p0"}});
         let step = handler_request("echo", &body, "n1", "r1", &contract, &features, &decoded);

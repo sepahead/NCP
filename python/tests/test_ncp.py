@@ -1225,7 +1225,7 @@ class BindingTests(unittest.TestCase):
                 self.inner.close()
 
         def session(channel=None) -> ncp.Client:
-            return ncp.Client(channel or ncp.connect_unix(path), world, features={"ncp.lockstep": {}})
+            return ncp.Client(channel or ncp.connect_unix(path), world, features={"ncp.lockstep": {"rev": [5]}})
 
         try:
             self.assertEqual(owner.stdout.readline().strip(), f"ready unix:{path}")
@@ -1545,7 +1545,7 @@ class LockstepTests(unittest.TestCase):
         return ncp.Client(
             self.Held(owner or ncp.Owner(self.CONTRACT, lockstep)),
             self.CONTRACT,
-            features={"ncp.lockstep": {}} if feature else None,
+            features={"ncp.lockstep": {"rev": [5]}} if feature else None,
             session=session,
         )
 
@@ -1566,7 +1566,7 @@ class LockstepTests(unittest.TestCase):
     def test_steps_carry_the_tick_and_the_state(self) -> None:
         lockstep = ncp.Lockstep(self.World(), ["step"])
         owner = ncp.Owner(self.CONTRACT, lockstep)
-        client = ncp.Client(_Lossless(owner), self.CONTRACT, features={"ncp.lockstep": {}})
+        client = ncp.Client(_Lossless(owner), self.CONTRACT, features={"ncp.lockstep": {"rev": [5]}})
         stepper = ncp.LockstepClient(client)  # opens and takes the ticks
         self.assertEqual((stepper.tick, stepper.state, stepper.request), (0, "p0", None))  # the world's digest
         self.assertEqual((lockstep.holder, lockstep.term), (client.nonce, 1))
@@ -1590,12 +1590,14 @@ class LockstepTests(unittest.TestCase):
         result = stepper.step("step", {"dx": 2})
         monitor = self.session(lockstep)
         monitor.open()
-        self.assertEqual(monitor.enabled["ncp.lockstep"], {"tick": 1, "state": "p2", "request": result.request, "term": 1})
+        self.assertEqual(monitor.enabled["ncp.lockstep"], {"rev": 5, "tick": 1, "state": "p2", "request": result.request,
+                                                           "term": 1, "history": lockstep.history, "take": True})
         self.assertEqual(lockstep.holder, stepper.client.nonce)
         self.assertEqual(stepper.step("step", {"dx": 1}).body["position"], 3)
         with self.assertRaises(ncp.Declined) as caught:
             monitor.call("step", {"dx": 1, "ncp.tick": {"tick": 3, "state": "p3"}})
         self.assertIn("does not hold the ticks", caught.exception.detail)
+        self.assertEqual((caught.exception.code, caught.exception.reason), ("conflict", "ncp.lockstep.holder"))
         self.assertEqual(caught.exception.body["ncp.lockstep"], {"term": 1})  # to take them (rule 6.4)
 
     def test_a_new_session_tells_whether_the_last_step_ran(self) -> None:
@@ -1616,7 +1618,7 @@ class LockstepTests(unittest.TestCase):
                         super().send(frame)
 
                 channel = Breaking(ncp.Owner(self.CONTRACT, lockstep))
-                stepper = ncp.LockstepClient(ncp.Client(channel, self.CONTRACT, features={"ncp.lockstep": {}}))
+                stepper = ncp.LockstepClient(ncp.Client(channel, self.CONTRACT, features={"ncp.lockstep": {"rev": [5]}}))
                 stepper.step("step", {"dx": 1})
                 channel.broken = True
                 with self.assertRaises(ncp.Ended) as caught:
@@ -1626,7 +1628,7 @@ class LockstepTests(unittest.TestCase):
                 self.assertEqual(stepper.uncertain[1], caught.exception.request)
                 self.assertIsNotNone(caught.exception.request)
                 fresh = ncp.Client(_Lossless(ncp.Owner(self.CONTRACT, lockstep)), self.CONTRACT,
-                                   features={"ncp.lockstep": {}})
+                                   features={"ncp.lockstep": {"rev": [5]}})
                 self.assertEqual(stepper.recover(fresh), expected)
                 self.assertEqual(stepper.tick, 2 if expected is ncp.Executed.YES else 1)
                 stepper.step("step", {"dx": 10})
@@ -1638,7 +1640,8 @@ class LockstepTests(unittest.TestCase):
         self.assertEqual(stepper.tick, 1)
         # The delayed request reaches the old opening after the recovery: it never runs.
         response = self.answer(old.owner, old.held[0])
-        self.assertEqual((response["outcome"], response["code"]), ("declined", "body_invalid"))
+        self.assertEqual((response["outcome"], response["code"]), ("declined", "conflict"))
+        self.assertEqual(response["body"]["ncp.reason"], "ncp.lockstep.holder")
         self.assertIn("does not hold the ticks", response["body"]["detail"])
         self.assertEqual(lockstep.tick, 1)
         self.assertEqual(stepper.step("step", {"dx": 10}).body["position"], 12)
@@ -1671,7 +1674,8 @@ class LockstepTests(unittest.TestCase):
         self.assertEqual((took["outcome"], took["code"]), ("rejected", "ack_mismatch"))
         self.assertEqual(lockstep.holder, holder)
         response = self.answer(old.owner, old.held[0])
-        self.assertEqual((response["outcome"], response["code"]), ("declined", "body_invalid"))
+        self.assertEqual((response["outcome"], response["code"]), ("declined", "conflict"))
+        self.assertEqual(response["body"]["ncp.reason"], "ncp.lockstep.holder")
         self.assertEqual((lockstep.tick, lockstep.handler.position), (1, 2))  # "did not run" stays true
         self.assertEqual(stepper.step("step", {"dx": 10}).body["position"], 12)  # and the stepper keeps going
 
@@ -1681,7 +1685,8 @@ class LockstepTests(unittest.TestCase):
         stepper, old = self.lose_a_step(lockstep, session=self.SESSION)
         self.assertEqual(stepper.recover(self.session(lockstep, session=self.SESSION)), ncp.Executed.NO)
         response = self.answer(old.owner, old.held[0])
-        self.assertEqual((response["outcome"], response["code"]), ("declined", "body_invalid"))
+        self.assertEqual((response["outcome"], response["code"]), ("declined", "conflict"))
+        self.assertEqual(response["body"]["ncp.reason"], "ncp.lockstep.holder")
         self.assertEqual((lockstep.tick, lockstep.handler.position), (1, 2))
         self.assertEqual(stepper.step("step", {"dx": 10}).body["position"], 12)
 
@@ -1723,7 +1728,8 @@ class LockstepTests(unittest.TestCase):
             abandoned.call("ncp.lockstep.take", {"term": 0})
         stepper = ncp.LockstepClient(self.session(lockstep))
         late = self.answer(abandoned.channel.owner, abandoned.channel.held[0])
-        self.assertEqual((late["outcome"], late["code"]), ("declined", "body_invalid"))
+        self.assertEqual((late["outcome"], late["code"]), ("declined", "conflict"))
+        self.assertEqual(late["body"]["ncp.reason"], "ncp.lockstep.term")
         self.assertEqual(late["body"]["ncp.lockstep"], {"term": 1})
         self.assertIn("term", late["body"]["detail"])
         self.assertEqual(lockstep.holder, stepper.client.nonce)
@@ -1748,17 +1754,20 @@ class LockstepTests(unittest.TestCase):
         with self.assertRaises(ncp.Declined) as caught:
             ncp.lockstep.take(client)
         # No other take ran, so the response names no term (rule 6.2).
-        self.assertEqual(caught.exception.body, {"detail": "term: the term is the largest; no take can follow it"})
+        self.assertEqual(caught.exception.body, {"detail": "term: the term is the largest; no take can follow it",
+                                                 "ncp.reason": "ncp.lockstep.limit"})
+        self.assertEqual(caught.exception.code, "conflict")
         self.assertEqual((lockstep.term, lockstep.holder), (ncp.lockstep.MAX_TERM, None))
 
     def test_a_take_needs_its_body_and_the_profile_defines_no_other_operation(self) -> None:
         lockstep = ncp.Lockstep(self.World(), ["step"])
         client = self.session(lockstep)
         client.open()
-        for op, body in (("ncp.lockstep.take", {}), ("ncp.lockstep.take", {"term": "0"}), ("ncp.lockstep.other", {})):
+        for op, body, code in (("ncp.lockstep.take", {}, "body_invalid"), ("ncp.lockstep.take", {"term": "0"}, "body_invalid"),
+                               ("ncp.lockstep.other", {}, "unknown_op")):
             with self.assertRaises(ncp.Declined) as caught:
                 client.call(op, body)
-            self.assertEqual(caught.exception.code, "body_invalid")
+            self.assertEqual((caught.exception.code, caught.exception.reason), (code, None))
         self.assertEqual((lockstep.holder, lockstep.term, lockstep.handler.position), (None, 0, 0))
 
     def test_a_restart_to_the_same_tick_with_another_state_gives_no_verdict(self) -> None:
@@ -1771,6 +1780,81 @@ class LockstepTests(unittest.TestCase):
         self.assertEqual((stepper.tick, stepper.state, stepper.uncertain), (1, "p500", None))
         restarted.handler.position = 500  # the world that the restored digest names
         self.assertEqual(stepper.step("step", {"dx": 1}).body["position"], 501)
+
+    def test_a_restore_to_an_earlier_saved_clock_gives_no_verdict(self) -> None:
+        # Profile rules 5.7 and 6.5 (revision 5). The step of tick 2 runs, with an effect outside
+        # the state, and its response is lost. The owner restarts and restores the clock that it
+        # saved at tick 1: a step started after that clock, so the owner draws a new history
+        # identity. The client gets no verdict, never "did not run", and cannot run the step twice
+        # on a false verdict.
+        lockstep = ncp.Lockstep(self.World(), ["step"])
+        stepper, old = self.lose_a_step(lockstep)
+        saved = (stepper.tick, stepper.state, stepper.request, lockstep.term)
+        ran = self.answer(old.owner, old.held[0])  # the step arrives late and runs
+        self.assertEqual((ran["outcome"], lockstep.tick), ("ok", 2))
+        world = self.World()
+        world.position = 2  # the state saved with the clock of tick 1
+        restored = ncp.Lockstep(world, ["step"], tick=saved[0], state=saved[1], request=saved[2], term=saved[3])
+        self.assertNotEqual(restored.history, lockstep.history)
+        self.assertIs(stepper.recover(self.session(restored)), ncp.Executed.UNKNOWN)
+        self.assertEqual((stepper.tick, stepper.state, stepper.history), (1, "p2", restored.history))
+
+    def test_a_restart_that_keeps_the_latest_clock_and_its_history_gives_a_verdict(self) -> None:
+        # Profile rule 5.7: no step started after the latest clock was saved, so the owner may
+        # restore its history identity, and "did not run" stays a verdict. Without the history
+        # identity, the same restart gives no verdict.
+        for keep, verdict in ((True, ncp.Executed.NO), (False, ncp.Executed.UNKNOWN)):
+            with self.subTest(keep=keep):
+                lockstep = ncp.Lockstep(self.World(), ["step"])
+                stepper, _ = self.lose_a_step(lockstep)  # the step of tick 2 never reached the owner
+                world = self.World()
+                world.position = 2
+                restarted = ncp.Lockstep(
+                    world, ["step"], tick=lockstep.tick, state=lockstep.state, request=lockstep.request,
+                    term=lockstep.term, history=lockstep.history if keep else None,
+                )
+                self.assertIs(stepper.recover(self.session(restarted)), verdict)
+                self.assertEqual(stepper.step("step", {"dx": 1}).body["position"], 3)
+        with self.assertRaises(ValueError):
+            ncp.Lockstep(self.World(), ["step"], history="A" * 32)
+
+    def test_a_reader_opening_reads_the_clock_and_cannot_take_or_step(self) -> None:
+        # Profile rule 3.5: the owner lets the openings of a service only read the clock.
+        lockstep = ncp.Lockstep(self.World(), ["step"])
+        stepper = ncp.LockstepClient(self.session(lockstep))
+        stepper.step("step", {"dx": 2})
+        monitor = self.session(None, owner=ncp.Owner(self.CONTRACT, lockstep.reader()))
+        monitor.open()
+        reported = ncp.lockstep.report(monitor)
+        self.assertEqual((reported["tick"], reported["take"], reported["history"]), (1, False, lockstep.history))
+        with self.assertRaises(ncp.UsageError):
+            ncp.lockstep.take(monitor)
+        for op, body in (("ncp.lockstep.take", {"term": reported["term"]}),
+                         ("step", {"dx": 1, "ncp.tick": {"tick": 2, "state": "p2"}})):
+            with self.assertRaises(ncp.Declined) as caught:
+                monitor.call(op, body)
+            self.assertEqual((caught.exception.code, caught.exception.reason), ("body_invalid", "ncp.lockstep.reader"))
+        self.assertEqual(monitor.call("look", {}).body, {"position": 2})  # other operations pass through
+        self.assertEqual(lockstep.holder, stepper.client.nonce)
+        self.assertEqual(stepper.step("step", {"dx": 1}).body["position"], 3)
+
+    def test_each_refusal_of_a_step_names_its_reason_and_its_facts(self) -> None:
+        # Profile rule 5.8: conflict with a reason for a state that does not permit the step, and
+        # body_invalid without a reason for a body that no state accepts.
+        lockstep = ncp.Lockstep(self.World(), ["step"])
+        stepper = ncp.LockstepClient(self.session(lockstep))
+        client = stepper.client
+        for member, reason, facts in (({"tick": 5, "state": "p0"}, "ncp.lockstep.tick", {"next": 1}),
+                                      ({"tick": 1, "state": "other"}, "ncp.lockstep.state", None)):
+            with self.assertRaises(ncp.Declined) as caught:
+                client.call("step", {"dx": 1, "ncp.tick": member})
+            self.assertEqual((caught.exception.code, caught.exception.reason), ("conflict", reason))
+            self.assertEqual(caught.exception.body.get("ncp.lockstep"), facts)
+        for member in ({"tick": "1", "state": "p0"}, {"tick": 1}, {"tick": -1, "state": "p0"}, {"tick": 1, "state": ""}):
+            with self.assertRaises(ncp.Declined) as caught:
+                client.call("step", {"dx": 1, "ncp.tick": member})
+            self.assertEqual((caught.exception.code, caught.exception.reason), ("body_invalid", None))
+        self.assertEqual((lockstep.tick, lockstep.handler.position), (0, 0))
 
     def test_profile_members_that_cannot_be_encoded_leave_the_detail(self) -> None:
         # The owner keeps the decline and drops members that it cannot encode.
@@ -1876,7 +1960,7 @@ class LockstepTests(unittest.TestCase):
                 return {}
 
         client = ncp.Client(_Lossless(ncp.Owner(self.CONTRACT, Earlier())), self.CONTRACT,
-                            features={"ncp.lockstep": {}})
+                            features={"ncp.lockstep": {"rev": [5]}})
         with self.assertRaises(ncp.ProtocolError):
             ncp.LockstepClient(client)
         self.assertTrue(client.ended)
@@ -1890,7 +1974,7 @@ class LockstepTests(unittest.TestCase):
                 lockstep.open(info)
                 raise ncp.Refused("the owner serves its largest number of sessions")
 
-        refused = ncp.Client(_Lossless(ncp.Owner(self.CONTRACT, Full())), self.CONTRACT, features={"ncp.lockstep": {}})
+        refused = ncp.Client(_Lossless(ncp.Owner(self.CONTRACT, Full())), self.CONTRACT, features={"ncp.lockstep": {"rev": [5]}})
         with self.assertRaises(ncp.Rejected):
             refused.open()
         self.assertEqual(lockstep.holder, stepper.client.nonce)
@@ -1917,7 +2001,7 @@ class LockstepTests(unittest.TestCase):
             b'{"type":"integer"}},"additionalProperties":false}}}},"streams":{}}'
         )
         lockstep = ncp.Lockstep(self.World(), ["step"])
-        client = ncp.Client(_Lossless(ncp.Owner(closed, lockstep)), closed, features={"ncp.lockstep": {}})
+        client = ncp.Client(_Lossless(ncp.Owner(closed, lockstep)), closed, features={"ncp.lockstep": {"rev": [5]}})
         stepper = ncp.LockstepClient(client)
         result = stepper.step("step", {"dx": 2})
         self.assertEqual(result.body["position"], 2)
@@ -1945,7 +2029,7 @@ class LockstepTests(unittest.TestCase):
         lockstep = ncp.Lockstep(self.World(), ["step"])
 
         def request(op, body, nonce, identity):
-            return ncp.Request(op, body, [], 1, "s", identity, self.CONTRACT, None, {"ncp.lockstep": {}}, nonce)
+            return ncp.Request(op, body, [], 1, "s", identity, self.CONTRACT, None, {"ncp.lockstep": {"rev": [5]}}, nonce)
 
         def take(nonce, term, identity):
             took = request("ncp.lockstep.take", {"term": term}, nonce, identity)
@@ -1956,8 +2040,9 @@ class LockstepTests(unittest.TestCase):
         step = request("step", {"dx": 3, "ncp.tick": {"tick": 1, "state": "p0"}}, "n1", "r1")
         lockstep.validate(step)
         # An open only reports: it does not wait, and it sees the clock before the step.
-        info = ncp.OpenInfo("s", self.CONTRACT, None, {"ncp.lockstep": {}}, "n3")
-        self.assertEqual(lockstep.open(info)["ncp.lockstep"], {"tick": 0, "state": "p0", "request": None, "term": 1})
+        info = ncp.OpenInfo("s", self.CONTRACT, None, {"ncp.lockstep": {"rev": [5]}}, "n3")
+        self.assertEqual(lockstep.open(info)["ncp.lockstep"], {"rev": 5, "tick": 0, "state": "p0", "request": None,
+                                                               "term": 1, "history": lockstep.history, "take": True})
         granted = []
         waiting = threading.Thread(target=lambda: granted.append(take("n2", 1, "t2")))
         waiting.start()
@@ -1965,7 +2050,7 @@ class LockstepTests(unittest.TestCase):
         self.assertTrue(waiting.is_alive(), "the take did not wait")
         lockstep.execute(step)
         waiting.join(5)
-        self.assertEqual(granted, [{"tick": 1, "state": "p3", "request": "r1", "term": 2}])
+        self.assertEqual(granted, [{"tick": 1, "state": "p3", "request": "r1", "term": 2, "history": lockstep.history}])
         self.assertEqual(lockstep.holder, "n2")
 
     def test_a_step_waits_for_a_checked_take(self) -> None:
@@ -1974,7 +2059,7 @@ class LockstepTests(unittest.TestCase):
         lockstep = ncp.Lockstep(self.World(), ["step"])
 
         def request(op, body, nonce, identity):
-            return ncp.Request(op, body, [], 1, "s", identity, self.CONTRACT, None, {"ncp.lockstep": {}}, nonce)
+            return ncp.Request(op, body, [], 1, "s", identity, self.CONTRACT, None, {"ncp.lockstep": {"rev": [5]}}, nonce)
 
         first = request("ncp.lockstep.take", {"term": 0}, "n1", "t1")
         lockstep.validate(first)
@@ -2056,18 +2141,20 @@ class LockstepTests(unittest.TestCase):
                 self.term, self.takes = 0, 0
 
             def open(self, info):
-                return {"ncp.lockstep": {"tick": 0, "state": None, "request": None, "term": self.term}}
+                return {"ncp.lockstep": {"rev": 5, "tick": 0, "state": None, "request": None, "term": self.term,
+                                         "history": "c" * 32, "take": True}}
 
             def validate(self, request):
                 self.takes += 1
                 self.term += 1  # another client takes the ticks each time
-                raise ncp.Declined(f"term: the term is {self.term}", body={"ncp.lockstep": {"term": self.term}})
+                raise ncp.Declined(f"term: the term is {self.term}", code="conflict", reason="ncp.lockstep.term",
+                                   body={"ncp.lockstep": {"term": self.term}})
 
             def execute(self, request):
                 return {}
 
         moving = Moving()
-        client = ncp.Client(_Lossless(ncp.Owner(self.CONTRACT, moving)), self.CONTRACT, features={"ncp.lockstep": {}})
+        client = ncp.Client(_Lossless(ncp.Owner(self.CONTRACT, moving)), self.CONTRACT, features={"ncp.lockstep": {"rev": [5]}})
         client.open()
         with self.assertRaises(ncp.Declined) as caught:
             ncp.lockstep.take(client)
@@ -2162,40 +2249,79 @@ class LockstepTests(unittest.TestCase):
                 self.named: list[int] = []
 
             def open(self, info):
-                return {"ncp.lockstep": {"tick": 0, "state": None, "request": None, "term": 0}}
+                return {"ncp.lockstep": {"rev": 5, "tick": 0, "state": None, "request": None, "term": 0,
+                                         "history": "a" * 32, "take": True}}
 
             def validate(self, request):
                 self.named.append(request.body["term"])
                 if request.body["term"] != 5:
-                    raise ncp.Declined("term: the term is 99", body={"ncp.lockstep": {"term": 5}})
+                    raise ncp.Declined("term: the term is 99", code="conflict", reason="ncp.lockstep.term",
+                                       body={"ncp.lockstep": {"term": 5}})
 
             def execute(self, request):
-                return {"tick": 0, "state": None, "request": None, "term": 6}
+                return {"tick": 0, "state": None, "request": None, "term": 6, "history": "a" * 32}
 
         misleading = Misleading()
         client = ncp.Client(_Lossless(ncp.Owner(self.CONTRACT, misleading)), self.CONTRACT,
-                            features={"ncp.lockstep": {}})
+                            features={"ncp.lockstep": {"rev": [5]}})
         client.open()
-        self.assertEqual(ncp.lockstep.take(client), ((0, None, None), 6))
+        self.assertEqual(ncp.lockstep.take(client), ((0, None, None, "a" * 32), 6))
         self.assertEqual(misleading.named, [0, 5])
 
-    def test_an_owner_ignores_the_members_of_the_feature_parameters(self) -> None:
-        # Rule 3.1.
+    def test_an_owner_reads_only_the_revisions_of_the_feature_parameters(self) -> None:
+        # Rule 3.1, and specification section 17, rule 1: the owner enables the profile only for a
+        # client that lists revision 5, names that revision, and ignores the other members.
         lockstep = ncp.Lockstep(self.World(), ["step"])
         client = ncp.Client(self.Held(ncp.Owner(self.CONTRACT, lockstep)), self.CONTRACT,
-                            features={"ncp.lockstep": {"tick": 99, "other": True}})
+                            features={"ncp.lockstep": {"rev": [4, 5, 6], "tick": 99, "other": True}})
         stepper = ncp.LockstepClient(client)
-        self.assertEqual(client.enabled["ncp.lockstep"], {"tick": 0, "state": "p0", "request": None, "term": 0})
+        self.assertEqual(client.enabled["ncp.lockstep"], {"rev": 5, "tick": 0, "state": "p0", "request": None,
+                                                          "term": 0, "history": lockstep.history, "take": True})
         self.assertEqual(stepper.step("step", {"dx": 1}).body["position"], 1)
+        for parameters in ({}, {"rev": [4]}, {"rev": 5}, {"rev": [True, "5"]}):
+            with self.subTest(parameters=parameters):
+                client = ncp.Client(self.Held(ncp.Owner(self.CONTRACT, lockstep)), self.CONTRACT,
+                                    features={"ncp.lockstep": parameters})
+                client.open()
+                self.assertNotIn("ncp.lockstep", client.enabled)
+                with self.assertRaises(ncp.ProtocolError):
+                    ncp.LockstepClient(client)
+
+    def test_a_client_uses_no_report_of_another_revision(self) -> None:
+        # Specification section 17, rule 1: a report that names another revision, or that misses a
+        # member of revision 5, enables nothing that the client can use; it ends the session.
+        clock = {"rev": 5, "tick": 0, "state": None, "request": None, "term": 0, "history": "b" * 32, "take": True}
+        for report in ({**clock, "rev": 4}, {**clock, "rev": [5]}, {k: v for k, v in clock.items() if k != "history"},
+                       {**clock, "history": "B" * 32}, {k: v for k, v in clock.items() if k != "take"}):
+            with self.subTest(report=report):
+
+                class Other:
+                    def open(self, info, report=report):
+                        return {"ncp.lockstep": report}
+
+                    def validate(self, request):
+                        raise AssertionError("no take may follow")
+
+                    def execute(self, request):
+                        raise AssertionError("no take may follow")
+
+                client = ncp.Client(_Lossless(ncp.Owner(self.CONTRACT, Other())), self.CONTRACT,
+                                    features={"ncp.lockstep": {"rev": [5]}})
+                client.open()
+                with self.assertRaises(ncp.ProtocolError):
+                    ncp.lockstep.take(client)
+                self.assertTrue(client.ended)
 
     def test_the_verdict_of_a_recovery(self) -> None:
-        judge, known = ncp.lockstep.judge, (4, "s4", "r4")
-        self.assertIs(judge(known, (5, "r5"), (5, "s5", "r5")), ncp.Executed.YES)
+        judge, known = ncp.lockstep.judge, (4, "s4", "r4", "h1")
+        self.assertIs(judge(known, (5, "r5"), (5, "s5", "r5", "h1")), ncp.Executed.YES)
+        self.assertIs(judge(known, (5, "r5"), (5, "s5", "r5", "h2")), ncp.Executed.YES)  # a restored state holds it
         self.assertIs(judge(known, (5, "r5"), known), ncp.Executed.NO)
-        for taken in ((5, "s5", "other"), (4, "s4", "other"), (4, "other", "r4"), (3, "s3", "r3"), (6, "s6", "r6")):
+        for taken in ((5, "s5", "other", "h1"), (4, "s4", "other", "h1"), (4, "other", "r4", "h1"), (3, "s3", "r3", "h1"),
+                      (6, "s6", "r6", "h1"), (4, "s4", "r4", "h2")):
             with self.subTest(taken=taken):
                 self.assertIs(judge(known, (5, "r5"), taken), ncp.Executed.UNKNOWN)
-        self.assertIs(judge(known, (5, None), (5, "s5", None)), ncp.Executed.UNKNOWN)  # "ran" cannot be shown
+        self.assertIs(judge(known, (5, None), (5, "s5", None, "h1")), ncp.Executed.UNKNOWN)  # "ran" cannot be shown
 
 
 class PackageTests(unittest.TestCase):
