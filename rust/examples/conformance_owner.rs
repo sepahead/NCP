@@ -1,6 +1,8 @@
 //! The owner of the conformance vectors (conformance/vectors.json, member "handler"), serving
 //! one session on standard input and output: `python -m ncp conformance --owner PATH`.
-use ncp::{declined, events, AppError, Contract, Handler, Invalid, Owner, Reply, Request};
+use ncp::{
+    conflict, declined, events, AppError, Contract, Handler, Invalid, Owner, Reply, Request,
+};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -16,6 +18,9 @@ impl Handler for Vectors {
     fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
         if request.op == "step" && request.body["invalid"] == true {
             return Err(declined("invalid"));
+        }
+        if request.op == "step" && request.body["conflict"] == true {
+            return Err(conflict("conformance.busy", "busy"));
         }
         if request.op == "flaky" && !self.flaky_seen {
             self.flaky_seen = true;
