@@ -55,7 +55,7 @@ def make_rounds(members, step, deadline=5.0) -> ncp.Rounds:
 
 
 def client_for(owner: ncp.Owner) -> ncp.Client:
-    client = ncp.Client(Direct(owner), CONTRACT)
+    client = ncp.Client(Direct(owner), CONTRACT, features={"ncp.rounds": {"rev": [3]}})
     client.open()
     return client
 
@@ -153,8 +153,8 @@ class RoundsTests(unittest.TestCase):
         for number in (1, 3):
             with self.assertRaises(ncp.Declined) as caught:
                 c.call("act", act("c", number))
-            self.assertEqual(caught.exception.code, "body_invalid")
-            self.assertIn("excluded", caught.exception.detail)
+            self.assertEqual((caught.exception.code, caught.exception.reason), ("conflict", "ncp.rounds.excluded"))
+            self.assertEqual(caught.exception.body["ncp.rounds"], {"missed": 1})
 
     def test_a_request_that_the_owner_accepted_before_the_deadline_is_in_the_round(self) -> None:
         # b's request is validated before the deadline and added after it: the round must wait
@@ -167,6 +167,9 @@ class RoundsTests(unittest.TestCase):
         reserved = threading.Event()
 
         class Slow:
+            def open(self, info):
+                return inner.open(info)
+
             def validate(self, request):
                 inner.validate(request)  # opens round 1 and reserves b's place
                 reserved.set()
@@ -191,16 +194,18 @@ class RoundsTests(unittest.TestCase):
         world = World()
         rounds = make_rounds(["a", "b"], world)
         first, second = client_for(rounds.owner()), client_for(rounds.owner())
-        for body, words in (
-            ({"value": 1}, "ncp.round"),
-            ({"ncp.round": {"agent": "a"}, "value": 1}, "ncp.round"),
-            ({"ncp.round": {"agent": "a", "round": "1"}, "value": 1}, "integer"),
-            (act("z", 1), "unknown agent"),
-            (act("a", 2), "round 2 is not open"),
+        for body, words, code, reason, facts in (
+            ({"value": 1}, "ncp.round", "body_invalid", None, None),
+            ({"ncp.round": {"agent": "a"}, "value": 1}, "ncp.round", "body_invalid", None, None),
+            ({"ncp.round": {"agent": "a", "round": "1"}, "value": 1}, "integer", "body_invalid", None, None),
+            ({"ncp.round": {"agent": "a", "round": 0}, "value": 1}, "integer", "body_invalid", None, None),
+            (act("z", 1), "unknown agent", "body_invalid", "ncp.rounds.member", None),
+            (act("a", 2), "round 2 is not open", "conflict", "ncp.rounds.round", {"next": 1}),
         ):
             with self.assertRaises(ncp.Declined) as caught:
                 first.call("act", body)
-            self.assertEqual(caught.exception.code, "body_invalid")
+            self.assertEqual((caught.exception.code, caught.exception.reason), (code, reason))
+            self.assertEqual(caught.exception.body.get("ncp.rounds"), facts)
             self.assertIn(words, caught.exception.detail)
 
         def second_session_for_a():
@@ -208,12 +213,13 @@ class RoundsTests(unittest.TestCase):
             try:
                 second.call("act", act("a", 1))
             except ncp.Declined as error:
-                rejection = error.detail
+                rejection = error
             return rejection, second.call("act", act("b", 1))
 
         results = run_agents([("a", lambda: first.call("act", act("a", 1))), ("other", second_session_for_a)])
         rejection, result_b = results["other"]
-        self.assertIn("another session", rejection)
+        self.assertIn("another session", rejection.detail)
+        self.assertEqual((rejection.code, rejection.reason), ("conflict", "ncp.rounds.bound"))
         self.assertEqual(ncp.RoundRecord.of(result_b, "b").agents, ("a", "b"))
         with self.assertRaises(ncp.Declined) as caught:
             first.call("act", act("b", 2))
@@ -239,6 +245,8 @@ class RoundsTests(unittest.TestCase):
             with self.assertRaises(ncp.Declined) as caught:
                 late.call("act", act("a", 2))
             self.assertIn("step failed", caught.exception.detail)
+            self.assertEqual((caught.exception.code, caught.exception.reason), ("conflict", "ncp.rounds.stopped"))
+            self.assertEqual(caught.exception.body["ncp.rounds"], {"failed": 1})
 
     def test_an_agent_checks_that_the_record_lists_its_own_request(self) -> None:
         rounds = make_rounds(["a", "b"], World())
@@ -262,7 +270,7 @@ class RoundsTests(unittest.TestCase):
 
                 def agent(name):
                     def run():
-                        client = ncp.Client(ncp.connect_unix(path), CONTRACT)
+                        client = ncp.Client(ncp.connect_unix(path), CONTRACT, features={"ncp.rounds": {"rev": [3]}})
                         client.open()
                         seen = [ncp.RoundRecord.of(client.call("act", act(name, k)), name) for k in range(1, 6)]
                         client.close()
@@ -287,6 +295,27 @@ class RoundsTests(unittest.TestCase):
         again = client_for(rounds.owner())
         results = both_act(again, b, 2)
         self.assertEqual(ncp.RoundRecord.of(results["a"], "a").agents, ("a", "b"))
+
+    def test_the_open_response_reports_the_revision_the_closed_round_and_the_history(self) -> None:
+        # Rules 3.1, 3.2, and 4.9: the owner enables the profile only for a client that lists
+        # revision 3; a session without it cannot take part; a restart draws a new history.
+        rounds = make_rounds(["a", "b"], World())
+        a, b = client_for(rounds.owner()), client_for(rounds.owner())
+        self.assertEqual(ncp.rounds.report(a), {"rev": 3, "closed": 0, "history": rounds.history})
+        both_act(a, b, 1)
+        self.assertEqual(ncp.rounds.report(client_for(rounds.owner()))["closed"], 1)
+        for parameters in (None, {}, {"rev": [2]}, {"rev": 3}):
+            with self.subTest(parameters=parameters):
+                features = None if parameters is None else {"ncp.rounds": parameters}
+                plain = ncp.Client(Direct(rounds.owner()), CONTRACT, features=features)
+                plain.open()
+                self.assertNotIn("ncp.rounds", plain.enabled)
+                with self.assertRaises(ncp.ProtocolError):
+                    ncp.rounds.report(plain)
+                with self.assertRaises(ncp.Declined) as caught:
+                    plain.call("act", act("a", 2))
+                self.assertEqual((caught.exception.code, caught.exception.reason), ("body_invalid", "ncp.rounds.feature"))
+        self.assertNotEqual(make_rounds(["a", "b"], World()).history, rounds.history)
 
     def test_members_and_deadline_are_checked(self) -> None:
         for members in ([], ["a", "a"], [""], ["x" * 129], [1]):

@@ -32,6 +32,22 @@
     {"code": "refused", "outcome": "rejected", "executed": "no", "client": "no", "rule": "7.1.4", "open": true},
     {"code": "bad_frame", "outcome": "ended", "executed": "no", "client": "no", "rule": "9.1.3"}
   ],
+  "reasons_note": "The reasons of the profiles (specification, section 7.5, and section 17, rule 4): each one with its profile, its code, the facts that the profile gives in its member ncp.<profile>, and its rule. scripts/check_ncp2_rules.py compares them with the tables of the profiles and the constants of the SDKs.",
+  "reasons": [
+    {"reason": "ncp.lockstep.term", "profile": "spec/NCP-2-LOCKSTEP.md", "code": "conflict", "facts": "{\"term\": E}", "rule": "5.2"},
+    {"reason": "ncp.lockstep.limit", "profile": "spec/NCP-2-LOCKSTEP.md", "code": "conflict", "facts": null, "rule": "5.2, 5.4"},
+    {"reason": "ncp.lockstep.holder", "profile": "spec/NCP-2-LOCKSTEP.md", "code": "conflict", "facts": "{\"term\": E}", "rule": "5.4"},
+    {"reason": "ncp.lockstep.tick", "profile": "spec/NCP-2-LOCKSTEP.md", "code": "conflict", "facts": "{\"next\": N}", "rule": "5.4"},
+    {"reason": "ncp.lockstep.state", "profile": "spec/NCP-2-LOCKSTEP.md", "code": "conflict", "facts": null, "rule": "5.4"},
+    {"reason": "ncp.lockstep.reader", "profile": "spec/NCP-2-LOCKSTEP.md", "code": "body_invalid", "facts": null, "rule": "3.5"},
+    {"reason": "ncp.rounds.feature", "profile": "spec/NCP-2-ROUNDS.md", "code": "body_invalid", "facts": null, "rule": "5.1"},
+    {"reason": "ncp.rounds.member", "profile": "spec/NCP-2-ROUNDS.md", "code": "body_invalid", "facts": null, "rule": "5.1"},
+    {"reason": "ncp.rounds.stopped", "profile": "spec/NCP-2-ROUNDS.md", "code": "conflict", "facts": "{\"failed\": K}", "rule": "5.1"},
+    {"reason": "ncp.rounds.bound", "profile": "spec/NCP-2-ROUNDS.md", "code": "conflict", "facts": null, "rule": "5.1"},
+    {"reason": "ncp.rounds.excluded", "profile": "spec/NCP-2-ROUNDS.md", "code": "conflict", "facts": "{\"missed\": K}", "rule": "5.1"},
+    {"reason": "ncp.rounds.round", "profile": "spec/NCP-2-ROUNDS.md", "code": "conflict", "facts": "{\"next\": K + 1}", "rule": "5.1"},
+    {"reason": "ncp.rounds.duplicate", "profile": "spec/NCP-2-ROUNDS.md", "code": "conflict", "facts": null, "rule": "5.1"}
+  ],
   "local_codes": [
     {"code": "local.timeout", "executed": "unknown", "rule": "7.6.7", "meaning": "no response before the time limit, after the last copy"},
     {"code": "local.closed", "executed": "unknown", "rule": "7.6.7", "meaning": "the binding closed or failed before a response arrived"},

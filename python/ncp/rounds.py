@@ -1,8 +1,9 @@
-"""The rounds profile (spec/NCP-2-ROUNDS.md): one owner applies the requests of many agents in
-rounds, in a fixed order, and tells each agent which requests each round applied."""
+"""The rounds profile, revision 3 (spec/NCP-2-ROUNDS.md): one owner applies the requests of many
+agents in rounds, in a fixed order, and tells each agent which requests each round applied."""
 
 from __future__ import annotations
 
+import secrets
 import threading
 import time
 from collections.abc import Callable, Iterable
@@ -10,14 +11,30 @@ from dataclasses import dataclass
 from typing import Any
 
 from . import frame as F
-from .client import Result
+from .client import Client, Result
 from .contract import Contract
-from .messages import ProtocolError
-from .owner import Declined, Owner, Request
+from .messages import ProtocolError, is_nonce
+from .owner import Declined, OpenInfo, Owner, Request
 
+FEATURE = "ncp.rounds"
 ROUND = "ncp.round"
 RECORD = "ncp.round_record"
 MAX_NAME = 128
+# The revision of the profile that this module speaks (specification, section 17, rule 1).
+REVISION = 3
+# The parameters with which a client asks for the profile in its `open` request:
+# `ncp.Client(channel, contract, features={ncp.rounds.FEATURE: ncp.rounds.PARAMETERS})`.
+PARAMETERS: dict[str, Any] = {"rev": [REVISION]}
+
+# The reasons of the declines of the profile (profile, rule 4.1; specification, section 7.5).
+NO_FEATURE = "ncp.rounds.feature"  # body_invalid: the session did not enable the profile
+UNKNOWN_MEMBER = "ncp.rounds.member"  # body_invalid: the agent is not a member
+STOPPED = "ncp.rounds.stopped"  # conflict; facts {"failed": K}
+BOUND = "ncp.rounds.bound"  # conflict: the session or the member is bound to another
+EXCLUDED = "ncp.rounds.excluded"  # conflict; facts {"missed": K}
+NOT_OPEN = "ncp.rounds.round"  # conflict; facts {"next": K + 1}
+DUPLICATE = "ncp.rounds.duplicate"  # conflict
+REASONS = (NO_FEATURE, UNKNOWN_MEMBER, STOPPED, BOUND, EXCLUDED, NOT_OPEN, DUPLICATE)
 
 Step = Callable[[int, list[tuple[str, Any]]], dict[str, dict[str, Any]]]
 
@@ -47,11 +64,15 @@ class Rounds:
     receives its result with the member "ncp.round_record": the round, the agents whose requests
     the round applied, the identities of those requests, and the members that missed the round.
 
+    Each agent's client asks for the feature: `features={ncp.rounds.FEATURE: ncp.rounds.PARAMETERS}`.
+    The `open` response reports the revision, the last round that closed, and the history
+    identity, which a restart changes.
+
     A member without a request in a round when it closes is excluded from every later round, so
     an agent that stops delays the others once, by at most one deadline. A request that breaks a
-    rule of the profile is declined (outcome `declined`, code `body_invalid`): it never runs, and
-    the agent's session goes on. When an agent's session ends, the member is free for a new
-    session. If `step` raises or returns a wrong result, every session of the round ends with
+    rule of the profile is declined with a reason (profile, rule 4.1): it never runs, and the
+    agent's session goes on. When an agent's session ends, the member is free for a new session.
+    If `step` raises or returns a wrong result, every session of the round ends with
     `owner_failure`, the exception is kept in `error`, and every later request is declined.
 
     Serve the sessions with a server that runs each session in its own thread, for example
@@ -87,6 +108,7 @@ class Rounds:
         self.members, self.step, self.deadline = names, step, deadline
         self.max_bound, self.check_digests, self.key, self.clock = max_bound, check_digests, key, clock
         self.closed = 0  # the last round that closed
+        self.history = secrets.token_hex(16)  # new at every start (profile, rule 4.9)
         self.excluded: dict[str, int] = {}  # member -> the round that it missed
         self.error: BaseException | None = None  # set when a step failed; no later round runs
         self._members = frozenset(names)
@@ -106,33 +128,53 @@ class Rounds:
             key=self.key,
         )
 
+    def _report(self, info: OpenInfo) -> dict[str, Any] | None:
+        """The parameters of the feature for an `open` that asks for this revision (rule 3.2)."""
+        parameters = info.features.get(FEATURE)
+        revisions = parameters.get("rev") if type(parameters) is dict else None
+        if type(revisions) is not list or not any(type(r) is int and r == REVISION for r in revisions):
+            return None
+        with self._lock:
+            return {"rev": REVISION, "closed": self.closed, "history": self.history}
+
     def _accept(self, handler: _AgentHandler, request: Request) -> None:
         """Validate a request and reserve its place in the open round. The owner executes every
         request that it validated, so a reserved place is filled at once by `_wait`."""
         if request.op != self.op:
             return
+        if FEATURE not in request.features:
+            raise Declined(f"feature: the session did not enable {FEATURE}", reason=NO_FEATURE)
         body = request.body
         member = body.get(ROUND) if type(body) is dict else None
-        if type(member) is not dict or member.keys() != {"agent", "round"}:
-            raise Declined('the body needs the member "ncp.round": {"agent": NAME, "round": K}')
+        if (
+            type(member) is not dict
+            or member.keys() != {"agent", "round"}
+            or type(member["agent"]) is not str
+            or type(member["round"]) is not int
+            or member["round"] < 1
+        ):
+            raise Declined('member: the body needs "ncp.round": {"agent": NAME, "round": K}, K an integer from 1')
         agent, number = member["agent"], member["round"]
-        if type(agent) is not str or type(number) is not int:
-            raise Declined("ncp.round: agent must be a string and round an integer")
+        if agent not in self._members:
+            raise Declined("member: unknown agent", reason=UNKNOWN_MEMBER)
         with self._lock:
             if self.error is not None:
-                raise Declined(f"a step failed in round {self.closed}; the rounds have stopped")
-            if agent not in self._members:
-                raise Declined("unknown agent")
+                raise Declined(f"stopped: a step failed in round {self.closed}; the rounds have stopped",
+                               code="conflict", reason=STOPPED, body={FEATURE: {"failed": self.closed}})
             if handler.agent is not None and handler.agent != agent:
-                raise Declined("this session belongs to another agent")
+                raise Declined("bound: this session belongs to another agent", code="conflict", reason=BOUND)
             if agent in self.excluded:
-                raise Declined(f"the agent is excluded: it missed round {self.excluded[agent]}")
+                missed = self.excluded[agent]
+                raise Declined(f"excluded: the agent missed round {missed}", code="conflict", reason=EXCLUDED,
+                               body={FEATURE: {"missed": missed}})
             if self._sessions.get(agent, handler) is not handler:
-                raise Declined("the agent has another session")
+                raise Declined("bound: the agent has another session", code="conflict", reason=BOUND)
             if number != self.closed + 1:
-                raise Declined(f"round {number} is not open; the next round is {self.closed + 1}")
+                raise Declined(f"round: round {number} is not open; the next round is {self.closed + 1}",
+                               code="conflict", reason=NOT_OPEN, body={FEATURE: {"next": self.closed + 1}})
             if agent in self._slots:  # unreachable: one session, one request at a time
-                raise Declined("the agent already has a request in this round")
+                raise Declined("duplicate: the agent already has a request in this round", code="conflict",
+                               reason=DUPLICATE)
             self._sessions[agent] = handler
             handler.agent = agent
             if not self._slots:
@@ -219,6 +261,10 @@ class _AgentHandler:
         self.rounds = rounds
         self.agent: str | None = None
 
+    def open(self, info: OpenInfo) -> dict[str, Any]:
+        report = self.rounds._report(info)
+        return {} if report is None else {FEATURE: report}
+
     def validate(self, request: Request) -> None:
         self.rounds._accept(self, request)
 
@@ -227,6 +273,23 @@ class _AgentHandler:
 
     def close(self, reason: str) -> None:
         self.rounds._release(self)
+
+
+def report(client: Client) -> dict[str, Any]:
+    """The report of the `open` response (profile, rule 3.2): the revision, the last round that
+    closed when the owner answered, and the history identity. Raise ProtocolError if the owner did
+    not enable this revision of the profile."""
+    granted = client.enabled.get(FEATURE)
+    if (
+        type(granted) is not dict
+        or type(granted.get("rev")) is not int
+        or granted["rev"] != REVISION
+        or type(granted.get("closed")) is not int
+        or granted["closed"] < 0
+        or not is_nonce(granted.get("history"))
+    ):
+        raise ProtocolError(f"the owner did not enable {FEATURE} (revision {REVISION} of the profile)")
+    return granted
 
 
 @dataclass(frozen=True)

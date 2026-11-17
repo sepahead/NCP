@@ -10,7 +10,10 @@ script requires:
 4. the Lean `Code` type (formal/NCP2/Model.lean) and the oracle's code names (formal/Oracle.lean)
    to name exactly the codes that an owner sends in reply to a decoded request;
 5. the revision of the data to equal the revision in the status line of spec/NCP-2.md and in
-   conformance/vectors.json, which conformance/generate.py writes.
+   conformance/vectors.json, which conformance/generate.py writes;
+6. the reasons of the data to equal the decline tables of the profiles (code, reason, and facts)
+   and the reason constants of the SDKs (python/ncp/lockstep.py and rounds.py, and
+   rust/src/lockstep.rs).
 
 Usage: check_ncp2_rules.py   (standard library only)
 """
@@ -26,7 +29,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "python"))
 
 from ncp import frame as F  # noqa: E402
+from ncp import lockstep as LS  # noqa: E402
 from ncp import messages as M  # noqa: E402
+from ncp import rounds as RS  # noqa: E402
 from ncp import transcript as T  # noqa: E402
 
 failures: list[str] = []
@@ -55,6 +60,32 @@ def rust_number(source: str, name: str) -> int | None:
 def rust_strings(source: str, name: str) -> list[str] | None:
     value = rust_constant(source, name)
     return None if value is None else re.findall(r'"([a-z_.]+)"', value)
+
+
+def profile_reasons(text: str) -> set[tuple[str, str, str | None]]:
+    """(reason, code, facts) of each row of the decline tables of a profile: the tables whose
+    header has the columns Code and `ncp.reason`. A row without a reason gives none."""
+    found: set[tuple[str, str, str | None]] = set()
+    header: list[str] | None = None
+    for raw in text.split("## ", 1)[1].splitlines():
+        line = raw.strip()
+        if not line.startswith("|"):
+            header = None
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if header is None:
+            header = cells if "Code" in cells and "`ncp.reason`" in cells else []
+            continue
+        if not header or set(line) <= set("|- "):
+            continue
+        row = dict(zip(header, cells))
+        reason = row["`ncp.reason`"].strip("`")
+        if reason == "none":
+            continue
+        facts_column = next((name for name in header if name.startswith("`ncp.") and name != "`ncp.reason`"), None)
+        facts = row.get(facts_column, "none").strip("`") if facts_column else "none"
+        found.add((reason, row["Code"].strip("`"), None if facts == "none" else facts))
+    return found
 
 
 def camel(code: str) -> str:
@@ -184,12 +215,35 @@ def main() -> int:
     named = dict(re.findall(r'\.([a-zA-Z]+) => "([a-z_]+)"', oracle))
     expect(all(named.get(camel(code)) == code for code in owner_codes), "formal/Oracle.lean names a code differently")
 
+    # 6. The reasons of the profiles.
+    reasons = rules["reasons"]
+    for entry in reasons:
+        expect(re.fullmatch(r"ncp\.[a-z]+\.[a-z_]+", entry["reason"]) is not None and M.is_name(entry["reason"]),
+               f"the reason {entry['reason']} is not ncp.<profile>.<name>")
+        expect(entry["code"] in ("body_invalid", "conflict"), f"the reason {entry['reason']} has the code {entry['code']}")
+    expect(len({e["reason"] for e in reasons}) == len(reasons), "the data lists a reason twice")
+    for profile in sorted({e["profile"] for e in reasons}):
+        listed = {(e["reason"], e["code"], e["facts"]) for e in reasons if e["profile"] == profile}
+        tabled = profile_reasons((ROOT / profile).read_text(encoding="utf-8"))
+        expect(tabled == listed, f"{profile}: the decline tables give {sorted(tabled - listed)}, the data "
+                                 f"{sorted(listed - tabled)}")
+    lockstep = {e["reason"] for e in reasons if e["profile"].endswith("LOCKSTEP.md")}
+    expect(set(LS.REASONS) == lockstep, "python/ncp/lockstep.py REASONS differ from the data")
+    expect(set(RS.REASONS) == {e["reason"] for e in reasons if e["profile"].endswith("ROUNDS.md")},
+           "python/ncp/rounds.py REASONS differ from the data")
+    rust_lockstep = (ROOT / "rust" / "src" / "lockstep.rs").read_text(encoding="utf-8")
+    named = dict(re.findall(r'pub const ([A-Z_]+): &str = "(ncp\.lockstep\.[a-z_]+)";', rust_lockstep))
+    listed_names = re.search(r"pub const REASONS: \[&str; \d+\] = \[([^\]]*)\]", rust_lockstep)
+    rust_reasons = {named.get(name.strip()) for name in (listed_names.group(1).split(",") if listed_names else []) if name.strip()}
+    expect(rust_reasons == lockstep, f"rust/src/lockstep.rs REASONS differ from the data: {sorted(map(str, rust_reasons))}")
+
     for failure in failures:
         print(failure, file=sys.stderr)
     if failures:
         return 1
-    print(f"rules: revision {rules['revision']}; {len(codes)} codes, {len(local)} local codes, and {len(limits)} limits "
-          "agree in the data, the specification, both SDKs, and the Lean model")
+    print(f"rules: revision {rules['revision']}; {len(codes)} codes, {len(local)} local codes, {len(limits)} limits, and "
+          f"{len(reasons)} reasons of profiles agree in the data, the specification, the profiles, both SDKs, and the "
+          "Lean model")
     return 0
 
 

@@ -34,7 +34,7 @@ META_SECTIONS = ("14",)
 # The profiles, with the sections that state their rules.
 PROFILES = {
     "spec/NCP-2-LOCKSTEP.md": ("3", "4", "5", "6"),
-    "spec/NCP-2-ROUNDS.md": ("3", "4", "5"),
+    "spec/NCP-2-ROUNDS.md": ("3", "4", "5", "6"),
 }
 
 
