@@ -1121,7 +1121,7 @@
       },
       {
         "section": "6.4",
-        "text": "4. After a `declined` response to a step, the step did not run, and it never will. With the reason `ncp.lockstep.holder`, another opening took the ticks, and the client MAY take them again in the same session, with the term of the member `ncp.lockstep` (rules 4.1, 6.1, and 6.2). With the reason `ncp.lockstep.tick` or `ncp.lockstep.state`, the clock that the client knows is not the owner's, for example after a step whose result was too large; a take in the same session gives it the owner's clock.",
+        "text": "4. After a `declined` response to a step, the step did not run, and it never will. With the reason `ncp.lockstep.holder`, another opening took the ticks, and the client MAY take them again in the same session, with the term of the member `ncp.lockstep` (rules 4.1, 6.1, and 6.2). With the reason `ncp.lockstep.tick` or `ncp.lockstep.state`, the clock that the client knows is not the owner's; a client that follows these rules sees these reasons only after a defect, and a take in the same session gives it the owner's clock.",
         "covered_by": [
           "test:python:test_a_take_names_the_last_term_that_the_owner_told",
           "test:rust:a_take_names_the_last_term_that_the_owner_told",
@@ -1287,7 +1287,7 @@
       },
       {
         "section": "5.9",
-        "text": "9. **Restart.** The state of this rule list outlives sessions but not the owner: an owner that restarts starts at round 0, with no excluded member and no bound member, and with a new history identity. A client that sees another history identity in a report knows that the rounds started again.",
+        "text": "9. **Restart.** The owner keeps the state of these rules across sessions, in memory. An owner that restarts starts again: round 0 is the last closed round, no member is excluded or bound, and the history identity is new. A client that sees another history identity in a report knows that the rounds started again.",
         "covered_by": [
           "test:python:test_the_open_response_reports_the_revision_the_closed_round_and_the_history"
         ]

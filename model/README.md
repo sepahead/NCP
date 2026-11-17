@@ -34,7 +34,7 @@ Five scripts of calls exercise `ok`, `declined` with `body_invalid`, `conflict`,
 
 In every reachable state, the program checks properties 1 to 8 of section 7.7.
 It also checks that a stopped owner admits nothing, and that every run without faults and without expired time limits gives the verdicts that the application decides.
-With two faults, it reaches about 2.6 million states in about 90 seconds. With one fault, it reaches about 105,000 states in a few seconds.
+With two faults, it reaches 5,150,954 states; on an Apple M4 Max it takes 6 to 12 minutes, depending on the load. With one fault, it reaches about 207,000 states in a few seconds.
 
 `--self-test` injects thirteen known defects into the SDK machines, one at a time, and requires a violation for each.
 Ten are defects of the owner or the client: no acknowledgement check, accepted gaps, a forgotten kept request, execution after the end, a declined request that is not kept, a `conflict` response that is not kept, so that a copy of the request executes once the application is free (property 5 catches it), a constant nonce, an ignored stop, a client that accepts a response to another request, and a client that reports a time limit as "not executed".

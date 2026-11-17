@@ -30,8 +30,9 @@ lists the changes for programs.
   not define; and what a verifier of a transcript can check. The model check's property S1 is now
   strict across restores, and a new property S7 checks every reason; seventeen known defects.
 - **Breaking: rounds profile revision 3.** The feature `ncp.rounds` with its revision, a report of
-  the last closed round and a history identity, reasons for every decline, and a restart rule. Its
-  recovery of a lost request stays open work, and the profile says so.
+  the last closed round and a history identity, an order of checks with codes, reasons, and facts,
+  and a restart rule. The review's outline of a redesign with the recovery of a lost request, which
+  it called revision 3, becomes revision 4; the profile says so.
 - **Text that a freeze needs.** A client ignores unknown members of a body whose outcome is not
   `ok` (6.2); a verifier ignores unknown members of a transcript header (10.1); one key for each
   address (13.2); a later incompatible Zenoh binding takes another key prefix (9.2); every profile

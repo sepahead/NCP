@@ -67,8 +67,8 @@ fn term_of(value: &Value) -> Option<u64> {
     value.as_u64().filter(|term| *term <= MAX_TERM)
 }
 
-/// The parameters with which a client asks for the profile in its `open` request:
-/// `client.with_features(json!({ncp::lockstep::FEATURE: ncp::lockstep::parameters()}))`.
+/// The parameters with which a client asks for the profile in its `open` request: insert them
+/// under [`FEATURE`] into the features of [`Client::with_features`].
 pub fn parameters() -> Value {
     json!({"rev": [REVISION]})
 }

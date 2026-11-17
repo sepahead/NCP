@@ -65,7 +65,7 @@ The owner keeps the number of the last round that closed (0 at the start), the s
 6. Every response of round K carries the same record.
 7. When the session of a member ends, the member is no longer bound. A new session can bind it, unless the member is excluded.
 8. If the application fails to apply round K, the owner responds `ended` with `owner_failure` to every request of round K, and rule 1 declines every later request of the round operation.
-9. **Restart.** The state of this rule list outlives sessions but not the owner: an owner that restarts starts at round 0, with no excluded member and no bound member, and with a new history identity. A client that sees another history identity in a report knows that the rounds started again.
+9. **Restart.** The owner keeps the state of these rules across sessions, in memory. An owner that restarts starts again: round 0 is the last closed round, no member is excluded or bound, and the history identity is new. A client that sees another history identity in a report knows that the rounds started again.
 
 The owner MUST be able to accept requests of other sessions while requests of the open round wait for it to close. Serve each session in its own thread or task, as the Unix domain socket, TCP, and Zenoh servers of the reference SDKs do.
 
@@ -106,10 +106,10 @@ A request for round 9 while round 7 is open gets `declined` with `conflict` and 
 
 ### 9.1 Revision 3 (17 November 2026)
 
-An advisory design review found that the profile had no feature, no revision on the wire, no reasons that a program can read, and no rule for a restart.
+An advisory design review found that the profile had no feature, no revision on the wire, no reasons that a program can read, and no rule for a restart. It also outlined a redesign, which it called revision 3: a join that gives a member the verdict on a lost request, a chained round identity, and a miss rule. This revision makes only the first changes; that redesign becomes revision 4, after a model check.
 
 - Section 3: the feature `ncp.rounds`, its revision, and a report of the last closed round and the history identity.
-- Rule 5.1: the order of the checks, the code `conflict` for a state that does not permit the request, the reasons `ncp.rounds.*`, and their facts, from revision 7 of the specification.
+- Rule 5.1: the order of the checks, the code `conflict` for a state that does not permit the request, the reasons `ncp.rounds.*`, and their facts, from revision 7 of the specification. The review's table gave `conflict` and one reason, `ncp.rounds.member`, to an unknown member and to a member or session bound to another. An unknown member is never accepted while the owner runs, so it gets `body_invalid` with `ncp.rounds.member`; a binding can end, so it gets `conflict` with `ncp.rounds.bound`.
 - Rule 5.9: what a restart does.
 - Section 7: the limits that remain, and the client's time limit.
 

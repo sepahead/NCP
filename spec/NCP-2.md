@@ -547,7 +547,7 @@ NCP needs no change for parallel programs. These patterns use it as specified:
 A profile adds rules for one kind of application. It changes nothing in this document. Every profile follows these rules:
 
 1. **Revision on the wire.** A profile has a revision, an integer that its status line names. A client that asks for the feature of a profile lists the revisions that it speaks in the member `rev` of its parameters: an array of distinct positive integers. An owner enables the feature only if it speaks one of these revisions, and it names that revision in the member `rev` of its parameters. A client MUST NOT use a feature whose parameters name no revision of its list.
-2. **`open` reads.** Accepting an `open` changes no state of the profile that outlives the session (rule 7.1.8). Every such change is a feature operation.
+2. **`open` reads.** Accepting an `open` changes no state of the profile that outlives the session (rule 7.1.8). The profile changes that state only in a request other than `open`: a feature operation, or an operation of the contract that the profile names.
 3. **State across sessions.** A profile names its state that outlives sessions, and says what a restart of the owner does to that state.
 4. **Reasons.** A profile names the reasons of its declines, in the form `ncp.<profile>.<name>`, and the facts that it gives with each one. [`ncp2-rules.json`](ncp2-rules.json) lists them.
 5. **Verification.** A profile says what a verifier of a transcript (section 10.3) can check of its exchanges.

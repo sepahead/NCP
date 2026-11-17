@@ -536,7 +536,8 @@ class LockstepRoutingTests(unittest.TestCase):
         # The late take names term 0, but the term is 1: declined, with the owner's term.
         self.server._on_query(FakeQuery(abandoned.channel.held[0], replies))
         answer = F.decode(replies.get(timeout=5), F.MAX_BOUND).message
-        self.assertEqual((answer["outcome"], answer["code"]), ("declined", "body_invalid"))
+        self.assertEqual((answer["outcome"], answer["code"]), ("declined", "conflict"))
+        self.assertEqual(answer["body"]["ncp.reason"], "ncp.lockstep.term")
         self.assertEqual(answer["body"]["ncp.lockstep"], {"term": 1})
         self.assertEqual(self.lockstep.holder, holder)
         self.assertEqual(stepper.step("step", {"dx": 1}).body["position"], 2)

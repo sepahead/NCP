@@ -287,7 +287,7 @@ Revision 7 (17 November 2026) closes the findings of the design record, [section
 
 These items remain, in the order of the advisory design review of revision 6:
 
-1. Before the tag, the owner decides which parts it freezes, and the status line of each part that stays provisional names its own revision. The text that the review asked to add before a freeze is in revision 7.
+1. Before the tag, the owner decides which parts it freezes. Then the status line of each part that stays provisional names its own revision, and the READMEs and the API documentation of both SDKs say which modules are provisional, so that no consumer learns it from a broken build. The text that the review asked to add before a freeze is in revision 7.
 2. The fault campaign and one benchmark block on the tagged revision, both gates in hosted CI at the tagged commit, and a decoder, owner, and client by another author for the frozen parts.
 3. CREBAIN's world as the first consumer of lockstep revision 5: it already checks a tick and a state digest in its own contract, without a holder or a recovery.
 4. A stream profile for sensors and advisories, first for Galadriel and CREBAIN's world.
@@ -295,3 +295,4 @@ These items remain, in the order of the advisory design review of revision 6:
 6. Rounds revision 4: the recovery of a lost request, a chained round identity, and a miss rule, with a model check, when a consumer needs many agents in one world.
 7. A composition document whose identity a run names.
 8. A function of the SDKs that checks the rules of a profile's section "Verification" on a transcript.
+9. From the same review, for the profiles: readers chosen by the peer of the binding, which needs the peer in the `open` handler; the optional member `parent` in a lockstep report after a restore, so that a recorder can build the tree of the branches of one world; one holder machine, specified and model checked once, for lockstep, authority, and rounds; and an owner object of the SDKs that runs an ordered list of profiles around the application, so that a profile is a set of pure functions that the model checks drive.
