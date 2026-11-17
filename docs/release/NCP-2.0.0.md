@@ -18,11 +18,11 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0.crate` | 72,899 | `a1ab0cd92a9c5d25f8e6dc095fbd26dba3b3a549a097d33b762c01bff31b7829` |
-| `sepahead_ncp-2.0.0-py3-none-any.whl` | 109,556 | `da1311a0fbf41b54b3e35a3518fa9358eadd4b206d2aafd5cf3da3cf2b78b351` |
-| `sepahead_ncp-2.0.0.tar.gz` | 105,764 | `012492b4cc9131f300736e5d1f5b46293461d871c30f0a7c039aa1067d55e7f1` |
-| `sepahead_ncp_zenoh-2.0.0-py3-none-any.whl` | 13,613 | `f0d120d6fa8d94afa047ac5dc81b40e58cf6c2e91197803c83db5533419504c8` |
-| `sepahead_ncp_zenoh-2.0.0.tar.gz` | 12,506 | `2fd58008722a2121b49338ceef384630d626f860e4dc0229109d687d520481ae` |
+| `sepahead-ncp-core-2.0.0-rc.7.crate` | 76,952 | `68728d6b893d9b002b50d18f03f7dfbf6bf70cd05e4757bc20d1ebc69dcf730d` |
+| `sepahead_ncp-2.0.0rc7-py3-none-any.whl` | 115,081 | `4afb91376d1a4c8dbada1e7aded0d6d98774f28ee72e69aa5e5327bbd77535d0` |
+| `sepahead_ncp-2.0.0rc7.tar.gz` | 111,709 | `2f5aef02b200d5a06152806182bb560e82c558e034260b66348c15f02e2b0c52` |
+| `sepahead_ncp_zenoh-2.0.0rc7-py3-none-any.whl` | 13,674 | `98db219d72bd8555c6554eddc3832fff36d7dc2b203e6937d3964a9ff5a4a1d2` |
+| `sepahead_ncp_zenoh-2.0.0rc7.tar.gz` | 12,526 | `6817d4fb4bba78cb08dbfdd568f3fab50cde9d0e00326dd926374444457e0ad5` |
 
 The Python package now ships the conformance vectors (`ncp/vectors.json`), which `python -m ncp conformance` reads; they make up most of its size.
 

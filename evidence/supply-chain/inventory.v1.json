@@ -397,8 +397,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/README.md",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "7b7fc236a938412062ec82cf106aaa82ce127a2a25130d17890a3a04493f3a33",
-      "size_bytes": 6521
+      "sha256": "2df2d5cb97ebecec5e3eeb6e7a50b5bec992fac8f7b019f6cf9402c3dfcfe7ac",
+      "size_bytes": 6522
     },
     {
       "classification": "frozen-release-baseline",
@@ -1645,8 +1645,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/generate.py",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "191f323d4fcf9607dfcd6181be2f755744cf21ea06e6318f1769113413c635ac",
-      "size_bytes": 61878
+      "sha256": "94ac08c04536786fadbea6373e2e63835438d63b257ba870d30decc27fd2ca43",
+      "size_bytes": 68202
     },
     {
       "classification": "conformance-fixture",
@@ -1693,8 +1693,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/requirements.json",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "a960bd406399a8206ef3fbc5a79adc5af26908b01127fb2f0b3de8acc7ecb170",
-      "size_bytes": 62804
+      "sha256": "8673b5adb51b6c9e396656a1bb2592ad4e7433ca431f28d2eb2ed788011e7df0",
+      "size_bytes": 74454
     },
     {
       "classification": "conformance-fixture",
@@ -1709,8 +1709,8 @@
       "license_disposition": "MIT OR Apache-2.0 repository material",
       "path": "conformance/vectors.json",
       "provenance": "tracked repository source or reproducible generated output",
-      "sha256": "bfaa65d5b35af68acdf66da7d0e1d958183cd94e0a4dfb0e61e3d0a98a8d7b19",
-      "size_bytes": 589718
+      "sha256": "c2b91349eb9ffb470600fa821afa31eead431801b43862e58a70e5ed215eea9a",
+      "size_bytes": 604182
     },
     {
       "classification": "conformance-fixture",
@@ -2625,7 +2625,7 @@
         "scripts/diagram_font_metrics.v1.json"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "a159892bbe0b245957b4a6d27607395d15275f057ceaa8bbb359c7e455245d29"
+      "sha256": "61027f1b9006befb7ace32ecb2c00824cef359fb7966c3a05d09347f2ff33b3d"
     },
     {
       "outputs": [
