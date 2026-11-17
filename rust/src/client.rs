@@ -12,7 +12,7 @@ use crate::frame::{
     self, Array, Decoded, FrameError, Key, Verify, DEFAULT_BOUND, HANDSHAKE_BOUND, MAX_BOUND,
 };
 use crate::messages::{
-    check_response, executed, is_name, is_nonce, is_session, Executed, PROTOCOL,
+    check_response, executed, is_name, is_nonce, is_session, reason_of, Executed, PROTOCOL,
 };
 use serde_json::{json, Map, Value};
 use std::fmt;
@@ -71,6 +71,16 @@ impl Error {
             | Error::Rejected { code, .. }
             | Error::Ended { code, .. } => Some(code),
             Error::Usage(_) => None,
+        }
+    }
+
+    /// The owner's reason for programs (section 7.5) of a declined request or a rejected `open`,
+    /// or `None` if it named none. A client acts on the outcome, then on the code, then on the
+    /// reason, and treats a reason that it does not know as the code alone (rule 7.6.8).
+    pub fn reason(&self) -> Option<&str> {
+        match self {
+            Error::Declined { body, .. } | Error::Rejected { body, .. } => reason_of(body),
+            _ => None,
         }
     }
 

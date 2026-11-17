@@ -809,12 +809,14 @@
     },
     {
       "section": "15.2",
-      "text": "2. Object members, at any level of a body or a contract, whose names start with `ncp.`. This document defines `ncp.array` (section 5), `ncp.end` (section 8), and `ncp.schema` (section 11).",
+      "text": "2. Object members, at any level of a body or a contract, whose names start with `ncp.`. This document defines `ncp.array` (section 5), `ncp.end` (section 8), `ncp.reason` (section 7.5), and `ncp.schema` and `ncp.reasons` (section 11).",
       "covered_by": [
-        "vectors:schemas:additionalProperties",
-        "vectors:schemas:ncp.array",
         "test:python:test_a_closed_request_schema_admits_the_tick",
-        "test:rust:a_closed_request_schema_admits_the_tick"
+        "test:rust:a_closed_request_schema_admits_the_tick",
+        "vectors:contracts:a reason of a profile",
+        "vectors:scenarios:a conflict is declined with its reason, kept, and advances the session",
+        "vectors:schemas:additionalProperties",
+        "vectors:schemas:ncp.array"
       ]
     },
     {
@@ -827,6 +829,55 @@
         "test:python:test_a_closed_request_schema_admits_the_tick",
         "test:rust:a_closed_request_schema_admits_the_tick"
       ]
+    },
+    {
+      "section": "6.2",
+      "text": "A client MUST ignore members that it does not know in the body of a response whose outcome is not `ok`. Later versions of this specification and profiles can add members, such as `ncp.reason` (section 7.5).",
+      "covered_by": [
+        "vectors:clients:reasons, unknown codes, and unknown members of a declined response",
+        "vectors:clients:a nameless response bound to the chain, with members that the client does not know",
+        "vectors:clients:a refused open names its reason"
+      ]
+    },
+    {
+      "section": "7.6.8",
+      "text": "8. A client acts on the outcome, then on the code, then on `ncp.reason` (section 7.5). It treats a reason that it does not know as the code alone. It MUST NOT act on `detail`, which is for people.",
+      "covered_by": [
+        "vectors:clients:reasons, unknown codes, and unknown members of a declined response",
+        "test:rust:a_conflict_names_its_reason_and_the_facts_of_a_profile",
+        "test:python:test_a_conflict_names_its_reason_and_the_facts_of_a_profile"
+      ]
+    },
+    {
+      "section": "9.2",
+      "text": "11. A later revision of this binding that a peer of this revision cannot use MUST take a key prefix other than `ncp/x/` and `ncp/s/`, so that peers of the two revisions never exchange frames.",
+      "covered_by": [
+        "test:zenoh-python:test_names_must_be_plain_keys",
+        "test:zenoh-rust:names_must_be_plain_keys"
+      ]
+    },
+    {
+      "section": "10.1",
+      "text": "A verifier MUST ignore members of the header that it does not know. Later versions can add members.",
+      "covered_by": [
+        "vectors:transcripts:a header with members that the verifier does not know, chain recomputed"
+      ]
+    },
+    {
+      "section": "11",
+      "text": "6. The member `ncp.reasons` of an operation is optional. Its value is an array of distinct reasons of the application (section 7.5): names in the format of an operation name that do not start with `ncp.`. An owner MUST NOT decline a request of that operation with a reason of the application that the array does not list. The contract identity then covers the reasons, so a client can rely on the list.",
+      "covered_by": [
+        "vectors:contracts:reasons of an operation",
+        "vectors:contracts:a reason of a profile",
+        "vectors:contracts:a reason twice",
+        "test:python:test_a_decline_that_ncp_cannot_send_ends_the_session",
+        "test:rust:a_decline_that_ncp_cannot_send_ends_the_session"
+      ]
+    },
+    {
+      "section": "13.2",
+      "text": "5. **One key for each address.** A frame names no key, so a receiver selects the key by the address at which the frame arrives: the service key or the stream key of the Zenoh binding, or the connection of the byte-stream binding. An endpoint MUST use one key for each address. To change the key, a deployment serves the new key at a new address, for example under a new service key, and moves the clients to it.",
+      "untested": "a rule for deployments: each SDK endpoint, a server, a client, or a Zenoh service, takes one key, and a frame carries no key identifier"
     }
   ],
   "profiles": {

@@ -192,7 +192,7 @@ impl<S: Stepper> Handler for Lockstep<S> {
         // The application and the clock share one lock, and the application's own `open` runs
         // under it: an open waits while a step of the application runs, but not for a step that
         // was checked and has not started. Either way it reports the clock between two steps.
-        let mut guard = self.shared.0.lock().map_err(|_| Refused("lock".into()))?;
+        let mut guard = self.shared.0.lock().map_err(|_| Refused::new("lock"))?;
         let mut granted = guard.0.open(info)?;
         if info.features.contains_key(FEATURE) {
             // A report from one instant (profile, rule 3.2). It changes nothing outside the

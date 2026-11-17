@@ -28,8 +28,9 @@ inductive Outcome where
 /-- The codes of section 7.5 that an owner sends in reply to a decoded request. -/
 inductive Code where
   | wrongProtocol | notOpen | alreadyOpen | wrongSession | seqStale | seqGap | seqConflict
-  | ackMissing | ackMismatch | unknownOp | bodyInvalid | contractMismatch | boundUnacceptable
-  | refused | sessionEnded | resultTooLarge | ownerFailure | sessionExpired | shutdown
+  | ackMissing | ackMismatch | unknownOp | bodyInvalid | conflict | contractMismatch
+  | boundUnacceptable | refused | sessionEnded | resultTooLarge | ownerFailure | sessionExpired
+  | shutdown
   deriving DecidableEq, Repr, Hashable
 
 /-- A request (spec 6.1). Bodies are abstract numbers. -/
@@ -86,11 +87,14 @@ inductive AppResult where
 /-- What the application and the owner do at one step: the application's verdict on the body of
 a call and, if the owner executes the call, its result (rule 7.3.12); and the nonce that the
 owner chooses if the step opens a session (section 7.1, rule 5). These are inputs of each step,
-so the model covers every behavior of the application, also one that depends on its own state. -/
+so the model covers every behavior of the application, also one that depends on its own state.
+An application that declines a call chooses `conflict` if the owner's current state does not
+permit it, and `body_invalid` otherwise. -/
 structure Behavior where
   valid : Bool
   result : AppResult
   nonce : Nat := 0
+  conflict : Bool := false
   deriving DecidableEq, Repr
 
 /-- The parts of the application that stay fixed: the operations of its contract (rule 7.3.12)
@@ -149,7 +153,8 @@ def answer (bound : Nat) (r : Request) (b : Behavior) : Response :=
   match r.op with
   | .call name =>
     if app.known name = false then reply H r .declined (some .unknownOp) .detail
-    else if b.valid = false then reply H r .declined (some .bodyInvalid) .detail
+    else if b.valid = false then
+      reply H r .declined (some (if b.conflict then .conflict else .bodyInvalid)) .detail
     else match b.result with
       | .result v => reply H r .ok none (.result v)
       | .error => reply H r .ended (some .ownerFailure) .empty

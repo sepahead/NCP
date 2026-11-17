@@ -13,7 +13,7 @@ use crate::frame::{
 };
 use crate::messages::{
     check_request, detail, feature_of, foreign, is_identity, is_name, MAX_FEATURES, MAX_RUN,
-    PROTOCOL,
+    PROTOCOL, REASON,
 };
 use serde_json::{json, Map, Value};
 use std::fmt;
@@ -28,32 +28,110 @@ pub type AppError = Box<dyn std::error::Error + Send + Sync>;
 /// Why a handler does not let a request run (rule 7.3.12).
 #[derive(Debug)]
 pub enum Invalid {
-    /// Decline the request: the owner responds `declined` with `body_invalid` and the detail, and
-    /// the request never runs. Make it with [`declined`].
-    Declined(String),
-    /// Decline the request as [`Invalid::Declined`] does, with members of a profile in the body
-    /// of the response: only members whose names start with `ncp.` (section 15, rule 2). Make it
-    /// with [`declined_with`].
-    DeclinedWith(String, Map<String, Value>),
+    /// Decline the request: the owner responds `declined`, and the request never runs. Make it
+    /// with [`declined`], [`declined_with`], or [`conflict`], and add a reason with
+    /// [`Invalid::reason`].
+    Declined(Decline),
     /// The application failed while it checked the body: the session ends with `owner_failure`.
     Failed(AppError),
 }
 
-/// Decline a request with a detail, from a handler's `validate`.
-pub fn declined(detail: impl Into<String>) -> Invalid {
-    Invalid::Declined(detail.into())
+/// A decline of the application (rule 7.3.12).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Decline {
+    /// The code `conflict` if true: the body is valid, but the owner's current state does not
+    /// permit the request. Otherwise `body_invalid`: no state of the owner accepts the body.
+    pub conflict: bool,
+    /// A reason for programs (section 7.5), in the format of an operation name. A reason that
+    /// does not start with `ncp.` belongs to the application, and its contract can list the reasons
+    /// of each operation (section 11).
+    pub reason: Option<String>,
+    /// A text for people.
+    pub detail: String,
+    /// Members of a profile, whose names start with `ncp.` (section 15, rule 2), for example the
+    /// facts that a client needs for its next request.
+    pub members: Map<String, Value>,
 }
 
-/// Decline a request with a detail and members of a profile, whose names start with `ncp.`, in
-/// the body of the response; for example the term of a declined take of the lockstep profile.
+/// Decline a request whose body no state of the owner accepts (code `body_invalid`), with a
+/// detail, from a handler's `validate`.
+pub fn declined(detail: impl Into<String>) -> Invalid {
+    Invalid::Declined(Decline {
+        detail: detail.into(),
+        ..Decline::default()
+    })
+}
+
+/// Decline a request as [`declined`] does, with members of a profile, whose names start with
+/// `ncp.`, in the body of the response.
 pub fn declined_with(detail: impl Into<String>, members: Map<String, Value>) -> Invalid {
-    Invalid::DeclinedWith(detail.into(), members)
+    declined(detail).members(members)
+}
+
+/// Decline a valid request that the owner's current state does not permit (code `conflict`), with
+/// a reason for programs and a detail for people, from a handler's `validate`.
+pub fn conflict(reason: impl Into<String>, detail: impl Into<String>) -> Invalid {
+    Invalid::Declined(Decline {
+        conflict: true,
+        reason: Some(reason.into()),
+        detail: detail.into(),
+        members: Map::new(),
+    })
+}
+
+impl Invalid {
+    /// The same decline with a reason for programs (section 7.5). A failure stays a failure.
+    #[must_use]
+    pub fn reason(self, reason: impl Into<String>) -> Self {
+        match self {
+            Invalid::Declined(decline) => Invalid::Declined(Decline {
+                reason: Some(reason.into()),
+                ..decline
+            }),
+            failed => failed,
+        }
+    }
+
+    /// The same decline with members of a profile, whose names start with `ncp.`. A failure stays
+    /// a failure.
+    #[must_use]
+    pub fn members(self, members: Map<String, Value>) -> Self {
+        match self {
+            Invalid::Declined(decline) => Invalid::Declined(Decline { members, ..decline }),
+            failed => failed,
+        }
+    }
 }
 
 /// Returned by a handler's `open` to refuse a session: the owner rejects the `open` with the code
-/// `refused` (section 7.1, rule 4.4).
+/// `refused` (section 7.1, rule 4.4), and with the reason in `ncp.reason` if there is one
+/// (section 7.5).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Refused(pub String);
+pub struct Refused {
+    /// A text for people.
+    pub detail: String,
+    /// A reason for programs, in the format of an operation name.
+    pub reason: Option<String>,
+}
+
+impl Refused {
+    /// Refuse with a detail.
+    pub fn new(detail: impl Into<String>) -> Self {
+        Refused {
+            detail: detail.into(),
+            reason: None,
+        }
+    }
+
+    /// The same refusal with a reason for programs.
+    #[must_use]
+    pub fn reason(self, reason: impl Into<String>) -> Self {
+        Refused {
+            reason: Some(reason.into()),
+            ..self
+        }
+    }
+}
 
 /// A result of an application operation: a body and the arrays that it refers to.
 #[derive(Debug, Clone, Default)]
@@ -425,6 +503,22 @@ type Small<'r> = dyn Fn(&str, &str, Value) -> Result<Arc<Vec<u8>>, FrameError> +
 type Replier<'r> = dyn Fn(&str, Option<&str>, Value, &[Array], Option<usize>) -> Result<Arc<Vec<u8>>, EncodeError>
     + 'r;
 
+/// Why NCP cannot send a decline of the application (rule 7.3.12 and section 11), or `None`.
+fn decline_fault(reason: Option<&str>, reasons: Option<&[String]>) -> Option<String> {
+    let reason = reason?;
+    if !is_name(reason) {
+        return Some(
+            "the application declined with a reason that is not a name (section 7.5)".into(),
+        );
+    }
+    match reasons {
+        Some(listed) if !reason.starts_with(RESERVED) && !listed.iter().any(|r| r == reason) => Some(format!(
+            "the application declined with the reason {reason:?}, which the operation does not list in ncp.reasons"
+        )),
+        _ => None,
+    }
+}
+
 /// Rule 12 for an operation of the application.
 fn call<H: Handler + ?Sized>(
     config: &OwnerConfig,
@@ -471,8 +565,7 @@ fn call<H: Handler + ?Sized>(
     };
     let refusal = match handler.validate(&request) {
         Ok(()) => None,
-        Err(Invalid::Declined(text)) => Some((text, Map::new())),
-        Err(Invalid::DeclinedWith(text, members)) => Some((text, members)),
+        Err(Invalid::Declined(decline)) => Some(decline),
         Err(Invalid::Failed(error)) => {
             let response = small("ended", "owner_failure", json!({}))?;
             let mut n = note("application_error", "ended", Some("owner_failure"));
@@ -481,32 +574,55 @@ fn call<H: Handler + ?Sized>(
             return Ok((response, n));
         }
     };
-    if let Some((text, members)) = refusal {
-        let text = detail(&text);
+    if let Some(decline) = refusal {
+        let code = if decline.conflict {
+            "conflict"
+        } else {
+            "body_invalid"
+        };
+        let reasons = if of_feature {
+            None
+        } else {
+            contract.reasons(op)
+        };
+        if let Some(fault) = decline_fault(decline.reason.as_deref(), reasons.as_deref()) {
+            // A decline that NCP cannot send is a defect of the application while it checked the
+            // body (rule 12): the session ends, and the client learns nothing false.
+            let response = small("ended", "owner_failure", json!({}))?;
+            let mut n = note("application_error", "ended", Some("owner_failure"));
+            n.detail = Some(fault.clone());
+            n.error = Some(fault);
+            return Ok((response, n));
+        }
+        let text = detail(&decline.detail);
+        let mut core = Map::new();
+        if !text.is_empty() {
+            core.insert("detail".into(), Value::String(text.clone()));
+        }
+        if let Some(reason) = &decline.reason {
+            core.insert(REASON.into(), Value::String(reason.clone()));
+        }
         // A profile can add its own members, whose names start with "ncp." (section 15, rule 2),
         // for example the term of a declined take of the lockstep profile.
-        let mut body: Map<String, Value> = members
+        let mut body: Map<String, Value> = decline
+            .members
             .into_iter()
-            .filter(|(name, _)| name.starts_with(RESERVED))
+            .filter(|(name, _)| name.starts_with(RESERVED) && name != REASON)
             .collect();
-        if !text.is_empty() {
-            body.insert("detail".into(), Value::String(text.clone()));
-        }
-        let bounded = reply(
+        body.extend(core.clone());
+        let response = match reply(
             "declined",
-            Some("body_invalid"),
+            Some(code),
             Value::Object(body),
             &[],
             Some(state.bound),
-        );
-        let response = match bounded {
+        ) {
             Ok(response) => response,
             // Members that cannot be encoded, or that make the response larger than the session's
-            // bound: decline with the detail alone, which always fits.
-            Err(_) if text.is_empty() => small("declined", "body_invalid", json!({}))?,
-            Err(_) => small("declined", "body_invalid", json!({"detail": text}))?,
+            // bound: decline with the detail and the reason alone, which always fit.
+            Err(_) => small("declined", code, Value::Object(core))?,
         };
-        let mut n = note("admitted", "declined", Some("body_invalid"));
+        let mut n = note("admitted", "declined", Some(code));
         n.detail = (!text.is_empty()).then_some(text);
         return Ok((response, n));
     }
@@ -557,17 +673,26 @@ fn open<H: Handler + ?Sized>(
     small: &Small<'_>,
 ) -> Result<(OwnerState, Arc<Vec<u8>>, Note), FrameError> {
     let request = &decoded.message;
-    let reject =
-        |code: &'static str, text: &str| -> Result<(OwnerState, Arc<Vec<u8>>, Note), FrameError> {
-            let body = if text.is_empty() {
-                json!({})
-            } else {
-                json!({"detail": detail(text)})
-            };
-            let mut n = note("open_rejected", "rejected", Some(code));
-            n.detail = (!text.is_empty()).then(|| text.to_owned());
-            Ok((state.clone(), small("rejected", code, body)?, n))
-        };
+    let refuse = |code: &'static str,
+                  text: &str,
+                  reason: Option<&str>|
+     -> Result<(OwnerState, Arc<Vec<u8>>, Note), FrameError> {
+        let mut body = Map::new();
+        if !text.is_empty() {
+            body.insert("detail".into(), Value::String(detail(text)));
+        }
+        if let Some(reason) = reason {
+            body.insert(REASON.into(), Value::String(reason.to_owned()));
+        }
+        let mut n = note("open_rejected", "rejected", Some(code));
+        n.detail = (!text.is_empty()).then(|| text.to_owned());
+        Ok((
+            state.clone(),
+            small("rejected", code, Value::Object(body))?,
+            n,
+        ))
+    };
+    let reject = |code: &'static str, text: &str| refuse(code, text, None);
     let body = match (&request["ack"], request["body"].as_object()) {
         (Value::Null, Some(body)) => body,
         _ => return reject("body_invalid", "open body"),
@@ -624,7 +749,18 @@ fn open<H: Handler + ?Sized>(
     };
     let granted = match handler.open(&info) {
         Ok(granted) => granted,
-        Err(Refused(text)) => return reject("refused", &text),
+        Err(Refused { detail, reason }) => match reason {
+            Some(reason) if !is_name(&reason) => {
+                let (state, response, mut n) =
+                    reject("refused", "the application failed to open the session")?;
+                n.kind = "application_error";
+                n.error = Some(
+                    "the application refused with a reason that is not a name (section 7.5)".into(),
+                );
+                return Ok((state, response, n));
+            }
+            reason => return refuse("refused", &detail, reason.as_deref()),
+        },
     };
     // Only features that the client asked for, each with parameters that are an object.
     let enabled: Map<String, Value> = granted
@@ -690,7 +826,7 @@ pub fn refuse(
             Err("refused".into())
         }
         fn open(&mut self, _: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
-            Err(Refused(self.0.clone()))
+            Err(Refused::new(self.0.clone()))
         }
     }
     let text = if text.is_empty() {

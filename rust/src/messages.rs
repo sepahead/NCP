@@ -39,7 +39,9 @@ pub const REJECTION_CODES: [&str; 14] = [
     "refused",
 ];
 /// Codes of a declined request: admitted, not executed, never executed (section 7.5).
-pub const DECLINE_CODES: [&str; 2] = ["unknown_op", "body_invalid"];
+pub const DECLINE_CODES: [&str; 3] = ["unknown_op", "body_invalid", "conflict"];
+/// The member of a response body that names a reason for programs (section 7.5).
+pub const REASON: &str = "ncp.reason";
 /// Codes of an ending response, with whether the request executed (section 7.5).
 pub const ENDING_CODES: [(&str, Executed); 5] = [
     ("result_too_large", Executed::Yes),
@@ -127,6 +129,14 @@ pub fn is_session(s: &str) -> bool {
             19 => matches!(c, b'8' | b'9' | b'a' | b'b'),
             _ => c.is_ascii_digit() || (b'a'..=b'f').contains(&c),
         })
+}
+
+/// The reason that a response body names in its member `ncp.reason` (section 7.5), or `None` if it
+/// names none. A value that is not a name is no reason: the client then acts on the code alone.
+pub fn reason_of(body: &Value) -> Option<&str> {
+    body.get(REASON)
+        .and_then(Value::as_str)
+        .filter(|reason| is_name(reason))
 }
 
 /// Whether a string is an operation name, feature name, or stream type name (section 6).

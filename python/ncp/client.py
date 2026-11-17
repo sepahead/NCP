@@ -26,6 +26,7 @@ from .messages import (
     executed,
     is_name,
     is_nonce,
+    reason_of,
     is_session,
 )
 from .owner import Declined
@@ -60,6 +61,11 @@ class Rejected(CallError):
     @property
     def detail(self) -> str:
         return self.body.get("detail", "") if type(self.body) is dict else ""
+
+    @property
+    def reason(self) -> str | None:
+        """The owner's reason for programs (section 7.5), or None if it named none."""
+        return reason_of(self.body)
 
 
 class Ended(CallError):

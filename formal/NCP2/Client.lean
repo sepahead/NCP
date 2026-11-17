@@ -224,9 +224,9 @@ theorem seqStale_after_execution (H : Frame → Id) :
     let p1 := reply H r1 .ok none (.result 1)
     let r2 : Request :=
       { protocol := 2, session := 1, seq := 2, op := .call 0, ack := some (H (.resp p1)), body := 1 }
-    let o := run H app {} [.req r0 ⟨true, .result 0, 0⟩, .req r1 ⟨true, .result 1, 0⟩,
-                           .req r2 ⟨true, .result 2, 0⟩]
-    (step H app o r1 ⟨true, .result 1, 0⟩).2.code = some .seqStale ∧
+    let o := run H app {} [.req r0 ⟨true, .result 0, 0, false⟩, .req r1 ⟨true, .result 1, 0, false⟩,
+                           .req r2 ⟨true, .result 2, 0, false⟩]
+    (step H app o r1 ⟨true, .result 1, 0, false⟩).2.code = some .seqStale ∧
       ∃ x ∈ o.log, x.request = r1 ∧ Executed x := by
   simp [run, apply, step, openStep, checkThenAdmit, admit, answer, reply, reject, Ends, Executed]
 

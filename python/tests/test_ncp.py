@@ -404,6 +404,72 @@ class OwnerTests(unittest.TestCase):
         self.assertEqual((third["outcome"], third["body"]), ("ok", {"n": 3}))
         self.assertEqual(self.call(1, "missing", ack, {})["code"], "seq_stale")
 
+    def test_a_conflict_names_its_reason_and_the_facts_of_a_profile(self) -> None:
+        # Rule 7.3.12 and section 7.5: the application chooses the code and the reason; the facts
+        # of a profile ride along, and the owner leaves them out, never the reason, when they do
+        # not fit the session bound.
+        facts = {"ncp.app": {"next": 4}}
+
+        class Busy(Echo):
+            def validate(self, req):
+                if req.body.get("big"):
+                    raise ncp.Declined("busy", code="conflict", reason="app.busy", body={"ncp.app": "x" * 70_000})
+                raise ncp.Declined("busy", code="conflict", reason="app.busy", body=facts)
+
+        self.owner = ncp.Owner(CONTRACT, Busy(), max_bound=F.HANDSHAKE_BOUND)
+        ack = self.opened()
+        first = self.owner.handle(request(self.session, 1, "echo", ack, {}))
+        self.assertEqual((response_of(first)["outcome"], response_of(first)["code"]), ("declined", "conflict"))
+        self.assertEqual(response_of(first)["body"], {"detail": "busy", "ncp.app": {"next": 4}, "ncp.reason": "app.busy"})
+        self.assertEqual(self.owner.handle(request(self.session, 1, "echo", ack, {})), first)
+        second = response_of(self.owner.handle(request(self.session, 2, "echo", F.identity(first), {"big": True})))
+        self.assertEqual((second["code"], second["body"]), ("conflict", {"detail": "busy", "ncp.reason": "app.busy"}))
+
+    def test_a_decline_that_ncp_cannot_send_ends_the_session(self) -> None:
+        # Rule 7.3.12: an application can decline only with body_invalid or conflict, a reason is a
+        # name, and an operation that lists its reasons (section 11, rule 6) gives no other reason
+        # of the application. Anything else is a defect while checking: owner_failure.
+        listed = ncp.Contract.from_bytes(
+            b'{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{"ncp.reasons":'
+            b'["echo.busy"]}},"streams":{}}'
+        )
+        cases = [
+            ({"code": "unknown_op"}, "owner_failure"),
+            ({"code": "conflict", "reason": "Not A Name"}, "owner_failure"),
+            ({"code": "conflict", "reason": "echo.other"}, "owner_failure"),
+            ({"code": "conflict", "reason": "echo.busy"}, "conflict"),
+            ({"code": "conflict", "reason": "ncp.profile.reason"}, "conflict"),
+            ({"code": "body_invalid"}, "body_invalid"),
+        ]
+        for decline, code in cases:
+            with self.subTest(decline=decline):
+
+                class Declining(Echo):
+                    def validate(self, req, decline=decline):
+                        raise ncp.Declined("no", **decline)
+
+                self.owner = ncp.Owner(listed, Declining())
+                self.session = str(uuid.uuid4())
+                ack = F.identity(self.owner.handle(open_request(self.session, contract=listed.identity)))
+                reply = self.call(1, "echo", ack, {})
+                self.assertEqual(reply["code"], code)
+                self.assertEqual(reply["outcome"], "ended" if code == "owner_failure" else "declined")
+
+    def test_a_refused_open_names_its_reason(self) -> None:
+        # Section 7.5: a rejected open with refused can name a reason; a reason that is not a name
+        # is a defect of the application, and the owner refuses without it.
+        for reason, body in [("echo.full", {"detail": "full", "ncp.reason": "echo.full"}),
+                             ("Full!", {"detail": "the application failed to open the session"})]:
+            with self.subTest(reason=reason):
+
+                class Full(Echo):
+                    def open(self, info, reason=reason):
+                        raise ncp.Refused("full", reason=reason)
+
+                self.owner = ncp.Owner(CONTRACT, Full())
+                reply = response_of(self.owner.handle(open_request(self.session)))
+                self.assertEqual((reply["outcome"], reply["code"], reply["body"]), ("rejected", "refused", body))
+
     def test_a_declined_answer_never_changes(self) -> None:
         # P-1: the application's verdict changes between two copies of one frame.
         class Flaky(Echo):

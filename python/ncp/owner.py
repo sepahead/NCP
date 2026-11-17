@@ -19,16 +19,19 @@ from . import frame as F
 from .contract import RESERVED, Contract
 from .frame import FrameError
 from .messages import (
+    APPLICATION_DECLINE_CODES,
     MAX_FEATURES,
     CallError,
     MAX_RUN,
     PROTOCOL,
+    REASON,
     check_request,
     feature_of,
     foreign,
     detail,
     is_identity,
     is_name,
+    reason_of,
 )
 
 IMPLEMENTATION = "ncp-python/2.0.0"
@@ -37,24 +40,37 @@ IMPLEMENTATION = "ncp-python/2.0.0"
 class Declined(CallError):
     """A request that the owner admitted and did not execute (outcome `declined`).
 
-    A handler raises it in `validate` to decline a request: `raise ncp.Declined("why")`. The owner
-    then responds `declined` with the code `body_invalid` and the detail, and the request never
-    executes. A client raises it when its request was declined; `code` and `body` are the owner's.
+    A handler raises it in `validate` to decline a request, and the request never executes
+    (rule 7.3.12):
+
+    - `raise ncp.Declined("why")`: no state of the owner accepts the body (code `body_invalid`).
+    - `raise ncp.Declined("why", code="conflict", reason="world.busy")`: the body is valid, but the
+      owner's current state does not permit the request.
+
+    `reason` is a name for programs (section 7.5); `detail` is for people. A reason that does not
+    start with `ncp.` belongs to the application, and its contract can list the reasons of each
+    operation (section 11). A profile adds its facts as members of `body` whose names start with
+    `ncp.`. A client raises it when its request was declined; `code`, `reason`, and `body` are the
+    owner's, and `reason` is None if the owner named none.
     """
 
-    def __init__(self, detail: str = "", *, code: str = "body_invalid", body: Any = None) -> None:
+    def __init__(
+        self, detail: str = "", *, code: str = "body_invalid", body: Any = None, reason: str | None = None
+    ) -> None:
         super().__init__(f"{code}: {detail}" if detail else code)
         self.detail, self.code = detail, code
         self.body = body if body is not None else ({"detail": detail} if detail else {})
+        self.reason = reason if reason is not None else reason_of(self.body)
 
 
 class Refused(Exception):
     """Raised by a handler's `open` to refuse a session: the owner rejects the `open` with
-    the code `refused` (section 7.1, rule 4.4)."""
+    the code `refused` (section 7.1, rule 4.4), and with `reason` in `ncp.reason` if given
+    (section 7.5)."""
 
-    def __init__(self, detail: str = "") -> None:
+    def __init__(self, detail: str = "", *, reason: str | None = None) -> None:
         super().__init__(detail)
-        self.detail = detail
+        self.detail, self.reason = detail, reason
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,6 +183,17 @@ class Note:
     error: BaseException | None = None
 
 
+def _decline_fault(code: Any, reason: Any, reasons: frozenset[str] | None) -> str | None:
+    """Why NCP cannot send a decline of the application (rule 7.3.12 and section 11), or None."""
+    if code not in APPLICATION_DECLINE_CODES:
+        return f"the application declined with the code {code!r}; it can give only body_invalid or conflict"
+    if reason is not None and not is_name(reason):
+        return "the application declined with a reason that is not a name (section 7.5)"
+    if reason is not None and reasons is not None and not reason.startswith(RESERVED) and reason not in reasons:
+        return f"the application declined with the reason {reason!r}, which the operation does not list in ncp.reasons"
+    return None
+
+
 def _plain_json(value: Any) -> bool:
     """Whether a value is plain JSON: no array attachment, and no number that JSON cannot carry."""
     try:
@@ -211,8 +238,10 @@ def step(
         }
         return F.encode(message, key=key, limit=limit)
 
-    def reject(code: str, text: str = "") -> tuple[OwnerState, bytes, Note]:
-        body = {"detail": detail(text)} if text else {}
+    def reject(code: str, text: str = "", reason: str | None = None) -> tuple[OwnerState, bytes, Note]:
+        body: dict[str, Any] = {"detail": detail(text)} if text else {}
+        if reason is not None:
+            body[REASON] = reason  # after "detail" in the order of the names
         return state, reply("rejected", code, body), Note("rejected", "rejected", code, text or None)
 
     if request["ncp"] != PROTOCOL:
@@ -300,23 +329,35 @@ def _call(
     try:
         handler.validate(request)
     except Declined as declined:
+        code, reason = declined.code, declined.reason
+        fault = _decline_fault(code, reason, None if of_feature else contract.reasons(op))
+        if fault is not None:
+            # A decline that NCP cannot send is a defect of the application while it checked the
+            # body (rule 12): the session ends, and the client learns nothing false.
+            return reply("ended", "owner_failure", {}), Note(
+                "application_error", "ended", "owner_failure", fault, error=ValueError(fault)
+            )
         text = detail(declined.detail)
-        body_out: dict[str, Any] = {"detail": text} if text else {}
+        core: dict[str, Any] = {"detail": text} if text else {}
+        if reason is not None:
+            core[REASON] = reason
         # A profile can add its own members, whose names start with "ncp." (section 15, rule 2),
         # for example the term of a declined take of the lockstep profile.
+        facts: dict[str, Any] = {}
         if type(declined.body) is dict:
-            body_out.update(
-                (name, value)
+            facts = {
+                name: value
                 for name, value in declined.body.items()
-                if type(name) is str and name.startswith(RESERVED) and _plain_json(value)
-            )
+                if type(name) is str and name.startswith(RESERVED) and name != REASON and _plain_json(value)
+            }
         try:
-            response = reply("declined", "body_invalid", body_out, limit=state.bound)
-        except Exception:  # noqa: BLE001 - any member that cannot be sent leaves the detail alone
+            # Members in the order of their names, as every NCP encoder writes them.
+            response = reply("declined", code, dict(sorted({**facts, **core}.items())), limit=state.bound)
+        except Exception:  # noqa: BLE001 - members that cannot be sent leave the detail and the reason
             # Members that cannot be encoded, or that make the response larger than the session's
-            # bound: decline with the detail alone, which always fits.
-            response = reply("declined", "body_invalid", {"detail": text} if text else {})
-        return response, Note("admitted", "declined", "body_invalid", text or None)
+            # bound: decline with the detail and the reason alone, which always fit.
+            response = reply("declined", code, dict(sorted(core.items())))
+        return response, Note("admitted", "declined", code, text or None)
     except Exception as error:  # noqa: BLE001 - a failure while checking ends the session (rule 12)
         return reply("ended", "owner_failure", {}), Note(
             "application_error", "ended", "owner_failure", "the application failed while it checked the body", error=error
@@ -351,8 +392,8 @@ def _open(
     """Section 7.1 for an `open` request while no session is held."""
     plain_reject = reject
 
-    def reject(code: str, text: str = "") -> tuple[OwnerState, bytes, Note]:  # noqa: F811 - a rejected open
-        state_, response, note = plain_reject(code, text)
+    def reject(code: str, text: str = "", reason: str | None = None) -> tuple[OwnerState, bytes, Note]:  # noqa: F811
+        state_, response, note = plain_reject(code, text, reason)
         return state_, response, replace(note, kind="open_rejected")
 
     body = request["body"]
@@ -386,7 +427,13 @@ def _open(
         try:
             granted = opener(OpenInfo(request["session"], contract, run, features, nonce)) or {}
         except Refused as refusal:
-            return reject("refused", refusal.detail)
+            if refusal.reason is None or is_name(refusal.reason):
+                return reject("refused", refusal.detail, refusal.reason)
+            fault = ValueError("the application refused with a reason that is not a name (section 7.5)")
+            state_, response, _ = reject("refused", "the application failed to open the session")
+            return state_, response, Note(
+                "application_error", "rejected", "refused", "the application failed to open the session", error=fault
+            )
         except Exception as error:  # noqa: BLE001 - the owner cannot open; it says so
             state_, response, _ = reject("refused", "the application failed to open the session")
             return state_, response, Note(

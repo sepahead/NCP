@@ -4,8 +4,8 @@
 
 use ncp::frame::{self, Array, Key, HANDSHAKE_BOUND, MAX_BOUND};
 use ncp::{
-    declined, events, transcript, AppError, Channel, ChannelError, Client, Contract, Delivery,
-    Error, Executed, Handler, Invalid, Limits, Lockstep, LockstepClient, OpenInfo, Owner,
+    conflict, declined, events, transcript, AppError, Channel, ChannelError, Client, Contract,
+    Delivery, Error, Executed, Handler, Invalid, Limits, Lockstep, LockstepClient, OpenInfo, Owner,
     Publisher, Refused, Reply, Request, Stepper, Subscriber,
 };
 use serde_json::{json, Map, Value};
@@ -193,6 +193,159 @@ fn ok_and_declined_advance_the_session() {
     ));
 }
 
+/// A handler that declines every request as its function says.
+struct Declining(fn(&Value) -> Invalid);
+
+impl Handler for Declining {
+    fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
+        Err((self.0)(request.body))
+    }
+    fn execute(&mut self, _: &Request<'_>) -> Result<Reply, AppError> {
+        Ok(json!({}).into())
+    }
+}
+
+/// A decline, and the code and the reason that the client sees.
+type DeclineCase = (fn(&Value) -> Invalid, &'static str, Option<&'static str>);
+
+/// The contract of `echo` with the reasons of its operation (section 11, rule 6).
+const LISTED: &[u8] = br#"{"ncp_contract":1,"application":"echo","version":"1","operations":{"echo":{"ncp.reasons":["echo.busy"]}},"streams":{}}"#;
+
+fn declining(decline: fn(&Value) -> Invalid, max_bound: usize) -> Client<Memory<Declining>> {
+    let listed = Contract::from_bytes(LISTED.to_vec()).expect("contract");
+    let owner = Owner::new(listed.clone(), Declining(decline))
+        .with_max_bound(max_bound)
+        .with_observer(quiet());
+    let channel = Memory {
+        owner,
+        inbox: VecDeque::new(),
+        drop_responses: 0,
+        lossy: false,
+    };
+    Client::new(channel, &listed).with_observer(quiet())
+}
+
+#[test]
+fn a_conflict_names_its_reason_and_the_facts_of_a_profile() {
+    // Rule 7.3.12 and section 7.5: the application chooses the code and the reason; the facts of
+    // a profile ride along, and the owner leaves them out, never the reason, when they do not fit.
+    let mut client = declining(
+        |body| {
+            let mut facts = Map::new();
+            let fact = if body["big"] == true {
+                json!("x".repeat(70_000))
+            } else {
+                json!({"next": 4})
+            };
+            facts.insert("ncp.echo".into(), fact);
+            conflict("echo.busy", "busy").members(facts)
+        },
+        HANDSHAKE_BOUND,
+    );
+    client.open().expect("open");
+    let error = client.call("echo", json!({}), &[]).expect_err("declined");
+    assert_eq!(error.code(), Some("conflict"));
+    assert_eq!(error.reason(), Some("echo.busy"));
+    assert_eq!(error.executed(), Executed::No);
+    match &error {
+        Error::Declined { body, .. } => assert_eq!(
+            body,
+            &json!({"detail": "busy", "ncp.echo": {"next": 4}, "ncp.reason": "echo.busy"})
+        ),
+        other => panic!("expected declined, got {other:?}"),
+    }
+    match client.call("echo", json!({"big": true}), &[]) {
+        Err(Error::Declined { code, body, .. }) => {
+            assert_eq!(code, "conflict");
+            assert_eq!(body, json!({"detail": "busy", "ncp.reason": "echo.busy"}));
+        }
+        other => panic!("expected declined, got {other:?}"),
+    }
+    assert_eq!(client.state().seq, 2);
+}
+
+#[test]
+fn a_decline_that_ncp_cannot_send_ends_the_session() {
+    // A reason is a name, and an operation that lists its reasons (section 11, rule 6) gives no
+    // other reason of the application. Anything else is a defect while checking: owner_failure.
+    let cases: [DeclineCase; 6] = [
+        (|_| conflict("Not A Name", "no"), "owner_failure", None),
+        (|_| conflict("echo.other", "no"), "owner_failure", None),
+        (
+            |_| conflict("echo.busy", "no"),
+            "conflict",
+            Some("echo.busy"),
+        ),
+        (
+            |_| conflict("ncp.profile.reason", "no"),
+            "conflict",
+            Some("ncp.profile.reason"),
+        ),
+        (|_| declined("no"), "body_invalid", None),
+        (
+            |_| declined("no").reason("echo.busy"),
+            "body_invalid",
+            Some("echo.busy"),
+        ),
+    ];
+    for (decline, code, reason) in cases {
+        let mut client = declining(decline, MAX_BOUND);
+        client.open().expect("open");
+        let error = client.call("echo", json!({}), &[]).expect_err("not ok");
+        assert_eq!(error.code(), Some(code));
+        assert_eq!(error.reason(), reason);
+        assert_eq!(
+            matches!(error, Error::Ended { .. }),
+            code == "owner_failure"
+        );
+    }
+}
+
+#[test]
+fn a_refused_open_names_its_reason() {
+    struct Full(&'static str);
+    impl Handler for Full {
+        fn open(&mut self, _: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
+            Err(Refused::new("full").reason(self.0))
+        }
+        fn validate(&mut self, _: &Request<'_>) -> Result<(), Invalid> {
+            Ok(())
+        }
+        fn execute(&mut self, _: &Request<'_>) -> Result<Reply, AppError> {
+            Ok(json!({}).into())
+        }
+    }
+    for (reason, body) in [
+        (
+            "echo.full",
+            json!({"detail": "full", "ncp.reason": "echo.full"}),
+        ),
+        (
+            "Full!",
+            json!({"detail": "the application failed to open the session"}),
+        ),
+    ] {
+        let owner = Owner::new(contract(), Full(reason)).with_observer(quiet());
+        let channel = Memory {
+            owner,
+            inbox: VecDeque::new(),
+            drop_responses: 0,
+            lossy: false,
+        };
+        let mut client = Client::new(channel, &contract()).with_observer(quiet());
+        match client.open() {
+            Err(error @ Error::Rejected { .. }) => {
+                assert_eq!(error.code(), Some("refused"));
+                assert_eq!(error.reason(), body["ncp.reason"].as_str());
+                if let Error::Rejected { body: got, .. } = error {
+                    assert_eq!(got, body);
+                }
+            }
+            other => panic!("expected a refused open, got {other:?}"),
+        }
+    }
+}
+
 #[test]
 fn arrays_of_every_dtype_round_trip() {
     let mut client = memory(Echo::default(), false, 0);
@@ -368,7 +521,7 @@ fn several_contracts_and_the_handler_hooks() {
         }
         fn open(&mut self, info: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
             if info.run == Some("refuse") {
-                return Err(Refused("not today".into()));
+                return Err(Refused::new("not today"));
             }
             let mut granted = Map::new();
             granted.insert("x.feature".into(), json!({"granted": true}));
@@ -1787,8 +1940,8 @@ fn a_rejected_open_takes_nothing() {
     impl Handler for Full {
         fn open(&mut self, info: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
             let _ = self.0.open(info);
-            Err(Refused(
-                "the owner serves its largest number of sessions".into(),
+            Err(Refused::new(
+                "the owner serves its largest number of sessions",
             ))
         }
         fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
@@ -2600,7 +2753,9 @@ fn a_step_waits_for_a_checked_take() {
         let body = json!({"dx": 1, "ncp.tick": {"tick": 1, "state": "p0"}});
         let step = handler_request("echo", &body, "n1", "r1", &contract, &features, &decoded);
         match stepper.validate(&step) {
-            Err(Invalid::DeclinedWith(detail, members)) => (detail, members),
+            Err(Invalid::Declined(decline)) if !decline.members.is_empty() => {
+                (decline.detail, decline.members)
+            }
             other => panic!("expected a decline with members, got {other:?}"),
         }
     });

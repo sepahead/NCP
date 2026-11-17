@@ -6,8 +6,8 @@ use ncp::contract::{check, compile_schema};
 use ncp::frame::{self, Array, Dtype, Key, Verify, HANDSHAKE_BOUND, MAX_BOUND};
 use ncp::messages::{check_request, check_response, check_stream_message, foreign};
 use ncp::{
-    declined, AppError, Contract, Delivery, Error, Handler, Invalid, Owner, Reply, Request,
-    Subscriber,
+    conflict, declined, AppError, Contract, Delivery, Error, Handler, Invalid, Owner, Reply,
+    Request, Subscriber,
 };
 use serde_json::{json, Map, Value};
 use std::path::PathBuf;
@@ -156,6 +156,9 @@ impl Handler for VectorHandler {
     fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
         if request.op == "step" && request.body["invalid"] == true {
             return Err(declined("invalid"));
+        }
+        if request.op == "step" && request.body["conflict"] == true {
+            return Err(conflict("conformance.busy", "busy"));
         }
         if request.op == "flaky" && !self.flaky_seen {
             self.flaky_seen = true;
@@ -378,6 +381,14 @@ fn owner_scenarios() {
                     failures.push(format!("{name} step {index}: open features"));
                 }
             }
+            if let Some(body) = step.get("response_body") {
+                if &message["body"] != body {
+                    failures.push(format!(
+                        "{name} step {index}: the body {}, expected {body}",
+                        message["body"]
+                    ));
+                }
+            }
             for member in step
                 .get("body_has")
                 .and_then(Value::as_array)
@@ -437,10 +448,20 @@ fn verdict_of(outcome: &Option<Result<ncp::Decoded, Error>>) -> Value {
     match outcome {
         None => json!({"kind": "ignored"}),
         Some(Ok(_)) => json!({"kind": "ok"}),
-        Some(Err(Error::Declined { code, .. })) => {
-            json!({"kind": "declined", "code": code, "executed": "no"})
+        Some(Err(error @ Error::Declined { code, .. })) => {
+            let mut verdict = json!({"kind": "declined", "code": code, "executed": "no"});
+            if let Some(reason) = error.reason() {
+                verdict["reason"] = json!(reason);
+            }
+            verdict
         }
-        Some(Err(Error::Rejected { code, .. })) => json!({"kind": "rejected", "code": code}),
+        Some(Err(error @ Error::Rejected { code, .. })) => {
+            let mut verdict = json!({"kind": "rejected", "code": code});
+            if let Some(reason) = error.reason() {
+                verdict["reason"] = json!(reason);
+            }
+            verdict
+        }
         Some(Err(Error::Ended { code, executed, .. })) => {
             json!({"kind": "ended", "code": code, "executed": executed.as_str()})
         }
@@ -469,7 +490,10 @@ fn reply(state: &ClientState, spec: &Value, to: &str) -> Vec<u8> {
             message["session"] = Value::Null;
             message["seq"] = Value::Null;
             message["request"] = Value::Null;
-            message["body"] = json!({"session": state.session, "kept": state.ack});
+            let mut body = spec["body"].as_object().cloned().unwrap_or_default();
+            body.insert("session".into(), json!(state.session));
+            body.insert("kept".into(), json!(state.ack));
+            message["body"] = Value::Object(body);
         }
         _ => {}
     }

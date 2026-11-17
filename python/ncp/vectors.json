@@ -1,13 +1,13 @@
 {
  "spec": "spec/NCP-2.md",
- "revision": 6,
+ "revision": 7,
  "contract": "{\"ncp_contract\":1,\"application\":\"conformance\",\"version\":\"2\",\"operations\":{\"step\":{},\"fail\":{},\"big\":{},\"flaky\":{},\"typed\":{\"ncp.schema\":{\"request\":{\"type\":\"object\",\"required\":[\"n\"],\"properties\":{\"n\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9},\"v\":{\"ncp.array\":{\"dtype\":\"f64\",\"shape\":[null]}}},\"additionalProperties\":false}}}},\"streams\":{\"sensor\":{}}}",
  "contract_identity": "bce9be2b19db76efb4e796d5ee0f8bbdfce3a1486d522bf2649b7903db2dd7d0",
  "session": "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b",
  "nonce": "00112233445566778899aabbccddeeff",
  "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
  "handler": {
-  "step": "result {\"echo\": body}; the body {\"invalid\": true} is declined as body_invalid",
+  "step": "result {\"echo\": body}; the body {\"invalid\": true} is declined as body_invalid, and the body {\"conflict\": true} as conflict with the detail \"busy\" and the reason \"conformance.busy\"",
   "fail": "raises: owner_failure",
   "big": "result {\"blob\": \"z\" repeated body.size times}",
   "flaky": "the first validation of each owner declines with body_invalid; every later validation accepts; result {\"echo\": body}",
@@ -12826,6 +12826,73 @@
    ]
   },
   {
+   "name": "a conflict is declined with its reason, kept, and advances the session",
+   "steps": [
+    {
+     "seq": 0,
+     "op": "open",
+     "ack": "none",
+     "open": {
+      "bound": 65536
+     },
+     "expect": [
+      "ok",
+      null
+     ]
+    },
+    {
+     "seq": 1,
+     "op": "step",
+     "body": {
+      "conflict": true
+     },
+     "ack": "last",
+     "expect": [
+      "declined",
+      "conflict"
+     ],
+     "response_body": {
+      "detail": "busy",
+      "ncp.reason": "conformance.busy"
+     }
+    },
+    {
+     "repeat": 1,
+     "expect": [
+      "declined",
+      "conflict"
+     ]
+    },
+    {
+     "seq": 2,
+     "op": "step",
+     "body": {
+      "invalid": true
+     },
+     "ack": "last",
+     "expect": [
+      "declined",
+      "body_invalid"
+     ],
+     "response_body": {
+      "detail": "invalid"
+     }
+    },
+    {
+     "seq": 3,
+     "op": "step",
+     "body": {
+      "x": 1
+     },
+     "ack": "last",
+     "expect": [
+      "ok",
+      null
+     ]
+    }
+   ]
+  },
+  {
    "name": "a declined request keeps its answer when the application would now accept it",
    "steps": [
     {
@@ -13577,6 +13644,230 @@
    ]
   },
   {
+   "name": "reasons, unknown codes, and unknown members of a declined response",
+   "lossy": false,
+   "steps": [
+    {
+     "do": "open",
+     "expect": "sent"
+    },
+    {
+     "reply": {
+      "outcome": "ok",
+      "code": null,
+      "body": {
+       "bound": 65536,
+       "nonce": "00112233445566778899aabbccddeeff",
+       "features": {}
+      }
+     },
+     "to": "own",
+     "expect": {
+      "kind": "ok"
+     },
+     "state": {
+      "seq": 0,
+      "opened": true,
+      "ended": false
+     }
+    },
+    {
+     "do": "call",
+     "op": "step",
+     "body": {},
+     "expect": "sent",
+     "request": {
+      "seq": 1,
+      "ack": "last"
+     }
+    },
+    {
+     "reply": {
+      "outcome": "declined",
+      "code": "conflict",
+      "body": {
+       "detail": "busy",
+       "ncp.reason": "app.busy",
+       "ncp.app": {
+        "next": 4
+       }
+      }
+     },
+     "to": "own",
+     "expect": {
+      "kind": "declined",
+      "code": "conflict",
+      "executed": "no",
+      "reason": "app.busy"
+     },
+     "state": {
+      "seq": 1,
+      "opened": true,
+      "ended": false
+     }
+    },
+    {
+     "do": "call",
+     "op": "step",
+     "body": {},
+     "expect": "sent",
+     "request": {
+      "seq": 2,
+      "ack": "last"
+     }
+    },
+    {
+     "reply": {
+      "outcome": "declined",
+      "code": "later_code",
+      "body": {
+       "ncp.reason": "ncp.later.reason",
+       "later": [
+        1,
+        2
+       ],
+       "ncp.later": {}
+      }
+     },
+     "to": "own",
+     "expect": {
+      "kind": "declined",
+      "code": "later_code",
+      "executed": "no",
+      "reason": "ncp.later.reason"
+     },
+     "state": {
+      "seq": 2,
+      "opened": true,
+      "ended": false
+     }
+    },
+    {
+     "do": "call",
+     "op": "step",
+     "body": {},
+     "expect": "sent",
+     "request": {
+      "seq": 3,
+      "ack": "last"
+     }
+    },
+    {
+     "reply": {
+      "outcome": "declined",
+      "code": "body_invalid",
+      "body": {
+       "ncp.reason": "Not A Name"
+      }
+     },
+     "to": "own",
+     "expect": {
+      "kind": "declined",
+      "code": "body_invalid",
+      "executed": "no"
+     },
+     "state": {
+      "seq": 3,
+      "opened": true,
+      "ended": false
+     }
+    },
+    {
+     "do": "call",
+     "op": "step",
+     "body": {},
+     "expect": "sent",
+     "request": {
+      "seq": 4,
+      "ack": "last"
+     }
+    },
+    {
+     "reply": {
+      "outcome": "declined",
+      "code": "body_invalid",
+      "body": {
+       "ncp.reason": 7
+      }
+     },
+     "to": "own",
+     "expect": {
+      "kind": "declined",
+      "code": "body_invalid",
+      "executed": "no"
+     },
+     "state": {
+      "seq": 4,
+      "opened": true,
+      "ended": false
+     }
+    },
+    {
+     "do": "call",
+     "op": "step",
+     "body": {},
+     "expect": "sent",
+     "request": {
+      "seq": 5,
+      "ack": "last"
+     }
+    },
+    {
+     "reply": {
+      "outcome": "ended",
+      "code": "owner_failure",
+      "body": {
+       "detail": "x",
+       "later": true
+      }
+     },
+     "to": "own",
+     "expect": {
+      "kind": "ended",
+      "code": "owner_failure",
+      "executed": "unknown"
+     },
+     "state": {
+      "seq": 4,
+      "opened": true,
+      "ended": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "a refused open names its reason",
+   "lossy": false,
+   "steps": [
+    {
+     "do": "open",
+     "expect": "sent"
+    },
+    {
+     "reply": {
+      "outcome": "rejected",
+      "code": "refused",
+      "body": {
+       "detail": "full",
+       "ncp.reason": "app.full",
+       "later": 1
+      }
+     },
+     "to": "own",
+     "expect": {
+      "kind": "rejected",
+      "code": "refused",
+      "reason": "app.full"
+     },
+     "state": {
+      "seq": 0,
+      "opened": false,
+      "ended": false
+     }
+    }
+   ]
+  },
+  {
    "name": "a rejection of a request other than open ends the session, possibly executed",
    "lossy": true,
    "cases": [
@@ -13869,6 +14160,75 @@
       "outcome": "ended",
       "code": "$code",
       "body": {}
+     },
+     "to": "nameless_bound",
+     "expect": {
+      "kind": "ended",
+      "code": "$code",
+      "executed": "$executed"
+     },
+     "state": {
+      "seq": 0,
+      "opened": true,
+      "ended": true
+     }
+    }
+   ]
+  },
+  {
+   "name": "a nameless response bound to the chain, with members that the client does not know",
+   "lossy": false,
+   "cases": [
+    [
+     "bad_frame",
+     "no"
+    ],
+    [
+     "shutdown",
+     "no"
+    ]
+   ],
+   "steps": [
+    {
+     "do": "open",
+     "expect": "sent"
+    },
+    {
+     "reply": {
+      "outcome": "ok",
+      "code": null,
+      "body": {
+       "bound": 65536,
+       "nonce": "00112233445566778899aabbccddeeff",
+       "features": {}
+      }
+     },
+     "to": "own",
+     "expect": {
+      "kind": "ok"
+     },
+     "state": {
+      "seq": 0,
+      "opened": true,
+      "ended": false
+     }
+    },
+    {
+     "do": "call",
+     "op": "step",
+     "body": {},
+     "expect": "sent"
+    },
+    {
+     "reply": {
+      "outcome": "ended",
+      "code": "$code",
+      "body": {
+       "detail": "x",
+       "ncp.later": {
+        "a": 1
+       }
+      }
      },
      "to": "nameless_bound",
      "expect": {
@@ -15057,6 +15417,27 @@
      }
     ]
    }
+  },
+  {
+   "name": "a header with members that the verifier does not know, chain recomputed",
+   "file": "4e43505400000002000000987b227265636f72646572223a22636f6e666f726d616e6365222c22696d706c656d656e746174696f6e223a226e63702d707974686f6e2f322e302e30222c2273746172746564223a22323032362d31312d31335430303a30303a30302e3030303030303030305a222c22636861696e223a22736861323536222c2272756e223a22722d37222c226c61746572223a7b226b6579223a317d7d0100000000000003e8000001084e435002000000dc000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a302c226f70223a226f70656e222c2261636b223a6e756c6c2c22626f6479223a7b226170706c69636174696f6e223a22636f6e666f726d616e6365222c22636f6e7472616374223a2262636539626532623139646237366566623465373936643565653066386262646663653361313438366435323262663236343962373930336462326464376430222c22626f756e64223a36353533367d7d20201aa944b52c4c21973cad4e017127ea8286f3bdf01e32036999afde348b0a12fa4b4e16b98d520ca813421bd4c97b6850d89d0bcddd106b76f475c57f41a42fe40200000000000007d0000001b84e4350020000018c000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a302c2272657175657374223a2231616139343462353263346332313937336361643465303137313237656138323836663362646630316533323033363939396166646533343862306131326661222c226f7574636f6d65223a226f6b222c22636f6465223a6e756c6c2c22626f6479223a7b22626f756e64223a36353533362c226170706c69636174696f6e223a22636f6e666f726d616e6365222c22636f6e7472616374223a2262636539626532623139646237366566623465373936643565653066386262646663653361313438366435323262663236343962373930336462326464376430222c22696d706c656d656e746174696f6e223a226e63702d707974686f6e2f322e302e30222c226e6f6e6365223a223030313132323333343435353636373738383939616162626363646465656666222c226665617475726573223a7b7d7d7d20202020f595e7a4b5b65d23c9d84a040e718e30d546e688a0b89f8ee35ea2afcb2d4ba57aa062ad1f295842cc2b230bf0737b2734edd886383941715282b6ad30de5edc010000000000000bb8000000d84e435002000000ac000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a312c226f70223a2273746570222c2261636b223a2266353935653761346235623635643233633964383461303430653731386533306435343665363838613062383966386565333565613261666362326434626135222c22626f6479223a7b2278223a317d7d202020202020d8dad9dc5b6bbf053ed1bd38d80e1c75eb1c42c5d45083ab2f05a55c1bda538f233778b294236334bf61b6c10f450046a0e97a85eb84cba0bda71f8dfd1ca2a0020000000000000fa0000000f04e435002000000c4000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a312c2272657175657374223a2264386461643964633562366262663035336564316264333864383065316337356562316334326335643435303833616232663035613535633162646135333866222c226f7574636f6d65223a226f6b222c22636f6465223a6e756c6c2c22626f6479223a7b226563686f223a7b2278223a317d7d7d20202537eb2afc84fbf58580d97b61eb788dbd957dadea901cee832ccf70fa2594c25ba35e064d64d2209c902bbde183f174de383275f27504f0859fc72f86cf870c010000000000001388000000e04e435002000000b4000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a322c226f70223a2273746570222c2261636b223a2232353337656232616663383466626635383538306439376236316562373838646264393537646164656139303163656538333263636637306661323539346332222c22626f6479223a7b22696e76616c6964223a747275657d7d2020202020cab500b2261adf3a1298a1ef4732162ac774d300f4a229db96024fe0b3559c99dead1446cb5e2810a3f1be64560ba9893f99cda4977ea5fab7e66063c2b7d326020000000000001770000001084e435002000000dc000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a322c2272657175657374223a2263616235303062323236316164663361313239386131656634373332313632616337373464333030663461323239646239363032346665306233353539633939222c226f7574636f6d65223a226465636c696e6564222c22636f6465223a22626f64795f696e76616c6964222c22626f6479223a7b2264657461696c223a22696e76616c6964227d7d202020202020796d912b69f99a781bafcf48d005dc85a88fa64e48c82b084142b0b8d84affb5b6524954654c685d23c66c97ebb7296ff06a70d2ddd4bcdea6d11061a776ccdf010000000000001b58000000d84e435002000000ac000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a332c226f70223a2273746570222c2261636b223a2237393664393132623639663939613738316261666366343864303035646338356138386661363465343863383262303834313432623062386438346166666235222c22626f6479223a7b2278223a327d7d2020202020205268e12ddf784eb0f05dc79fd26e83e911a8fa6a1586ecab1bdfd9cb4c5a0d3b2820d12235b75fd9e4a862a68643214906a215ba84079862291b85144b2685ff020000000000001f40000000f04e435002000000c4000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a332c2272657175657374223a2235323638653132646466373834656230663035646337396664323665383365393131613866613661313538366563616231626466643963623463356130643362222c226f7574636f6d65223a226f6b222c22636f6465223a6e756c6c2c22626f6479223a7b226563686f223a7b2278223a327d7d7d202007629b1605f7c6154f044b192ea8e8c9ea2f14113a1320faaa57c6b512e92b4f83b876bee4ca1acd9d3f7f160d3c9fba3a97e4b5f3f20416412833fc339282df010000000000002328000000d04e435002000000a4000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a342c226f70223a22636c6f7365222c2261636b223a2230373632396231363035663763363135346630343462313932656138653863396561326631343131336131333230666161613537633662353132653932623466222c22626f6479223a7b7d7d2020526229005d27a3f1a28d2db9e06ebda52737eb2c73ed3e63e8294ab611687374b0b3ff60a007d9b7acd5bd9647ddd2c09791304cf2a4abc921ee52a90d516142020000000000002710000000e04e435002000000b4000000007b226e6370223a322c2273657373696f6e223a2236663163326534612d396233642d346338652d613166302d326434623663386530613162222c22736571223a342c2272657175657374223a2235323632323930303564323761336631613238643264623965303665626461353237333765623263373365643365363365383239346162363131363837333734222c226f7574636f6d65223a226f6b222c22636f6465223a6e756c6c2c22626f6479223a7b7d7d4185a77278cff958dc39903d7b9266ef0f350ce70adffd97c12e98f946ee537339883c5d558807f8b7b6712f406f500256c3931869dc571b13cde4f78367c4ed0300000000000027110000000099126430f12478c6ba198f968430a9ff2bddf926f0b8caf9c3224e43a2c24df8",
+   "key": null,
+   "expect": {
+    "ok": true,
+    "version": 2,
+    "closed": true,
+    "truncated": false,
+    "chain_ok": true,
+    "sessions": [
+     {
+      "role": "client",
+      "requests": 5,
+      "declined": 1,
+      "complete": true,
+      "problems": false
+     }
+    ]
+   }
   }
  ],
  "contracts": [
@@ -15163,6 +15544,41 @@
   {
    "name": "a byte order mark",
    "document": "﻿{\"ncp_contract\":1,\"application\":\"a\",\"version\":\"1\",\"operations\":{\"step\":{}},\"streams\":{}}",
+   "valid": false
+  },
+  {
+   "name": "reasons of an operation",
+   "document": "{\"ncp_contract\":1,\"application\":\"a\",\"version\":\"1\",\"operations\":{\"step\":{\"ncp.reasons\":[\"a.busy\",\"a.full\"]}},\"streams\":{}}",
+   "valid": true
+  },
+  {
+   "name": "no reasons",
+   "document": "{\"ncp_contract\":1,\"application\":\"a\",\"version\":\"1\",\"operations\":{\"step\":{\"ncp.reasons\":[]}},\"streams\":{}}",
+   "valid": true
+  },
+  {
+   "name": "reasons that are not an array",
+   "document": "{\"ncp_contract\":1,\"application\":\"a\",\"version\":\"1\",\"operations\":{\"step\":{\"ncp.reasons\":\"a.busy\"}},\"streams\":{}}",
+   "valid": false
+  },
+  {
+   "name": "a reason twice",
+   "document": "{\"ncp_contract\":1,\"application\":\"a\",\"version\":\"1\",\"operations\":{\"step\":{\"ncp.reasons\":[\"a.busy\",\"a.busy\"]}},\"streams\":{}}",
+   "valid": false
+  },
+  {
+   "name": "a reason of a profile",
+   "document": "{\"ncp_contract\":1,\"application\":\"a\",\"version\":\"1\",\"operations\":{\"step\":{\"ncp.reasons\":[\"ncp.lockstep.tick\"]}},\"streams\":{}}",
+   "valid": false
+  },
+  {
+   "name": "a reason that is not a name",
+   "document": "{\"ncp_contract\":1,\"application\":\"a\",\"version\":\"1\",\"operations\":{\"step\":{\"ncp.reasons\":[\"Busy\"]}},\"streams\":{}}",
+   "valid": false
+  },
+  {
+   "name": "a reason that is not a string",
+   "document": "{\"ncp_contract\":1,\"application\":\"a\",\"version\":\"1\",\"operations\":{\"step\":{\"ncp.reasons\":[1]}},\"streams\":{}}",
    "valid": false
   }
  ],

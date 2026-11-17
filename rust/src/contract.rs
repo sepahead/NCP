@@ -11,6 +11,8 @@ const TYPES: [&str; 7] = [
 ];
 /// The prefix of the member names that NCP and its profiles reserve (section 15).
 pub const RESERVED: &str = "ncp.";
+/// The member of an operation that lists the reasons of the application's declines (section 11).
+pub const REASONS: &str = "ncp.reasons";
 const NUMBER_KEYWORDS: [&str; 4] = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"];
 const COUNT_KEYWORDS: [&str; 4] = ["minLength", "maxLength", "minItems", "maxItems"];
 const OTHER_KEYWORDS: [&str; 9] = [
@@ -369,6 +371,33 @@ fn check_array(
     None
 }
 
+/// Section 11, rule 6: `ncp.reasons` is an array of distinct names of the application.
+fn check_reasons(value: &Value, path: &str) -> Result<(), ContractError> {
+    let Some(listed) = value.get(REASONS) else {
+        return Ok(());
+    };
+    let names: Option<Vec<&str>> = listed.as_array().and_then(|listed| {
+        listed
+            .iter()
+            .map(|reason| {
+                reason
+                    .as_str()
+                    .filter(|r| is_name(r) && !r.starts_with(RESERVED))
+            })
+            .collect()
+    });
+    match names {
+        Some(names)
+            if names.iter().collect::<std::collections::HashSet<_>>().len() == names.len() =>
+        {
+            Ok(())
+        }
+        _ => fail(format!(
+            "{path}.{REASONS}: an array of distinct reasons that do not start with {RESERVED:?}"
+        )),
+    }
+}
+
 fn check_schemas(value: &Value, path: &str, parts: &[&str]) -> Result<(), ContractError> {
     let Some(object) = value.as_object() else {
         return fail(format!(
@@ -442,6 +471,7 @@ impl Contract {
                 ));
             }
             check_schemas(value, &format!("operations.{name}"), &["request", "result"])?;
+            check_reasons(value, &format!("operations.{name}"))?;
         }
         for (name, value) in streams {
             if !is_name(name) {
@@ -482,6 +512,22 @@ impl Contract {
             .get(op)?
             .get("ncp.schema")?
             .get(part)
+    }
+
+    /// The reasons of the application with which the owner can decline the operation, from its
+    /// member `ncp.reasons` (section 11, rule 6), or `None` if the operation lists none.
+    pub fn reasons(&self, op: &str) -> Option<Vec<String>> {
+        let listed = self.document["operations"]
+            .get(op)?
+            .get(REASONS)?
+            .as_array()?;
+        Some(
+            listed
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_owned)
+                .collect(),
+        )
     }
 
     /// None if the body matches the operation's request schema, otherwise the mismatch.

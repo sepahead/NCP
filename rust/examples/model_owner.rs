@@ -7,12 +7,13 @@
 //!   `r` LENGTH FRAME        a request frame (LENGTH: 4 bytes, big-endian); answer LENGTH FRAME
 //!                           with the response, or LENGTH 0 if the frame is not a request
 //!
-//! The application is the harness's: a body with `"bad": true` is declined, one with
+//! The application is the harness's: a body with `"bad": 1` is declined with `body_invalid`, one
+//! with `"bad": 2` with `conflict` and the reason `model.busy`, one with
 //! `"fail": true` fails, one with `"big": true` returns a result too large for the session, and
 //! an `open` with the run `"refuse"` is refused.
 use ncp::{
-    declined, events, AppError, Array, Contract, Dtype, Handler, Invalid, OpenInfo, Owner, Refused,
-    Reply, Request, HANDSHAKE_BOUND,
+    conflict, declined, events, AppError, Array, Contract, Dtype, Handler, Invalid, OpenInfo,
+    Owner, Refused, Reply, Request, HANDSHAKE_BOUND,
 };
 use serde_json::{json, Map, Value};
 use std::io::{self, Read, Write};
@@ -25,14 +26,17 @@ struct Model;
 impl Handler for Model {
     fn open(&mut self, info: &OpenInfo<'_>) -> Result<Map<String, Value>, Refused> {
         if info.run == Some("refuse") {
-            return Err(Refused("refused by the harness".into()));
+            return Err(Refused::new("refused by the harness"));
         }
         Ok(Map::new())
     }
 
     fn validate(&mut self, request: &Request<'_>) -> Result<(), Invalid> {
-        if request.body["bad"] == true {
+        if request.body["bad"] == 1 {
             return Err(declined("bad body"));
+        }
+        if request.body["bad"] == 2 {
+            return Err(conflict("model.busy", "the model is busy"));
         }
         Ok(())
     }

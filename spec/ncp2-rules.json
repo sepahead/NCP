@@ -1,6 +1,6 @@
 {
   "spec": "spec/NCP-2.md",
-  "revision": 6,
+  "revision": 7,
   "note": "The codes, outcomes, and limits of NCP 2 as data. For each code, executed is what the owner knows about the frame (section 7.5), and client is the verdict of a client that follows section 7.6 about its request: for a rejected code, the verdict for a request other than open (a rejected open opens no session); for bad_frame and shutdown in a response that names no request, the verdict when the body binds the response to the client's chain (rule 7.6.2). scripts/check_ncp2_rules.py compares this file with the specification text, both SDKs, and the Lean model, and its revision with the status line of the specification and with the conformance vectors. Change this file and those sources together.",
   "outcomes": {
     "ok": {"admitted": true, "next_seq": "advance", "ends_session": false},
@@ -23,6 +23,7 @@
     {"code": "shutdown", "outcome": "ended", "executed": "no", "client": "no", "rule": "7.3.10"},
     {"code": "unknown_op", "outcome": "declined", "executed": "no", "client": "no", "rule": "7.3.12"},
     {"code": "body_invalid", "outcome": "declined", "executed": "no", "client": "no", "rule": "7.3.12"},
+    {"code": "conflict", "outcome": "declined", "executed": "no", "client": "no", "rule": "7.3.12"},
     {"code": "owner_failure", "outcome": "ended", "executed": "unknown", "client": "unknown", "rule": "7.3.12"},
     {"code": "result_too_large", "outcome": "ended", "executed": "yes", "client": "yes", "rule": "7.3.12"},
     {"code": "body_invalid", "outcome": "rejected", "executed": "no", "client": "no", "rule": "7.1.4", "open": true},

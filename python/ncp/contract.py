@@ -15,6 +15,8 @@ from .messages import is_name
 TYPES = frozenset({"null", "boolean", "integer", "number", "string", "array", "object"})
 # The prefix of the member names that NCP and its profiles reserve (section 15).
 RESERVED = "ncp."
+# The member of an operation that lists the reasons of the application's declines (section 11).
+REASONS = "ncp.reasons"
 _NUMBER_KEYWORDS = ("minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum")
 _COUNT_KEYWORDS = ("minLength", "maxLength", "minItems", "maxItems")
 _KEYWORDS = frozenset(
@@ -241,6 +243,7 @@ class Contract:
             if not is_name(name) or name in ("open", "close") or name.startswith("ncp."):
                 raise ContractError(f"operation name {name!r} is not allowed (section 11, rule 1)")
             _schemas(value, f"operations.{name}", {"request", "result"})
+            _reasons(value, f"operations.{name}")
         for name, value in streams.items():
             if not is_name(name):
                 raise ContractError(f"stream type name {name!r} is not allowed (section 11, rule 1)")
@@ -265,6 +268,13 @@ class Contract:
         value = self.document["operations"].get(op)
         return None if value is None else value.get("ncp.schema", {}).get(part)
 
+    def reasons(self, op: str) -> frozenset[str] | None:
+        """The reasons of the application with which the owner can decline the operation, from its
+        member `ncp.reasons` (section 11, rule 6), or None if the operation lists none."""
+        value = self.document["operations"].get(op)
+        listed = None if value is None else value.get(REASONS)
+        return None if listed is None else frozenset(listed)
+
     def check_request(self, op: str, body: Any) -> str | None:
         """None if the body matches the operation's request schema, otherwise the mismatch."""
         schema = self.schema(op, "request")
@@ -280,6 +290,19 @@ class Contract:
         value = self.document["streams"].get(name)
         schema = None if value is None else value.get("ncp.schema", {}).get("body")
         return None if schema is None else check(schema, body)
+
+
+def _reasons(value: dict[str, Any], path: str) -> None:
+    """Section 11, rule 6: `ncp.reasons` is an array of distinct names of the application."""
+    if REASONS not in value:
+        return
+    listed = value[REASONS]
+    if (
+        type(listed) is not list
+        or not all(is_name(reason) and not reason.startswith(RESERVED) for reason in listed)
+        or len(set(listed)) != len(listed)
+    ):
+        raise ContractError(f"{path}.{REASONS}: an array of distinct reasons that do not start with {RESERVED!r}")
 
 
 def _schemas(value: Any, path: str, parts: set[str]) -> None:

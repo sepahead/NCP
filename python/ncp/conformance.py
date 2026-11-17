@@ -79,6 +79,8 @@ class VectorHandler:
         body = request.body
         if request.op == "step" and isinstance(body, dict) and body.get("invalid") is True:
             raise Declined("invalid")
+        if request.op == "step" and isinstance(body, dict) and body.get("conflict") is True:
+            raise Declined("busy", code="conflict", reason="conformance.busy")
         if request.op == "flaky" and not self.flaky_seen:
             self.flaky_seen = True
             raise Declined("the first validation declines")
@@ -356,6 +358,8 @@ def _scenario(
             failures.append(f"{name}: open bound {message['body'].get('bound')}")
         if "open_features" in step and message["body"].get("features") != step["open_features"]:
             failures.append(f"{name}: open features {message['body'].get('features')}")
+        if "response_body" in step and not same(message["body"], step["response_body"]):
+            failures.append(f"{name}: the body {message['body']}, expected {step['response_body']}")
         for member in step.get("body_has", ()):
             if member not in message["body"]:
                 failures.append(f"{name}: the body has no member {member!r}")
@@ -399,9 +403,11 @@ def _verdict(outcome: Any) -> dict[str, Any]:
     if isinstance(outcome, C.Result):
         return {"kind": "ok"}
     if isinstance(outcome, Declined):
-        return {"kind": "declined", "code": outcome.code, "executed": "no"}
+        verdict = {"kind": "declined", "code": outcome.code, "executed": "no"}
+        return verdict if outcome.reason is None else {**verdict, "reason": outcome.reason}
     if isinstance(outcome, C.Rejected):
-        return {"kind": "rejected", "code": outcome.code}
+        rejected = {"kind": "rejected", "code": outcome.code}
+        return rejected if outcome.reason is None else {**rejected, "reason": outcome.reason}
     assert isinstance(outcome, C.Ended)
     return {"kind": "ended", "code": outcome.code, "executed": outcome.executed.value}
 
@@ -479,7 +485,8 @@ def _reply(state: C.ClientState, reply: dict[str, Any], to: str) -> bytes:
     elif to == "nameless":
         message.update(session=None, seq=None, request=None)
     elif to == "nameless_bound":
-        message.update(session=None, seq=None, request=None, body={"session": state.session, "kept": state.ack})
+        body = {**reply["body"], "session": state.session, "kept": state.ack}
+        message.update(session=None, seq=None, request=None, body=body)
     return F.encode(message)
 
 

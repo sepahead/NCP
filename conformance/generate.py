@@ -39,7 +39,7 @@ from ncp import client as C  # noqa: E402
 from ncp import frame as F  # noqa: E402
 from ncp import transcript as T  # noqa: E402
 
-REVISION = 6
+REVISION = 7
 SESSION = "6f1c2e4a-9b3d-4c8e-a1f0-2d4b6c8e0a1b"
 NONCE = "00112233445566778899aabbccddeeff"
 KEY = bytes(range(32))
@@ -51,7 +51,8 @@ CONTRACT = (
 )
 CONTRACT_ID = hashlib.sha256(CONTRACT).hexdigest()
 HANDLER = {
-    "step": 'result {"echo": body}; the body {"invalid": true} is declined as body_invalid',
+    "step": 'result {"echo": body}; the body {"invalid": true} is declined as body_invalid, and the body '
+    '{"conflict": true} as conflict with the detail "busy" and the reason "conformance.busy"',
     "fail": "raises: owner_failure",
     "big": 'result {"blob": "z" repeated body.size times}',
     "flaky": "the first validation of each owner declines with body_invalid; every later validation accepts; "
@@ -423,6 +424,20 @@ def scenarios() -> list[dict]:
             ],
         },
         {
+            # Rule 7.3.12 and section 7.5: a valid request that the owner's state does not permit is
+            # declined with conflict and a reason; the response is kept as every declined response.
+            "name": "a conflict is declined with its reason, kept, and advances the session",
+            "steps": [
+                open_step,
+                {"seq": 1, "op": "step", "body": {"conflict": True}, "ack": "last", "expect": ["declined", "conflict"],
+                 "response_body": {"detail": "busy", "ncp.reason": "conformance.busy"}},
+                {"repeat": 1, "expect": ["declined", "conflict"]},
+                {"seq": 2, "op": "step", "body": {"invalid": True}, "ack": "last", "expect": ["declined", "body_invalid"],
+                 "response_body": {"detail": "invalid"}},
+                {"seq": 3, "op": "step", "body": {"x": 1}, "ack": "last", "expect": ["ok", None]},
+            ],
+        },
+        {
             "name": "a declined request keeps its answer when the application would now accept it",
             "steps": [
                 open_step,
@@ -640,6 +655,48 @@ def clients() -> list[dict]:
             ],
         },
         {
+            # Section 7.5 and rules 7.6.3 and 7.6.8: a reason refines the code and changes no verdict;
+            # a client ignores members that it does not know (section 6.2), and a value of
+            # ncp.reason that is not a name is no reason.
+            "name": "reasons, unknown codes, and unknown members of a declined response",
+            "lossy": False,
+            "steps": opened
+            + [
+                {"do": "call", "op": "step", "body": {}, "expect": "sent", "request": {"seq": 1, "ack": "last"}},
+                {"reply": {"outcome": "declined", "code": "conflict",
+                           "body": {"detail": "busy", "ncp.reason": "app.busy", "ncp.app": {"next": 4}}},
+                 "to": "own", "expect": {"kind": "declined", "code": "conflict", "executed": "no", "reason": "app.busy"},
+                 "state": state(1)},
+                {"do": "call", "op": "step", "body": {}, "expect": "sent", "request": {"seq": 2, "ack": "last"}},
+                {"reply": {"outcome": "declined", "code": "later_code",
+                           "body": {"ncp.reason": "ncp.later.reason", "later": [1, 2], "ncp.later": {}}},
+                 "to": "own",
+                 "expect": {"kind": "declined", "code": "later_code", "executed": "no", "reason": "ncp.later.reason"},
+                 "state": state(2)},
+                {"do": "call", "op": "step", "body": {}, "expect": "sent", "request": {"seq": 3, "ack": "last"}},
+                {"reply": {"outcome": "declined", "code": "body_invalid", "body": {"ncp.reason": "Not A Name"}},
+                 "to": "own", "expect": {"kind": "declined", "code": "body_invalid", "executed": "no"}, "state": state(3)},
+                {"do": "call", "op": "step", "body": {}, "expect": "sent", "request": {"seq": 4, "ack": "last"}},
+                {"reply": {"outcome": "declined", "code": "body_invalid", "body": {"ncp.reason": 7}},
+                 "to": "own", "expect": {"kind": "declined", "code": "body_invalid", "executed": "no"}, "state": state(4)},
+                {"do": "call", "op": "step", "body": {}, "expect": "sent", "request": {"seq": 5, "ack": "last"}},
+                {"reply": {"outcome": "ended", "code": "owner_failure", "body": {"detail": "x", "later": True}},
+                 "to": "own", "expect": {"kind": "ended", "code": "owner_failure", "executed": "unknown"},
+                 "state": state(4, ended=True)},
+            ],
+        },
+        {
+            "name": "a refused open names its reason",
+            "lossy": False,
+            "steps": [
+                {"do": "open", "expect": "sent"},
+                {"reply": {"outcome": "rejected", "code": "refused",
+                           "body": {"detail": "full", "ncp.reason": "app.full", "later": 1}},
+                 "to": "own", "expect": {"kind": "rejected", "code": "refused", "reason": "app.full"},
+                 "state": state(0, opened=False)},
+            ],
+        },
+        {
             # Rule 7.6.4: the owner lost the session, and a delayed copy of `open` opened it again.
             # An earlier copy of the request may have executed in the lost opening.
             "name": "a rejection of a request other than open ends the session, possibly executed",
@@ -695,6 +752,19 @@ def clients() -> list[dict]:
             + [
                 {"do": "call", "op": "step", "body": {}, "expect": "sent"},
                 {"reply": {"outcome": "ended", "code": "$code", "body": {}}, "to": "nameless_bound",
+                 "expect": {"kind": "ended", "code": "$code", "executed": "$executed"}, "state": state(0, ended=True)},
+            ],
+        },
+        {
+            # Section 6.2: members that the client does not know leave the binding to the chain.
+            "name": "a nameless response bound to the chain, with members that the client does not know",
+            "lossy": False,
+            "cases": [["bad_frame", "no"], ["shutdown", "no"]],
+            "steps": opened
+            + [
+                {"do": "call", "op": "step", "body": {}, "expect": "sent"},
+                {"reply": {"outcome": "ended", "code": "$code", "body": {"detail": "x", "ncp.later": {"a": 1}}},
+                 "to": "nameless_bound",
                  "expect": {"kind": "ended", "code": "$code", "executed": "$executed"}, "state": state(0, ended=True)},
             ],
         },
@@ -888,6 +958,8 @@ class _VectorHandler:
     def validate(self, request: ncp.Request) -> None:
         if request.op == "step" and isinstance(request.body, dict) and request.body.get("invalid") is True:
             raise ncp.Declined("invalid")
+        if request.op == "step" and isinstance(request.body, dict) and request.body.get("conflict") is True:
+            raise ncp.Declined("busy", code="conflict", reason="conformance.busy")
 
     def execute(self, request: ncp.Request) -> object:
         return {"echo": request.body}
@@ -946,10 +1018,12 @@ def transcripts() -> list[dict]:
             data += original[-(T.RECORD.size + 32) :]
         return bytes(data)
 
-    def resealed(records: list[T.Record]) -> bytes:
-        """The records with a chain recomputed from the start: a consistent file without a key."""
-        data = bytearray(original[:header_end])
-        chain = hashlib.sha256(original[:header_end]).digest()
+    def resealed(records: list[T.Record], start: bytes | None = None) -> bytes:
+        """The records with a chain recomputed from the start: a consistent file without a key.
+        `start` replaces the magic and the header."""
+        start = original[:header_end] if start is None else start
+        data = bytearray(start)
+        chain = hashlib.sha256(start).digest()
         for item in records:
             head = T.RECORD.pack(item.kind, item.time_ns, len(item.frame))
             chain = hashlib.sha256(chain + head + item.frame[-32:]).digest()
@@ -959,6 +1033,9 @@ def transcripts() -> list[dict]:
         return bytes(data + head + chain)
 
     rec = parsed.records
+    header = {**json.loads(original[12:header_end]), "run": "r-7", "later": {"key": 1}}
+    header_text = json.dumps(header, separators=(",", ":")).encode()
+    later_header = original[:8] + struct.pack(">I", len(header_text)) + header_text
     declined_at = next(
         i for i, item in enumerate(rec) if F.decode(item.frame, F.MAX_BOUND).message.get("outcome") == "declined"
     )
@@ -1038,6 +1115,9 @@ def transcripts() -> list[dict]:
         ("an owner admits a request with a gap, chain recomputed", resealed(owner_with(gap_answer("ok", None))),
          None, expect(False, sessions=[{**owner_session, "requests": 6, "problems": True}])),
         ("a received record shorter than a digest, chain recomputed", resealed(short), None, expect(False)),
+        # Section 10.1: a verifier ignores members of the header that it does not know.
+        ("a header with members that the verifier does not know, chain recomputed", resealed(rec, later_header),
+         None, expect(True)),
     ]
     out = []
     for name, data, key, expected in cases:
@@ -1102,6 +1182,14 @@ def contracts() -> list[dict]:
         ("an array schema with a bad dtype",
          doc({**base, "operations": {"step": {"ncp.schema": {"request": {"ncp.array": {"dtype": "c64", "shape": []}}}}}}), False),
         ("a byte order mark", "\ufeff" + doc(base), False),
+        # Section 11, rule 6.
+        ("reasons of an operation", doc({**base, "operations": {"step": {"ncp.reasons": ["a.busy", "a.full"]}}}), True),
+        ("no reasons", doc({**base, "operations": {"step": {"ncp.reasons": []}}}), True),
+        ("reasons that are not an array", doc({**base, "operations": {"step": {"ncp.reasons": "a.busy"}}}), False),
+        ("a reason twice", doc({**base, "operations": {"step": {"ncp.reasons": ["a.busy", "a.busy"]}}}), False),
+        ("a reason of a profile", doc({**base, "operations": {"step": {"ncp.reasons": ["ncp.lockstep.tick"]}}}), False),
+        ("a reason that is not a name", doc({**base, "operations": {"step": {"ncp.reasons": ["Busy"]}}}), False),
+        ("a reason that is not a string", doc({**base, "operations": {"step": {"ncp.reasons": [1]}}}), False),
     ]
     out = []
     for name, text, ok in cases:

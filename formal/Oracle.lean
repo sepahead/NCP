@@ -12,7 +12,8 @@ Input, one per line:
   req SEQ OP ACK BAD FAIL BIG SESSION PROTOCOL NONCE OPEN
     OP        open | close | ping | step | unknown
     ACK       - | an identity printed earlier by this oracle
-    BAD       1 if the application must find the body invalid, else 0
+    BAD       1 if the application must find the body invalid, 2 if its state must not permit
+              the request (code conflict), else 0
     FAIL      1 if the application must raise when it executes the request, else 0
     BIG       1 if the result must be too large for the session, else 0
     SESSION   1 for the harness's session, 2 for another one
@@ -34,7 +35,7 @@ def codeName : Code → String
   | .wrongProtocol => "wrong_protocol" | .notOpen => "not_open" | .alreadyOpen => "already_open"
   | .wrongSession => "wrong_session" | .seqStale => "seq_stale" | .seqGap => "seq_gap"
   | .seqConflict => "seq_conflict" | .ackMissing => "ack_missing" | .ackMismatch => "ack_mismatch"
-  | .unknownOp => "unknown_op" | .bodyInvalid => "body_invalid"
+  | .unknownOp => "unknown_op" | .bodyInvalid => "body_invalid" | .conflict => "conflict"
   | .contractMismatch => "contract_mismatch" | .boundUnacceptable => "bound_unacceptable"
   | .refused => "refused" | .sessionEnded => "session_ended" | .resultTooLarge => "result_too_large"
   | .ownerFailure => "owner_failure" | .sessionExpired => "session_expired" | .shutdown => "shutdown"
@@ -75,14 +76,16 @@ def parseLine (line : String) : Option Input := do
     let protocol ← protocolS.toNat?
     let nonce ← nonceS.toNat?
     let verdict ← openCode openS
-    let bad := badS == "1"
+    let bad := badS == "1" || badS == "2"
+    let conflict := badS == "2"
     let fail := failS == "1"
     let big := bigS == "1"
     let body := if op = .openSession then verdict
       else (if bad then 2 else 0) + (if fail then 1 else 0) + (if big then 4 else 0)
+        + (if conflict then 8 else 0)
     let request : Request := { protocol, session, seq, op, ack, body }
     let result := if fail then AppResult.error else if big then .tooLarge 0 else .result seq
-    some (.req request { valid := !bad, result, nonce })
+    some (.req request { valid := !bad, conflict, result, nonce })
   | _ => none
 
 partial def loop (stdin : IO.FS.Stream) (stdout : IO.FS.Stream) (o : Owner)

@@ -59,7 +59,7 @@ OPEN_VERDICTS = ("accept", "body_invalid", "contract_mismatch", "bound_unaccepta
 OWNER_CODES = frozenset(
     {
         "wrong_protocol", "not_open", "already_open", "wrong_session", "seq_stale", "seq_gap", "seq_conflict",
-        "ack_missing", "ack_mismatch", "unknown_op", "body_invalid", "contract_mismatch", "bound_unacceptable",
+        "ack_missing", "ack_mismatch", "unknown_op", "body_invalid", "conflict", "contract_mismatch", "bound_unacceptable",
         "refused", "session_ended", "result_too_large", "owner_failure", "session_expired", "shutdown",
     }
 )
@@ -75,7 +75,7 @@ class Req:
     seq: int
     op: str  # open | close | ping | step | unknown
     ack: str | None
-    bad: bool = False
+    bad: int = 0  # 1: the application finds the body invalid; 2: its state does not permit the request
     fail: bool = False
     big: bool = False
     session: int = 1
@@ -84,7 +84,8 @@ class Req:
 
 
 class Handler:
-    """The harness's application. Bad bodies are declined, failing ones raise, big ones return a
+    """The harness's application. Bad bodies are declined, with `body_invalid` or, for `"bad": 2`,
+    with `conflict` and the reason `model.busy`; failing ones raise, big ones return a
     result too large for the session, and a run named "refuse" is refused at open. It records the
     identity of each request that it executes, across restarts of the owner."""
 
@@ -99,8 +100,10 @@ class Handler:
         return {}
 
     def validate(self, request):
-        if self.decline and request.body.get("bad"):
+        if self.decline and request.body.get("bad") == 1:
             raise ncp.Declined("bad body")
+        if self.decline and request.body.get("bad") == 2:
+            raise ncp.Declined("the model is busy", code="conflict", reason="model.busy")
 
     def execute(self, request):
         if request.identity in self.executed:
@@ -344,11 +347,11 @@ def generate(rng: random.Random, length: int, stops: bool) -> list[tuple]:
         else:
             ack: str | None = "last"
             current = seq
-            op, bad, fail, big = "step", False, False, False
+            op, bad, fail, big = "step", 0, False, False
             session, protocol = 1, 2
             pick = rng.random()
             if pick < 0.06:
-                bad = True
+                bad = 1 if pick < 0.035 else 2
             elif pick < 0.10:
                 fail = True
             elif pick < 0.13:

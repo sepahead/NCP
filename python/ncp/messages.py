@@ -41,7 +41,12 @@ REJECTION_CODES = frozenset(
     }
 )
 # Codes of a declined request: admitted, not executed, never executed.
-DECLINE_CODES = frozenset({"unknown_op", "body_invalid"})
+DECLINE_CODES = frozenset({"unknown_op", "body_invalid", "conflict"})
+# The codes with which an application declines a request (rule 7.3.12): no state of the owner
+# accepts the body, or the owner's current state does not permit the request.
+APPLICATION_DECLINE_CODES = ("body_invalid", "conflict")
+# The member of a response body that names a reason for programs (section 7.5).
+REASON = "ncp.reason"
 # Codes of an ending response, with whether the request executed.
 ENDING_CODES = {
     "result_too_large": "yes",
@@ -105,6 +110,13 @@ def is_session(value: Any) -> bool:
 def is_name(value: Any) -> bool:
     """An operation name, feature name, or stream type name (spec section 6)."""
     return type(value) is str and _NAME.match(value) is not None
+
+
+def reason_of(body: Any) -> str | None:
+    """The reason that a response body names in its member `ncp.reason` (section 7.5), or None if
+    it names none. A value that is not a name is no reason: the client then acts on the code alone."""
+    value = body.get(REASON) if type(body) is dict else None
+    return value if is_name(value) else None
 
 
 def is_nonce(value: Any) -> bool:
