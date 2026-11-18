@@ -1911,6 +1911,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/PROTOCOL-CONTENT-3.md",
+        "bytes": 6393,
+        "sha256": "830fa9b229fa27568ec639403ee99ea9d880bdb350e6a9460707c6c56cd3278f",
+        "git_blob_oid": "3430665e4cfbdc9520488843032bf92354780330",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/PROTOCOL-CONTENT-3.sha256",
+        "bytes": 88,
+        "sha256": "1c0a0ae0a2e0ab544309454f812ef8059af70dbf69464fe309b226548798b365",
+        "git_blob_oid": "22f6b1566d4aa8920c0787b032626d1b31791c24",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/PROTOCOL-CONTENT.md",
         "bytes": 2146,
         "sha256": "f2920fc12c144d18b2b0f948723807fa1ef8f2127ed95a8f8375ed0a60d9c0ff",
@@ -1981,10 +1995,17 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/analyze_content3.py",
+        "bytes": 5564,
+        "sha256": "1fc0ab254c1354518104a17569a2c13885e4bccdf56218377dd9339c4fc7debd",
+        "git_blob_oid": "570ac3d31bd8c17bdce3d8611bd2c8ea8aa8e8ed",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/content_run.py",
-        "bytes": 6064,
-        "sha256": "7f23e8d4803742ddb9ae3ed8acb4b0fd1d4f7ca088317a78c891a0a1009473a7",
-        "git_blob_oid": "c0af5a6ca79245b54a12e3c70b573f7118403ca9",
+        "bytes": 6810,
+        "sha256": "168f90946690aa69a2cacda5f96c1ca3d8110187fe04d325de8cc98113e316d7",
+        "git_blob_oid": "dbe3d615b88539b655520fc396a67a68a3e5030e",
         "indexed": true
       },
       {
@@ -2023,10 +2044,24 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/harness/content3.py",
+        "bytes": 6636,
+        "sha256": "8a11382a88c3b8e732c4a1d4d70b693651ad052e25635acd1181962ec10d700a",
+        "git_blob_oid": "56ca962ff180f44b0292b7b275e035a4f8a9a9e2",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/harness/dump_events.py",
         "bytes": 610,
         "sha256": "87b799e742086db5c6bed1640f07e96b725425a86d1d6ab9ecd8527c7b0cde53",
         "git_blob_oid": "c976c1db9aaf2c343dfefcc26b80ae47d5254077",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/harness/dump_events7.py",
+        "bytes": 705,
+        "sha256": "717216c0faf956c9182f668d762a2f9a25fd94b4839e0721174c50f72318382c",
+        "git_blob_oid": "4d1a6332fdd427576508e599f5ae30e08db062f6",
         "indexed": true
       },
       {
@@ -2093,6 +2128,27 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/harness/ncp2-rust7/Cargo.lock",
+        "bytes": 6536,
+        "sha256": "3b47f58052a4e137d51350dbc9b760f7d4ab10ebff82a5436d3b31ef789ddda0",
+        "git_blob_oid": "6431e39e5a31ab7c529d028a9de48438a1644696",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/harness/ncp2-rust7/Cargo.toml",
+        "bytes": 334,
+        "sha256": "6afd01457a181ffde9b6781cd6e42f77c813917efa6b11eb9eba1439314e13a6",
+        "git_blob_oid": "e5be947c63193aa1ff3d02d66ded793fc2cdb7dd",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/harness/ncp2-rust7/src/main.rs",
+        "bytes": 4449,
+        "sha256": "27ea6397bbe3b0d59ede5db3db23e74e7c4d69972646650fa0fd6d72919284cf",
+        "git_blob_oid": "3936de795d6fcc80962e7bffbfeb9d595b37a068",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/harness/ncp2_contract.json",
         "bytes": 125,
         "sha256": "ec11aec8814efe6a76c532f8a867f9d37ad26122fe4129f3f59bfae6fd47a8b7",
@@ -2107,6 +2163,13 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/harness/ncp2_host7.py",
+        "bytes": 2027,
+        "sha256": "c16ba1ca546dcc40ca7ea132035db3fb2883a996f313fac08d3828094daf8024",
+        "git_blob_oid": "e47d6ead85bf9cf5a44ac2ce6a51e91fd715808f",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/harness/ncp2_owner.py",
         "bytes": 4003,
         "sha256": "30b8b6886075e9a26191b92a550a73efe383b28e316465cd831fa101ce5b4227",
@@ -2114,10 +2177,24 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/harness/ncp2_owner7.py",
+        "bytes": 4253,
+        "sha256": "ecf813dbf8cb1a871c42a2c3310690a117ab6d09afb2918337819d6cfbfa08b1",
+        "git_blob_oid": "66cc70e6fb4ac9c5b9f266e334ec0ae0ea93910d",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/harness/networks.py",
         "bytes": 6399,
         "sha256": "fab8f5c03311cc9ff4e8c11b9ddaa38a4fb27e9c16ea5385eab50854542c27ef",
         "git_blob_oid": "cd2cad7ccbb4b68045e62af8cfbaecb6b58bfb16",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/harness/networks7.py",
+        "bytes": 6468,
+        "sha256": "4903384801a95006c0024c1b8b359cd18c77e6d95e5614da10dea518ed2368d0",
+        "git_blob_oid": "af37c521787f915fdabf168759f4d2cae1542753",
         "indexed": true
       },
       {
@@ -12528,7 +12605,7 @@
     ]
   },
   "counts": {
-    "text_files": 1750,
+    "text_files": 1761,
     "binary_or_non_utf8_files": 29,
     "occurrences": 384,
     "by_token_id": {
@@ -12561,7 +12638,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "cb70b7636fb365c6dce05543059b4bb21c72ea79761e6a886fc22478c9b9412e",
+  "scanned_path_set_sha256": "64dfec55188d64bd1c59bedb63cd46f7dc4d3b6fd7d2020ac6951b0996e0e2c3",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

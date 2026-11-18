@@ -1,0 +1,13 @@
+# The Rust host of content protocol 3 of the NEST campaign (see ../../PROTOCOL-CONTENT-3.md), on
+# revision 7 of the NCP 2 SDK.
+[package]
+name = "ncp2-nest-host7"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+ncp = { package = "sepahead-ncp-core", path = "../../../../rust" }
+serde_json = "=1.0.154"
+
+[workspace]

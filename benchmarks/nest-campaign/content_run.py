@@ -5,7 +5,9 @@ Usage: content_run.py RESULTS_DIR --prefix CONDA_PREFIX [--protocol 1|2] [--smok
 Three blocks, each with every configuration once in a shuffled order; each finished
 trial is appended to RESULTS_DIR/trials.jsonl and synced to disk.
 Protocol 1 (PROTOCOL-CONTENT.md) checks NCP 1.0.1 and MUSIC; protocol 2 (PROTOCOL-CONTENT-2.md)
-checks the NCP 2 Python and Rust hosts and adds Brunel with 10,000 neurons.
+checks the NCP 2 Python and Rust hosts and adds Brunel with 10,000 neurons; protocol 3
+(PROTOCOL-CONTENT-3.md) checks the hosts of revision 7 of the SDKs, adds five NEST models, and
+compares the membrane potential and the offsets of precise spike times as well.
 """
 from __future__ import annotations
 
@@ -28,26 +30,29 @@ BLOCKS = 3
 PROTOCOLS = {
     "1": ("PROTOCOL-CONTENT.md", "content.py", SEED),
     "2": ("PROTOCOL-CONTENT-2.md", "content2.py", 20261102),
+    "3": ("PROTOCOL-CONTENT-3.md", "content3.py", 20261118),
 }
+NETWORKS_3 = ("alpha", "brunel", "aeif", "hh", "izhikevich", "gif", "precise", "brunel_stdp")
 
 
 def configurations(protocol: str = "1") -> list[dict]:
+    networks = NETWORKS_3 if protocol == "3" else ("alpha", "brunel", "aeif")
     configs = [{"network": network, "n": 1000, "threads": threads, "delta_ms": delta,
                 "name": f"{network}-t{threads}-d{delta:g}"}
-               for network in ("alpha", "brunel", "aeif") for threads in (1, 2, 4, 8) for delta in (1.0, 5.0)]
-    if protocol == "2":
+               for network in networks for threads in (1, 2, 4, 8) for delta in (1.0, 5.0)]
+    if protocol in ("2", "3"):
         configs += [{"network": "brunel", "n": 10000, "threads": threads, "delta_ms": delta,
                      "name": f"brunel-n10000-t{threads}-d{delta:g}"}
                     for threads in (1, 2, 4, 8) for delta in (1.0, 5.0)]
     return configs
 
 
-def build_ncp2_host(work: Path) -> Path:
-    """Build the NCP 2 Rust host of this commit, as run3.py does."""
+def build_ncp2_host(work: Path, crate: str = "ncp2-rust", binary: str = "ncp2-nest-host") -> Path:
+    """Build an NCP 2 Rust host of this commit, as run3.py does."""
     subprocess.run(["cargo", "build", "--release", "--locked", "--quiet", "--manifest-path",
-                    str(HERE / "harness" / "ncp2-rust" / "Cargo.toml")],
+                    str(HERE / "harness" / crate / "Cargo.toml")],
                    check=True, env=dict(os.environ, CARGO_TARGET_DIR=str(work / "target")))
-    return work / "target" / "release" / "ncp2-nest-host"
+    return work / "target" / "release" / binary
 
 
 def now() -> str:
@@ -94,6 +99,10 @@ def main() -> None:
                PYTHONPATH=f"{HERE / 'harness'}{os.pathsep}{ROOT / 'local/python'}", PYTHONDONTWRITEBYTECODE="1")
     if args.protocol == "2":
         env.update(NCP2_PYTHON=str(ROOT / "python"), NCP2_HOST=str(build_ncp2_host(args.results / ".work")))
+    if args.protocol == "3":
+        env.update(NCP2_PYTHON=str(ROOT / "python"),
+                   NCP2_HOST7=str(build_ncp2_host(args.results / ".work", "ncp2-rust7", "ncp2-nest-host7")))
+        subprocess.run([sys.executable, str(HERE / "harness" / "content3.py"), "--self-test"], check=True)
     for index, entry in enumerate(schedule["order"]):
         if (entry["block"], entry["config"]) in done:
             continue
