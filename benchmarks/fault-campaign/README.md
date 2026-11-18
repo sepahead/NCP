@@ -1,6 +1,6 @@
 # Fault campaign
 
-This directory holds six protocols. [Protocols 2 to 6](#protocol-2-ncp-2), at the end, test NCP 2; protocols 4 to 6 add Unix domain sockets, TCP, and the Rust client, and [protocol 6](#protocol-6-protocol-5-with-revision-7-of-the-sdks) runs protocol 5 again with revision 7 of the SDKs.
+This directory holds seven protocols. [Protocols 2 to 7](#protocol-2-ncp-2), at the end, test NCP 2; protocols 4 to 6 add Unix domain sockets, TCP, and the Rust client, [protocol 6](#protocol-6-protocol-5-with-revision-7-of-the-sdks) runs protocol 5 again with revision 7 of the SDKs, and [protocol 7](#protocol-7-revision-7-over-the-zenoh-binding) runs revision 7 over the Zenoh binding.
 Protocol 1, from here on, is a campaign of 22 October 2026 that drives local NCP 1.0.1 sessions into the failures that the profile names.
 It asks two questions: what happens in each failure, and does any failure make a client accept a wrong result.
 All trials use SDK 1.0.1 with `LocalClient` and a Python or Rust owner on one computer.
@@ -338,3 +338,34 @@ The trials ran on 18 November 2026 from 16:30 to 17:11 UTC, from the clean commi
 
 Each row adds both bindings and both clients. Of the 1,920 flipped bits, 1,300 were in the JSON region, 321 in the attachments, 219 in the digest, and 80 in the header.
 Revision 7 of the SDKs has now met every fault scenario of protocol 5 over Unix domain sockets and TCP, with both clients and both owners, without a wrong result. It has not run over pipes, which protocols 2 and 3 covered with revision 2, or over the Zenoh binding, where a lost or repeated message is part of normal operation.
+
+## Protocol 7: revision 7 over the Zenoh binding
+
+[`PROTOCOL-7.md`](PROTOCOL-7.md) was fixed on 18 November 2026 (SHA-256 in [`PROTOCOL-7.sha256`](PROTOCOL-7.sha256)) and pushed in commit `0249229` before its trials.
+Protocols 2 to 6 ran over links that deliver each frame once and in order, where the kept response, the repeat of a request after a time limit, and the rules for a lost session never act. Protocol 7 runs sessions of the revision 7 Python client against the Python and the Rust owner of the Zenoh binding, each owner in its own process with an execution log, and applies the faults of a network: the client's channel drops, duplicates, or delays a query or a reply, replays an earlier request or the `open`, or applies two such faults to two requests; or the owner is killed around the first sending of a request, and started again or not. [`harness/zenoh_fault7.py`](harness/zenoh_fault7.py) runs one trial, [`run7.py`](run7.py) the schedule, and [`analyze7.py`](analyze7.py) the criteria.
+
+### Results of protocol 7
+
+The 960 trials ran on 18 November 2026 from 19:52 to 20:13 UTC, from the clean commit `0249229`, on battery, with one-minute load averages of 2.0 to 15.1 before a trial.
+[`results-7/trials.jsonl`](results-7/trials.jsonl) holds every trial, and [`results-7/analysis.json`](results-7/analysis.json) the analysis.
+**Every scheduled trial ran, and all six hypotheses hold**, with both owners.
+
+| Scenario | Trials for each owner | Completed | Ended early |
+| --- | ---: | ---: | ---: |
+| Query dropped, reply dropped, query duplicated, reply delayed | 60 each | all | none |
+| Earlier request replayed, `open` replayed | 60 each | all | none |
+| Two of these faults on two requests | 60 | all | none |
+| Owner killed and started again | 30 | 5 (Python), 4 (Rust) | 25, 26: each with `session_expired`, possibly executed |
+| Owner killed and not started again | 30 | none | 30: each with `local.timeout`, possibly executed |
+
+| # | Hypothesis | Holds |
+| --- | --- | --- |
+| E1 | No trial accepts a wrong result. | yes |
+| E2 | In every trial, the owner executes each step at most once, in order. | yes |
+| E3 | In every trial, what the client learned about each step is true, and at most one step is uncertain. | yes |
+| E4 | Every failure reaches the application as an error that the client's SDK documents. | yes |
+| Z1 | Every trial with faults of the network only completes, with every fault applied. | yes: 840 of 840 |
+| Z2 | Every trial with a killed owner that is not started again ends early. | yes: 60 of 60 |
+
+A session completed after a restart when the owner died before the `open` or after the last step. Of the steps whose verdict was "possibly executed", 38 followed a restart and 46 a kill; the execution log agreed with every verdict of the client.
+This is the first fault campaign of NCP 2 over a link that loses, repeats, delays, and replays messages. It covers the Python client on one computer, over the loopback interface, without a router; the Rust client of the binding is covered by the binding's tests.

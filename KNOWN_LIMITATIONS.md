@@ -29,8 +29,9 @@ of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
   the same integrity check, ZeroMQ and Zenoh are now faster up to 1,788 spikes.
 - **Evidence before revision 3.** The NEST and multi-agent benchmarks ran with the SDKs before
   revision 3 on one macOS laptop, and have not run again for revisions 3 to 7. The fault campaign ran with them and again
-  with revision 7 (protocol 6, over Unix domain sockets and TCP), on the same laptop. Neither ran
-  on Linux or with the Zenoh binding.
+  with revision 7 (protocol 6, over Unix domain sockets and TCP, and protocol 7, over the Zenoh
+  binding with the Python client), on the same laptop. Neither ran on Linux, and the benchmarks did
+  not run with the Zenoh binding.
 - **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. The
   supported platforms are Linux and macOS; Windows is not tested. The Rust SDK takes nonces and session identifiers from the generator of the
   operating system, through `getrandom`, on every platform; if that generator fails, the SDK panics

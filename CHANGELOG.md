@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2: checks after revision 7 (no wire change)
 
+- Fault-campaign protocol 7 (fixed before its trials) ran revision 7 over the Zenoh binding: 960
+  sessions of the Python client against the Python and the Rust owner, with queries and replies
+  dropped, duplicated, and delayed, earlier requests and the `open` replayed, two faults on two
+  requests, and owners killed with and without a restart. All six hypotheses hold: no wrong result,
+  no step run twice or out of order, every verdict true against the owner's execution log, every
+  session with network faults only completed, and every session without its owner ended early.
 - Comparison protocol 3 (fixed before its runs) timed revision 7 against the systems of protocol 2:
   420 runs, none disturbed or failed. R2 and R3 hold: with the same integrity check and the same
   kind of connection, NCP 2 is faster than gRPC and Zenoh in Rust and than gRPC in Python. R1 does
