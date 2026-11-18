@@ -74,12 +74,13 @@ In every reachable world it checks:
 - **Progress.** Runs without faults and time limits finish. The search checks it in the world where no transition other than a fault remains; without faults, that world is the end of the one run.
 
 With one fault, the search reaches 565,424 worlds, and every property holds. On an Apple M4 Max it takes 60 to 120 seconds, depending on the load.
+With two faults, in a run outside the gate on 18 November 2026 at commit `e6ed8a8`, it reaches 13,621,815 worlds (10,097,050 for one owner for each connection, 3,524,765 for one owner for each session identifier), and every property holds; the two shapes ran in parallel, in 6.5 and 2.7 minutes, with at most 6.8 GB of memory.
 Its self-test injects seventeen known defects, at least one for each property, and detects each. Among them are the holder by session identifier of revision 2 of the profile, the takeover in `open` of revision 3, the verdict of revision 4 without the history identity, a restore that keeps the history identity, and two wrong reasons. A step of the holder with a wrong tick is not reachable in the search, so the facts of `ncp.lockstep.tick` have SDK tests instead.
 Two of them, a take that ignores the term and a take that does not raise it, break only L1: the term keeps the holder stable, and the verdicts do not depend on it.
 
 ### Limits
 
-- The runs are bounded: one stepping client with two steps, at most three sessions, and one fault in the gate. An advisory run outside the gate on 15 November 2026 checked revision 4 of the profile with two faults; revision 5 has not had a run with two faults.
+- The runs are bounded: one stepping client with two steps, at most three sessions, and one fault in the gate. Runs outside the gate checked revision 4 of the profile with two faults on 15 November 2026, and revision 5 on 18 November 2026.
 - Each owner step is atomic in the search, so the wait of a take for a running step is outside it. The SDK tests check that wait in both languages.
 - The check does not cover an application that fails in a step (profile, rule 5.5), `result_too_large`, a stopping owner, bad frames, readers (rule 3.5), or more than one stepping client: the other client is atomic and steps once.
 - The program drives the session client of the SDK and its own stepping program, and shares only `judge` with `LockstepClient`. The checks of `LockstepClient` and `take` on the responses (profile, rules 3.4, 6.1, 6.2, and 6.3) have SDK tests in both languages instead.
@@ -109,6 +110,7 @@ python3 model/simulate.py --faults 2                 # the exhaustive check
 python3 model/simulate.py --faults 2 --self-test     # its mutation test
 python3 model/lockstep.py --faults 1                 # the lockstep profile
 python3 model/lockstep.py --faults 1 --self-test     # its mutation test
+python3 model/lockstep.py --faults 2 --max-worlds 20000000   # outside the gate: two faults
 python3 model/conformance.py --traces 20000 --oracle formal/.lake/build/bin/ncp2-oracle \
     --owner rust/target/release/examples/model_owner
 python3 model/conformance.py --traces 20000 --self-test --oracle formal/.lake/build/bin/ncp2-oracle

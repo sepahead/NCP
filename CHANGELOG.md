@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### NCP 2: an advisory gate for the Rust lockfiles (no wire change)
+### NCP 2: checks after revision 7 (no wire change)
 
+- The model check of the lockstep profile ran for revision 5 with two faults, outside the gate:
+  13,621,815 worlds, and every property holds (`model/lockstep.py --faults 2`, at `e6ed8a8`).
+  Until now only revision 4 had a run with two faults.
 - `scripts/check_ncp2_advisories.sh` checks the lockfiles of `sepahead-ncp-core` and of the Rust
   Zenoh binding against the RustSec database with cargo-deny 0.19.9: advisories, licenses,
   sources, and banned features. Until now no workflow scanned these two lockfiles. The workflow
