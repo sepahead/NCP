@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Run protocol 4 or 5 of the fault campaign, for NCP 2 over sockets and with the Rust client
-(see PROTOCOL-4.md and PROTOCOL-5.md). Resumable and safe to interrupt.
+"""Run protocol 4, 5, or 6 of the fault campaign, for NCP 2 over sockets and with the Rust client
+(see PROTOCOL-4.md, PROTOCOL-5.md, and PROTOCOL-6.md). Resumable and safe to interrupt.
 
-Usage: run4.py RESULTS_DIR [--protocol 4|5] [--smoke]
+Usage: run4.py RESULTS_DIR [--protocol 4|5|6] [--smoke]
 Protocol 5 is protocol 4 with the corrected cleanup of harness/fault_client4.py and its own seed.
+Protocol 6 is protocol 5 with revision 7 of the SDKs: the trial program harness/fault_client6.py,
+the Python owner harness/fault_owner6.py, the ported Rust client, and its own seed.
 Writes RESULTS_DIR/schedule.json once: three blocks; each block holds every trial of the plan
 in an order shuffled with a fixed seed. Each finished trial is appended to
 RESULTS_DIR/trials.jsonl and synced to disk; a later call skips finished trials. The NCP 2 Rust
@@ -26,8 +28,13 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 PROTOCOL = "PROTOCOL-4.md"
 SEED = 20261105
-# Protocol: its file and the seed of the order of its blocks.
-PROTOCOLS = {"4": ("PROTOCOL-4.md", 20261105), "5": ("PROTOCOL-5.md", 20261109)}
+TRIAL = "fault_client4.py"
+# Protocol: its file, the seed of the order of its blocks, and its trial program in harness/.
+PROTOCOLS = {
+    "4": ("PROTOCOL-4.md", 20261105, "fault_client4.py"),
+    "5": ("PROTOCOL-5.md", 20261109, "fault_client4.py"),
+    "6": ("PROTOCOL-6.md", 20261118, "fault_client6.py"),
+}
 BLOCKS = 3
 BINDINGS = ("unix", "tcp")
 CLIENTS = ("python", "rust")
@@ -113,8 +120,8 @@ def main() -> None:
     parser.add_argument("--protocol", choices=sorted(PROTOCOLS), default="4")
     parser.add_argument("--smoke", action="store_true", help="one trial of each scenario and combination")
     args = parser.parse_args()
-    global PROTOCOL, SEED
-    PROTOCOL, SEED = PROTOCOLS[args.protocol]
+    global PROTOCOL, SEED, TRIAL
+    PROTOCOL, SEED, TRIAL = PROTOCOLS[args.protocol]
     args.results.mkdir(parents=True, exist_ok=True)
     binaries = build(args.results / ".work")
     schedule_path = args.results / "schedule.json"
@@ -164,7 +171,7 @@ def main() -> None:
         command = [
             sys.executable,
             "-s",
-            str(HERE / "harness" / "fault_client4.py"),
+            str(HERE / "harness" / TRIAL),
             entry["scenario"],
             str(entry["seed"]),
             entry["owner"],

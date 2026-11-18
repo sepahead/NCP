@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Evaluate protocol 4 or 5 of the fault campaign (see PROTOCOL-4.md and PROTOCOL-5.md).
+"""Evaluate protocol 4, 5, or 6 of the fault campaign (see PROTOCOL-4.md, PROTOCOL-5.md, and
+PROTOCOL-6.md).
 
 Usage: analyze4.py RESULTS_DIR. Writes RESULTS_DIR/analysis.json and prints the tables.
 Standard library only.
@@ -13,6 +14,13 @@ from collections import defaultdict
 from pathlib import Path
 
 TIMEOUT_S = 2.0
+# The view of a stalled step: revision 7 of the SDKs names the client's time limit with the local
+# code `local.timeout` (protocol 6); revision 2 named it `timeout`.
+STALL_VIEW = {
+    "PROTOCOL-4.md": "ended:timeout:unknown",
+    "PROTOCOL-5.md": "ended:timeout:unknown",
+    "PROTOCOL-6.md": "ended:local.timeout:unknown",
+}
 
 HYPOTHESES = {
     "E1": "No trial accepts a wrong result.",
@@ -37,6 +45,7 @@ def main() -> None:
         if r["returncode"] != 0
     ]
     ran = [r for r in rows if r["returncode"] == 0]
+    stall_view = STALL_VIEW[schedule["protocol"]]
     table: dict = defaultdict(lambda: defaultdict(int))
     combos: dict = defaultdict(lambda: defaultdict(int))
     regions: dict = defaultdict(int)
@@ -80,7 +89,7 @@ def main() -> None:
         views, plan = result["views"], result["plan"]
         if row["scenario"] == "stall":
             k = plan["stall_k"]
-            if views.get(str(k)) != "ended:timeout:unknown" or result["seconds"] > TIMEOUT_S + 1.0:
+            if views.get(str(k)) != stall_view or result["seconds"] > TIMEOUT_S + 1.0:
                 violations["E7"].append(f"{label}: {views.get(str(k))}, {result['seconds']} s")
             entry["max_seconds"] = max(entry.get("max_seconds", 0), result["seconds"])
         if (

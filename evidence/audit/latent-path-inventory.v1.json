@@ -1141,6 +1141,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/fault-campaign/PROTOCOL-6.md",
+        "bytes": 4436,
+        "sha256": "081b94cd3603322972f56be31f556febaa1be8a69300cd30120b2b878c76fcf8",
+        "git_blob_oid": "de447c187bae00a015e26c0bfaa8d01ae5fdeb4c",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/PROTOCOL-6.sha256",
+        "bytes": 80,
+        "sha256": "9f6b4f9a2693bf6ff2d50efd812aa53242773bc77f38eac87eece75ea9a0c002",
+        "git_blob_oid": "98eb08472f1bdb05f444418616061d4fef3e8281",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/fault-campaign/PROTOCOL-SOAK.md",
         "bytes": 1271,
         "sha256": "34e209894e8d3ba10b352691adf01684ad6d4fc4c39ef59b6c3bfffef8c35e73",
@@ -1191,9 +1205,9 @@
       },
       {
         "path": "benchmarks/fault-campaign/analyze4.py",
-        "bytes": 5905,
-        "sha256": "54453a0229e19d05d5f7160bb652a83991e8c9e4ee9e0ffaf4bebcbf5df086fc",
-        "git_blob_oid": "f25797b4129a2a1e7cf03cb8a24aea043f660425",
+        "bytes": 6289,
+        "sha256": "b4b26ef2432d10d74e1c970587fa23dfef2fc806eb395d9ce213d9c0b6769705",
+        "git_blob_oid": "a15299dfda53caeed879fa028b919580984e778c",
         "indexed": true
       },
       {
@@ -1225,6 +1239,13 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/fault-campaign/harness/fault_client6.py",
+        "bytes": 15825,
+        "sha256": "001f3e4953455b9c0bf99f0ee271caa68bdeca139a4789be2ff56678ae580073",
+        "git_blob_oid": "4abb2568b36fc156bcbfb32ab90a3a2bcaec2952",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/fault-campaign/harness/fault_owner.py",
         "bytes": 2179,
         "sha256": "dc629b001563382aded2885e3740540fa0a2c81d493af09b2d228c65a4074c15",
@@ -1243,6 +1264,13 @@
         "bytes": 1314,
         "sha256": "6ad17ce6f19c7917fd442351ea6bddec7e26c4391bbccc7d945bb8f5cb46e811",
         "git_blob_oid": "ea3693f798b85b77151263ceb2a25a4ef6c15102",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/harness/fault_owner6.py",
+        "bytes": 4153,
+        "sha256": "142162936cfcd38199ab1ea452128f86d8f1fcf3e880ce08d2dff4945c4fdb83",
+        "git_blob_oid": "49a157ad766fdab9b2cf6a3e221646337ed38abf",
         "indexed": true
       },
       {
@@ -1275,9 +1303,9 @@
       },
       {
         "path": "benchmarks/fault-campaign/harness/rust-client/Cargo.lock",
-        "bytes": 5642,
-        "sha256": "4f23d774bf2132c30404a42139de0c45c776f42a4a55a60d84ab4dbb13d2892a",
-        "git_blob_oid": "ea68e9259d3c92d66b0672e9869e7378dab0dfe5",
+        "bytes": 6536,
+        "sha256": "f941f52ec98a70b034e6509e8e3a34d166c0ac274ec5bb2b69cc4250e4a1c8dc",
+        "git_blob_oid": "bb601596b35fe583bb288b84ac268feb56be4e9b",
         "indexed": true
       },
       {
@@ -1289,9 +1317,9 @@
       },
       {
         "path": "benchmarks/fault-campaign/harness/rust-client/src/main.rs",
-        "bytes": 8628,
-        "sha256": "7b3d4c79c758bb6e53dcee00d016b3b1bf1e67348491e12484ec497e5cecf2a6",
-        "git_blob_oid": "6a5f6fdabd5310a74398b1631ff2a51805bd2c62",
+        "bytes": 9281,
+        "sha256": "6729ca5b2bfb34aa73f77518cb714021efe6b8dfdace9648707d66e42b4b87b4",
+        "git_blob_oid": "cd08486f82a9cee2a9d99dbef9bc64bb2701b381",
         "indexed": true
       },
       {
@@ -1464,9 +1492,9 @@
       },
       {
         "path": "benchmarks/fault-campaign/run4.py",
-        "bytes": 7614,
-        "sha256": "64cf809e7aa40a72ec0678cf3ebccd6ce4b393f4e7eec6a6d736ee75d3fc2dad",
-        "git_blob_oid": "c85136a0b22b273f10d8a822fc370df5371499b6",
+        "bytes": 7987,
+        "sha256": "d733071447a8d5273c8564a2b2fbbb5019209be25ebffdbd00319e481d632e01",
+        "git_blob_oid": "9aaf0b2414b7afee9262b7f0fcbb8f8afa4895f7",
         "indexed": true
       },
       {
@@ -12479,7 +12507,7 @@
     ]
   },
   "counts": {
-    "text_files": 1743,
+    "text_files": 1747,
     "binary_or_non_utf8_files": 29,
     "occurrences": 384,
     "by_token_id": {
@@ -12512,7 +12540,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "58f9dbed50a92f1e4f93b3a000997ca574aaf817170b5a6b1cac106f4a4c86a0",
+  "scanned_path_set_sha256": "3ae0787bbfe98b95fea8d8e1393020bbb680b0385c1d17de08582b2171cc2d1a",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

@@ -1,4 +1,7 @@
-//! The Rust client of fault-campaign protocol 4 (../../PROTOCOL-4.md).
+//! The Rust client of fault-campaign protocols 4 to 6 (../../PROTOCOL-4.md, ../../PROTOCOL-6.md).
+//! Protocols 4 and 5 ran it with revision 2 of the SDK, at the commits that their results name;
+//! protocol 6 runs this port to revision 7: a declined step has the view `declined:CODE`, the
+//! client refuses an oversized request with `Error::Usage`, and arrays are read as bytes.
 //!
 //! fault-client CONNECT TIMEOUT_MS PLAN REPORT   one session, as harness/fault_client2.py runs it
 //! fault-client victim CONNECT                   open a session, then call `echo` until killed
@@ -43,6 +46,25 @@ fn step(k: u64) -> (&'static str, Value) {
     }
 }
 
+/// The elements of a little-endian array of 4-byte or 8-byte values.
+fn u32s(bytes: &[u8]) -> Vec<u32> {
+    bytes
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|c| u32::from_le_bytes(*c))
+        .collect()
+}
+
+fn f64s(bytes: &[u8]) -> Vec<f64> {
+    bytes
+        .as_chunks::<8>()
+        .0
+        .iter()
+        .map(|c| f64::from_le_bytes(*c))
+        .collect()
+}
+
 /// Whether an accepted result is the right one for its request.
 fn correct(op: &str, body: &Value, reply: &Decoded) -> bool {
     let result = &reply.message["body"];
@@ -59,34 +81,35 @@ fn correct(op: &str, body: &Value, reply: &Decoded) -> bool {
     let (Some(s), Some(t)) = (index("senders"), index("times")) else {
         return false;
     };
-    let got_times = reply.array_f64(t);
-    reply.array_u32(s).as_deref() == Some(&senders[..])
-        && got_times.is_some_and(|got| {
-            got.len() == n
-                && got
-                    .iter()
-                    .zip(&times)
-                    .all(|(a, b)| a.to_bits() == b.to_bits())
-        })
+    let (Some(got_senders), Some(got_times)) = (reply.array_bytes(s), reply.array_bytes(t)) else {
+        return false;
+    };
+    got_senders.len() == 4 * n
+        && got_times.len() == 8 * n
+        && u32s(got_senders) == senders
+        && f64s(got_times)
+            .iter()
+            .zip(&times)
+            .all(|(a, b)| a.to_bits() == b.to_bits())
 }
 
-/// The name of the error that ended a session, as harness/fault_client2.py names the Python
-/// SDK's exceptions; an error that the SDK does not document for a call is reported as such.
+/// The name of the error that ended a session, as harness/fault_client6.py names the Python
+/// SDK's exceptions. The SDK documents each variant of `Error` for a call.
 fn error_name(error: &Error) -> String {
     match error {
+        Error::Declined { .. } => "Declined".into(),
         Error::Rejected { .. } => "Rejected".into(),
         Error::Ended { .. } => "Ended".into(),
-        Error::Protocol(_) => "ProtocolError".into(),
-        other => format!("undocumented:{other:?}"),
+        Error::Usage(_) => "UsageError".into(),
     }
 }
 
 /// The view of a failed call.
 fn view_of(error: &Error) -> String {
     match error {
+        Error::Declined { code, .. } => format!("declined:{code}"),
         Error::Rejected { code, .. } => format!("rejected:{code}"),
-        Error::Ended { code, executed } => format!("ended:{code}:{executed}"),
-        Error::Protocol(_) => "protocol_error".into(),
+        Error::Ended { code, executed, .. } => format!("ended:{code}:{executed}"),
         other => format!("undocumented:{other:?}"),
     }
 }
@@ -113,7 +136,7 @@ fn run_session<C: Channel>(client: &mut Client<C>, plan: &Value) -> Outcome {
         if plan["oversize_request_k"].as_u64() == Some(k) {
             let blob = "y".repeat(70_000);
             let view = match client.call("echo", json!({"k": k, "blob": blob}), &[]) {
-                Err(Error::Protocol(text)) if text.contains("exceeds the bound") => {
+                Err(Error::Usage(text)) if text.contains("exceeds the session bound") => {
                     "refused_before_sending"
                 }
                 _ => "oversize_sent",
@@ -160,23 +183,23 @@ fn announce(word: &str) {
 }
 
 fn client_for<C: Channel>(channel: C, contract: &Contract) -> Client<C> {
-    Client::new(channel, &contract.application, &contract.identity).with_bound(HANDSHAKE_BOUND)
+    Client::new(channel, contract).with_bound(HANDSHAKE_BOUND)
 }
 
 fn session(connect: &str, timeout_ms: u64, plan: &Value) -> Outcome {
     let contract = Contract::from_bytes(CONTRACT.to_vec()).expect("contract");
     let limit = Some(Duration::from_millis(timeout_ms));
     if let Some(path) = connect.strip_prefix("unix:") {
-        let channel = ncp::connect_unix(path).expect("connect");
-        ncp::set_unix_timeout(&channel, limit).expect("time limit");
+        let mut channel = ncp::connect_unix(path).expect("connect");
+        channel.set_timeout(limit);
         announce("connected");
         return run_session(&mut client_for(channel, &contract), plan);
     }
     let address = connect
         .strip_prefix("tcp:")
         .expect("CONNECT is unix:PATH or tcp:HOST:PORT");
-    let channel = ncp::connect_tcp(address, false).expect("connect");
-    ncp::set_tcp_timeout(&channel, limit).expect("time limit");
+    let mut channel = ncp::connect_tcp(address, false).expect("connect");
+    channel.set_timeout(limit);
     announce("connected");
     run_session(&mut client_for(channel, &contract), plan)
 }
