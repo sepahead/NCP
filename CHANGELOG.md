@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   10 pt (about 13 px on screen) instead of 7 to 8.5 pt shrunk to 75 percent, larger markers, a
   title, a subtitle, and a source line that names the protocol, the date, and the commit of the
   SDKs. The analyses and tables are unchanged byte for byte. Each figure in the READMEs and the
-  guide links to its SVG, so that a reader can open it alone and zoom. The documents now say that
+  guide links to its SVG, so that a reader can open it alone and zoom; the NCP 1 and local SDK
+  documents keep their bytes, because the task ledger and its receipts bind them. The documents now say that
   the benchmarks ran with the SDKs before revision 3, as their commits show, instead of revision 2.
 - The fault campaign ran again with revision 7 of the SDKs (protocol 6, fixed before its trials):
   4,560 trials over Unix domain sockets and TCP, with both clients and both owners, and all eight

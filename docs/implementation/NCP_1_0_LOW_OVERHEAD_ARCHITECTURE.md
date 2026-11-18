@@ -141,13 +141,11 @@ QoS values.
 
 ### Runtime path and cost model
 
-<a href="../diagrams/runtime-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/runtime-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/runtime-light.svg">
   <img alt="Informative proposed NCP low-overhead runtime for the unreleased, release-blocked 1.0.0-rc.1 candidate. Session preparation compiles immutable manifests, security snapshots, routes, layouts, queues, and deadlines. Each hot frame is bounded, capability-checked, decoded once, and located by exact prepared identity. One short owner transition admits it before an unlocked finite-queue handoff. The equations are symbolic design accounting, not measured performance, implementation, release, interoperability, or certification evidence." src="../diagrams/runtime-light.svg" width="1060">
 </picture>
-</a>
 
 The figure separates session preparation from the repeated frame path. Session
 preparation compiles immutable handles and reserves shared bounded state. The
@@ -612,13 +610,11 @@ non-authorizing sentinel. Extension traffic uses a separate manifest-authorized
 namespace and resource class. It is not another operational `Plane` enum value
 and cannot inherit a core plane's authority or reserved capacity.
 
-<a href="../diagrams/topology-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/topology-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/topology-light.svg">
   <img alt="Informative topology for the unreleased, release-blocked NCP 1.0 candidate. It shows the commander, body, observer, and four bounded planes. The body remains final software authority. The diagram is not a release, interoperability, or physical-safety certification claim." src="../diagrams/topology-light.svg" width="860">
 </picture>
-</a>
 
 Lifecycle and management control messages are low-rate, descriptive, and
 audit-relevant. Bounded canonical JSON is appropriate there. A compact simulation
@@ -779,13 +775,11 @@ The following figure shows the proposed native session gate. It is informative
 and does not establish implementation, interoperability, qualification, or
 release status.
 
-<a href="../diagrams/versioning-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/versioning-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/versioning-light.svg">
   <img alt="Informative proposed NCP native session gate for the unreleased, release-blocked 1.0 candidate. Canonical same-major wire parsing and an exact stable-core digest are both required. Release, corpus, extension, package, and compact-proto identities do not independently authorize a native session." src="../diagrams/versioning-light.svg" width="820">
 </picture>
-</a>
 
 ### Wire migration
 
@@ -944,13 +938,11 @@ without changing the operation. Those ceilings bound total lifecycle state.
 
 #### Lifecycle state and exact-retry model
 
-<a href="../diagrams/lifecycle-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/lifecycle-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/lifecycle-light.svg">
   <img alt="Informative proposed NCP lifecycle-operation model for the unreleased, release-blocked 1.0.0-rc.1 candidate. One namespace slot moves from free to pending, ambiguous, or terminal commit. A definitive result can move pending directly to terminal commit. An unknown effect keeps the same operation fenced until reconciliation. Terminal commit publishes the reserved result and high-water before it releases the active slot. Exact retries compare the retained coordinate, request bytes, admission-context bytes, and issuer ordinal. Shared finite stores avoid dedicated threads, sockets, or stores per session. The figure is not implementation, release, interoperability, or certification evidence." src="../diagrams/lifecycle-light.svg" width="1060">
 </picture>
-</a>
 
 The `free` state has no lifecycle slot and no external effect. The transition to
 `pending` durably reserves lineage, result capacity, recovery capacity, and one
@@ -1788,13 +1780,11 @@ Simulation opening, configuration, and retirement remain bounded idempotent
 control operations. A prepared simulation session can separately negotiate one
 fixed-layout compact step profile for high-rate numeric work. The profile binds:
 
-<a href="../diagrams/sequence-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/sequence-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/sequence-light.svg">
   <img alt="Informative proposed simulation-session sequence for the unreleased, release-blocked NCP 1.0 candidate. A compatible canonical wire and exact stable-core identity gate session opening. An authorized client opens one simulation session, uses bounded position-correlated step or run operations, receives results with fixed non-calibration provenance, and closes the session. The path grants no plant authority and is not an implemented wire, release, interoperability, or certification claim." src="../diagrams/sequence-light.svg" width="820">
 </picture>
-</a>
 
 The compact profile binds:
 
@@ -2001,13 +1991,11 @@ a failed compact decode.
 
 ## Body command admission
 
-<a href="../diagrams/admission-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/admission-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/admission-light.svg">
   <img alt="Informative proposed B01 NCP body command-admission target. It shows bounded authentication, one decode, the idempotent ESTOP latch, digest-bound position no-reuse, semantic admission, and the body effect gate. It is not the implemented contract or a release, interoperability, physical-achievement, or safety-certification claim." src="../diagrams/admission-light.svg" width="980">
 </picture>
-</a>
 
 The body processes a complete authenticated command in this order:
 

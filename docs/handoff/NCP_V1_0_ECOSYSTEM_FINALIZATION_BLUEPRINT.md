@@ -3087,13 +3087,11 @@ Implementation remains blocked until the named human/independent reviewers accep
 the same content digest. The figure shows dependency direction and authority
 boundaries. It does not show completed migration or qualification.
 
-<a href="../diagrams/ecosystem-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/ecosystem-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/ecosystem-light.svg">
   <img alt="Informative proposed NCP ecosystem map for the unreleased, release-blocked 1.0 candidate. It lists eleven exact role subjects. Haldir uses four integrated processes. The policy authority is not an NCP peer. Standalone Gate is a separate mode. The selected X02 fleet profile uses one composite session for one, two, or three drones. Its frames contain 6N sensor and 3N command scalars. MUSIC alone owns shared-clock coupling. SVG is presentation-only and non-contract. X02 and all consumer qualifications remain open." src="../diagrams/ecosystem-light.svg" width="980">
 </picture>
-</a>
 
 The topology was derived from repository manifests, runtime surfaces and trust
 boundaries, then challenged from three required perspectives:

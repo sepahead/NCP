@@ -224,13 +224,11 @@ are only one hypothesis. These values may guide a new campaign; they do not
 establish a practical live ceiling or prescribe thread/chunk settings for another
 deployment.
 
-<a href="docs/plots/realtime_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/realtime_dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/plots/realtime_light.svg">
   <img alt="Historical non-release-bound local real-time-factor sweep versus OpenMP threads. Only the sampled N=10,000 series crosses rt=1; larger sampled series remain below it. The hollow ~17–20k crossing is interpolated across an unsampled range and is not capacity evidence. NEST 3.8.0 developer run." src="docs/plots/realtime_light.svg">
 </picture>
-</a>
 
 <sub>**Historical local real-time-factor sweep** (`rt = bio-s / wall-s`, log–log). Only the sampled 10k-neuron series crosses `rt = 1`; the hollow ~17–20k marker is an interpolation across an unsampled range, not capacity evidence. Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
 
@@ -256,13 +254,11 @@ Its wall-clock result used an off-GIL busy-spin transport stand-in
 | **native thread** (C / Rust / PyO3) during `Run` | **0.348 s** | **1.68×** |
 | Python thread during `Run`                     | 0.541 s | 1.08×   |
 
-<a href="docs/plots/overlap_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/plots/overlap_dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/plots/overlap_light.svg">
   <img alt="Historical synthetic overlap illustration. The left panel shows an analytic ceiling versus modeled work; the right panel compares retained serial and Python-thread values with a hatched 1.68x off-GIL busy-spin stand-in. This is not measured NCP transport or release performance evidence." src="docs/plots/overlap_light.svg">
 </picture>
-</a>
 
 <sub>**Historical I/O-overlap illustration.** The left panel shows the analytic ceiling `(compute+work)/max(compute,work)` for modeled work. The ceiling approaches one as modeled work becomes small relative to compute. The hatched native-thread bar is an idealized off-GIL `ctypes` result, not measured NCP transport. Regenerate with [`scripts/plot_perf.py`](scripts/plot_perf.py).</sub>
 

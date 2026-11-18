@@ -7,13 +7,11 @@ The [modular application guide](../../local/modular/STATUS.md) owns current appl
 
 ## A complete feedback cycle
 
-<a href="../diagrams/closed-loop-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../diagrams/closed-loop-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="../diagrams/closed-loop-light.svg">
   <img alt="A feedback cycle runs from plant state through sensing, a retained source record, a controller proposal, body admission, and disposition to actuator input. NCP records three software events. It cannot measure the physical response or establish stability. UNRELEASED. It is not release or certification evidence." src="../diagrams/closed-loop-light.svg" width="860">
 </picture>
-</a>
 
 Full-size vector figure: [light](../diagrams/closed-loop-light.svg?raw=true) · [dark](../diagrams/closed-loop-dark.svg?raw=true).
 
