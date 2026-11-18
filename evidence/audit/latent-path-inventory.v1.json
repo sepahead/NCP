@@ -155,9 +155,9 @@
       },
       {
         "path": "AGENTS.md",
-        "bytes": 13598,
-        "sha256": "6b64a55e80d68125ff633e88bc85cd9575a0a5aeac52ff26dc140ae29c620d2e",
-        "git_blob_oid": "5acb37e88b518246b314eba8bcee093be8106522",
+        "bytes": 13769,
+        "sha256": "b82ad1f9d0f9db31349a448f4b1b8cea3358b138330c48cce0dc42a1730c239f",
+        "git_blob_oid": "a4de88ed591b9df4df0bd3924ee7444304c99156",
         "indexed": true
       },
       {

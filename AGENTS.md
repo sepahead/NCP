@@ -118,8 +118,10 @@ table of `formal/README.md`: run `conformance/generate.py` and
 `formal/mutants.py --table`. The Lean proofs use only `propext`,
 `Classical.choice`, and `Quot.sound`.
 
-The benchmarks ran with the SDKs before revision 3 (23 October to 3 November 2026). The
-fault campaign ran with those SDKs (protocols 2 to 5) and with revision 7 (protocol 6). Keep their records, and state the
+The NEST and multi-agent benchmarks ran with the SDKs before revision 3 (23 October to
+3 November 2026). The comparison benchmark ran with those SDKs (protocols 1 and 2) and with
+revision 7 (protocols 3 and 4), and the fault campaign with those SDKs (protocols 2 to 5) and
+with revision 7 (protocol 6 over sockets and TCP, protocol 7 over Zenoh). Keep their records, and state the
 revision of the SDKs with each new measurement.
 
 ## Task coordination
