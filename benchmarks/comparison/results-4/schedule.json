@@ -1,0 +1,375 @@
+{
+ "protocol": "PROTOCOL-4.md",
+ "protocol_sha256": "e1d7602343100c6af702727a8d1a5de7f007853ad4eb22f2fff2bdfd49574aeb",
+ "seed": 20261120,
+ "blocks": 3,
+ "smoke": false,
+ "calls": {
+  "0": [
+   5000,
+   500
+  ],
+  "127": [
+   5000,
+   500
+  ],
+  "1788": [
+   5000,
+   500
+  ],
+  "87381": [
+   300,
+   30
+  ]
+ },
+ "created_utc": "2026-11-18T20:18:09.329274Z",
+ "commit": "c5036d5138355312a86ba58ba2119b2f340aa13a",
+ "worktree_clean": true,
+ "order": [
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "iox2-rust-shm-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-n87381"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 0,
+   "config": "iox2-rust-shm-n0"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-tcp-n87381"
+  },
+  {
+   "block": 0,
+   "config": "iox2-rust-shm-n1788"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "iox2-rust-shm-sha256-n127"
+  },
+  {
+   "block": 0,
+   "config": "iox2-rust-shm-sha256-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-unix-n87381"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-unix-n127"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "raw-rust-pipe-n0"
+  },
+  {
+   "block": 0,
+   "config": "iox2-rust-shm-n87381"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-tcp-n127"
+  },
+  {
+   "block": 0,
+   "config": "iox2-rust-shm-sha256-n0"
+  },
+  {
+   "block": 0,
+   "config": "iox2-rust-shm-sha256-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-pipe-n127"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-tcp-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-unix-n0"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-unix-n1788"
+  },
+  {
+   "block": 0,
+   "config": "ncp2-rust-rust-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "iox2-rust-shm-n1788"
+  },
+  {
+   "block": 1,
+   "config": "iox2-rust-shm-n127"
+  },
+  {
+   "block": 1,
+   "config": "iox2-rust-shm-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-tcp-n127"
+  },
+  {
+   "block": 1,
+   "config": "iox2-rust-shm-n87381"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "iox2-rust-shm-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-tcp-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-unix-n0"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-unix-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-tcp-n87381"
+  },
+  {
+   "block": 1,
+   "config": "iox2-rust-shm-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-n0"
+  },
+  {
+   "block": 1,
+   "config": "iox2-rust-shm-sha256-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-unix-n127"
+  },
+  {
+   "block": 1,
+   "config": "iox2-rust-shm-n0"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-n127"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-sha256-n0"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-sha256-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-pipe-n87381"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-tcp-n0"
+  },
+  {
+   "block": 1,
+   "config": "raw-rust-pipe-sha256-n127"
+  },
+  {
+   "block": 1,
+   "config": "ncp2-rust-rust-unix-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "iox2-rust-shm-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-unix-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-unix-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-n1788"
+  },
+  {
+   "block": 2,
+   "config": "iox2-rust-shm-sha256-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-tcp-n87381"
+  },
+  {
+   "block": 2,
+   "config": "iox2-rust-shm-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-tcp-n127"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-sha256-n87381"
+  },
+  {
+   "block": 2,
+   "config": "iox2-rust-shm-sha256-n127"
+  },
+  {
+   "block": 2,
+   "config": "iox2-rust-shm-sha256-n1788"
+  },
+  {
+   "block": 2,
+   "config": "iox2-rust-shm-n87381"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-unix-n0"
+  },
+  {
+   "block": 2,
+   "config": "iox2-rust-shm-n127"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-tcp-n1788"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-unix-n1788"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "iox2-rust-shm-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-pipe-n87381"
+  },
+  {
+   "block": 2,
+   "config": "raw-rust-pipe-n0"
+  },
+  {
+   "block": 2,
+   "config": "ncp2-rust-rust-tcp-n0"
+  }
+ ],
+ "conditions": {
+  "load_limit": 8.0,
+  "clock_min_ghz": 4.0,
+  "end_clock_min_ghz": 3.8,
+  "max_attempts": 3,
+  "sleep_limit_s": 0.5,
+  "require_ac": false,
+  "battery_min_percent": 10
+ }
+}

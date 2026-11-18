@@ -1,0 +1,1004 @@
+{
+ "configurations": {
+  "iox2-rust-shm-n0": {
+   "arm": "iox2-rust-shm",
+   "blocks": {
+    "0": {
+     "median_us": 0.792,
+     "p95_us": 0.875,
+     "p99_us": 0.916
+    },
+    "1": {
+     "median_us": 0.7080000000000001,
+     "p95_us": 0.75,
+     "p99_us": 0.792
+    },
+    "2": {
+     "median_us": 0.791,
+     "p95_us": 0.875,
+     "p99_us": 0.9590000000000001
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "other",
+   "p95_statistic_us": 0.875,
+   "p99_statistic_us": 0.916,
+   "range_us": [
+    0.7080000000000001,
+    0.792
+   ],
+   "spikes": 0,
+   "statistic_us": 0.791
+  },
+  "iox2-rust-shm-n127": {
+   "arm": "iox2-rust-shm",
+   "blocks": {
+    "0": {
+     "median_us": 0.833,
+     "p95_us": 0.875,
+     "p99_us": 0.9169999999999999
+    },
+    "1": {
+     "median_us": 0.834,
+     "p95_us": 0.9169999999999999,
+     "p99_us": 0.958
+    },
+    "2": {
+     "median_us": 0.75,
+     "p95_us": 0.875,
+     "p99_us": 0.9169999999999999
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "other",
+   "p95_statistic_us": 0.875,
+   "p99_statistic_us": 0.9169999999999999,
+   "range_us": [
+    0.75,
+    0.834
+   ],
+   "spikes": 127,
+   "statistic_us": 0.833
+  },
+  "iox2-rust-shm-n1788": {
+   "arm": "iox2-rust-shm",
+   "blocks": {
+    "0": {
+     "median_us": 1.25,
+     "p95_us": 1.334,
+     "p99_us": 1.375
+    },
+    "1": {
+     "median_us": 1.25,
+     "p95_us": 1.375,
+     "p99_us": 1.417
+    },
+    "2": {
+     "median_us": 1.166,
+     "p95_us": 1.333,
+     "p99_us": 1.4160000000000001
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "other",
+   "p95_statistic_us": 1.334,
+   "p99_statistic_us": 1.4160000000000001,
+   "range_us": [
+    1.166,
+    1.25
+   ],
+   "spikes": 1788,
+   "statistic_us": 1.25
+  },
+  "iox2-rust-shm-n87381": {
+   "arm": "iox2-rust-shm",
+   "blocks": {
+    "0": {
+     "median_us": 26.333,
+     "p95_us": 30.416,
+     "p99_us": 30.542
+    },
+    "1": {
+     "median_us": 26.667,
+     "p95_us": 31.0,
+     "p99_us": 31.75
+    },
+    "2": {
+     "median_us": 25.708,
+     "p95_us": 28.875,
+     "p99_us": 29.916999999999998
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "other",
+   "p95_statistic_us": 30.416,
+   "p99_statistic_us": 30.542,
+   "range_us": [
+    25.708,
+    26.667
+   ],
+   "spikes": 87381,
+   "statistic_us": 26.333
+  },
+  "iox2-rust-shm-sha256-n0": {
+   "arm": "iox2-rust-shm-sha256",
+   "blocks": {
+    "0": {
+     "median_us": 0.9590000000000001,
+     "p95_us": 1.042,
+     "p99_us": 1.125
+    },
+    "1": {
+     "median_us": 1.0,
+     "p95_us": 1.083,
+     "p99_us": 1.125
+    },
+    "2": {
+     "median_us": 0.958,
+     "p95_us": 1.042,
+     "p99_us": 1.209
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "other-sha256",
+   "p95_statistic_us": 1.042,
+   "p99_statistic_us": 1.125,
+   "range_us": [
+    0.958,
+    1.0
+   ],
+   "spikes": 0,
+   "statistic_us": 0.9590000000000001
+  },
+  "iox2-rust-shm-sha256-n127": {
+   "arm": "iox2-rust-shm-sha256",
+   "blocks": {
+    "0": {
+     "median_us": 2.2079999999999997,
+     "p95_us": 2.292,
+     "p99_us": 2.334
+    },
+    "1": {
+     "median_us": 2.9170000000000003,
+     "p95_us": 3.208,
+     "p99_us": 3.375
+    },
+    "2": {
+     "median_us": 1.9589999999999999,
+     "p95_us": 2.25,
+     "p99_us": 2.292
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "other-sha256",
+   "p95_statistic_us": 2.292,
+   "p99_statistic_us": 2.334,
+   "range_us": [
+    1.9589999999999999,
+    2.9170000000000003
+   ],
+   "spikes": 127,
+   "statistic_us": 2.2079999999999997
+  },
+  "iox2-rust-shm-sha256-n1788": {
+   "arm": "iox2-rust-shm-sha256",
+   "blocks": {
+    "0": {
+     "median_us": 17.917,
+     "p95_us": 18.042,
+     "p99_us": 18.666999999999998
+    },
+    "1": {
+     "median_us": 16.0,
+     "p95_us": 17.916,
+     "p99_us": 21.708
+    },
+    "2": {
+     "median_us": 16.0,
+     "p95_us": 17.875,
+     "p99_us": 21.875
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "other-sha256",
+   "p95_statistic_us": 17.916,
+   "p99_statistic_us": 21.708,
+   "range_us": [
+    16.0,
+    17.917
+   ],
+   "spikes": 1788,
+   "statistic_us": 16.0
+  },
+  "iox2-rust-shm-sha256-n87381": {
+   "arm": "iox2-rust-shm-sha256",
+   "blocks": {
+    "0": {
+     "median_us": 834.416,
+     "p95_us": 845.2909999999999,
+     "p99_us": 851.958
+    },
+    "1": {
+     "median_us": 747.8330000000001,
+     "p95_us": 838.0,
+     "p99_us": 899.1659999999999
+    },
+    "2": {
+     "median_us": 747.959,
+     "p95_us": 853.0840000000001,
+     "p99_us": 907.792
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "other-sha256",
+   "p95_statistic_us": 845.2909999999999,
+   "p99_statistic_us": 899.1659999999999,
+   "range_us": [
+    747.8330000000001,
+    834.416
+   ],
+   "spikes": 87381,
+   "statistic_us": 747.959
+  },
+  "ncp2-rust-rust-pipe-n0": {
+   "arm": "ncp2-rust-rust-pipe",
+   "blocks": {
+    "0": {
+     "median_us": 10.917,
+     "p95_us": 12.917,
+     "p99_us": 14.75
+    },
+    "1": {
+     "median_us": 10.916,
+     "p95_us": 13.125,
+     "p99_us": 17.875
+    },
+    "2": {
+     "median_us": 10.042,
+     "p95_us": 12.292,
+     "p99_us": 15.208
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 12.917,
+   "p99_statistic_us": 15.208,
+   "range_us": [
+    10.042,
+    10.917
+   ],
+   "spikes": 0,
+   "statistic_us": 10.916
+  },
+  "ncp2-rust-rust-pipe-n127": {
+   "arm": "ncp2-rust-rust-pipe",
+   "blocks": {
+    "0": {
+     "median_us": 16.958,
+     "p95_us": 19.209,
+     "p99_us": 23.958
+    },
+    "1": {
+     "median_us": 17.458000000000002,
+     "p95_us": 26.458,
+     "p99_us": 31.25
+    },
+    "2": {
+     "median_us": 15.291999999999998,
+     "p95_us": 18.0,
+     "p99_us": 21.125
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 19.209,
+   "p99_statistic_us": 23.958,
+   "range_us": [
+    15.291999999999998,
+    17.458000000000002
+   ],
+   "spikes": 127,
+   "statistic_us": 16.958
+  },
+  "ncp2-rust-rust-pipe-n1788": {
+   "arm": "ncp2-rust-rust-pipe",
+   "blocks": {
+    "0": {
+     "median_us": 36.708999999999996,
+     "p95_us": 40.75,
+     "p99_us": 45.583
+    },
+    "1": {
+     "median_us": 34.25,
+     "p95_us": 41.25,
+     "p99_us": 47.416999999999994
+    },
+    "2": {
+     "median_us": 33.666,
+     "p95_us": 37.083999999999996,
+     "p99_us": 43.292
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 40.75,
+   "p99_statistic_us": 45.583,
+   "range_us": [
+    33.666,
+    36.708999999999996
+   ],
+   "spikes": 1788,
+   "statistic_us": 34.25
+  },
+  "ncp2-rust-rust-pipe-n87381": {
+   "arm": "ncp2-rust-rust-pipe",
+   "blocks": {
+    "0": {
+     "median_us": 1003.3749999999999,
+     "p95_us": 1066.167,
+     "p99_us": 1119.125
+    },
+    "1": {
+     "median_us": 909.958,
+     "p95_us": 973.0,
+     "p99_us": 1068.917
+    },
+    "2": {
+     "median_us": 920.25,
+     "p95_us": 1024.917,
+     "p99_us": 1048.083
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 1024.917,
+   "p99_statistic_us": 1068.917,
+   "range_us": [
+    909.958,
+    1003.3749999999999
+   ],
+   "spikes": 87381,
+   "statistic_us": 920.25
+  },
+  "ncp2-rust-rust-tcp-n0": {
+   "arm": "ncp2-rust-rust-tcp",
+   "blocks": {
+    "0": {
+     "median_us": 25.625,
+     "p95_us": 29.0,
+     "p99_us": 32.542
+    },
+    "1": {
+     "median_us": 27.334,
+     "p95_us": 30.708,
+     "p99_us": 33.292
+    },
+    "2": {
+     "median_us": 26.833,
+     "p95_us": 30.042,
+     "p99_us": 32.583000000000006
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 30.042,
+   "p99_statistic_us": 32.583000000000006,
+   "range_us": [
+    25.625,
+    27.334
+   ],
+   "spikes": 0,
+   "statistic_us": 26.833
+  },
+  "ncp2-rust-rust-tcp-n127": {
+   "arm": "ncp2-rust-rust-tcp",
+   "blocks": {
+    "0": {
+     "median_us": 32.042,
+     "p95_us": 36.291999999999994,
+     "p99_us": 40.75
+    },
+    "1": {
+     "median_us": 32.208,
+     "p95_us": 35.875,
+     "p99_us": 40.584
+    },
+    "2": {
+     "median_us": 32.75,
+     "p95_us": 37.333999999999996,
+     "p99_us": 41.917
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 36.291999999999994,
+   "p99_statistic_us": 40.75,
+   "range_us": [
+    32.042,
+    32.75
+   ],
+   "spikes": 127,
+   "statistic_us": 32.208
+  },
+  "ncp2-rust-rust-tcp-n1788": {
+   "arm": "ncp2-rust-rust-tcp",
+   "blocks": {
+    "0": {
+     "median_us": 51.25,
+     "p95_us": 59.208,
+     "p99_us": 69.75
+    },
+    "1": {
+     "median_us": 51.292,
+     "p95_us": 57.209,
+     "p99_us": 61.291000000000004
+    },
+    "2": {
+     "median_us": 53.875,
+     "p95_us": 59.709,
+     "p99_us": 64.083
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 59.208,
+   "p99_statistic_us": 64.083,
+   "range_us": [
+    51.25,
+    53.875
+   ],
+   "spikes": 1788,
+   "statistic_us": 51.292
+  },
+  "ncp2-rust-rust-tcp-n87381": {
+   "arm": "ncp2-rust-rust-tcp",
+   "blocks": {
+    "0": {
+     "median_us": 1048.042,
+     "p95_us": 1078.0,
+     "p99_us": 1092.291
+    },
+    "1": {
+     "median_us": 965.542,
+     "p95_us": 1059.7079999999999,
+     "p99_us": 1096.3329999999999
+    },
+    "2": {
+     "median_us": 961.2909999999999,
+     "p95_us": 1023.5000000000001,
+     "p99_us": 1078.292
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 1059.7079999999999,
+   "p99_statistic_us": 1092.291,
+   "range_us": [
+    961.2909999999999,
+    1048.042
+   ],
+   "spikes": 87381,
+   "statistic_us": 965.542
+  },
+  "ncp2-rust-rust-unix-n0": {
+   "arm": "ncp2-rust-rust-unix",
+   "blocks": {
+    "0": {
+     "median_us": 12.208,
+     "p95_us": 14.292,
+     "p99_us": 15.832999999999998
+    },
+    "1": {
+     "median_us": 11.125,
+     "p95_us": 13.25,
+     "p99_us": 15.792
+    },
+    "2": {
+     "median_us": 11.125,
+     "p95_us": 13.459,
+     "p99_us": 15.417000000000002
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 13.459,
+   "p99_statistic_us": 15.792,
+   "range_us": [
+    11.125,
+    12.208
+   ],
+   "spikes": 0,
+   "statistic_us": 11.125
+  },
+  "ncp2-rust-rust-unix-n127": {
+   "arm": "ncp2-rust-rust-unix",
+   "blocks": {
+    "0": {
+     "median_us": 16.75,
+     "p95_us": 21.375,
+     "p99_us": 28.291999999999998
+    },
+    "1": {
+     "median_us": 16.833,
+     "p95_us": 18.916999999999998,
+     "p99_us": 21.209
+    },
+    "2": {
+     "median_us": 16.875,
+     "p95_us": 19.208,
+     "p99_us": 23.166
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 19.208,
+   "p99_statistic_us": 23.166,
+   "range_us": [
+    16.75,
+    16.875
+   ],
+   "spikes": 127,
+   "statistic_us": 16.833
+  },
+  "ncp2-rust-rust-unix-n1788": {
+   "arm": "ncp2-rust-rust-unix",
+   "blocks": {
+    "0": {
+     "median_us": 36.75,
+     "p95_us": 45.0,
+     "p99_us": 55.625
+    },
+    "1": {
+     "median_us": 34.792,
+     "p95_us": 38.292,
+     "p99_us": 42.958
+    },
+    "2": {
+     "median_us": 35.0,
+     "p95_us": 38.667,
+     "p99_us": 43.541999999999994
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 38.667,
+   "p99_statistic_us": 43.541999999999994,
+   "range_us": [
+    34.792,
+    36.75
+   ],
+   "spikes": 1788,
+   "statistic_us": 35.0
+  },
+  "ncp2-rust-rust-unix-n87381": {
+   "arm": "ncp2-rust-rust-unix",
+   "blocks": {
+    "0": {
+     "median_us": 872.458,
+     "p95_us": 916.792,
+     "p99_us": 929.0
+    },
+    "1": {
+     "median_us": 806.834,
+     "p95_us": 837.75,
+     "p99_us": 859.417
+    },
+    "2": {
+     "median_us": 808.125,
+     "p95_us": 850.75,
+     "p99_us": 873.625
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "ncp2",
+   "p95_statistic_us": 850.75,
+   "p99_statistic_us": 873.625,
+   "range_us": [
+    806.834,
+    872.458
+   ],
+   "spikes": 87381,
+   "statistic_us": 808.125
+  },
+  "raw-rust-pipe-n0": {
+   "arm": "raw-rust-pipe",
+   "blocks": {
+    "0": {
+     "median_us": 4.75,
+     "p95_us": 8.542,
+     "p99_us": 9.707999999999998
+    },
+    "1": {
+     "median_us": 4.667000000000001,
+     "p95_us": 8.834,
+     "p99_us": 9.875
+    },
+    "2": {
+     "median_us": 4.542,
+     "p95_us": 8.292,
+     "p99_us": 9.792
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "floor",
+   "p95_statistic_us": 8.542,
+   "p99_statistic_us": 9.792,
+   "range_us": [
+    4.542,
+    4.75
+   ],
+   "spikes": 0,
+   "statistic_us": 4.667000000000001
+  },
+  "raw-rust-pipe-n127": {
+   "arm": "raw-rust-pipe",
+   "blocks": {
+    "0": {
+     "median_us": 7.5,
+     "p95_us": 8.375,
+     "p99_us": 9.125
+    },
+    "1": {
+     "median_us": 7.542,
+     "p95_us": 9.415999999999999,
+     "p99_us": 10.083
+    },
+    "2": {
+     "median_us": 4.916,
+     "p95_us": 7.208,
+     "p99_us": 8.917
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "floor",
+   "p95_statistic_us": 8.375,
+   "p99_statistic_us": 9.125,
+   "range_us": [
+    4.916,
+    7.542
+   ],
+   "spikes": 127,
+   "statistic_us": 7.5
+  },
+  "raw-rust-pipe-n1788": {
+   "arm": "raw-rust-pipe",
+   "blocks": {
+    "0": {
+     "median_us": 8.333,
+     "p95_us": 9.542,
+     "p99_us": 10.417
+    },
+    "1": {
+     "median_us": 8.375,
+     "p95_us": 9.792,
+     "p99_us": 11.167
+    },
+    "2": {
+     "median_us": 8.416,
+     "p95_us": 10.040999999999999,
+     "p99_us": 11.083
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "floor",
+   "p95_statistic_us": 9.792,
+   "p99_statistic_us": 11.083,
+   "range_us": [
+    8.333,
+    8.416
+   ],
+   "spikes": 1788,
+   "statistic_us": 8.375
+  },
+  "raw-rust-pipe-n87381": {
+   "arm": "raw-rust-pipe",
+   "blocks": {
+    "0": {
+     "median_us": 170.5,
+     "p95_us": 184.542,
+     "p99_us": 188.875
+    },
+    "1": {
+     "median_us": 147.125,
+     "p95_us": 162.458,
+     "p99_us": 171.625
+    },
+    "2": {
+     "median_us": 151.75,
+     "p95_us": 165.625,
+     "p99_us": 175.834
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "floor",
+   "p95_statistic_us": 165.625,
+   "p99_statistic_us": 175.834,
+   "range_us": [
+    147.125,
+    170.5
+   ],
+   "spikes": 87381,
+   "statistic_us": 151.75
+  },
+  "raw-rust-pipe-sha256-n0": {
+   "arm": "raw-rust-pipe-sha256",
+   "blocks": {
+    "0": {
+     "median_us": 5.083,
+     "p95_us": 8.625,
+     "p99_us": 9.5
+    },
+    "1": {
+     "median_us": 4.9590000000000005,
+     "p95_us": 9.0,
+     "p99_us": 9.959000000000001
+    },
+    "2": {
+     "median_us": 5.083,
+     "p95_us": 9.166,
+     "p99_us": 10.291
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "floor-sha256",
+   "p95_statistic_us": 9.0,
+   "p99_statistic_us": 9.959000000000001,
+   "range_us": [
+    4.9590000000000005,
+    5.083
+   ],
+   "spikes": 0,
+   "statistic_us": 5.083
+  },
+  "raw-rust-pipe-sha256-n127": {
+   "arm": "raw-rust-pipe-sha256",
+   "blocks": {
+    "0": {
+     "median_us": 9.084,
+     "p95_us": 10.625,
+     "p99_us": 11.875
+    },
+    "1": {
+     "median_us": 8.917,
+     "p95_us": 10.208,
+     "p99_us": 11.0
+    },
+    "2": {
+     "median_us": 9.042000000000002,
+     "p95_us": 10.5,
+     "p99_us": 11.875
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "floor-sha256",
+   "p95_statistic_us": 10.5,
+   "p99_statistic_us": 11.875,
+   "range_us": [
+    8.917,
+    9.084
+   ],
+   "spikes": 127,
+   "statistic_us": 9.042000000000002
+  },
+  "raw-rust-pipe-sha256-n1788": {
+   "arm": "raw-rust-pipe-sha256",
+   "blocks": {
+    "0": {
+     "median_us": 27.083000000000002,
+     "p95_us": 29.75,
+     "p99_us": 32.75
+    },
+    "1": {
+     "median_us": 23.75,
+     "p95_us": 30.583000000000002,
+     "p99_us": 35.25
+    },
+    "2": {
+     "median_us": 23.375,
+     "p95_us": 26.959,
+     "p99_us": 30.333
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "floor-sha256",
+   "p95_statistic_us": 29.75,
+   "p99_statistic_us": 32.75,
+   "range_us": [
+    23.375,
+    27.083000000000002
+   ],
+   "spikes": 1788,
+   "statistic_us": 23.75
+  },
+  "raw-rust-pipe-sha256-n87381": {
+   "arm": "raw-rust-pipe-sha256",
+   "blocks": {
+    "0": {
+     "median_us": 926.5830000000001,
+     "p95_us": 970.916,
+     "p99_us": 1005.667
+    },
+    "1": {
+     "median_us": 878.6669999999999,
+     "p95_us": 902.583,
+     "p99_us": 918.292
+    },
+    "2": {
+     "median_us": 880.25,
+     "p95_us": 955.0840000000001,
+     "p99_us": 999.334
+    }
+   },
+   "complete": true,
+   "failed_blocks": [],
+   "family": "floor-sha256",
+   "p95_statistic_us": 955.0840000000001,
+   "p99_statistic_us": 999.334,
+   "range_us": [
+    878.6669999999999,
+    926.5830000000001
+   ],
+   "spikes": 87381,
+   "statistic_us": 880.25
+  }
+ },
+ "context": {
+  "commit": "c5036d5138355312a86ba58ba2119b2f340aa13a",
+  "disturbed_attempts": 0,
+  "finished": "2026-11-18T20:38:35.670802Z",
+  "power": [
+   "Battery Power"
+  ],
+  "protocol": "PROTOCOL-4.md",
+  "protocol_sha256": "e1d7602343100c6af702727a8d1a5de7f007853ad4eb22f2fff2bdfd49574aeb",
+  "runs": 84,
+  "started": "2026-11-18T20:36:46.215860Z",
+  "worktree_clean": true
+ },
+ "environment": {
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "cargo_lock_sha256": {
+   "harness": "8226dd6488e6464b49727b6336f4277b98dcd0656105e8ee5bce958254c94af4",
+   "ncp1_harness": "a3ba8bec39dfe1285d1b598b5c03d19f91b02eebb2366ecc4f59a470485f18a2",
+   "ncp2": "42944ecf6e8e2aecd02c3f150930c2cc337e1a390b491f8140b51dba07a77de0"
+  },
+  "chip": "Apple M4 Max",
+  "computer": "Mac16,5",
+  "cores": "16",
+  "kernel": "25.5.0",
+  "memory_bytes": "137438953472",
+  "ncp1_commit": "99e9adce147fe5bc770d2dcfe5f21cbd2274efeb",
+  "ncp2_commit": "c5036d5138355312a86ba58ba2119b2f340aa13a",
+  "ncp2_worktree_clean": true,
+  "os": "26.5.1",
+  "power": "Now drawing from 'Battery Power'",
+  "python": "3.15.0",
+  "python_packages": [
+   "unavailable"
+  ],
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)"
+ },
+ "hypotheses": {
+  "Q1": {
+   "comparisons": [
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n0",
+     "holds": true,
+     "ratio": 13.8,
+     "slower": "ncp2-rust-rust-pipe-n0"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n0",
+     "holds": true,
+     "ratio": 14.064,
+     "slower": "ncp2-rust-rust-unix-n0"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n0",
+     "holds": true,
+     "ratio": 33.923,
+     "slower": "ncp2-rust-rust-tcp-n0"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n127",
+     "holds": true,
+     "ratio": 20.358,
+     "slower": "ncp2-rust-rust-pipe-n127"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n127",
+     "holds": true,
+     "ratio": 20.208,
+     "slower": "ncp2-rust-rust-unix-n127"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n127",
+     "holds": true,
+     "ratio": 38.665,
+     "slower": "ncp2-rust-rust-tcp-n127"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n1788",
+     "holds": true,
+     "ratio": 27.4,
+     "slower": "ncp2-rust-rust-pipe-n1788"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n1788",
+     "holds": true,
+     "ratio": 28.0,
+     "slower": "ncp2-rust-rust-unix-n1788"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-n1788",
+     "holds": true,
+     "ratio": 41.034,
+     "slower": "ncp2-rust-rust-tcp-n1788"
+    }
+   ],
+   "supported": true
+  },
+  "Q2": {
+   "comparisons": [
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-sha256-n0",
+     "holds": true,
+     "ratio": 11.383,
+     "slower": "ncp2-rust-rust-pipe-n0"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-sha256-n127",
+     "holds": true,
+     "ratio": 7.68,
+     "slower": "ncp2-rust-rust-pipe-n127"
+    },
+    {
+     "blocks_compared": 3,
+     "faster": "iox2-rust-shm-sha256-n1788",
+     "holds": true,
+     "ratio": 2.141,
+     "slower": "ncp2-rust-rust-pipe-n1788"
+    }
+   ],
+   "supported": true
+  }
+ }
+}

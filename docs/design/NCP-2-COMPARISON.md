@@ -48,6 +48,7 @@ The [comparison benchmark](../../benchmarks/comparison/README.md) measured one c
 With a small result, NCP 2 took 9.0 µs in Rust over a pipe and 38.8 µs in Python; gRPC took 35.9 µs in Rust over a Unix domain socket.
 With 1 MiB in each call, the tools without an integrity check were faster than NCP 2, by about the time of its SHA-256 check. When every tool made the same check, NCP 2 was the fastest at every size, in both languages.
 With revision 7 (protocol 3, 18 November 2026), a small call took 11.0 µs in Rust and 65.6 µs in Python: 1.2 and 1.5 times as long, while the other tools kept their times. With the same check, NCP 2 is still the fastest at every size in Rust; in Python, ZeroMQ over ipc is faster with up to 127 spikes and Zenoh with 1,788.
+Request and response over zero-copy shared memory with iceoryx2 0.10.0, with both ends polling, took 0.8 to 1.3 µs up to 1,788 spikes, against 10.9 to 34.2 µs for NCP 2 over a pipe, and 1.0 to 16.0 µs with the same check (protocol 4). iceoryx2 gives none of the guarantees of NCP 2, and NCP 2 has no binding over shared memory.
 These values come from one computer, and they do not show behavior across a network.
 
 ## When to use another tool

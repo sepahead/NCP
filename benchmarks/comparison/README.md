@@ -138,6 +138,34 @@ Exploratory results:
 - **Where the time goes, in Python.** A profile of 6,100 calls of the Python client and owner over a pipe, at the commit of protocol 2 and at revision 7, finds about 36 percent more function calls on each side. Revision 3 rewrote the client and the owner as pure state machines, which the model checks drive: each call now copies the state with `dataclasses.replace`, checks every message against the rules (`check_request`, `check_response`), passes through more layers, and makes observer events, each costing one to three microseconds. The Rust SDK was not profiled. Making these paths faster without changing their behavior is open work; protocol 3 measures the SDKs as they are.
 - **The same integrity check at every size.** In Rust, the fastest NCP 2 arm was faster than every other system with the check at each N, also at 1 MiB (895.1 µs against 1154.2 µs for Zenoh). In Python it was not: with the check, ZeroMQ over ipc took 58.5 and 60.0 µs at N = 0 and 127, against 65.6 and 75.0 µs, and Zenoh over TCP 86.7 µs at N = 1788, against 99.8 µs; at 1 MiB, NCP 2 was the fastest, 813.8 µs against 862.8 µs for Zenoh.
 
+## Protocol 4
+
+[Protocol 4](PROTOCOL-4.md) was fixed on 18 November 2026 (SHA-256 in [`PROTOCOL-4.sha256`](PROTOCOL-4.sha256)) and pushed in commit `c5036d5` before its runs.
+It times NCP 2 revision 7 in Rust against the fastest kind of local interprocess communication: request and response over zero-copy shared memory with iceoryx2 0.10.0 ([`harness/rust-shm`](harness/rust-shm)), with both ends polling, without and with the integrity check of NCP 2, next to NCP 2 over a pipe, a Unix domain socket, and TCP and the raw pipe. [`analyze_shm.py`](analyze_shm.py) decides its hypotheses.
+
+### Results of protocol 4
+
+The 84 timed runs ran on 18 November 2026 from 20:36 to 20:38 UTC, from the clean commit `c5036d5`, on battery, after the runner had waited 20 minutes in all for the conditions; the one-minute load average was 4.2 to 6.9 before a run. No run was disturbed, and no run failed. The validity checks passed. All values are in [`results-4/summary.md`](results-4/summary.md).
+
+| # | Hypothesis | Result |
+| --- | --- | --- |
+| Q1 | Without an added check, iceoryx2 is faster than NCP 2 over every link. | 9 of 9 comparisons. Up to N = 1788, iceoryx2 took 0.79 to 1.25 µs; NCP 2 took 10.9 to 34.2 µs over a pipe, 11.1 to 35.0 µs over a Unix socket, and 26.8 to 51.3 µs over TCP. |
+| Q2 | With the same integrity check at both ends, iceoryx2 is still faster than NCP 2 over a pipe. | 3 of 3 comparisons: 0.96, 2.21, and 16.0 µs at N of 0, 127, and 1788. |
+
+<a href="results-4/figures/shm_light.svg">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results-4/figures/shm_dark.svg">
+  <img src="results-4/figures/shm_light.svg" alt="Two panels, without and with a SHA-256 check at both ends: the time of one call for iceoryx2 over shared memory, NCP 2 over a pipe, a Unix socket, and TCP, and a raw pipe, at 0 to 87381 spikes on a log scale. iceoryx2 is about ten times faster than NCP 2 up to 1788 spikes; at 1 MiB with the check, all arms take 750 to 970 µs.">
+</picture>
+</a>
+
+Exploratory results:
+
+- **At 1 MiB.** Without a check, iceoryx2 took 26.3 µs, against 152 µs for the raw pipe and 808 to 966 µs for NCP 2, whose check takes most of that. With the check, iceoryx2 took 748 µs, the raw pipe 880 µs, and NCP 2 808 µs over a Unix socket: the digests dominate every arm.
+- **NCP 2 beyond its transport and its check.** Over a pipe, NCP 2 took 5.8 to 10.5 µs more than the raw pipe with the check up to N = 1788. A shared-memory binding of NCP 2 could save most of the transport time that remains; it would not save the time of its rules.
+
+The arms give iceoryx2 none of the guarantees of NCP 2, and polling keeps one core busy at each end (section 5 of [protocol 4](PROTOCOL-4.md)).
+
 ## Correction to the protocol
 
 Section 3 of the protocol says that the NCP 1.0.1 harness is the one of `benchmarks/pipelined-ack` at commit `99e9adc`.

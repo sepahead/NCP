@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2: checks after revision 7 (no wire change)
 
+- Comparison protocol 4 (fixed before its runs) timed NCP 2 revision 7 in Rust against iceoryx2
+  0.10.0, request and response over zero-copy shared memory with both ends polling: 84 runs, none
+  disturbed or failed. Q1 and Q2 hold: iceoryx2 is faster than NCP 2 over every link up to 1788
+  spikes (0.79 to 1.25 µs against 10.9 to 34.2 µs over a pipe), and also with the same SHA-256
+  check (0.96 to 16.0 µs). At 1 MiB with the check, the digests dominate every arm. The new crate
+  `benchmarks/comparison/harness/rust-shm` keeps the harness of protocols 2 and 3 unchanged.
 - Fault-campaign protocol 7 (fixed before its trials) ran revision 7 over the Zenoh binding: 960
   sessions of the Python client against the Python and the Rust owner, with queries and replies
   dropped, duplicated, and delayed, earlier requests and the `open` replayed, two faults on two

@@ -1,0 +1,212 @@
+{
+ "rust_tests": {
+  "returncode": 0,
+  "tail": [
+   "running 0 tests",
+   "",
+   "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+  ]
+ },
+ "python_tests": {
+  "returncode": 0,
+  "tail": [
+   "Ran 122 tests in 4.124s",
+   "",
+   "OK"
+  ]
+ },
+ "python_conformance_vectors": {
+  "returncode": 0,
+  "tail": [
+   "Ran 9 tests in 0.035s",
+   "",
+   "OK"
+  ]
+ },
+ "model_conformance_python_owner": {
+  "returncode": 0,
+  "tail": [
+   "conformance: 20000 traces, 160584 requests; the Python owner answer like the Python owner; no request executed twice; 21 outcomes and codes reached"
+  ]
+ },
+ "model_conformance_rust_owner": {
+  "returncode": 0,
+  "tail": [
+   "conformance: 20000 traces, 160584 requests; the Python owner and model_owner answer like the Python owner; no request executed twice; 21 outcomes and codes reached"
+  ]
+ },
+ "differential_fuzzing": {
+  "returncode": 0,
+  "tail": [
+   "fuzz: 200000 frames, 73068 accepted by Python (3809 requests, 3026 responses, 3832 stream messages, 235 requests of another protocol version), 0 differences"
+  ]
+ },
+ "smoke_runs": {
+  "returncode": 0,
+  "runs": {
+   "iox2-rust-shm-n0": {
+    "returncode": 0,
+    "median_us": 1.125,
+    "tail": []
+   },
+   "iox2-rust-shm-n127": {
+    "returncode": 0,
+    "median_us": 1.166,
+    "tail": []
+   },
+   "iox2-rust-shm-n1788": {
+    "returncode": 0,
+    "median_us": 1.708,
+    "tail": []
+   },
+   "iox2-rust-shm-n87381": {
+    "returncode": 0,
+    "median_us": 37.083,
+    "tail": []
+   },
+   "iox2-rust-shm-sha256-n0": {
+    "returncode": 0,
+    "median_us": 1.375,
+    "tail": []
+   },
+   "iox2-rust-shm-sha256-n127": {
+    "returncode": 0,
+    "median_us": 3.0,
+    "tail": []
+   },
+   "iox2-rust-shm-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 24.666999999999998,
+    "tail": []
+   },
+   "iox2-rust-shm-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1150.7920000000001,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-n0": {
+    "returncode": 0,
+    "median_us": 13.75,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-n127": {
+    "returncode": 0,
+    "median_us": 21.166999999999998,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 45.334,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-n87381": {
+    "returncode": 0,
+    "median_us": 1347.333,
+    "tail": []
+   },
+   "ncp2-rust-rust-tcp-n0": {
+    "returncode": 0,
+    "median_us": 89.5,
+    "tail": []
+   },
+   "ncp2-rust-rust-tcp-n127": {
+    "returncode": 0,
+    "median_us": 94.5,
+    "tail": []
+   },
+   "ncp2-rust-rust-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 113.166,
+    "tail": []
+   },
+   "ncp2-rust-rust-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 1489.167,
+    "tail": []
+   },
+   "ncp2-rust-rust-unix-n0": {
+    "returncode": 0,
+    "median_us": 15.0,
+    "tail": []
+   },
+   "ncp2-rust-rust-unix-n127": {
+    "returncode": 0,
+    "median_us": 21.833,
+    "tail": []
+   },
+   "ncp2-rust-rust-unix-n1788": {
+    "returncode": 0,
+    "median_us": 48.458000000000006,
+    "tail": []
+   },
+   "ncp2-rust-rust-unix-n87381": {
+    "returncode": 0,
+    "median_us": 1258.6660000000002,
+    "tail": []
+   },
+   "raw-rust-pipe-n0": {
+    "returncode": 0,
+    "median_us": 6.375,
+    "tail": []
+   },
+   "raw-rust-pipe-n127": {
+    "returncode": 0,
+    "median_us": 8.666,
+    "tail": []
+   },
+   "raw-rust-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 10.792,
+    "tail": []
+   },
+   "raw-rust-pipe-n87381": {
+    "returncode": 0,
+    "median_us": 199.292,
+    "tail": []
+   },
+   "raw-rust-pipe-sha256-n0": {
+    "returncode": 0,
+    "median_us": 9.167,
+    "tail": []
+   },
+   "raw-rust-pipe-sha256-n127": {
+    "returncode": 0,
+    "median_us": 11.165999999999999,
+    "tail": []
+   },
+   "raw-rust-pipe-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 30.167,
+    "tail": []
+   },
+   "raw-rust-pipe-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1291.375,
+    "tail": []
+   }
+  }
+ },
+ "environment": {
+  "computer": "Mac16,5",
+  "chip": "Apple M4 Max",
+  "cores": "16",
+  "memory_bytes": "137438953472",
+  "os": "26.5.1",
+  "kernel": "25.5.0",
+  "power": "Now drawing from 'Battery Power'",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "python": "3.15.0",
+  "python_packages": [
+   "unavailable"
+  ],
+  "ncp2_commit": "c5036d5138355312a86ba58ba2119b2f340aa13a",
+  "ncp2_worktree_clean": true,
+  "ncp1_commit": "99e9adce147fe5bc770d2dcfe5f21cbd2274efeb",
+  "cargo_lock_sha256": {
+   "ncp2": "42944ecf6e8e2aecd02c3f150930c2cc337e1a390b491f8140b51dba07a77de0",
+   "harness": "8226dd6488e6464b49727b6336f4277b98dcd0656105e8ee5bce958254c94af4",
+   "ncp1_harness": "a3ba8bec39dfe1285d1b598b5c03d19f91b02eebb2366ecc4f59a470485f18a2"
+  }
+ }
+}
