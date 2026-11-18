@@ -7,7 +7,7 @@ revision 7 took 1.2 times as long in Rust and 1.5 times as long in Python as wit
 of comparison protocol 2. That comparison has only two points. This diagnostic times the SDKs
 of each revision between them, to find which revision changed the time and by how much.
 
-The runner was committed and pushed before its recorded runs.
+The runner was committed and pushed (commit `47529d3`) before its recorded runs.
 
 ## Method
 
@@ -97,4 +97,52 @@ python3 benchmarks/comparison/speed-by-revision/run_bisection.py report OUT
 
 ## Results
 
-The results follow in a later commit, in the directory `results`.
+The runs took place on 19 November 2026, with the runner at commit `47529d3`. All 320 runs
+completed on the power adapter, and none was disturbed. The one-minute load average before a
+run was at most 5.95. The directory [`results`](results/summary.md) holds every run.
+
+The table gives the median of the 20 run medians for each commit. The function calls are those
+of the client and the owner together.
+
+| Commit | SDKs | Rust median (µs) | Step | Python median (µs) | Step | Python calls for each exchange |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `c701f56` | Protocol 2 | 9.4 | | 41.2 | | 190 |
+| `5300f70` | Revision 1 | 9.4 | +0.0 | 41.6 | +0.4 | 193 |
+| `8940721` | Revision 2 | 9.5 | +0.1 | 42.4 | +0.8 | 193 |
+| `9f58e7a` | **Revision 3** | **10.4** | **+0.9** | **62.1** | **+19.6** | **285** |
+| `2e24ef5` | Revision 4 | 10.3 | −0.1 | 66.5 | +4.4 | 290 |
+| `7edc3f9` | Revision 5 | 10.2 | −0.0 | 63.7 | −2.7 | 288 |
+| `28fb8cc` | Revision 6 | 10.3 | +0.1 | 62.9 | −0.8 | 292 |
+| `727289e` | Revision 7 | 10.4 | +0.1 | 65.9 | +3.0 | 292 |
+
+- **Revision 3 made the call slower.** In Rust, revision 3 adds 0.9 µs of the 1.0 µs between
+  protocol 2 and revision 7. In Python, it adds 19.6 µs of 24.7 µs.
+- **Revisions 1, 2, and 4 to 7 are within the spread of the runs.** In Python, the quartiles of
+  the run medians of revisions 3 to 7 overlap: 59.7 to 65.7 µs for revision 3, and 63.3 to
+  67.0 µs for revision 7. In Rust, they are 10.2 to 10.7 µs for both.
+- **The function calls agree.** Revision 3 adds 92 Python calls to each exchange. Revisions 4 to
+  7 add 7, five of them in the owner's message checks.
+
+Revision 3 adds these Python calls to each exchange (client, owner):
+
+| Module | Client | Owner | Work |
+| --- | ---: | ---: | --- |
+| `dataclasses` and generated `__init__` | +29 | +14 | Copies of the immutable state: two in the client, one in the owner |
+| `ncp/frame.py` | +12.5 | +12.5 | Selection of SHA-256 or HMAC-SHA-256 for each frame, and a new parse layer |
+| `ncp/messages.py` | +10 | +10 | The form check of each response and of each request |
+| `ncp/contract.py` | | +5 | The schema check of each request body |
+| `ncp/events.py` | +1 | +1 | One observer event for each call |
+| `ncp/client.py`, `ncp/owner.py`, `ncp/exchange.py`, `ncp/binding.py` | −2 | −1 | The drivers moved from `exchange.py` to the state machines |
+
+### Ratios against the comparison benchmark
+
+This diagnostic finds revision 7 1.11 times slower in Rust and 1.60 times slower in Python than
+the SDKs of protocol 2. Comparison protocol 3 found 1.22 and 1.69 (11.0 against 9.0 µs, 65.6
+against 38.8 µs). The clients differ: protocol 3 used the clients of the comparison harness.
+Revision 3 is the one large step in both measurements.
+
+### The second parse
+
+Four Python runs drew a session with the second parse: one with the SDKs of protocol 2, two of
+revision 5, and one of revision 6. Their medians were 2.4 to 3.6 µs above the median of their
+commit. Four runs are too few for an exact cost.

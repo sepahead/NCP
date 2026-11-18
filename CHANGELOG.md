@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2: checks after revision 7 (no wire change)
 
+- New document [`docs/NCP-2-STATUS.md`](docs/NCP-2-STATUS.md): the state of NCP 2 in plain words.
+  NCP 2 is a release candidate, not final and not ready for production use. It lists the
+  evidence and its limits, what blocks the tag, what production use needs after the tag, and
+  why revision 7 is slower than the SDKs of comparison protocol 2.
+- Speed bisection by revision (`benchmarks/comparison/speed-by-revision`, a diagnostic fixed
+  before its runs, not a preregistered protocol): 320 alternating runs of the SDKs of protocol 2
+  and of revisions 1 to 7, none disturbed. Revision 3 adds 0.9 of the 1.0 µs in Rust and 19.6 of
+  the 24.7 µs in Python, and 92 Python function calls to each exchange. Revision 3 rebuilt both
+  SDKs around pure state machines, so that the model check and the conformance check drive the
+  real code. The state copies and the checks of every message come from this change. Revision 7
+  itself added almost nothing. The change was not an experiment, but its cost was not measured
+  until comparison protocol 3. The bisection also found that the Python decoder parses every
+  frame twice in about 4 percent of sessions, when the random session identifier contains `-0`.
+- Corrected: the README, the guide, the known limitations, the design record, the migration
+  plan, and the release record no longer say or suggest that revision 7 made each call slower.
+  They name revision 3.
 - Comparison protocol 4 (fixed before its runs) timed NCP 2 revision 7 in Rust against iceoryx2
   0.10.0, request and response over zero-copy shared memory with both ends polling: 84 runs, none
   disturbed or failed. Q1 and Q2 hold: iceoryx2 is faster than NCP 2 over every link up to 1788

@@ -25,7 +25,7 @@ of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
   implementation exists.
 - **Speed of revision 7.** The comparison benchmark ran again with revision 7 (protocol 3): each
   small call is 1.2 times slower in Rust and 1.5 times slower in Python than with the SDKs before
-  revision 3, from the checks and copies that revisions 3 to 7 added to every call. In Python, with
+  revision 3. A [bisection by revision](benchmarks/comparison/speed-by-revision/README.md) finds nearly all of the cost in revision 3: the copies of the state and the checks that its pure state machines added to every call ([status of NCP 2](docs/NCP-2-STATUS.md#why-revision-7-is-slower)). In Python, with
   the same integrity check, ZeroMQ and Zenoh are now faster up to 1,788 spikes.
 - **Evidence before revision 3.** The NEST and multi-agent benchmarks ran with the SDKs before
   revision 3 on one macOS laptop, and have not run again for revisions 3 to 7. The fault campaign ran with them and again
