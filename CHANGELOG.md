@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2: checks after revision 7 (no wire change)
 
+- The fault campaign ran again with revision 7 of the SDKs (protocol 6, fixed before its trials):
+  4,560 trials over Unix domain sockets and TCP, with both clients and both owners, and all eight
+  hypotheses hold, among them that no trial accepts a wrong result and that what each client
+  learned is true. Its harness is ported to the interfaces of revision 7, and a smoke run found
+  that the Rust echo owner exits when its standard input closes; the trial program now keeps it
+  open. Until now the campaign had run only with revision 2.
 - The model check of the lockstep profile ran for revision 5 with two faults, outside the gate:
   13,621,815 worlds, and every property holds (`model/lockstep.py --faults 2`, at `e6ed8a8`).
   Until now only revision 4 had a run with two faults.

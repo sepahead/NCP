@@ -1,6 +1,6 @@
 # Fault campaign
 
-This directory holds five protocols. [Protocols 2 to 5](#protocol-2-ncp-2), at the end, test NCP 2; protocols 4 and 5 add Unix domain sockets, TCP, and the Rust client.
+This directory holds six protocols. [Protocols 2 to 6](#protocol-2-ncp-2), at the end, test NCP 2; protocols 4 to 6 add Unix domain sockets, TCP, and the Rust client, and [protocol 6](#protocol-6-protocol-5-with-revision-7-of-the-sdks) runs protocol 5 again with revision 7 of the SDKs.
 Protocol 1, from here on, is a campaign of 22 October 2026 that drives local NCP 1.0.1 sessions into the failures that the profile names.
 It asks two questions: what happens in each failure, and does any failure make a client accept a wrong result.
 All trials use SDK 1.0.1 with `LocalClient` and a Python or Rust owner on one computer.
@@ -293,3 +293,48 @@ The trials ran on 11 November 2026 from 17:35 to 17:48 UTC, from the clean commi
 
 Each row adds both bindings and both clients. Of the 1,920 flipped bits, 1,309 were in the JSON region, 315 in the attachments, 215 in the digest, and 81 in the header.
 With protocols 2 and 3 over pipes, NCP 2 has now met every fault scenario of this campaign over pipes, Unix domain sockets, and TCP, with both clients and both owners, without a wrong result.
+
+## Protocol 6: protocol 5 with revision 7 of the SDKs
+
+[`PROTOCOL-6.md`](PROTOCOL-6.md) was fixed on 18 November 2026 (SHA-256 in [`PROTOCOL-6.sha256`](PROTOCOL-6.sha256)) and pushed in commit `2da9b7f` before its trials.
+Protocols 2 to 5 ran with revision 2 of the SDKs; revisions 3 to 7 changed the session rules and the code of the owner and the client, not the frame format.
+Protocol 6 runs every trial of protocol 5 again with revision 7 and the seed 20261118.
+Its harness is that of protocol 5, ported to the interfaces of revision 7 without a change to what a trial does: [`harness/fault_client6.py`](harness/fault_client6.py), [`harness/fault_owner6.py`](harness/fault_owner6.py), and the Rust client in [`harness/rust-client`](harness/rust-client).
+A declined step has the view `declined:CODE`, and the view of a stalled step is `ended:local.timeout:unknown`.
+The trial program also gives each server a pipe as its standard input: the Rust echo owner serves until that input closes, and a first smoke run without a terminal found that it exited at once.
+`run4.py --protocol 6` runs it, and `analyze4.py` applies the criteria of protocol 5.
+
+### Results of protocol 6
+
+The trials ran on 18 November 2026 from 16:30 to 17:11 UTC, from the clean commit `2da9b7f`, with Python 3.15.0 and Rust 1.99.1, on battery, with one-minute load averages of 3.3 to 22.0 before a trial.
+[`results-6/trials.jsonl`](results-6/trials.jsonl) holds every trial, and [`results-6/analysis.json`](results-6/analysis.json) the analysis.
+**Every scheduled trial ran, and all eight hypotheses hold**, in each of the eight combinations of binding, client, and owner.
+
+| Scenario | Owner | Trials | Completed | Ended early | Wrong results |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Bit flip, client to owner | Python, Rust | 480 each | 0 | 480 each | 0 |
+| Bit flip, owner to client | Python, Rust | 480 each | 0 | 480 each | 0 |
+| Truncated frame, client to owner | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Truncated frame, owner to client | Python, Rust | 180 each | 0 | 180 each | 0 |
+| Repeated frame, client to owner | Python / Rust | 120 each | 13 / 13 | 107 / 107 | 0 |
+| Repeated frame, owner to client | Python / Rust | 120 each | 15 / 11 | 105 / 109 | 0 |
+| Owner killed at a random time | Python / Rust | 240 each | 49 / 198 | 191 / 42 | 0 |
+| Client killed at a random time | Python, Rust | 120 each | The owner served a new session in all 240, within 0.02 s | | |
+| Step stalls three times the time limit | Python | 120 | 0 | 120 | 0 |
+| Result larger than the session bound | Python | 120 | 0 | 120 | 0 |
+| Request larger than the session bound | Python, Rust | 120 each | 120 each | 0 | 0 |
+| Handler raises | Python, Rust | 120 each | 0 | 120 each | 0 |
+
+| # | Hypothesis | Holds |
+| --- | --- | --- |
+| E1 | No trial accepts a wrong result. | yes |
+| E2 | In every trial, the owner executes each step at most once, in order. | yes |
+| E3 | In every trial, what the client learned is true. | yes |
+| E4 | Every failure reaches the application as an error that the client's SDK documents. | yes |
+| E5 | Every flipped or truncated frame ends the session before it completes. | yes: 2,640 of 2,640 |
+| E6 | After every killed client, the owner serves a new session within 10 s. | yes: 240 of 240 |
+| E7 | Every stall ends with `local.timeout`, executed `unknown`, within 3 s of the start of the session. | yes: after 2.00 to 2.13 s |
+| E8 | Oversized results, raising handlers, and oversized requests end as stated. | yes |
+
+Each row adds both bindings and both clients. Of the 1,920 flipped bits, 1,300 were in the JSON region, 321 in the attachments, 219 in the digest, and 80 in the header.
+Revision 7 of the SDKs has now met every fault scenario of protocol 5 over Unix domain sockets and TCP, with both clients and both owners, without a wrong result. It has not run over pipes, which protocols 2 and 3 covered with revision 2, or over the Zenoh binding, where a lost or repeated message is part of normal operation.

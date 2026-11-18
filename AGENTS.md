@@ -118,8 +118,9 @@ table of `formal/README.md`: run `conformance/generate.py` and
 `formal/mutants.py --table`. The Lean proofs use only `propext`,
 `Classical.choice`, and `Quot.sound`.
 
-The benchmarks and the fault campaign ran with revision 2 of the SDKs. Keep their
-records, and state the revision of the SDKs with each new measurement.
+The benchmarks ran with revision 2 of the SDKs. The fault campaign ran with revision 2
+(protocols 2 to 5) and with revision 7 (protocol 6). Keep their records, and state the
+revision of the SDKs with each new measurement.
 
 ## Task coordination
 

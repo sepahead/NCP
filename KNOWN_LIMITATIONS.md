@@ -23,9 +23,10 @@ of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
 - **One author.** The same author wrote the specification, both SDKs, the vectors, the Lean models,
   and the model check. The two SDKs are two implementations by one author; no independent
   implementation exists.
-- **Evidence of revision 2.** The benchmarks and the fault campaign ran with revision 2 of the SDKs
-  on one macOS laptop. They have not run again for revisions 3 to 7, not on Linux, and not with the
-  Zenoh binding.
+- **Evidence of revision 2.** The benchmarks ran with revision 2 of the SDKs on one macOS laptop,
+  and have not run again for revisions 3 to 7. The fault campaign ran with revision 2 and again
+  with revision 7 (protocol 6, over Unix domain sockets and TCP), on the same laptop. Neither ran
+  on Linux or with the Zenoh binding.
 - **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. The
   supported platforms are Linux and macOS; Windows is not tested. The Rust SDK takes nonces and session identifiers from the generator of the
   operating system, through `getrandom`, on every platform; if that generator fails, the SDK panics
