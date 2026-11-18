@@ -14,20 +14,26 @@ The [protocol](PROTOCOL.md) was fixed before the runs. It states the questions, 
 - **Many agents can share one world and agree on every step.** With the rounds profile, every agent received the same result after every round, and the world ended in the same state in every run, although their requests arrived out of member order in nearly every round. Applied in the order of arrival, the same requests left a different state in each run. With 64 agents, a round took 2.6 ms in Python: rounds cost 1.4 to 1.5 times as much as applying each request on arrival up to 64 agents, and 2.3 times with 256.
 - **A parallel simulator can be coupled through its first process.** With 1 to 8 MPI processes, a call took 4 to 11 µs longer than without MPI, up to 1788 spikes, and every one of the 521 million spikes that the client checked, in 48 runs, arrived exactly.
 
+<a href="results/figures/fanout_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/figures/fanout_dark.svg">
   <img src="results/figures/fanout_light.svg" alt="Four panels: Rust and Python hosts, owners that answer at once or wait 1 ms. On log scales, the time of one round over 1 to 256 owners: call_all is the lowest NCP 2 line except that eight threads, each with call_all, are lower in Rust from 64 owners; one call after another grows fastest when owners wait.">
 </picture>
+</a>
 
+<a href="results/figures/rounds_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/figures/rounds_dark.svg">
   <img src="results/figures/rounds_light.svg" alt="The time of one round with 1 to 256 agents sharing one Python owner, on log scales: rounds are 1.4 to 1.5 times slower than applying requests on arrival up to 64 agents and 2.3 times with 256, and give the same final state in every run.">
 </picture>
+</a>
 
+<a href="results/figures/mpi_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/figures/mpi_dark.svg">
   <img src="results/figures/mpi_light.svg" alt="Three panels for 0, 1788, and 87381 spikes: the time of one call to an owner without MPI and to rank 0 of 1, 2, 4, or 8 MPI ranks. MPI adds 4 to 11 microseconds up to 1788 spikes and 3 to 9 percent at 1 MiB.">
 </picture>
+</a>
 
 ## Results
 

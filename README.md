@@ -21,10 +21,12 @@ Each application describes its own steps and data in a contract.
 [NCP 2 in plain words](docs/NCP-2-GUIDE.md) explains it with figures for readers without a background in protocols.
 The [specification](spec/NCP-2.md) is the exact definition, and the [design record](docs/design/NCP-2-DESIGN.md) gives the reason for each decision and the alternatives that were measured.
 
+<a href="docs/diagrams/ncp2-call-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/ncp2-call-dark.svg">
   <img alt="A client and an owner exchange four requests and four responses: open, two steps, and close. Each request after open carries the identity of the last response as its acknowledgement, so each step needs one round trip and the session forms one hash chain. After a failure, at most one call of the session is uncertain." src="docs/diagrams/ncp2-call-light.svg" width="860">
 </picture>
+</a>
 
 | Measured on one laptop | NCP 2 | NCP 1.0.1 | Record |
 | --- | --- | --- | --- |
@@ -41,7 +43,7 @@ When every other system made the same SHA-256 check as NCP 2, NCP 2 was the fast
 
 - The SDKs: [Python](python/README.md), which uses only the standard library, and [Rust](rust/README.md). The optional [Zenoh binding](bindings/zenoh/README.md), for both languages, carries the same frames between computers, with mutual TLS and access control.
 - Nineteen claims about the owner and the client are proved in Lean for every sequence of inputs ([`formal/`](formal/README.md)). The SDKs are not proved: the Python and Rust owners give the same answers as the compiled Lean model on 20,000 random traces, and an exhaustive check drives the real Python client and owner through about 5.2 million states with faults, and the lockstep profile through about 565,000 ([`model/`](model/README.md)).
-- The times in this section were measured with revision 2 of the SDKs. Revisions 3 to 7 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again. The fault trials ran with revision 2 (8,730 trials over pipes, Unix domain sockets, and TCP) and again with revision 7 (4,560 trials over Unix domain sockets and TCP).
+- The times in this section were measured with the SDKs before revision 3 (23 October to 3 November 2026). Revisions 3 to 7 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again. The fault trials ran with those SDKs (8,730 trials over pipes, Unix domain sockets, and TCP) and again with revision 7 (4,560 trials over Unix domain sockets and TCP).
 - [What NCP 2 changes from NCP 1](docs/design/NCP-1-SHORTCOMINGS.md) maps each known shortcoming of NCP 1 to its fix and its check, and lists the work that is still open.
 - [NCP 2 compared with other tools](docs/design/NCP-2-COMPARISON.md) lists what NCP 2 adds, what it lacks, and when another tool fits better, with a source for each statement.
 - The projects that use NCP move to NCP 2 one at a time, in the order of the [migration plan](docs/design/NCP-2-MIGRATION.md). NCP 1 stays available until the last one has moved.
@@ -82,10 +84,12 @@ In Python, NCP 2 had the lowest 99th percentile up to 1,788 spikes and the lowes
 At 1 MiB, the other systems make no integrity check of the message, while NCP 2 computes and checks a SHA-256 fingerprint of every message. That check takes most of NCP 2's time there: on a raw pipe in Rust, the same check costs 722 µs.
 With the same check added to every system, NCP 2 was the fastest at every size, 1 MiB included: in Rust, 872 µs over a Unix socket against 1,104 µs for Zenoh and 1,137 µs for gRPC over TCP; in Python, 759 µs against 801 µs for Zenoh and 830 µs for HTTP/1.1.
 
+<a href="benchmarks/comparison/results-2/figures/integrity_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="benchmarks/comparison/results-2/figures/integrity_dark.svg">
   <img src="benchmarks/comparison/results-2/figures/integrity_light.svg" alt="Time of one call when every system checks a SHA-256 fingerprint of each message as NCP 2 does, for Rust and Python and for 0, 127, 1788, and 87381 spikes, on log scales: NCP 2 is the fastest at every size.">
 </picture>
+</a>
 
 ### Lag added to a running simulation
 
@@ -104,15 +108,17 @@ When each step also returns its spikes, NCP 2 adds 36 to 119 µs with a Rust hos
 These times leave out one effect: a coupled NEST can do its own work more slowly than NEST alone. With 10,000 neurons, that effect varied between runs by more than the time of an exchange.
 MUSIC, the MPI library with which NEST exchanges spikes with other simulators, needs all coupled programs in one MPI job. From the difference of wall times, it added 0.001 to 0.256 ms per 1 ms step in these configurations, against 0.026 to 0.141 ms for NCP 2 with a Rust host: less in three of the six, all with 4 or 8 NEST threads, and more in the other three. In this NEST build, MUSIC delivered the exact spikes only with one NEST thread; with T threads, only one channel in T carried its exact spike train ([content protocol](benchmarks/nest-campaign/README.md#results-of-the-content-protocol)).
 
+<a href="benchmarks/nest-campaign/results-5/figures/overhead_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="benchmarks/nest-campaign/results-5/figures/overhead_dark.svg">
   <img src="benchmarks/nest-campaign/results-5/figures/overhead_light.svg" alt="Time that each coupling adds to an exchange after every 1 ms step of the Brunel network, on a logarithmic scale: about 8 to 11 µs for a raw round trip, 23 to 32 µs for NCP 2 with a Rust host, 50 to 61 µs with a Python host, and 228 to 524 µs for NCP 1.0.1.">
 </picture>
+</a>
 
 ### Correctness
 
 - **Exact data.** Both NCP 2 hosts received exactly the spikes that NEST recorded, each neuron and each time, in all 96 trials of [content protocol 2](benchmarks/nest-campaign/README.md#results-of-content-protocol-2), with 1 to 8 threads and up to 10,000 neurons: 42,026,126 spikes compared. Through the first process of an MPI program, all 521 million spikes that the client checked arrived exactly ([multi-agent benchmark](benchmarks/multi-agent/README.md#results)).
-- **Faults.** In 4,560 trials with revision 7 of the SDKs and real programs over Unix sockets and TCP, with Rust and Python on both sides, messages were damaged, cut, or repeated, programs were killed, steps stalled, and messages were too large: no client accepted a wrong result, no owner ran a step twice or out of order, and no client was told something false about a step ([fault campaign, protocol 6](benchmarks/fault-campaign/README.md#results-of-protocol-6)). Revision 2 had passed the same trials, and more over pipes, 8,730 in all (protocols 3 and 5).
+- **Faults.** In 4,560 trials with revision 7 of the SDKs and real programs over Unix sockets and TCP, with Rust and Python on both sides, messages were damaged, cut, or repeated, programs were killed, steps stalled, and messages were too large: no client accepted a wrong result, no owner ran a step twice or out of order, and no client was told something false about a step ([fault campaign, protocol 6](benchmarks/fault-campaign/README.md#results-of-protocol-6)). The SDKs before revision 3 had passed the same trials, and more over pipes, 8,730 in all (protocols 3 and 5).
 - **One order for many agents.** With the rounds profile, up to 256 agents sharing one world received the same result after every round, and the world ended in the same state in every run ([multi-agent benchmark](benchmarks/multi-agent/README.md#results)).
 - **Proofs and checks.** Nineteen claims about the owner and the client are proved in Lean for every sequence of inputs, and eleven injected defects each break the proof of the claim that forbids them. An exhaustive check drives the real Python client and owner through about 5.2 million states with up to two faults: lost, repeated, and reordered messages, restarts and stops of the owner, wrong requests, and an application whose verdict depends on its state. The Python and Rust owners give the same answers as the compiled Lean model on 20,000 random traces. Both SDKs pass the same conformance vectors, each requirement of the specification maps to its checks, and the decoders and message checks agree on 200,000 random and damaged messages in every gate run.
 
@@ -128,10 +134,12 @@ CREBAIN's [closed-loop host](https://github.com/sepahead/crebain/blob/main/docs/
 Each controller here simulates spiking neurons in NEST: unconnected integrate-and-fire populations carry a proportional-derivative signal, computed in Python, as firing rates, and their spike counts give the accelerations.
 On 12 November 2026, one controller flew one drone, and three controllers flew five drones in two worlds, to within 2.6 cm of their targets in 600 steps of 20 ms; an offline check of the transcripts confirmed all 2,400 controller responses, and a second run of the one-drone loop gave the same results. The run tests the coupling, not neural control ([evidence](https://github.com/sepahead/crebain/blob/main/integrations/ncp2-nest-controller/README.md)).
 
+<a href="docs/diagrams/ncp2-loop-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/ncp2-loop-dark.svg">
   <img src="docs/diagrams/ncp2-loop-light.svg" alt="Three cards joined by arrows: spiking controllers in NEST, the loop host crebain-ncp-loop, and CREBAIN worlds with one to three drones each. Below them, three results: the drones reached their targets, all 2,400 controller responses were checked, and a second run gave the same results. A note lists the limits.">
 </picture>
+</a>
 
 ### What these results do not show
 
@@ -144,11 +152,13 @@ The [modular local SDK](local/modular/README.md) lets a host select installed ap
 NCP owns message identity, retained outcomes, acknowledgements, and byte-buffer lifetime.
 Each application owns its operations, observations, units, clocks, and accepted values.
 
+<a href="docs/diagrams/system-map-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/system-map-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/system-map-light.svg">
   <img alt="A host selects independent applications and connects each one through the NCP contract. NCP owns message identity, retained outcomes, acknowledgements, and bounded byte buffers. Each application owns its own state. The local SDK 1.0.0 is released; applications and wire 1.0 remain UNRELEASED. It is not release or certification evidence." src="docs/diagrams/system-map-light.svg" width="860">
 </picture>
+</a>
 
 Full-size vector figure: [light](docs/diagrams/system-map-light.svg?raw=true) · [dark](docs/diagrams/system-map-dark.svg?raw=true).
 
@@ -300,11 +310,13 @@ They do not describe an implemented local-v1 runtime or close any gate.
 
 The packages, figure, and evidence classes of this section belong to NCP 1.
 
+<a href="docs/diagrams/evidence-ladder-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/evidence-ladder-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/evidence-ladder-light.svg">
   <img alt="Five evidence classes run from source controls to release. Each class permits only its own claim. The NCP 1.0 candidate has local and selected native evidence. Its independent and external gates are NOT RUN, and it is UNRELEASED. It is not release or certification evidence." src="docs/diagrams/evidence-ladder-light.svg" width="860">
 </picture>
+</a>
 
 Full-size vector figure: [light](docs/diagrams/evidence-ladder-light.svg?raw=true) · [dark](docs/diagrams/evidence-ladder-dark.svg?raw=true).
 

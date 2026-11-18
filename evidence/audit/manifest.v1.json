@@ -8,8 +8,8 @@
   "artifacts": [
     {
       "path": "evidence/audit/latent-path-inventory.v1.json",
-      "sha256": "ce120b975600ec7522b7782b7fddc1c5fbfaf70bed025b880f76103164f7522a",
-      "bytes": 716881,
+      "sha256": "07a2db8f21ad8fdb49755d8a16359c5e807e01d9ecfb2c1082830fa85c266888",
+      "bytes": 716894,
       "records": 384
     },
     {

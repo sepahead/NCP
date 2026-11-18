@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import sys
+import textwrap
 from html import escape
 from pathlib import Path
 
@@ -61,13 +62,19 @@ ARMS = [
 ]
 OFFSETS = [-0.24, -0.12, 0.0, 0.12, 0.24]
 X_LIMITS = (5, 3000)
+# 8.6 inches (619 pt) wide: GitHub shows a README image at about 830 px, so the figure appears at its
+# own size, and its smallest text, 10 pt, at about 13 px.
+WIDTH = 8.6
+SMALL, BASE, TITLE = 10.0, 10.5, 14.0
+# The record that the figures show; main() sets it from the schedule.
+SOURCE = ""
 
 
 def style(theme: dict) -> None:
     plt.rcParams.update(
         {
             "font.family": "DejaVu Sans",
-            "font.size": 8.5,
+            "font.size": BASE,
             "svg.fonttype": "path",
             "svg.hashsalt": "ncp2-nest-campaign",
             "figure.facecolor": theme["surface"],
@@ -76,12 +83,15 @@ def style(theme: dict) -> None:
             "text.color": theme["ink"],
             "axes.labelcolor": theme["ink2"],
             "axes.edgecolor": theme["axis"],
+            "axes.labelsize": BASE,
             "xtick.color": theme["muted"],
+            "xtick.labelsize": SMALL,
             "ytick.color": theme["ink2"],
+            "ytick.labelsize": BASE,
             "axes.titlecolor": theme["ink"],
-            "axes.titlesize": 9,
+            "axes.titlesize": TITLE,
             "axes.titleweight": "bold",
-            "axes.linewidth": 0.6,
+            "axes.linewidth": 0.8,
         }
     )
 
@@ -90,8 +100,8 @@ def marker_style(theme: dict, role: str, marker: str, filled: bool) -> dict:
     colour = theme[role]
     return {
         "marker": marker,
-        "markersize": 4.6,
-        "markeredgewidth": 1.1,
+        "markersize": 7.0,
+        "markeredgewidth": 1.4,
         "color": colour,
         "markerfacecolor": colour if filled else theme["surface"],
         # The raw round trip is drawn in the light floor colour, so its outline carries the contrast.
@@ -131,7 +141,16 @@ def span(rows: list[dict], arm: str) -> str:
 
 def draw(rows: list[dict], suffix: str, theme: dict, path: Path, title: str, description: str, label) -> None:
     style(theme)
-    figure, axis = plt.subplots(figsize=(6.8, 0.55 + 0.42 * len(rows)), layout="constrained")
+    subtitle = (
+        "Each point is the median of three blocks, and its bar spans the block values. "
+        "Less is better: the time that the coupling adds to each exchange."
+    )
+    lines, source = textwrap.wrap(subtitle, 96), textwrap.wrap(SOURCE, 100)
+    top = 0.46 + 0.2 * len(lines) + 0.12  # inches: title and subtitle
+    foot = 0.22 + 0.19 * len(source)  # the source
+    legend = 0.72  # two rows of the legend
+    height = top + 0.6 * len(rows) + 0.75 + legend + foot
+    figure, axis = plt.subplots(figsize=(WIDTH, height))
     for position, entry in enumerate(rows):
         y = len(rows) - 1 - position
         for (arm, _, role, marker, filled), offset in zip(ARMS, OFFSETS):
@@ -144,7 +163,7 @@ def draw(rows: list[dict], suffix: str, theme: dict, path: Path, title: str, des
                 xerr=[[value["median"] - value["min"]], [value["max"] - value["median"]]],
                 fmt="none",
                 ecolor=theme["muted"] if role == "floor" else theme[role],
-                elinewidth=1.0,
+                elinewidth=1.4,
                 capsize=0,
             )
             axis.plot(value["median"], y + offset, linestyle="none", **marker_style(theme, role, marker, filled))
@@ -156,7 +175,7 @@ def draw(rows: list[dict], suffix: str, theme: dict, path: Path, title: str, des
                 "NCP 1.0.1 not run: some steps\nexceed its 64 KiB frame",
                 ha="center",
                 va="center",
-                fontsize=7,
+                fontsize=SMALL,
                 linespacing=1.15,
                 color=theme["ink2"],
             )
@@ -174,22 +193,29 @@ def draw(rows: list[dict], suffix: str, theme: dict, path: Path, title: str, des
     for side in ("top", "right", "left"):
         axis.spines[side].set_visible(False)
     axis.tick_params(axis="y", length=0)
-    axis.set_title(title, loc="left")
     handles = [
         Line2D([], [], linestyle="none", label=name, **marker_style(theme, role, marker, filled))
         for _, name, role, marker, filled in ARMS
     ]
     # Three columns, filled column by column: the raw round trip, then NCP 2, then NCP 1.0.1.
     handles.insert(1, Line2D([], [], linestyle="none", marker="none", label=" "))
+    figure.text(0.1 / WIDTH, 1 - 0.12 / height, title, ha="left", va="top", fontsize=TITLE, fontweight="bold",
+                color=theme["ink"])
+    figure.text(0.1 / WIDTH, 1 - 0.46 / height, "\n".join(lines), ha="left", va="top", fontsize=BASE,
+                color=theme["ink2"], linespacing=1.35)
+    figure.text(0.1 / WIDTH, 0.1 / height, "\n".join(source), ha="left", va="bottom", fontsize=SMALL,
+                color=theme["muted"], linespacing=1.3)
     figure.legend(
         handles=handles,
-        loc="outside lower center",
+        loc="lower left",
+        bbox_to_anchor=(0.1 / WIDTH, (foot + 0.04) / height),
         ncol=3,
         frameon=False,
-        fontsize=7.5,
-        handletextpad=0.3,
-        columnspacing=1.2,
+        fontsize=SMALL,
+        handletextpad=0.4,
+        columnspacing=1.6,
     )
+    figure.tight_layout(rect=(0, (foot + legend) / height, 1, 1 - top / height))
     save(figure, path, title, description)
 
 
@@ -198,6 +224,12 @@ def main() -> None:
     analysis = json.loads((results / "analysis.json").read_text())
     if analysis["protocol"] != "PROTOCOL-5.md":
         sys.exit(f"figures.py draws protocol 5, not {analysis['protocol']}")
+    schedule = json.loads((results / "schedule.json").read_text())
+    global SOURCE
+    SOURCE = (
+        f"NEST campaign, protocol 5, {schedule['created_utc'][:10]}, one laptop. NCP 2 SDKs of commit "
+        f"{schedule['commit'][:7]}, before revision 3. Values: {results.name}/summary.md."
+    )
     out = results / "figures"
     out.mkdir(exist_ok=True)
     d1 = rows_of(analysis, "D1", 1.0)

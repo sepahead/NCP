@@ -37,11 +37,13 @@ implements only the bounded mechanisms identified below.
 
 The proposed 1.0 design bounds each plane queue by item count and by retained bytes.
 
+<a href="docs/diagrams/queue-admission-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/queue-admission-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/queue-admission-light.svg">
   <img alt="Each plane queue limits both item count and retained bytes. A plane policy selects allowed victims or rejects. One atomic owner step records the loss, removes victims, and installs the item. This is proposed design for the UNRELEASED 1.0 candidate. It is not release or certification evidence." src="docs/diagrams/queue-admission-light.svg" width="860">
 </picture>
+</a>
 
 Full-size vector figure: [light](docs/diagrams/queue-admission-light.svg?raw=true) · [dark](docs/diagrams/queue-admission-dark.svg?raw=true).
 
@@ -153,11 +155,13 @@ necessarily de-energize a device.
 authority transition. A deployment-level reset must retire the old generation,
 authority, lease, and stream state before it constructs fresh admission state.
 
+<a href="docs/diagrams/fsm-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/fsm-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/diagrams/fsm-light.svg">
   <img alt="The current compatibility governor starts in HOLD after valid configuration. It enters Active only with fresh input and live authority. An admitted ESTOP, a geofence breach, a link burst, or sustained sensor silence latches ESTOP. Only a deployment reset leaves ESTOP. Invalid configuration fails closed. Current UNRELEASED runtime. It is not release or certification evidence." src="docs/diagrams/fsm-light.svg" width="860">
 </picture>
+</a>
 
 Full-size vector figure: [light](docs/diagrams/fsm-light.svg?raw=true) · [dark](docs/diagrams/fsm-dark.svg?raw=true).
 

@@ -22,10 +22,12 @@ NCP does not know what a step means. Each application describes its own steps an
 
 ## One step at a time
 
+<a href="diagrams/ncp2-call-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-call-dark.svg">
   <img src="diagrams/ncp2-call-light.svg" alt="A client and an owner exchange four requests and four responses: open, two steps, and close. Each request after open carries the identity of the last response as its receipt. Side notes explain the open, the receipt, a lost response, and the hash chain. A note at the bottom says that after a failure at most one call of the session is uncertain.">
 </picture>
+</a>
 
 A **session** is one conversation between one client and one owner.
 It starts with `open`, in which the client names the application and its contract, and it ends with `close` or with a failure.
@@ -54,10 +56,12 @@ In a session, at most one call can be in this state, and it is always the last o
 
 A client that follows the rules gets `rejected` for a request other than `open` only in one case: the owner lost the session, by a restart or by expiry, and a delayed copy of the `open` request opened it again. An earlier copy of the request may have run before the loss, so the client ends the session and treats the request as possibly executed.
 
+<a href="diagrams/ncp2-verdicts-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-verdicts-dark.svg">
   <img src="diagrams/ncp2-verdicts-light.svg" alt="Three columns sort every NCP 2 answer by what the client may conclude. Executed: ok and result_too_large. Not executed: the declined codes, shutdown, bad_frame, and a rejected open. Possibly executed: every other rejection, owner_failure, session_expired, a code that the client does not know, and the four local events.">
 </picture>
+</a>
 
 ## When something goes wrong
 
@@ -73,19 +77,23 @@ A client that follows the rules gets `rejected` for a request other than `open` 
 | The connection breaks | The session ends. | The request without a response possibly ran. |
 | A result is larger than the session allows | The owner answers `ended` with the code `result_too_large`, the size, and the limit. | The step ran; only its result was too large to send. |
 
+<a href="diagrams/ncp2-outcomes-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-outcomes-dark.svg">
   <img src="diagrams/ncp2-outcomes-light.svg" alt="Four cards for the outcomes ok, declined, rejected, and ended, and eight cards for the events that can happen to a call, such as a damaged, lost, repeated, or late message, an owner failure, and a broken connection, each with what the client learns. A note says that at most one call of a session is possibly executed, and it is the last one.">
 </picture>
+</a>
 
 These rules are proved for the owner (see [How we know that it works](#how-we-know-that-it-works)).
 
 The owner checks each frame in a fixed order. A frame leaves at the first check that fails. Apart from an `open`, which opens the session, no check before the admission changes anything.
 
+<a href="diagrams/ncp2-ladder-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-ladder-dark.svg">
   <img src="diagrams/ncp2-ladder-light.svg" alt="Thirteen checks in the order of section 7.3 of the specification. A frame leaves at the first check that fails, with the outcome and code shown beside it. A frame that passes ten checks is admitted, and the owner keeps every answer from that point.">
 </picture>
+</a>
 
 ## Large data
 
@@ -94,10 +102,12 @@ A program can read an attachment in place, without converting it.
 The client chooses the largest message size of a session when it opens it: from 64 KiB to 64 MiB, and 1 MiB by default.
 NCP 1 had a fixed limit of 64 KiB, and a result above it stopped the run.
 
+<a href="diagrams/ncp2-frame-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-frame-dark.svg">
   <img src="diagrams/ncp2-frame-light.svg" alt="A frame drawn as four parts in a row: a 12-byte header, the JSON text, the attachments, and a 32-byte SHA-256 digest, with the byte offsets 0, 12, 12 + J, and 12 + J + A. A card under each part explains it, and a note explains why one fingerprint protects the whole frame.">
 </picture>
+</a>
 
 ## Streams
 
@@ -107,10 +117,12 @@ Streams do not resend lost messages: for live data, the next reading is usually 
 
 Requests and streams travel over pipes, Unix domain sockets, TCP, or Zenoh. The frames and the rules are the same on each kind of link.
 
+<a href="diagrams/ncp2-bindings-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-bindings-dark.svg">
   <img src="diagrams/ncp2-bindings-light.svg" alt="Four cards for the links pipe pair, Unix socket, TCP, and Zenoh, with what each is for, and two cards for streams and for the rounds profile, in which many agents share one owner. A note says that the Python SDK needs only the standard library and the Rust SDK four crates.">
 </picture>
+</a>
 
 ## Records that can be checked
 
@@ -118,40 +130,48 @@ A program can keep a **transcript** of a session: every frame that it sent and r
 It writes each frame to the transcript before it sends it, so the transcript holds every request that the other program may have carried out.
 Because each request names the response before it, a verifier can check the whole session afterwards, and a single changed byte breaks the check.
 
+<a href="diagrams/ncp2-transcript-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-transcript-dark.svg">
   <img src="diagrams/ncp2-transcript-light.svg" alt="Three numbered cards: record each frame first, the chain of requests and responses, and the check afterwards. Below them, the eight frames of one session in two rows: request 0 open, response 0 ok, then two steps, close, and their responses, each joined to the next. A note says what a transcript shows and that it is not signed.">
 </picture>
+</a>
 
 ## Steps of a simulation
 
 A simulation step changes state that outlives the session, so a lost session leaves a question: did the last step run?
 The [lockstep profile](../spec/NCP-2-LOCKSTEP.md) numbers the steps with ticks, and one opening at a time holds them. After a lost session, the client opens a new one and takes the ticks with a request. The response gives the final tick, so the client learns whether its last step ran, and no copy of the old step can run afterwards. An `open` only reports the tick, so a copy of an old `open` takes nothing. The clock also names its history: if the owner restored a state after which a step can have started, the history is new, and the client gets no verdict instead of a false "did not run".
 
+<a href="diagrams/ncp2-lockstep-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-lockstep-dark.svg">
   <img src="diagrams/ncp2-lockstep-light.svg" alt="A time line of a client and an owner in four steps: a step is delayed, the client recovers in a new session and takes the ticks with a request, a copy of the first open arrives, and the delayed step arrives. Two cards compare the result: with a session name as the holder, the step ran after the verdict that it did not; when only a take takes the ticks, it is declined.">
 </picture>
+</a>
 
 ## How fast it is
 
-These times were measured with revision 2 of the SDKs. Revisions 3 to 7 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again.
+These times were measured with the SDKs before revision 3 (23 October to 3 November 2026). Revisions 3 to 7 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again.
 One call with a small result took 9.0 µs between two Rust programs and 38.8 µs between two Python programs, on one laptop ([comparison protocol 2](../benchmarks/comparison/README.md#results-of-protocol-2)).
 NCP 1.0.1 took 36.1 µs and 469 µs. Over all pairs of languages and sizes, NCP 2 was 4.0 to 167 times faster.
 
+<a href="../benchmarks/comparison/results-2/figures/versions_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/comparison/results-2/figures/versions_dark.svg">
   <img src="../benchmarks/comparison/results-2/figures/versions_light.svg" alt="NCP 1.0.1 and NCP 2 call times for each language pair and number of spikes, joined by lines: NCP 2 is 4.0 to 167 times faster.">
 </picture>
+</a>
 
 Coupled to the NEST simulator, an exchange after each 1 ms step added 23 to 32 µs with a Rust client and 50 to 61 µs with a Python client.
 NCP 1.0.1 added 228 to 248 µs and 492 to 524 µs. Sending a message to another process and back without any protocol took 8 to 11 µs.
 Slow exchanges also stayed short: in each configuration, 99 of 100 exchanges added at most 78 µs with a Rust client and 109 µs with a Python client, against 324 µs and 629 µs for NCP 1.0.1 (each value is the middle one of three repeated runs).
 
+<a href="../benchmarks/nest-campaign/results-5/figures/overhead_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/nest-campaign/results-5/figures/overhead_dark.svg">
   <img src="../benchmarks/nest-campaign/results-5/figures/overhead_light.svg" alt="Time that each coupling adds to an exchange after every 1 ms step of the Brunel network, on a logarithmic scale: about 8 to 11 µs for a raw round trip, 23 to 32 µs for NCP 2 with a Rust host, 50 to 61 µs with a Python host, and 228 to 524 µs for NCP 1.0.1.">
 </picture>
+</a>
 
 One program can also talk to many others at once. Sending one request to each of 256 programs and receiving all 256 answers took 0.92 ms from a Rust program and 2.8 ms from a Python program, because NCP 2 sends every request before it reads the first answer.
 When 64 agents shared one simulated world that applies their requests in rounds, a round took 2.6 ms, every agent saw the same result, and the result never depended on which request arrived first ([multi-agent benchmark](../benchmarks/multi-agent/README.md)).
@@ -161,10 +181,12 @@ In both, the protocol of each measurement was fixed, with its fingerprint, befor
 
 ## How NCP 2 compares with other tools
 
+<a href="diagrams/ncp2-why-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-why-dark.svg">
   <img src="diagrams/ncp2-why-light.svg" alt="A table of NCP 2, gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 has four guarantees built in: each request runs at most once, the client learns after a failure whether it ran, each message has a SHA-256 fingerprint, and a verifier can check the session record. The others have none of them built in. The last column gives the time of a small call: 9.0 and 38.8 microseconds for NCP 2 in Rust and Python.">
 </picture>
+</a>
 
 | Tool | What it is for | Measured here | What NCP 2 adds |
 | --- | --- | --- | --- |
@@ -177,10 +199,12 @@ The [comparison document](design/NCP-2-COMPARISON.md) also lists what NCP 2 lack
 These numbers come from one laptop. With 1 MiB of data in each call, the tools without a fingerprint check were faster than NCP 2, by about the time that the check takes.
 A second run gave every other tool the same fingerprint check as NCP 2, added by the benchmark. Then NCP 2 was the fastest in every case, from an empty result to 1 MiB, in Rust and in Python.
 
+<a href="../benchmarks/comparison/results-2/figures/integrity_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/comparison/results-2/figures/integrity_dark.svg">
   <img src="../benchmarks/comparison/results-2/figures/integrity_light.svg" alt="Call time of NCP 2 against gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe that each add a SHA-256 fingerprint to every message, for Rust and Python and four message sizes, on log scales. In every panel, the fastest NCP 2 arm is the fastest system.">
 </picture>
+</a>
 
 ## How we know that it works
 
@@ -188,7 +212,7 @@ A second run gave every other tool the same fingerprint check as NCP 2, added by
 - **Model check.** A program drives the real client and owner of the Python SDK through every reachable state of small sessions, about 5.2 million states, in which messages are lost, repeated, delayed, or reordered, the owner restarts or stops, and a faulty client sends wrong requests. It checks all eight properties of the specification in every state ([`model/`](../model/README.md)). Its first run found the gap that the client rule for a rejected request now closes. A second check does the same for the lockstep profile, with copies of every frame, restarts, and a second client: a step that recovery says did not run never runs, also across restarts to an earlier saved clock, and every reason that the owner gives for a decline is true.
 - **The real owners against the proved model.** The Python and Rust owners give the same answer as the compiled Lean model on 20,000 random traces with copies, restarts, and stops ([`model/`](../model/README.md)).
 - **Shared tests.** The Rust and Python versions pass the same test vectors, every requirement of the specification is mapped to the checks that test it, and a test compares their answers on 200,000 random and damaged messages ([`conformance/`](../conformance/README.md)).
-- **Real faults.** In 8,730 trials with real programs, over pipes, Unix domain sockets, and TCP, with Rust and Python on both sides, a relay damaged, cut, or repeated messages, programs were killed, steps stalled, and messages were too large. No client accepted a wrong result, no owner ran a step twice, and no client was told something false about a step. Nine runs of up to 1,000,000 calls kept their memory and open files constant ([fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocol-5)). These trials ran with revision 2 of the SDKs. With revision 7, the 4,560 trials over Unix domain sockets and TCP ran again, with the same result ([protocol 6](../benchmarks/fault-campaign/README.md#results-of-protocol-6)); the trials over pipes and the long runs did not.
+- **Real faults.** In 8,730 trials with real programs, over pipes, Unix domain sockets, and TCP, with Rust and Python on both sides, a relay damaged, cut, or repeated messages, programs were killed, steps stalled, and messages were too large. No client accepted a wrong result, no owner ran a step twice, and no client was told something false about a step. Nine runs of up to 1,000,000 calls kept their memory and open files constant ([fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocol-5)). These trials ran with the SDKs before revision 3. With revision 7, the 4,560 trials over Unix domain sockets and TCP ran again, with the same result ([protocol 6](../benchmarks/fault-campaign/README.md#results-of-protocol-6)); the trials over pipes and the long runs did not.
 - **Exact data.** Coupled to NEST, both versions received exactly the spikes that NEST recorded, each neuron and time, in all 96 trials of a content test, with up to 8 threads and 10,000 neurons: 42,026,126 spikes compared ([NEST campaign](../benchmarks/nest-campaign/README.md#results-of-content-protocol-2)).
 
 ## What NCP 2 does not do

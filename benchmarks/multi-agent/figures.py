@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import sys
+import textwrap
 from html import escape
 from pathlib import Path
 
@@ -59,11 +60,43 @@ MODES = [
 ]
 
 
+# 8.6 inches (619 pt) wide: GitHub shows a README image at about 830 px, so the figure appears at its
+# own size, and its smallest text, 10 pt, at about 13 px.
+WIDTH = 8.6
+SMALL, BASE, PANEL, TITLE = 10.0, 10.5, 11.5, 14.0
+# The record that the figures show; main() sets it from the schedule.
+SOURCE = ""
+
+
+def framed(subtitle: str, panels: float, legend_rows: int, *args, **kwargs):
+    """A figure with room for a title and a subtitle at the top, and a legend and the source at the
+    bottom, all at fixed distances in inches, and `panels` inches for its axes."""
+    lines, source = textwrap.wrap(subtitle, 96), textwrap.wrap(SOURCE, 100)
+    top, foot, legend = 0.46 + 0.2 * len(lines) + 0.12, 0.22 + 0.19 * len(source), 0.34 * legend_rows
+    figure, axes = plt.subplots(*args, figsize=(WIDTH, top + panels + legend + foot), **kwargs)
+    return figure, axes, (top, foot, legend, lines, source)
+
+
+def finish(figure, theme: dict, title: str, geometry: tuple, handles=None, ncol: int = 3) -> None:
+    top, foot, legend, lines, source = geometry
+    height = figure.get_figheight()
+    figure.text(0.1 / WIDTH, 1 - 0.12 / height, title, ha="left", va="top", fontsize=TITLE, fontweight="bold",
+                color=theme["ink"])
+    figure.text(0.1 / WIDTH, 1 - 0.46 / height, "\n".join(lines), ha="left", va="top", fontsize=BASE,
+                color=theme["ink2"], linespacing=1.35)
+    figure.text(0.1 / WIDTH, 0.1 / height, "\n".join(source), ha="left", va="bottom", fontsize=SMALL,
+                color=theme["muted"], linespacing=1.3)
+    if handles:
+        figure.legend(handles=handles, loc="lower left", bbox_to_anchor=(0.1 / WIDTH, (foot + 0.04) / height),
+                      ncol=ncol, frameon=False, fontsize=SMALL, columnspacing=1.6)
+    figure.tight_layout(rect=(0, (foot + legend) / height, 1, 1 - top / height), h_pad=1.4, w_pad=1.6)
+
+
 def style(theme: dict) -> None:
     plt.rcParams.update(
         {
             "font.family": "DejaVu Sans",
-            "font.size": 8.5,
+            "font.size": BASE,
             "svg.fonttype": "path",
             "svg.hashsalt": "ncp2-multi-agent",
             "figure.facecolor": theme["surface"],
@@ -72,12 +105,15 @@ def style(theme: dict) -> None:
             "text.color": theme["ink"],
             "axes.labelcolor": theme["ink2"],
             "axes.edgecolor": theme["axis"],
+            "axes.labelsize": BASE,
             "xtick.color": theme["muted"],
+            "xtick.labelsize": SMALL,
             "ytick.color": theme["ink2"],
+            "ytick.labelsize": SMALL,
             "axes.titlecolor": theme["ink"],
-            "axes.titlesize": 9,
+            "axes.titlesize": PANEL,
             "axes.titleweight": "bold",
-            "axes.linewidth": 0.6,
+            "axes.linewidth": 0.8,
         }
     )
 
@@ -86,8 +122,8 @@ def marker_style(theme: dict, role: str, marker: str, filled: bool) -> dict:
     colour = theme[role]
     return {
         "marker": marker,
-        "markersize": 4.6,
-        "markeredgewidth": 1.1,
+        "markersize": 7.0,
+        "markeredgewidth": 1.4,
         "color": colour,
         "markerfacecolor": colour if filled else theme["surface"],
         "markeredgecolor": theme["muted"] if role == "floor" else colour,
@@ -137,16 +173,20 @@ def series(
     xs = [x for x, _ in points]
     ys = [entry["statistic_us"] for _, entry in points]
     colour = theme["muted"] if role == "floor" else theme[role]
-    axis.plot(xs, ys, linestyle=line, linewidth=1.6 if role == "accent" and line == "-" else 1.0, color=colour)
+    axis.plot(xs, ys, linestyle=line, linewidth=2.2 if role == "accent" and line == "-" else 1.4, color=colour)
     for x, entry in points:
         low, high = entry["range_us"]
-        axis.plot([x, x], [low, high], color=colour, linewidth=1.0)
+        axis.plot([x, x], [low, high], color=colour, linewidth=1.4)
     axis.plot(xs, ys, linestyle="none", **marker_style(theme, role, marker, filled))
 
 
 def fanout(configs: dict, theme: dict, path: Path) -> None:
     style(theme)
-    figure, axes = plt.subplots(2, 2, figsize=(6.8, 5.6), layout="constrained", sharex=True)
+    figure, axes, geometry = framed(
+        "A round sends one request to each of N owners and waits for every response. Each point is the "
+        "median of three block medians, and its bar spans them; both axes are logarithmic.",
+        5.6, 2, 2, 2, sharex=True,
+    )
     for row, wait_us in enumerate((0, 1000)):
         for column, host in enumerate(("rust", "python")):
             axis = axes[row][column]
@@ -157,7 +197,7 @@ def fanout(configs: dict, theme: dict, path: Path) -> None:
                 axis,
                 theme,
                 "owners (N)" if row == 1 else None,
-                "time of one round (µs, logarithmic)" if column == 0 else None,
+                "time of one round (µs)" if column == 0 else None,
             )
             wait = "answer at once" if wait_us == 0 else "wait 1 ms first"
             axis.set_title(f"{host.capitalize()} host, owners {wait}", loc="left")
@@ -172,7 +212,7 @@ def fanout(configs: dict, theme: dict, path: Path) -> None:
         )
         for _, label, role, marker, filled, line in MODES
     ]
-    figure.legend(handles=handles, loc="outside lower center", ncol=3, frameon=False, fontsize=7.5)
+    finish(figure, theme, "One host and N owners: the time of one round", geometry, handles, ncol=3)
     save(
         figure,
         path,
@@ -186,7 +226,11 @@ def fanout(configs: dict, theme: dict, path: Path) -> None:
 
 def rounds(configs: dict, hypotheses: dict, theme: dict, path: Path) -> None:
     style(theme)
-    figure, axis = plt.subplots(figsize=(6.8, 3.4), layout="constrained")
+    figure, axis, geometry = framed(
+        "N agents share one Python owner; in each round, every agent sends one request. Each point is the "
+        "median of three block medians, and its bar spans them; both axes are logarithmic.",
+        3.4, 2,
+    )
     same = "the same final state in every run" if hypotheses["R2"]["holds"] else "final states as analysed"
     differ = "final states that differ between runs" if hypotheses["R3"]["holds"] else "final states as analysed"
     arms = [
@@ -195,8 +239,7 @@ def rounds(configs: dict, hypotheses: dict, theme: dict, path: Path) -> None:
     ]
     for mode, _, role, marker, filled, line in arms:
         series(axis, theme, [(n, configs.get(f"R-{mode}-n{n}")) for n in SESSIONS], role, marker, filled, line)
-    log_axes(axis, theme, "agents (N)", "time of one round (µs, logarithmic)")
-    axis.set_title("N agents and one Python owner", loc="left")
+    log_axes(axis, theme, "agents (N)", "time of one round (µs)")
     handles = [
         Line2D(
             [],
@@ -208,7 +251,7 @@ def rounds(configs: dict, hypotheses: dict, theme: dict, path: Path) -> None:
         )
         for _, label, role, marker, filled, line in arms
     ]
-    figure.legend(handles=handles, loc="outside lower center", ncol=2, frameon=False, fontsize=7.5)
+    finish(figure, theme, "N agents and one owner: rounds and the order of arrival", geometry, handles, ncol=1)
     save(
         figure,
         path,
@@ -221,7 +264,11 @@ def rounds(configs: dict, hypotheses: dict, theme: dict, path: Path) -> None:
 
 def mpi(configs: dict, theme: dict, path: Path) -> None:
     style(theme)
-    figure, axes = plt.subplots(1, 3, figsize=(6.8, 2.8), layout="constrained")
+    figure, axes, geometry = framed(
+        "An owner made of 1, 2, 4, or 8 MPI ranks serves the session from rank 0; no MPI is the same owner "
+        "without MPI. Each point is the median of three block medians, and its bar spans them.",
+        3.0, 0, 1, 3,
+    )
     labels = ["no MPI", "1", "2", "4", "8"]
     for axis, (spikes, name) in zip(
         axes, ((0, "0 spikes"), (1788, "1788 spikes"), (87381, "87381 spikes, 1 MiB")), strict=True
@@ -233,7 +280,7 @@ def mpi(configs: dict, theme: dict, path: Path) -> None:
             role = "floor" if ranks == 0 else "accent"
             colour = theme["muted"] if role == "floor" else theme[role]
             low, high = entry["range_us"]
-            axis.plot([x, x], [low, high], color=colour, linewidth=1.0)
+            axis.plot([x, x], [low, high], color=colour, linewidth=1.4)
             axis.plot([x], [entry["statistic_us"]], linestyle="none", **marker_style(theme, role, "o", True))
         axis.set_xticks(range(5))
         axis.set_xticklabels(labels)
@@ -252,6 +299,7 @@ def mpi(configs: dict, theme: dict, path: Path) -> None:
         axis.set_title(name, loc="left")
         axis.set_xlabel("MPI ranks")
     axes[0].set_ylabel("time of one call (µs)")
+    finish(figure, theme, "The rank-0 owner of an MPI program: the time of one call", geometry)
     save(
         figure,
         path,
@@ -266,6 +314,12 @@ def main() -> None:
     results = Path(sys.argv[1])
     analysis = json.loads((results / "analysis.json").read_text())
     configs, hypotheses = analysis["configurations"], analysis["hypotheses"]
+    schedule = json.loads((results / "schedule.json").read_text())
+    global SOURCE
+    SOURCE = (
+        f"Multi-agent benchmark, {schedule['created_utc'][:10]}, one laptop. NCP 2 SDKs of commit "
+        f"{schedule['commit'][:7]}, before revision 3. Values: {results.name}/summary.md."
+    )
     out = results / "figures"
     out.mkdir(exist_ok=True)
     for name, theme in THEMES.items():

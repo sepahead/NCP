@@ -29,15 +29,19 @@ MUSIC did so only with one NEST thread.
 These times are measured inside the processes. They leave out one effect: a coupled NEST can do its own work more slowly than NEST alone.
 At 10,000 neurons, that effect varied between runs by more than the time of an exchange, so the campaign does not give the whole cost of a coupling there (protocol 5, G1 and G3).
 
+<a href="results-5/figures/overhead_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results-5/figures/overhead_dark.svg">
   <img src="results-5/figures/overhead_light.svg" alt="Time that each coupling adds to an exchange after every 1 ms step of the Brunel network, for 1,000 and 10,000 neurons on 1, 4, and 8 threads, on a logarithmic scale: about 8 to 11 µs for a raw round trip, 23 to 32 µs for NCP 2 with a Rust host, 50 to 61 µs with a Python host, 228 to 248 µs for NCP 1.0.1 with a Rust host, and 492 to 524 µs with a Python host.">
 </picture>
+</a>
 
+<a href="results-5/figures/spikes_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results-5/figures/spikes_dark.svg">
   <img src="results-5/figures/spikes_light.svg" alt="Time that each coupling adds to an exchange that returns the spikes of the step, for the Brunel network on 4 threads, on a logarithmic scale: NCP 2 adds 36 to 119 µs with a Rust host and 68 to 160 µs with a Python host; NCP 1.0.1 adds 434 to 2,481 µs and was not run with 10,000 neurons at 5 ms, because some steps exceed its 64 KiB frame.">
 </picture>
+</a>
 
 ## Measures
 

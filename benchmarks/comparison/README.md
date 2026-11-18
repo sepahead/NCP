@@ -12,10 +12,12 @@ Each call sends a small request and gets N spikes back, 12 bytes each.
 Each value is the median of the three block medians; ranges are the smallest and largest block median.
 All values are in [`results/summary.md`](results/summary.md).
 
+<a href="results/figures/calls_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/figures/calls_dark.svg">
   <img src="results/figures/calls_light.svg" alt="Call time of every arm for Rust and Python at N of 0, 127, 1788, and 87381 spikes, on log scales. Up to N = 1788, NCP 2 is the fastest protocol in Rust, and the fastest or about equal to the fastest in Python; at 1 MiB, protocols without an integrity check are faster.">
 </picture>
+</a>
 
 ## Hypotheses
 
@@ -29,10 +31,12 @@ All five hypotheses hold in every block.
 | H4 | In Rust, NCP 2 is faster than gRPC and Zenoh. | 10 of 10 comparisons. At N = 127: 14.0 µs over a pipe and 30.8 µs over TCP, against 46.6 µs for gRPC (tonic) and 58.2 µs for Zenoh. |
 | H5 | In Python, NCP 2 is faster than gRPC and HTTP. | 9 of 9 comparisons. At N = 127: 56.9 µs, against 115.1 and 126.5 µs for gRPC (grpcio, Unix socket and TCP) and 76.3 µs for HTTP/1.1. |
 
+<a href="results/figures/versions_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/figures/versions_dark.svg">
   <img src="results/figures/versions_light.svg" alt="NCP 1.0.1 and NCP 2 call times for each language pair and N, joined by lines: NCP 2 is 4.2 to 165 times faster.">
 </picture>
+</a>
 
 The two versions differ in three ways that affect this time: NCP 2 needs one round trip for each call instead of two, sends spikes as typed arrays instead of JSON lists, and hashes the exact frame bytes instead of a canonical form. The benchmark measures their sum, not each one alone. The ratio grows with N, as expected when NCP 1.0.1 encodes every spike as JSON numbers.
 
@@ -45,20 +49,24 @@ These questions had no hypothesis.
 - **Connections.** For small frames, a Unix domain socket costs about the same as a pipe; TCP adds about 15 µs in Rust at N = 0. At 1 MiB, the Unix domain socket is faster than the pipe (797 against 903 µs in Rust), because a pipe on macOS moves at most 64 KiB at a time.
 - **1 MiB.** NCP 2 is slower than the arms without an integrity check: in Rust, 903 µs over a pipe against 234 µs for gRPC and 287 µs for Zenoh; in Python, 850 µs against 144 µs for HTTP/1.1 and 148 µs for Zenoh. Without the receiver's digest comparison, which specification section 3, rule 4 allows on pipes and Unix domain sockets with no program in between, NCP 2 takes 528 µs in Rust and 552 µs in Python.
 
+<a href="results/figures/decomposition_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/figures/decomposition_dark.svg">
   <img src="results/figures/decomposition_light.svg" alt="Stacked bars for Rust and Python at each N: the raw pipe floor, the rest of NCP 2, and the digest comparison.">
 </picture>
+</a>
 
 The digest comparison is the difference between the NCP 2 arm and the arm without it.
 At 1 MiB it agrees with the measured speed of SHA-256 on this computer: 374 µs against 354 µs for one digest of 1 MiB with `sha2` 0.11.1 in Rust, and 298 µs against 302 µs with OpenSSL 4.0.3 in Python.
 At N = 0 in Python, the difference of 6.9 µs is larger than the block ranges, but two SHA-256 digests of frames of this size take about 0.5 µs (230 ns each, measured). The rest of that difference has another cause, which this benchmark does not identify.
 The rest of NCP 2 includes the sender's digest, the JSON encoding and decoding, the checks of the owner and client rules, and the copies of the arrays.
 
+<a href="results/figures/tails_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/figures/tails_dark.svg">
   <img src="results/figures/tails_light.svg" alt="Median, 95th, and 99th percentile call times at N = 127 for every arm, on log scales.">
 </picture>
+</a>
 
 ## What the results do not show
 
@@ -84,10 +92,12 @@ All values are in [`results-2/summary.md`](results-2/summary.md).
 | R2 | In Rust, with the same integrity check and the same kind of connection, NCP 2 is faster than gRPC and Zenoh. | 9 of 9 comparisons. At N = 1788: 33.0 µs over a Unix socket against 77.1 µs for gRPC; 51.1 µs over TCP against 75.3 µs for gRPC and 84.8 µs for Zenoh. |
 | R3 | In Python, with the same integrity check and the same kind of connection, NCP 2 is faster than gRPC. | 6 of 6 comparisons. At N = 1788: 70.2 µs over a Unix socket against 185.3 µs; 85.4 µs over TCP against 149.2 µs. |
 
+<a href="results-2/figures/integrity_light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results-2/figures/integrity_dark.svg">
   <img src="results-2/figures/integrity_light.svg" alt="Call time of NCP 2 over a pipe, a Unix socket, and TCP against gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe that each add a SHA-256 digest to every message, for Rust and Python at N of 0, 127, 1788, and 87381 spikes, on log scales. In every panel, the fastest NCP 2 arm is faster than every other system.">
 </picture>
+</a>
 
 Exploratory results:
 

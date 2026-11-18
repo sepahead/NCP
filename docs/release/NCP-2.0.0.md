@@ -64,7 +64,7 @@ Each gate is PASS, with its evidence, NOT RUN, or OPEN, which is a decision of t
 | Reproducible release build | PASS at the commit that holds this record: two identical builds (section "Artifacts") |
 | Advisories, licenses, and sources of both Rust lockfiles | PASS on this computer on 18 November 2026 with the RustSec database at `472a4c9a` (`scripts/check_ncp2_advisories.sh`, section "Dependencies"); the workflow `NCP 2 advisories` repeats the check on each change and every week, and its run at the tagged commit is the evidence for the tag |
 | Fault campaign on the revision that the tag names | PASS for revision 7 over Unix domain sockets and TCP, on this computer: protocol 6, fixed before its trials, 4,560 trials at commit `2da9b7f`, every hypothesis held ([fault campaign](../../benchmarks/fault-campaign/README.md#results-of-protocol-6)). Over pipes, only revision 2 ran |
-| Benchmarks on the revision that the tag names | NOT RUN: they ran with revision 2 of the SDKs; revision 7 changed the owner, the client, and both profiles |
+| Benchmarks on the revision that the tag names | NOT RUN: they ran with the SDKs before revision 3; revision 7 changed the owner, the client, and both profiles |
 | Fault campaign on the Zenoh binding, with owner restarts, session expiry, delayed and repeated `open`, and replayed frames | NOT RUN |
 | Benchmark of the Zenoh binding | NOT RUN |
 | A consumer of the exchange over the byte-stream binding | PASS: CREBAIN's closed loop and NEST controller on revision 4 (CREBAIN `a1df34c`) |

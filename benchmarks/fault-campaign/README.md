@@ -297,7 +297,7 @@ With protocols 2 and 3 over pipes, NCP 2 has now met every fault scenario of thi
 ## Protocol 6: protocol 5 with revision 7 of the SDKs
 
 [`PROTOCOL-6.md`](PROTOCOL-6.md) was fixed on 18 November 2026 (SHA-256 in [`PROTOCOL-6.sha256`](PROTOCOL-6.sha256)) and pushed in commit `2da9b7f` before its trials.
-Protocols 2 to 5 ran with revision 2 of the SDKs; revisions 3 to 7 changed the session rules and the code of the owner and the client, not the frame format.
+Protocols 2 to 5 ran with the SDKs before revision 3, which [`PROTOCOL-6.md`](PROTOCOL-6.md) calls revision 2; revisions 3 to 7 changed the session rules and the code of the owner and the client, not the frame format.
 Protocol 6 runs every trial of protocol 5 again with revision 7 and the seed 20261118.
 Its harness is that of protocol 5, ported to the interfaces of revision 7 without a change to what a trial does: [`harness/fault_client6.py`](harness/fault_client6.py), [`harness/fault_owner6.py`](harness/fault_owner6.py), and the Rust client in [`harness/rust-client`](harness/rust-client).
 A declined step has the view `declined:CODE`, and the view of a stalled step is `ended:local.timeout:unknown`.

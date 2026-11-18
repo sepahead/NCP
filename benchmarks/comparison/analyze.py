@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import textwrap
 from pathlib import Path
 from xml.sax.saxutils import escape
 
@@ -324,12 +325,19 @@ def decomposition(stats: dict) -> list[dict]:
 
 # --------------------------------------------------------------------------- figures
 
+# Every figure is 8.6 inches (619 pt) wide: GitHub shows a README image at about 830 px, so the
+# figure appears at its own size, and its smallest text, 10 pt, at about 13 px.
+WIDTH = 8.6
+SMALL, BASE, PANEL, TITLE = 10.0, 10.5, 11.5, 14.0
+# The record that the figures show; main() sets it from the schedule.
+SOURCE = ""
+
 
 def style(theme: dict) -> None:
     plt.rcParams.update(
         {
             "font.family": "DejaVu Sans",
-            "font.size": 8.5,
+            "font.size": BASE,
             "svg.fonttype": "path",
             "svg.hashsalt": "ncp2-comparison",
             "figure.facecolor": theme["surface"],
@@ -337,13 +345,17 @@ def style(theme: dict) -> None:
             "savefig.facecolor": theme["surface"],
             "text.color": theme["ink"],
             "axes.labelcolor": theme["ink2"],
+            "axes.labelsize": BASE,
             "axes.edgecolor": theme["axis"],
             "xtick.color": theme["muted"],
+            "xtick.labelsize": SMALL,
             "ytick.color": theme["ink2"],
+            "ytick.labelsize": BASE,
             "axes.titlecolor": theme["ink"],
-            "axes.titlesize": 9,
+            "axes.titlesize": PANEL,
             "axes.titleweight": "bold",
-            "axes.linewidth": 0.6,
+            "axes.linewidth": 0.8,
+            "legend.fontsize": SMALL,
         }
     )
 
@@ -356,11 +368,19 @@ def color_of(arm: str, theme: dict) -> str:
     return theme["other"]
 
 
+def short(label: str) -> str:
+    """The label of an arm in a figure: the subtitle says once what every gray arm adds and which
+    gRPC library each language uses. The tables keep the full labels."""
+    for part in (" + SHA-256", " (tonic)", " (grpcio)", ", no protocol"):
+        label = label.replace(part, "")
+    return label
+
+
 def log_axis(axis, theme: dict) -> None:
     axis.set_xscale("log")
     axis.xaxis.set_minor_formatter(NullFormatter())
     axis.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
-    axis.grid(axis="x", which="major", color=theme["grid"], linewidth=0.6)
+    axis.grid(axis="x", which="major", color=theme["grid"], linewidth=0.8)
     axis.set_axisbelow(True)
     for side in ("top", "right", "left"):
         axis.spines[side].set_visible(False)
@@ -372,6 +392,30 @@ def log_ticks(axis) -> None:
     low, high = axis.get_xlim()
     subs = (1.0, 2.0, 5.0) if high / low < 16 else (1.0, 3.0) if high / low < 1000 else (1.0,)
     axis.xaxis.set_major_locator(LogLocator(base=10, subs=subs))
+
+
+def frame(figure, theme: dict, title: str, subtitle: str, legend_rows: int = 0) -> tuple:
+    """Draw the title and the subtitle at the top and the source at the bottom, at fixed distances
+    in inches, and return the rectangle that is left for the panels."""
+    height = figure.get_figheight()
+    lines = textwrap.wrap(subtitle, 96)
+    figure.text(0.1 / WIDTH, 1 - 0.12 / height, title, ha="left", va="top", fontsize=TITLE,
+                fontweight="bold", color=theme["ink"])
+    figure.text(0.1 / WIDTH, 1 - 0.46 / height, "\n".join(lines), ha="left", va="top", fontsize=BASE,
+                color=theme["ink2"], linespacing=1.35)
+    source = textwrap.wrap(SOURCE, 100)
+    figure.text(0.1 / WIDTH, 0.1 / height, "\n".join(source), ha="left", va="bottom", fontsize=SMALL,
+                color=theme["muted"], linespacing=1.3)
+    top = 0.46 + 0.2 * len(lines) + 0.14 + 0.3 * legend_rows
+    bottom = 0.22 + 0.19 * len(source)
+    return (0, bottom / height, 1, 1 - top / height), 1 - (0.46 + 0.2 * len(lines) + 0.08) / height
+
+
+def header_height(subtitle: str, legend_rows: int = 0) -> float:
+    """The height of the title, the subtitle, the legend, and the source, in inches."""
+    return 0.46 + 0.2 * len(textwrap.wrap(subtitle, 96)) + 0.14 + 0.3 * legend_rows + 0.22 + 0.19 * len(
+        textwrap.wrap(SOURCE, 100)
+    )
 
 
 def save(figure, path: Path, title: str, description: str) -> None:
@@ -390,8 +434,9 @@ def save(figure, path: Path, title: str, description: str) -> None:
 
 CALLS_TEXT = (
     "Time of one call: a small request and N spikes back",
-    "Dot: median of three block medians. Line: the smallest to the largest block median. "
-    "NCP 2 in blue; other systems in gray; ring: the raw pipe, the floor.",
+    "N spikes in the response; 87381 spikes are 1 MiB. NCP 2 in blue, other systems in gray, the raw pipe without a protocol as a ring: the floor. Dot: "
+    "median of three block medians; line: the smallest to the largest block median. gRPC is tonic in "
+    "Rust and grpcio in Python.",
     "Time of one call for NCP 2 and other systems",
     "Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. Each panel "
     "shows a dot for the call time of each arm on a log scale, with a line for the range of the block medians. "
@@ -399,19 +444,22 @@ CALLS_TEXT = (
 )
 INTEGRITY_TEXT = (
     "Time of one call when every system checks integrity as NCP 2 does",
-    "Gray arms add a SHA-256 digest to each message, which the receiver checks, as NCP 2 does. "
-    "Dot: median of three block medians; line: their range. Ring: raw pipe with the same check.",
+    "A small request and N spikes back; 87381 spikes are 1 MiB. Each gray arm adds a SHA-256 digest to every message, which the receiver checks, as NCP 2 does; "
+    "the ring is the raw pipe with the same check. Dot: median of three block medians; line: their range. "
+    "gRPC is tonic in Rust and grpcio in Python.",
     "Time of one call with the same integrity check",
     "Small multiples: rows for Rust and Python, columns for N of 0, 127, 1788, and 87381 spikes. NCP 2 over a "
     "pipe, a Unix socket, and TCP in blue; gRPC, ZeroMQ, HTTP/1.1, Zenoh, and the raw pipe, each with a SHA-256 "
     "digest of every message checked by the receiver, in gray. Values are in summary.md.",
 )
+ROW = 0.31  # inches for each arm
 
 
 def figure_calls(stats: dict, theme: dict, path: Path, tiers: dict = TIERS, text: tuple = CALLS_TEXT) -> None:
     rows = {language: len(arms) for language, arms in tiers.items()}
+    height = ROW * (rows["rust"] + rows["python"]) + 1.3 + header_height(text[1])
     figure, axes = plt.subplots(
-        2, 4, figsize=(11.5, 7.4), gridspec_kw={"height_ratios": [rows["rust"], rows["python"]]}, sharex="col"
+        2, 4, figsize=(WIDTH, height), gridspec_kw={"height_ratios": [rows["rust"], rows["python"]]}, sharex="col"
     )
     for column, n in enumerate(SPIKES):
         for row, language in enumerate(("rust", "python")):
@@ -421,67 +469,39 @@ def figure_calls(stats: dict, theme: dict, path: Path, tiers: dict = TIERS, text
                 entry = stats.get(f"{arm}-n{n}")
                 y = len(arms) - 1 - position
                 if entry is None or "statistic_us" not in entry:
-                    axis.text(
-                        1.0,
-                        y,
-                        "not measured",
-                        transform=axis.get_yaxis_transform(),
-                        ha="right",
-                        va="center",
-                        fontsize=7,
-                        color=theme["muted"],
-                    )
+                    axis.text(1.0, y, "not measured", transform=axis.get_yaxis_transform(), ha="right",
+                              va="center", fontsize=SMALL, color=theme["muted"])
                     continue
                 low, high = entry["range_us"]
                 value = entry["statistic_us"]
                 color = color_of(arm, theme)
-                axis.plot([low, high], [y, y], color=color, linewidth=1.6, solid_capstyle="round", zorder=2)
+                axis.plot([low, high], [y, y], color=color, linewidth=2.2, solid_capstyle="round", zorder=2)
                 if arm.startswith("raw-"):  # the floor: a ring, so that shape marks it as well as color
-                    axis.scatter(
-                        [value],
-                        [y],
-                        s=34,
-                        facecolors=theme["surface"],
-                        edgecolors=theme["muted"],
-                        linewidths=1.4,
-                        zorder=3,
-                    )
+                    axis.scatter([value], [y], s=52, facecolors=theme["surface"], edgecolors=theme["muted"],
+                                 linewidths=1.6, zorder=3)
                 else:
-                    axis.scatter([value], [y], s=34, color=color, zorder=3, linewidths=1.5, edgecolors=theme["surface"])
+                    axis.scatter([value], [y], s=52, color=color, zorder=3, linewidths=1.5, edgecolors=theme["surface"])
                 if arm.endswith(f"-{language}-pipe") and arm.startswith("ncp2-"):
-                    axis.text(high * 1.3, y, f"{value:.3g} µs", va="center", fontsize=7.5, color=theme["ink"])
+                    axis.text(high * 1.35, y, f"{value:.3g} µs", va="center", fontsize=SMALL,
+                              fontweight="bold", color=theme["accent"])
             axis.set_yticks(range(len(arms)))
-            axis.set_yticklabels([label for _, label in reversed(arms)] if column == 0 else [])
+            axis.set_yticklabels([short(label) for _, label in reversed(arms)] if column == 0 else [])
             axis.set_ylim(-0.6, len(arms) - 0.4)
             log_axis(axis, theme)
-            axis.grid(axis="y", color=theme["grid"], linewidth=0.6)
+            axis.grid(axis="y", color=theme["grid"], linewidth=0.8)
             if row == 0:
-                axis.set_title(SPIKE_LABEL[n], loc="left")
+                axis.set_title(SPIKE_LABEL[n].removesuffix(" (1 MiB)"), loc="left")
             if row == 1:
-                axis.set_xlabel("Call time, µs (log scale)")
-        axes[0][0].set_ylabel("Rust client and server", fontsize=9, color=theme["ink"], labelpad=8)
-        axes[1][0].set_ylabel("Python client and server", fontsize=9, color=theme["ink"], labelpad=8)
+                axis.set_xlabel("µs, log scale")
+    axes[0][0].set_ylabel("Rust client and server", fontsize=PANEL, fontweight="bold", color=theme["ink"], labelpad=10)
+    axes[1][0].set_ylabel("Python client and server", fontsize=PANEL, fontweight="bold", color=theme["ink"], labelpad=10)
     for column in range(4):
         low = min(axes[r][column].get_xlim()[0] for r in range(2))
         high = max(axes[r][column].get_xlim()[1] for r in range(2))
-        axes[0][column].set_xlim(low / 1.2, high * 2.2)
+        axes[0][column].set_xlim(low / 1.2, high * 3.2)
         log_ticks(axes[0][column])
-    figure.suptitle(
-        text[0],
-        x=0.01,
-        ha="left",
-        fontsize=11,
-        fontweight="bold",
-        color=theme["ink"],
-    )
-    figure.text(
-        0.01,
-        0.945,
-        text[1],
-        fontsize=8,
-        color=theme["ink2"],
-    )
-    figure.tight_layout(rect=(0, 0, 1, 0.93))
+    rect, _ = frame(figure, theme, text[0], text[1])
+    figure.tight_layout(rect=rect, h_pad=1.2, w_pad=0.8)
     save(figure, path, text[2], text[3])
 
 
@@ -496,23 +516,25 @@ def figure_versions(stats: dict, theme: dict, path: Path) -> None:
                 rows.append((y, f"{LANGUAGE[c]} client, {LANGUAGE[o]} owner, N = {n}", a, b))
                 y += 1
         y += 0.6
-    figure, axis = plt.subplots(figsize=(8.6, 0.36 * y + 1.5))
+    subtitle = ("Call time over pipes for each language pair and N, as the median of three block medians; "
+                "the line joins NCP 1.0.1 (gray) and NCP 2 (blue), and the label gives the ratio.")
+    figure, axis = plt.subplots(figsize=(WIDTH, 0.36 * y + header_height(subtitle, 1) + 0.6))
     for y, _, a, b in rows:
-        axis.plot([b, a], [y, y], color=theme["axis"], linewidth=1.6, solid_capstyle="round", zorder=1)
-        axis.scatter([a], [y], s=34, color=theme["other"], zorder=2, linewidths=0)
-        axis.scatter([b], [y], s=34, color=theme["accent"], zorder=3, linewidths=0)
-        axis.text(a * 1.25, y, f"{a / b:.3g}× faster", va="center", fontsize=7.5, color=theme["ink"])
+        axis.plot([b, a], [y, y], color=theme["axis"], linewidth=2.2, solid_capstyle="round", zorder=1)
+        axis.scatter([a], [y], s=52, color=theme["other"], zorder=2, linewidths=0)
+        axis.scatter([b], [y], s=52, color=theme["accent"], zorder=3, linewidths=0)
+        axis.text(a * 1.25, y, f"{a / b:.3g}× faster", va="center", fontsize=SMALL, color=theme["ink"])
     axis.set_yticks([row[0] for row in rows])
     axis.set_yticklabels([row[1] for row in rows])
     log_axis(axis, theme)
-    axis.set_xlim(min(row[3] for row in rows) / 1.6, max(row[2] for row in rows) * 4.5)
+    axis.set_xlim(min(row[3] for row in rows) / 1.6, max(row[2] for row in rows) * 5.5)
     log_ticks(axis)
     axis.set_xlabel("Call time, µs (log scale)")
-    axis.scatter([], [], s=34, color=theme["accent"], label="NCP 2")
-    axis.scatter([], [], s=34, color=theme["other"], label="NCP 1.0.1")
-    axis.legend(loc="lower right", bbox_to_anchor=(1.0, 1.0), ncol=2, frameon=False, fontsize=8)
-    axis.set_title("NCP 2 against NCP 1.0.1, over pipes", loc="left", fontsize=11)
-    figure.tight_layout()
+    axis.scatter([], [], s=52, color=theme["accent"], label="NCP 2")
+    axis.scatter([], [], s=52, color=theme["other"], label="NCP 1.0.1")
+    rect, legend_y = frame(figure, theme, "NCP 2 against NCP 1.0.1, over pipes", subtitle, legend_rows=1)
+    figure.legend(loc="upper left", bbox_to_anchor=(0.1 / WIDTH, legend_y), ncol=2, frameon=False)
+    figure.tight_layout(rect=rect)
     save(
         figure,
         path,
@@ -523,9 +545,13 @@ def figure_versions(stats: dict, theme: dict, path: Path) -> None:
 
 
 def figure_decomposition(parts: list[dict], theme: dict, path: Path) -> None:
-    figure, axes = plt.subplots(1, 4, figsize=(11.5, 2.5))
-    for column, n in enumerate(SPIKES):
-        axis = axes[column]
+    subtitle = ("For each N, the median call time of NCP 2 over a pipe, split into the raw pipe (the floor), "
+                "the rest of NCP 2, and the comparison of the SHA-256 digest; each panel has its own linear "
+                "scale. Light parts are smaller than the spread of the block medians of their arms: variation "
+                "between runs, not a measured cost.")
+    figure, axes = plt.subplots(2, 2, figsize=(WIDTH, 3.4 + header_height(subtitle, 1)))
+    for index_n, n in enumerate(SPIKES):
+        axis = axes[index_n // 2][index_n % 2]
         selected = [p for p in parts if p["spikes"] == n]
         for index, part in enumerate(selected):
             y = len(selected) - 1 - index
@@ -536,13 +562,13 @@ def figure_decomposition(parts: list[dict], theme: dict, path: Path) -> None:
                 ("digest_us", theme["accent2"]),
             ):
                 faint = key.removesuffix("_us") in part["within_variation"]
-                axis.barh(y, part[key], left=left, height=0.55, color=color, linewidth=0, alpha=0.35 if faint else 1.0)
+                axis.barh(y, part[key], left=left, height=0.6, color=color, linewidth=0, alpha=0.35 if faint else 1.0)
                 left += part[key]
-            axis.text(left * 1.03, y, f"{part['total_us']:.3g} µs", va="center", fontsize=7.5, color=theme["ink"])
+            axis.text(left * 1.03, y, f"{part['total_us']:.3g} µs", va="center", fontsize=SMALL, color=theme["ink"])
         axis.set_yticks(range(len(selected)))
-        axis.set_yticklabels([LANGUAGE[p["language"]] for p in reversed(selected)] if column == 0 else [])
-        axis.set_xlim(0, max((p["total_us"] for p in selected), default=1) * 1.35)
-        axis.grid(axis="x", color=theme["grid"], linewidth=0.6)
+        axis.set_yticklabels([LANGUAGE[p["language"]] for p in reversed(selected)])
+        axis.set_xlim(0, max((p["total_us"] for p in selected), default=1) * 1.4)
+        axis.grid(axis="x", color=theme["grid"], linewidth=0.8)
         axis.set_axisbelow(True)
         for side in ("top", "right", "left"):
             axis.spines[side].set_visible(False)
@@ -550,31 +576,10 @@ def figure_decomposition(parts: list[dict], theme: dict, path: Path) -> None:
         axis.set_title(SPIKE_LABEL[n], loc="left")
         axis.set_xlabel("µs")
     handles = [plt.Rectangle((0, 0), 1, 1, color=theme[key]) for key in ("floor", "accent", "accent2")]
-    figure.legend(
-        handles,
-        ["Raw pipe (floor)", "Rest of NCP 2", "Digest comparison"],
-        loc="upper right",
-        ncol=3,
-        frameon=False,
-        fontsize=8,
-    )
-    figure.suptitle(
-        "Where the time of an NCP 2 call goes, over pipes",
-        x=0.01,
-        ha="left",
-        fontsize=11,
-        fontweight="bold",
-        color=theme["ink"],
-    )
-    figure.text(
-        0.01,
-        0.02,
-        "Light parts are smaller than the spread of the block medians of their arms: "
-        "variation between runs, not a measured cost.",
-        fontsize=7.5,
-        color=theme["ink2"],
-    )
-    figure.tight_layout(rect=(0, 0.06, 1, 0.86))
+    rect, legend_y = frame(figure, theme, "Where the time of an NCP 2 call goes, over pipes", subtitle, legend_rows=1)
+    figure.legend(handles, ["Raw pipe (floor)", "Rest of NCP 2", "Digest comparison"], loc="upper left",
+                  bbox_to_anchor=(0.1 / WIDTH, legend_y), ncol=3, frameon=False)
+    figure.tight_layout(rect=rect, h_pad=1.4, w_pad=2.0)
     save(
         figure,
         path,
@@ -586,11 +591,17 @@ def figure_decomposition(parts: list[dict], theme: dict, path: Path) -> None:
 
 
 def figure_tails(stats: dict, theme: dict, path: Path) -> None:
-    figure, axes = plt.subplots(1, 2, figsize=(11.5, 4.2), gridspec_kw={"width_ratios": [1, 1]})
     markers = (
         ("statistic_us", "o", "Median"),
         ("p95_statistic_us", "^", "95th percentile"),
         ("p99_statistic_us", "s", "99th percentile"),
+    )
+    subtitle = ("For each arm at N = 127: the median, 95th, and 99th percentile call times, each the median of "
+                "three block values, on a log scale. NCP 2 in blue, other systems in gray.")
+    rows = {language: len(TIERS[language]) for language in ("rust", "python")}
+    figure, axes = plt.subplots(
+        2, 1, figsize=(WIDTH, ROW * (rows["rust"] + rows["python"]) + 1.4 + header_height(subtitle, 1)),
+        gridspec_kw={"height_ratios": [rows["rust"], rows["python"]]}, sharex=True,
     )
     for axis, language in zip(axes, ("rust", "python"), strict=True):
         arms = TIERS[language]
@@ -601,30 +612,25 @@ def figure_tails(stats: dict, theme: dict, path: Path) -> None:
             if None in values:
                 continue
             color = color_of(arm, theme)
-            axis.plot([values[0], values[2]], [y, y], color=theme["axis"], linewidth=1.2, zorder=1)
+            axis.plot([values[0], values[2]], [y, y], color=theme["axis"], linewidth=1.6, zorder=1)
             for value, (_, marker, _) in zip(values, markers, strict=True):
-                axis.scatter([value], [y], marker=marker, s=30, color=color, zorder=2, linewidths=0)
+                axis.scatter([value], [y], marker=marker, s=46, color=color, zorder=2, linewidths=0)
         axis.set_yticks(range(len(arms)))
-        axis.set_yticklabels([label for _, label in reversed(arms)])
+        axis.set_yticklabels([short(label) for _, label in reversed(arms)])
+        axis.set_ylim(-0.6, len(arms) - 0.4)
         log_axis(axis, theme)
-        log_ticks(axis)
-        axis.grid(axis="y", color=theme["grid"], linewidth=0.6)
-        axis.set_xlabel("Call time, µs (log scale)")
+        axis.grid(axis="y", color=theme["grid"], linewidth=0.8)
         axis.set_title(f"{LANGUAGE[language]} client and server", loc="left")
+    log_ticks(axes[0])
+    axes[1].set_xlabel("Call time, µs (log scale)")
     handles = [
-        plt.Line2D([], [], marker=marker, linestyle="none", color=theme["ink2"], markersize=6)
+        plt.Line2D([], [], marker=marker, linestyle="none", color=theme["ink2"], markersize=8)
         for _, marker, _ in markers
     ]
-    figure.legend(handles, [label for _, _, label in markers], loc="upper right", ncol=3, frameon=False, fontsize=8)
-    figure.suptitle(
-        "Tails at N = 127: median, 95th, and 99th percentiles",
-        x=0.01,
-        ha="left",
-        fontsize=11,
-        fontweight="bold",
-        color=theme["ink"],
-    )
-    figure.tight_layout(rect=(0, 0, 1, 0.9))
+    rect, legend_y = frame(figure, theme, "Tails at N = 127: median, 95th, and 99th percentiles", subtitle, legend_rows=1)
+    figure.legend(handles, [label for _, _, label in markers], loc="upper left",
+                  bbox_to_anchor=(0.1 / WIDTH, legend_y), ncol=3, frameon=False)
+    figure.tight_layout(rect=rect, h_pad=1.4)
     save(
         figure,
         path,
@@ -800,6 +806,12 @@ def main() -> None:
         analysis["integrity"] = integrity
     (args.results / "analysis.json").write_text(json.dumps(analysis, indent=1, sort_keys=True) + "\n")
     (args.results / "summary.md").write_text(summary(stats, result, parts, context, integrity))
+    global SOURCE
+    code = f"commit {schedule['commit'][:7]}" if "commit" in schedule else context["started"][:10]
+    SOURCE = (
+        f"Comparison benchmark, protocol {2 if two else 1}, {context['started'][:10]}, one laptop. NCP 2 SDKs of "
+        f"{code}, before revision 3. Values: {args.results.name}/summary.md."
+    )
     figures = args.figures or args.results / "figures"
     figures.mkdir(parents=True, exist_ok=True)
     for mode, theme in THEMES.items():
