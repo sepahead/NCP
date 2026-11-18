@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2: checks after revision 7 (no wire change)
 
+- NEST content protocol 3 (fixed before its trials) checked revision 7 with eight networks of
+  seven NEST neuron models, Hodgkin-Huxley, Izhikevich, generalized integrate-and-fire with escape
+  noise, precise spike times, and the Brunel network with STDP among them, at 1 to 8 threads and
+  1 and 5 ms steps: in all 216 trials, the Python and the Rust host received exactly what NEST alone
+  produced: over both hosts, 66,165,804 spikes, 10,143,084 of them with an offset off the grid,
+  and 172,713,600 samples of the membrane potential, every float64 bit for bit. A self-test shows that the
+  comparison detects a value one unit in the last place off.
 - The figures of the comparison, NEST, and multi-agent benchmarks are drawn again from their
   retained results, at the width at which GitHub shows them: 8.6 inches, with text of at least
   10 pt (about 13 px on screen) instead of 7 to 8.5 pt shrunk to 75 percent, larger markers, a

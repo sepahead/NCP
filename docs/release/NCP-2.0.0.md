@@ -70,6 +70,7 @@ Each gate is PASS, with its evidence, NOT RUN, or OPEN, which is a decision of t
 | A consumer of the exchange over the byte-stream binding | PASS: CREBAIN's closed loop and NEST controller on revision 4 (CREBAIN `a1df34c`) |
 | A consumer of streams, of the Zenoh binding, of contract schemas, of authenticated frames, of feature operations, of decline reasons, and of each profile | NOT RUN: none uses them yet |
 | Model check of the lockstep profile | PASS with one fault for revision 5, in the NCP 2 gate (`model/lockstep.py`, 565,424 worlds, with its self-test of seventeen known defects). Two faults: PASS for revision 5 outside the gate, on this computer on 18 November 2026 at commit `e6ed8a8` (13,621,815 worlds; [`model/README.md`](../../model/README.md)) |
+| Exact content with NEST on the revision that the tag names | PASS for revision 7, on this computer: content protocol 3, fixed before its trials, 216 trials of eight networks of seven NEST neuron models at commit `45c8581`; both hosts received every spike, precise offset, and membrane-potential sample bit for bit ([NEST campaign](../../benchmarks/nest-campaign/README.md#results-of-content-protocol-3)) |
 | Model check of the rounds profile | NOT RUN |
 | An implementation by another author | NOT RUN |
 | External review | NOT RUN |

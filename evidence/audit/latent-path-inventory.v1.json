@@ -162,9 +162,9 @@
       },
       {
         "path": "CHANGELOG.md",
-        "bytes": 153053,
-        "sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
-        "git_blob_oid": "e0475a791592ff8dfe3f6c3e8730300e2f56fd84",
+        "bytes": 153708,
+        "sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
+        "git_blob_oid": "b62bf892f30a71c779bc9607ab6bfbd637204f04",
         "indexed": true
       },
       {
@@ -316,9 +316,9 @@
       },
       {
         "path": "README.md",
-        "bytes": 33865,
-        "sha256": "9431a7d1934e8a6d05f39554578fb56d7b9e8b99fa12cb60e883c0acc29f0fa3",
-        "git_blob_oid": "71e1523c7c7a4ae5333d7a03bb9ea640fe1046a4",
+        "bytes": 34197,
+        "sha256": "43dcf662df178137477f5b5b18567cb85af22106bdc2cc313ea25c7015892afa",
+        "git_blob_oid": "b23cd446fb8e7c6d32320ec76f4838ce9174bd0a",
         "indexed": true
       },
       {
@@ -2017,9 +2017,9 @@
       },
       {
         "path": "benchmarks/nest-campaign/README.md",
-        "bytes": 20711,
-        "sha256": "23e1d7608279f57cb3e608a99a736658820f44607f0eea6e7c26c47e74f5be43",
-        "git_blob_oid": "cdeaf41215775888592c364913730b9c4425bc61",
+        "bytes": 24448,
+        "sha256": "0fd0bec0d811148fc188b40790b80b245f4242a07b59a2ba4d4f5d4b8ac9c4cd",
+        "git_blob_oid": "9df9c44fe66a4a1d8b5c1e69ab52739042c076ae",
         "indexed": true
       },
       {
@@ -2531,6 +2531,27 @@
         "bytes": 51763,
         "sha256": "545b09bcdbd090dcaec1a485cca094f0d351e823e42a7cbae85d7bde88ee64a5",
         "git_blob_oid": "203e2d8daaa29ae90a126a5af30c371b827a993a",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/results-content-3/analysis.json",
+        "bytes": 3204,
+        "sha256": "3033e45036b15a89f73f674d4ab62761d8465e75ff0653d4278cc53cb3b682d0",
+        "git_blob_oid": "1dd67641f1c6b8234cec44dc93635c70e48376aa",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/results-content-3/schedule.json",
+        "bytes": 16268,
+        "sha256": "b1e78a864b4bff2cd1c54b348f4548a8cb833ad8f763fdb3c3ae41332e901800",
+        "git_blob_oid": "a449dff91256324cb7ecb8f90cfbed91b878714a",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/results-content-3/trials.jsonl",
+        "bytes": 190672,
+        "sha256": "119dc5193c6dc151f608cdecac9462739a5bb2f75bd74c0ba00d7d29034b5e83",
+        "git_blob_oid": "401320ae44a9a2f0feab291d301a647b6d3ee483",
         "indexed": true
       },
       {
@@ -4481,9 +4502,9 @@
       },
       {
         "path": "docs/NCP-2-GUIDE.md",
-        "bytes": 23331,
-        "sha256": "1f02d6eba89ce30599346127c75c0fd9abe4b42977047908150dadba552e8c46",
-        "git_blob_oid": "97eb4528b3e9ca38eb620e009ad84221ec5a521c",
+        "bytes": 23741,
+        "sha256": "3821796f93de1b90a782f1c465106debdeec5c15ae35f041973a7ac1c300f5d6",
+        "git_blob_oid": "e9a763e9d4920cd9a215d26a70b94797a0d2573d",
         "indexed": true
       },
       {
@@ -5412,9 +5433,9 @@
       },
       {
         "path": "docs/release/NCP-2.0.0.md",
-        "bytes": 11196,
-        "sha256": "51785d4a300b54513a55b5980f9d2241386bc584cdd3b0379fe98d3230f7b8f8",
-        "git_blob_oid": "d26ddb82cb3211c0183ff749378008bc5df59c7a",
+        "bytes": 11604,
+        "sha256": "31b33b99280e7568065793f6987a9e82219494ee7e82e671ee93b48e8920e748",
+        "git_blob_oid": "b747365f9c4fd49ada034dc1f327e5641668e4c0",
         "indexed": true
       },
       {
@@ -12675,7 +12696,7 @@
     ]
   },
   "counts": {
-    "text_files": 1771,
+    "text_files": 1774,
     "binary_or_non_utf8_files": 29,
     "occurrences": 384,
     "by_token_id": {
@@ -12708,7 +12729,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "062a110aebac71ebf3d04b48584f387e1ce3838c2671b05267aef9eecaf35d19",
+  "scanned_path_set_sha256": "1cd4c820aa02017da4916669d8cc9d59a9abeebd2d73d7c9c7e33114b2efecf6",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
@@ -12726,13 +12747,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-D375D87F3879B171CF8B",
+      "id": "NCP-LATENT-CF568AC5E80766CFE74B",
       "path": "CHANGELOG.md",
-      "line": 654,
+      "line": 661,
       "column": 74,
       "token_id": "M008",
       "line_sha256": "3b2373f30c953801ee1ef95b4791f101dbd1ebfad53b4edb2fd375b867c2e251",
-      "file_sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
+      "file_sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12740,13 +12761,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-92269E728B9F9FA6DF0A",
+      "id": "NCP-LATENT-B71D378A2EF29A578DFD",
       "path": "CHANGELOG.md",
-      "line": 658,
+      "line": 665,
       "column": 35,
       "token_id": "M008",
       "line_sha256": "b7d18421889aa979339be0c2ddaf57a6bfe188ab8be6aea1ca7a8274767bd9c8",
-      "file_sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
+      "file_sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12754,13 +12775,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-FD8078D4FB374CBC3E83",
+      "id": "NCP-LATENT-E30DD354F3B05510CC06",
       "path": "CHANGELOG.md",
-      "line": 704,
+      "line": 711,
       "column": 61,
       "token_id": "M005",
       "line_sha256": "811d78b7a3e1e1b784f4ffaa974a1774c9b6ecd3da23c8653077277f554a5ea1",
-      "file_sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
+      "file_sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12768,13 +12789,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-7F3809EE5937F55A7DF0",
+      "id": "NCP-LATENT-48EB2E04699E4FF8D901",
       "path": "CHANGELOG.md",
-      "line": 760,
+      "line": 767,
       "column": 33,
       "token_id": "M008",
       "line_sha256": "d99fd06bb18ff6c89eeea3eac358a4085b65b21a569704855af2046cf7124183",
-      "file_sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
+      "file_sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12782,13 +12803,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-FCEE1B676E8D9CF49BE8",
+      "id": "NCP-LATENT-99BD81DEA1CC07248FAA",
       "path": "CHANGELOG.md",
-      "line": 866,
+      "line": 873,
       "column": 58,
       "token_id": "M008",
       "line_sha256": "40079fba910353399172548260fe643cd3a953e6e607e6bc1e629e40690c70df",
-      "file_sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
+      "file_sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12796,13 +12817,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-48341CFE75BC8C24948D",
+      "id": "NCP-LATENT-93A4CBBCA444081C2824",
       "path": "CHANGELOG.md",
-      "line": 889,
+      "line": 896,
       "column": 52,
       "token_id": "M008",
       "line_sha256": "07267f2a2b963ded5aa888298598162bbbd09b2e36e70a6232535d6a5e3155f3",
-      "file_sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
+      "file_sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12810,13 +12831,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-D04211AC1355B2FE5394",
+      "id": "NCP-LATENT-29F2355B81AB59A10EC6",
       "path": "CHANGELOG.md",
-      "line": 1454,
+      "line": 1461,
       "column": 75,
       "token_id": "M008",
       "line_sha256": "23edc0f4299db445c52e6d256956600083b59cb34a5b0bcdcf6932902739f4ad",
-      "file_sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
+      "file_sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12824,13 +12845,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-FFD9A68FAE55B32828DA",
+      "id": "NCP-LATENT-0C6C98E1655686AEEB6B",
       "path": "CHANGELOG.md",
-      "line": 1643,
+      "line": 1650,
       "column": 72,
       "token_id": "M007",
       "line_sha256": "42d6d813f7486528eb0d901b58d764987bacc5a624d0999f262560e07d711564",
-      "file_sha256": "d2d4948d5051b89797942f86774d74121935e41eabadc3eabd0caf1bc5c8b2ef",
+      "file_sha256": "75fe46411298be8844534f658dbbc95b1c287cc926c7e55a2a5d1b6753580d8a",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [

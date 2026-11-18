@@ -25,6 +25,7 @@ A round trip to an echo process without a protocol took 8 to 11 µs.
 When each step returned its spikes, NCP 2 added 36 to 119 µs with a Rust host. NCP 1.0.1 added 434 to 1,365 µs, and it cannot carry the largest steps.
 Every NCP host received exactly the spikes that NEST recorded, with every thread count: NCP 1.0.1 in the content protocol, and NCP 2, with its Python and its Rust host, in all 96 trials of content protocol 2, also with 10,000 neurons.
 MUSIC did so only with one NEST thread.
+With revision 7 of the SDKs, content protocol 3 found the same for eight networks of seven NEST neuron models, among them Hodgkin-Huxley, Izhikevich, stochastic, precise-timing, and plastic networks: in 216 trials, both hosts received every spike and 86,356,800 samples of the membrane potential each, with every float64 equal bit for bit.
 
 These times are measured inside the processes. They leave out one effect: a coupled NEST can do its own work more slowly than NEST alone.
 At 10,000 neurons, that effect varied between runs by more than the time of an exchange, so the campaign does not give the whole cost of a coupling there (protocol 5, G1 and G3).
@@ -106,6 +107,41 @@ Timing was not measured, so the trials did not need the controlled conditions of
 
 This also checks the readback of protocols 2 to 5, which reads the recorder's ASCII files after each interval: it gave exactly NEST's spikes in every trial.
 The records are in [`results-content-2/`](results-content-2).
+
+## Results of content protocol 3
+
+[`PROTOCOL-CONTENT-3.md`](PROTOCOL-CONTENT-3.md) was fixed on 18 November 2026 (SHA-256 in [`PROTOCOL-CONTENT-3.sha256`](PROTOCOL-CONTENT-3.sha256)) and pushed in commit `45c8581` before its trials.
+It asks whether NCP 2 with revision 7 of the SDKs delivers exactly what NEST simulated: every spike, with its neuron, its step, and, for neurons with precise spike times, the float64 offset of the spike within its step; and every sample of the membrane potential of 20 neurons at each 0.1 ms step, bit for bit.
+It adds five NEST models to the three networks of the campaign: Hodgkin-Huxley neurons, Izhikevich neurons, generalized integrate-and-fire neurons with escape noise, neurons with precise spike times, and the Brunel network with spike-timing-dependent plasticity. Its harness is new ([`harness/networks7.py`](harness/networks7.py), [`harness/ncp2_owner7.py`](harness/ncp2_owner7.py), [`harness/ncp2_host7.py`](harness/ncp2_host7.py), [`harness/ncp2-rust7`](harness/ncp2-rust7), and [`harness/content3.py`](harness/content3.py)); the owner simulates each interval with `nest.Simulate`, sends six typed arrays, and clears NEST's memory devices.
+
+The 216 trials ran on 18 November 2026 from 17:58 to 18:59 UTC, from the clean commit `45c8581`, while other programs kept the one-minute load average between 3.6 and 19.5. None failed.
+The self-test of the comparison detected each of its nine kinds of difference before the first trial.
+Both hosts received exactly the reference in every trial: 66,165,804 spikes and 172,713,600 samples of the membrane potential, counted over both hosts, with every float64 equal bit for bit.
+
+| Network | Trials | Exact in both hosts | Spikes per trial | Spikes off the grid |
+| --- | ---: | ---: | ---: | ---: |
+| `alpha` (iaf_psc_alpha) | 24 | 24 | 25,370 to 26,262 | 0 |
+| `brunel` (iaf_psc_delta) | 24 | 24 | 116,551 to 116,962 | 0 |
+| `aeif` (aeif_cond_exp) | 24 | 24 | 18,165 to 18,278 | 0 |
+| `hh` (hh_psc_alpha) | 24 | 24 | 8,038 to 9,600 | 0 |
+| `izhikevich` | 24 | 24 | 50,055 to 50,283 | 0 |
+| `gif` (gif_psc_exp, escape noise) | 24 | 24 | 102,310 to 102,797 | 0 |
+| `precise` (iaf_psc_exp_ps) | 24 | 24 | 211,033 to 211,636 | 5,071,542 |
+| `brunel_stdp` (iaf_psc_delta, stdp_synapse) | 24 | 24 | 129,737 to 130,699 | 0 |
+| `brunel`, 10,000 neurons | 24 | 24 | 712,176 to 716,976 | 0 |
+
+Each trial also compared 399,800 samples of the membrane potential in each host.
+
+| # | Hypothesis | Holds |
+| --- | --- | --- |
+| K1 | In every trial, the NCP 2 Python host receives exactly the reference multiset of spikes, offsets bit for bit. | yes |
+| K2 | In every trial, the NCP 2 Rust host receives exactly the reference multiset of spikes, offsets bit for bit. | yes |
+| V1 | In every trial, the NCP 2 Python host receives exactly the reference multiset of membrane potential samples, bit for bit. | yes |
+| V2 | In every trial, the NCP 2 Rust host receives exactly the reference multiset of membrane potential samples, bit for bit. | yes |
+| S1 | In every trial, each owner sent what its host received, and each owner exited with status 0. | yes |
+| K3 | For each of the 32 configurations of content protocol 2 and each block, the reference spike total equals that of content protocol 2. | yes: 96 of 96 |
+
+The records are in [`results-content-3/`](results-content-3), and `analyze_content3.py` writes the analysis.
 
 ## Protocol 3, run 1
 
