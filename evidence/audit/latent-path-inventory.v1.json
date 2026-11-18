@@ -1183,6 +1183,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/fault-campaign/PROTOCOL-7.md",
+        "bytes": 5136,
+        "sha256": "a0184ea3f2e339a2e678e7004cb9f3ad76007706bee0f8182e7e9422efc5bcd1",
+        "git_blob_oid": "4bcb8904961087cb2173901b7c86555b6089264a",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/PROTOCOL-7.sha256",
+        "bytes": 80,
+        "sha256": "220f4f4010ed22ea55301a62378835018570042938630e53be3f2ab1d58120c3",
+        "git_blob_oid": "4a841c152bbd9f823b58f5f390f4b36453e900b7",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/fault-campaign/PROTOCOL-SOAK.md",
         "bytes": 1271,
         "sha256": "34e209894e8d3ba10b352691adf01684ad6d4fc4c39ef59b6c3bfffef8c35e73",
@@ -1236,6 +1250,13 @@
         "bytes": 6289,
         "sha256": "b4b26ef2432d10d74e1c970587fa23dfef2fc806eb395d9ce213d9c0b6769705",
         "git_blob_oid": "a15299dfda53caeed879fa028b919580984e778c",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/analyze7.py",
+        "bytes": 4359,
+        "sha256": "bb56514716321eb57d13c877e18a528c95203244b566048d3b5cfd4cbf5256fa",
+        "git_blob_oid": "1c3093bba0ad0aa11f5d37f01781b12df4d9bd6d",
         "indexed": true
       },
       {
@@ -1369,6 +1390,13 @@
         "bytes": 2426,
         "sha256": "26bd80313201311c7df7cfd6bdf73852799d9b0d73cf695323167323185ff071",
         "git_blob_oid": "59efe62c2bdc2382ca2eb1d4cc3f08c9f681a25a",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/harness/zenoh_fault7.py",
+        "bytes": 11255,
+        "sha256": "3712e7921cd1968b63a4f65ac38f94e644a4c8005021c6404af04e7edb1bfff7",
+        "git_blob_oid": "0987d9bf27095a6cad2c29ee318958b12a69b487",
         "indexed": true
       },
       {
@@ -1544,6 +1572,13 @@
         "bytes": 7987,
         "sha256": "d733071447a8d5273c8564a2b2fbbb5019209be25ebffdbd00319e481d632e01",
         "git_blob_oid": "9aaf0b2414b7afee9262b7f0fcbb8f8afa4895f7",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/run7.py",
+        "bytes": 5071,
+        "sha256": "4e3cadc546041ea4160aad74e2300fd7ec92c5f0f0d52e93573a1f90d5e62968",
+        "git_blob_oid": "523838eb6c50b1a8fe5ec96c152d2a0596a669e0",
         "indexed": true
       },
       {
@@ -12640,7 +12675,7 @@
     ]
   },
   "counts": {
-    "text_files": 1766,
+    "text_files": 1771,
     "binary_or_non_utf8_files": 29,
     "occurrences": 384,
     "by_token_id": {
@@ -12673,7 +12708,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "b565b1f678e81334b2935e778f01208a62101b4cedf7793c5e554b17b381c839",
+  "scanned_path_set_sha256": "062a110aebac71ebf3d04b48584f387e1ce3838c2671b05267aef9eecaf35d19",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
