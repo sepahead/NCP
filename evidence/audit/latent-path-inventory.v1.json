@@ -155,9 +155,9 @@
       },
       {
         "path": "CHANGELOG.md",
-        "bytes": 149924,
-        "sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
-        "git_blob_oid": "2a387fb0f7da5eda2114cfa7b8741a8578ea0cd6",
+        "bytes": 150355,
+        "sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
+        "git_blob_oid": "b97f6fbce960fedebf71884af432c27434addb28",
         "indexed": true
       },
       {
@@ -4187,9 +4187,9 @@
       },
       {
         "path": "deny.toml",
-        "bytes": 2053,
-        "sha256": "c748c67f1e144125c28e8c71327f0ab410fa5a64fcface26a1ab8f90145fe010",
-        "git_blob_oid": "a8239d2a7e60dfee7a3d5a06056c6f30f74eaa07",
+        "bytes": 2200,
+        "sha256": "06c7a31d4b860832f169246f4d3b18706a029e2647f50b8d3aecf4e037bb357a",
+        "git_blob_oid": "4ff3288ebee1f448a25640e2a6f7a1f399be5e13",
         "indexed": true
       },
       {
@@ -5539,15 +5539,15 @@
       {
         "path": "evidence/supply-chain/inventory.v1.json",
         "bytes": 153800,
-        "sha256": "fe836bddfc7ede444419db9b290745a9ad0087a86c38f72b0ef43030b127d6f7",
-        "git_blob_oid": "f300f6dda5c8cee43e86132f217463accc9f87b5",
+        "sha256": "c01b89ad4a4d9cb243d796bb4db96451b0f8a57644bc7c53921264adce5c4738",
+        "git_blob_oid": "2a22f8513e61a3844c66f3d9e63676ce31ecf5f6",
         "indexed": true
       },
       {
         "path": "evidence/supply-chain/license-report.v1.json",
         "bytes": 80184,
-        "sha256": "096d26a73704e89e7132d7458b71467653fb7c789587add64eb441f04f594ef4",
-        "git_blob_oid": "224c5e65b597676c34b716257615c6a32fc969ae",
+        "sha256": "c8616579feb6ab7011b652b5c3302f74609171a6a952c6accf1014e77e3902d9",
+        "git_blob_oid": "2ba06238d79b2c7d4a49f9e18f2564c3de0e8ad5",
         "indexed": true
       },
       {
@@ -5566,9 +5566,9 @@
       },
       {
         "path": "evidence/supply-chain/vulnerability-report.v1.json",
-        "bytes": 2575,
-        "sha256": "4a97ec57b7ac451ea268bb06b5aac0442afdc45a1e5d73c2c8a29fd1edd2f985",
-        "git_blob_oid": "b57eaabc01b2f62afa7747e71776a5e0c87fa57c",
+        "bytes": 2802,
+        "sha256": "56c1781bac6cf82166740814bc3c79fb9dad2d9e91dc66be5f4365f8a0522d68",
+        "git_blob_oid": "b4ec95e4551e3602d94917bccd73d96b79072040",
         "indexed": true
       },
       {
@@ -11950,9 +11950,9 @@
       },
       {
         "path": "scripts/generate_supply_chain_evidence.py",
-        "bytes": 131533,
-        "sha256": "4bb5d472683fb88c6298a7488e110089ff91e8624875184329240fb09a40fdfb",
-        "git_blob_oid": "49ad0ad11a495ba4d53714e569a99eab8233f4a3",
+        "bytes": 131692,
+        "sha256": "8597272e08cd2efcfb177fad1b395fd46d75ea6f17b1e1b57ef9695d3c3b5b12",
+        "git_blob_oid": "77e4d6b5aaa2e01b9cf4c14d09fb9aa470a03254",
         "indexed": true
       },
       {
@@ -12502,13 +12502,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-71DD0B1E01FF0CB1705C",
+      "id": "NCP-LATENT-04E136BB3EE9A5D7704E",
       "path": "CHANGELOG.md",
-      "line": 616,
+      "line": 622,
       "column": 74,
       "token_id": "M008",
       "line_sha256": "3b2373f30c953801ee1ef95b4791f101dbd1ebfad53b4edb2fd375b867c2e251",
-      "file_sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
+      "file_sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12516,13 +12516,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-C7EF465822CE8A5B25EB",
+      "id": "NCP-LATENT-B184F59695ABF58C709B",
       "path": "CHANGELOG.md",
-      "line": 620,
+      "line": 626,
       "column": 35,
       "token_id": "M008",
       "line_sha256": "b7d18421889aa979339be0c2ddaf57a6bfe188ab8be6aea1ca7a8274767bd9c8",
-      "file_sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
+      "file_sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12530,13 +12530,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-93A09DD6794B1D76B013",
+      "id": "NCP-LATENT-44600C2F4B7E340028C4",
       "path": "CHANGELOG.md",
-      "line": 666,
+      "line": 672,
       "column": 61,
       "token_id": "M005",
       "line_sha256": "811d78b7a3e1e1b784f4ffaa974a1774c9b6ecd3da23c8653077277f554a5ea1",
-      "file_sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
+      "file_sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12544,13 +12544,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-C6D6D5624312324A7F9D",
+      "id": "NCP-LATENT-B8BF85DB037E8309C51C",
       "path": "CHANGELOG.md",
-      "line": 722,
+      "line": 728,
       "column": 33,
       "token_id": "M008",
       "line_sha256": "d99fd06bb18ff6c89eeea3eac358a4085b65b21a569704855af2046cf7124183",
-      "file_sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
+      "file_sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12558,13 +12558,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-1BDDCD31F19648678CEB",
+      "id": "NCP-LATENT-6B03DFDE98715801DA02",
       "path": "CHANGELOG.md",
-      "line": 828,
+      "line": 834,
       "column": 58,
       "token_id": "M008",
       "line_sha256": "40079fba910353399172548260fe643cd3a953e6e607e6bc1e629e40690c70df",
-      "file_sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
+      "file_sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12572,13 +12572,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-42590311738294CD3D1E",
+      "id": "NCP-LATENT-6DF173F9A9633EBE1AD9",
       "path": "CHANGELOG.md",
-      "line": 851,
+      "line": 857,
       "column": 52,
       "token_id": "M008",
       "line_sha256": "07267f2a2b963ded5aa888298598162bbbd09b2e36e70a6232535d6a5e3155f3",
-      "file_sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
+      "file_sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12586,13 +12586,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-9C3719CB447710A83FCD",
+      "id": "NCP-LATENT-44EFC8FA80E4A3A57946",
       "path": "CHANGELOG.md",
-      "line": 1416,
+      "line": 1422,
       "column": 75,
       "token_id": "M008",
       "line_sha256": "23edc0f4299db445c52e6d256956600083b59cb34a5b0bcdcf6932902739f4ad",
-      "file_sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
+      "file_sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [
@@ -12600,13 +12600,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-6BC39833A0F664FA317C",
+      "id": "NCP-LATENT-F46A92FB57D23A92399C",
       "path": "CHANGELOG.md",
-      "line": 1605,
+      "line": 1611,
       "column": 72,
       "token_id": "M007",
       "line_sha256": "42d6d813f7486528eb0d901b58d764987bacc5a624d0999f262560e07d711564",
-      "file_sha256": "943310518f0a9f7d7cd9f24ce98dbe559d0e680bf047d3c7f0dba77d17f328c9",
+      "file_sha256": "80aeead11f312eb4f5f5c19a2da62f26ef551544918c9d303b75683bcf191231",
       "disposition": "HISTORICAL_OR_INFORMATIVE",
       "claim_effect": "NOT_CURRENT_RELEASE_EVIDENCE",
       "evidence_paths": [

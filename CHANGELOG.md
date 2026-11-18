@@ -536,6 +536,12 @@ lists the changes for consumers.
   and again at `21d909e4` for `tokio`. `cargo deny` passes for the root, the local
   SDK, and the ADR-semantics lockfiles, and the `ncp-zenoh` and `ncp-gateway` tests
   pass. The local SDK lockfile has none of these crates.
+- `deny.toml` and the reviewed findings record the unmaintained `humantime` 2.3.0
+  (RUSTSEC-2026-0542, in the RustSec database since 17 November 2026), which reaches
+  the root lockfile through `uhlc` 0.8.2 and `zenoh-util` 1.9.0. Every release of `uhlc`
+  depends on it, so no fix is reachable. It is a maintenance notice without a
+  vulnerability. The supply-chain evidence is regenerated at the advisory revision
+  `472a4c9a`.
 
 ### Local SDK 1.0.1 (no wire change)
 

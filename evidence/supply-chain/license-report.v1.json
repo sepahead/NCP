@@ -2297,7 +2297,7 @@
       "LICENSE-APACHE": "bea3a5ebc1671071bb1bb157c18313a08821abd3d5e5e1915043b18cf78a0cfd",
       "LICENSE-MIT": "faa815fa3c5afee4349c48ea3740b75d82d9e2b6f10835daf224709f00348b33"
     },
-    "sha256": "c748c67f1e144125c28e8c71327f0ab410fa5a64fcface26a1ab8f90145fe010",
+    "sha256": "06c7a31d4b860832f169246f4d3b18706a029e2647f50b8d3aecf4e037bb357a",
     "source": "deny.toml"
   },
   "qualification_command": "cargo deny --locked --offline --all-features check licenses",

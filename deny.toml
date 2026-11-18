@@ -18,6 +18,9 @@ ignore = [
   "RUSTSEC-2025-0134",
   # unsafe-libyaml — unmaintained (no vuln), transitive via serde_yaml in zenoh-config. No fix.
   "RUSTSEC-2024-0449",
+  # humantime — unmaintained (no vuln), transitive via uhlc and zenoh-util. Every uhlc
+  # release depends on it. No fix.
+  "RUSTSEC-2026-0542",
 ]
 
 [licenses]
