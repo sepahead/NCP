@@ -742,6 +742,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/comparison/PROTOCOL-4.md",
+        "bytes": 4927,
+        "sha256": "e1d7602343100c6af702727a8d1a5de7f007853ad4eb22f2fff2bdfd49574aeb",
+        "git_blob_oid": "ad1a6cc02ca5ec7d3bfe2032b1788ff2d2302363",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/PROTOCOL-4.sha256",
+        "bytes": 80,
+        "sha256": "1ecc519b748b0b3d3e557632f52d71671c20bcc04dfc09611f56565ed556fffe",
+        "git_blob_oid": "73a0ab7fc613f9274a9a9d1919900d9a18a8b918",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/comparison/PROTOCOL.md",
         "bytes": 10384,
         "sha256": "e711a417841de8ef100dbc0a274f1e290d22c9da8295f0ce1cb794f21eb4f7a7",
@@ -767,6 +781,13 @@
         "bytes": 40048,
         "sha256": "76f28b035e654f4ccfd83f13d7b45085d0fe87485c39155eb5eeee2c35e68911",
         "git_blob_oid": "886d80f4ba6634b2ca8e55b780391729cb228ef6",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/analyze_shm.py",
+        "bytes": 7208,
+        "sha256": "334ef1fa389b2a19ebdfa906b7e08d2105c31e8528bcbca796634d22c2a35905",
+        "git_blob_oid": "59cee23b422bd0a10df67a18170831f26012fc69",
         "indexed": true
       },
       {
@@ -872,6 +893,27 @@
         "bytes": 1721,
         "sha256": "2d630e8703c1ac2c98b81cbe545349c96a5f0ecae11b4a2ab9c7f60633cef5a4",
         "git_blob_oid": "4a4d417d2f79a65e8e4eae0fe6bd9cd1fdaa85f6",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/harness/rust-shm/Cargo.lock",
+        "bytes": 24243,
+        "sha256": "4176cbce77ff106926f5c9d9b8c8bf747a7294fa8d6d679e2dbd3cd7d57da177",
+        "git_blob_oid": "ada310a9f45437c37ba6f912f32394327e13d237",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/harness/rust-shm/Cargo.toml",
+        "bytes": 526,
+        "sha256": "ce3f2f95726cd1b15c4d3568df1e2634c3bf2adbb8ca5e783635208fac0f8887",
+        "git_blob_oid": "3ad6b5ba7560a0641fd44ff9db6130c830c84547",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/harness/rust-shm/src/main.rs",
+        "bytes": 7077,
+        "sha256": "17c38a00b4d9f23a77edd2f8444f9bcf433d49095cd178628a4fc15ce248601a",
+        "git_blob_oid": "248a11fe55f7b7cf592c71ea1a11328e8ca3e2eb",
         "indexed": true
       },
       {
@@ -1212,9 +1254,9 @@
       },
       {
         "path": "benchmarks/comparison/run.py",
-        "bytes": 25112,
-        "sha256": "4ed753c77cbd4684fabbc4fa7ddd2da1bd35a5643baa5ea5602e8f95fdab200b",
-        "git_blob_oid": "ba84925b761cbbab39df930488e7d35a8adba0c6",
+        "bytes": 26177,
+        "sha256": "a686c32b510d6fc0654a1dde3f4390b40c06c092cb0407d1a3d57218bc301e6b",
+        "git_blob_oid": "8fdedd4b70443f37293123857c9ccfea782512ae",
         "indexed": true
       },
       {
@@ -12808,7 +12850,7 @@
     ]
   },
   "counts": {
-    "text_files": 1790,
+    "text_files": 1796,
     "binary_or_non_utf8_files": 29,
     "occurrences": 384,
     "by_token_id": {
@@ -12841,7 +12883,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "54d15c2d9fc73f5435f850c4b557d4ec3f90275587599577106f9d50f29ccda3",
+  "scanned_path_set_sha256": "fe519fcfa8a99490d38fa22780e26e37843fa018b423bc130e5a03d62c3def1d",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

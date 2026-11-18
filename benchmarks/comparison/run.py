@@ -36,7 +36,22 @@ import conditions  # noqa: E402
 
 SEED = 20261024
 # Protocol: its file and the seed of the order of its blocks.
-PROTOCOLS = {"1": ("PROTOCOL.md", SEED), "2": ("PROTOCOL-2.md", 20261102), "3": ("PROTOCOL-3.md", 20261118)}
+PROTOCOLS = {
+    "1": ("PROTOCOL.md", SEED),
+    "2": ("PROTOCOL-2.md", 20261102),
+    "3": ("PROTOCOL-3.md", 20261118),
+    "4": ("PROTOCOL-4.md", 20261120),
+}
+# Protocol 4: the Rust arms that it times next to iceoryx2, over shared memory.
+SHM_ARMS = {
+    "ncp2-rust-rust-pipe",
+    "ncp2-rust-rust-unix",
+    "ncp2-rust-rust-tcp",
+    "raw-rust-pipe",
+    "raw-rust-pipe-sha256",
+    "iox2-rust-shm",
+    "iox2-rust-shm-sha256",
+}
 BLOCKS = 3
 SPIKES = (0, 127, 1788, 87381)
 NCP1_SPIKES = (0, 127, 1788)
@@ -80,8 +95,11 @@ def build(work: Path, ncp1: Path, probe: bool = False, protocol: str = "1") -> d
         "harness": work / "harness-target" / "release" / "ncp-comparison-bench",
         "ncp1": work / "ncp1-target" / "release" / "ncp-local-exchange-bench",
     }
+    if protocol == "4":
+        cargo_build(HERE / "harness" / "rust-shm" / "Cargo.toml", work / "shm-target")
+        binaries["shm"] = work / "shm-target" / "release" / "ncp-comparison-shm"
     if probe:
-        crate = "ncp2-rust7" if protocol == "3" else "ncp2-rust"
+        crate = "ncp2-rust7" if protocol in ("3", "4") else "ncp2-rust"
         cargo_build(ROOT / "benchmarks" / "nest-campaign" / "harness" / crate / "Cargo.toml", work / "probe-target")
         binaries["clock_probe"] = work / "probe-target" / "release" / "clock-probe"
     return binaries
@@ -96,7 +114,7 @@ def configurations(python: str, binaries: dict[str, Path], protocol: str = "1") 
     rust_owner = [str(binaries["echo_owner"])]
     rust_client = [str(binaries["bench_client"])]
     # Protocol 3 runs revision 7 of the SDKs, whose Python client interface changed.
-    py_client = py + [str(harness / ("ncp2_client7.py" if protocol == "3" else "ncp2_client.py"))]
+    py_client = py + [str(harness / ("ncp2_client7.py" if protocol in ("3", "4") else "ncp2_client.py"))]
     bench = str(binaries["harness"])
     v1_python = py + [str(HERE / "harness" / "ncp1" / "python" / "client.py"), "sdk"]
     v1_py_owner = py + [str(HERE / "harness" / "ncp1" / "python" / "owner.py")]
@@ -189,7 +207,7 @@ def configurations(python: str, binaries: dict[str, Path], protocol: str = "1") 
             add(f"zmq-python-{kind}", n, py + [str(harness / "zmq_echo.py"), "client", kind] + args, family="other")
         add("http-python-tcp", n, py + [str(harness / "http_echo.py"), "client"] + args, family="other")
         add("zenoh-python-tcp", n, py + [str(harness / "zenoh_echo.py"), "client"] + args, family="other")
-    if protocol in ("2", "3"):
+    if protocol in ("2", "3", "4"):
         sealed = {"BENCH_SHA256": "1"}
         for n in SPIKES:
             args = ["{calls}", "{warmup}", str(n)]
@@ -223,6 +241,15 @@ def configurations(python: str, binaries: dict[str, Path], protocol: str = "1") 
         add("ncp1-rust-python-pipe", n, v1_rust + ["sequential"] + args + v1_py_owner, family="ncp1")
         add("ncp1-python-rust-pipe", n, v1_python + args + v1_rust + ["owner"], family="ncp1")
         add("ncp1-python-python-pipe", n, v1_python + args + v1_py_owner, family="ncp1")
+    if protocol == "4":
+        shm = str(binaries["shm"])
+        sealed = {"BENCH_SHA256": "1"}
+        for n in SPIKES:
+            client = [shm, "iox2-client", "{calls}", "{warmup}", str(n), "{address}"]
+            server = [shm, "iox2-server", "{socket}"]
+            add("iox2-rust-shm", n, client, server, family="other")
+            add("iox2-rust-shm-sha256", n, client, server, family="other-sha256", env=sealed)
+        configs = {name: config for name, config in configs.items() if config["arm"] in SHM_ARMS}
     return configs
 
 
@@ -398,7 +425,7 @@ def main() -> None:
     protocol_file, order_seed = PROTOCOLS[args.protocol]
     # Protocols 2 and 3 control the conditions of each run; a smoke run is not a result. Protocol 3,
     # fixed after 3 November 2026, may run on battery (conditions.py).
-    gate = args.protocol in ("2", "3") and not args.smoke
+    gate = args.protocol in ("2", "3", "4") and not args.smoke
     require_ac = args.protocol == "2"
     args.results.mkdir(parents=True, exist_ok=True)
     work = args.results / ".work"

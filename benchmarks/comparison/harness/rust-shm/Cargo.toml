@@ -1,0 +1,19 @@
+# The shared-memory arm of benchmarks/comparison (protocol 4): iceoryx2, request-response over
+# zero-copy shared memory. Kept apart from harness/rust so that the builds of protocols 2 and 3
+# keep their lockfile.
+[package]
+name = "ncp-comparison-shm"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+iceoryx2 = "=0.10.0"
+serde_json = "=1.0.154"
+# The SHA-256 implementation of the NCP 2 Rust SDK, for the arm with the same integrity check.
+sha2 = "=0.11.1"
+
+[profile.release]
+codegen-units = 1
+
+[workspace]
