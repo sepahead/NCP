@@ -108,6 +108,36 @@ Exploratory results:
 
 The arms with the check give the other systems the integrity check of NCP 2, added by the benchmark outside each system, but not its other guarantees (section 8 of [protocol 2](PROTOCOL-2.md)).
 
+## Protocol 3
+
+[Protocol 3](PROTOCOL-3.md) was fixed on 18 November 2026 (SHA-256 in [`PROTOCOL-3.sha256`](PROTOCOL-3.sha256)) and pushed in commit `36ddbd2` before its runs.
+It runs the 140 configurations of protocol 2 again with revision 7 of the NCP 2 SDKs; every other system is the program and the pinned package of protocol 2. As `../conditions.py` allows for protocols fixed after 3 November, it ran on battery in High Power mode, with the clock conditions of protocol 2.
+
+### Results of protocol 3
+
+The 420 timed runs ran on 18 November 2026 from 19:04 to 19:51 UTC, from the clean commit `36ddbd2`, on battery.
+Before every run, a core ran at 4.00 to 4.49 GHz, and the one-minute load average was 3.09 to 7.83; the runner waited 37 minutes in all for these conditions, while other programs ran. No run was disturbed, and no run failed. The validity checks passed.
+All values are in [`results-3/summary.md`](results-3/summary.md).
+
+| # | Hypothesis | Result |
+| --- | --- | --- |
+| R1 | The results of protocol 1 hold again. | **Not supported.** H1 to H4 hold: NCP 2 is 3.7 to 127 times faster than NCP 1.0.1. H5 fails in 2 of its 9 comparisons: in Python, HTTP/1.1 over TCP was faster than NCP 2 over a pipe in one block at N = 127 and at N = 1788 (77.0 µs against 101.2 µs). |
+| R2 | In Rust, with the same integrity check and the same kind of connection, NCP 2 is faster than gRPC and Zenoh. | 9 of 9 comparisons. At N = 1788: 37.2 µs over a Unix socket against 74.6 µs for gRPC; 51.5 µs over TCP against 74.9 µs for gRPC and 82.1 µs for Zenoh. |
+| R3 | In Python, with the same integrity check and the same kind of connection, NCP 2 is faster than gRPC. | 6 of 6 comparisons. At N = 1788: 99.8 µs over a Unix socket against 190.0 µs; 105.0 µs over TCP against 156.5 µs. |
+
+<a href="results-3/figures/integrity_light.svg">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results-3/figures/integrity_dark.svg">
+  <img src="results-3/figures/integrity_light.svg" alt="Call time with revision 7 of NCP 2 over a pipe, a Unix socket, and TCP against gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe that each add a SHA-256 digest to every message, for Rust and Python at N of 0, 127, 1788, and 87381 spikes, on log scales. In Rust, NCP 2 is the fastest at every size; in Python, ZeroMQ over ipc is faster at 0 and 127 spikes, and Zenoh at 1788.">
+</picture>
+</a>
+
+Exploratory results:
+
+- **Revision 7 is slower than the SDKs before revision 3.** [`results-3/revisions.md`](results-3/revisions.md) compares each NCP 2 configuration with protocol 2. Up to N = 1788, the median ratio is 1.21 in Rust (0.95 to 1.51) and 1.50 in Python (1.23 to 1.78): 11.0 µs against 9.0 µs at N = 0 in Rust, and 65.6 µs against 38.8 µs in Python. At 1 MiB, where the digests dominate, the ratios are 0.99 to 1.07. Every other system kept its time: the median ratios of gRPC, ZeroMQ, HTTP/1.1, Zenoh, NCP 1.0.1, and the raw pipe are 0.97 to 1.03. The change therefore comes from the SDKs, not from the conditions.
+- **Where the time goes, in Python.** A profile of 6,100 calls of the Python client and owner over a pipe, at the commit of protocol 2 and at revision 7, finds about 36 percent more function calls on each side. Revision 3 rewrote the client and the owner as pure state machines, which the model checks drive: each call now copies the state with `dataclasses.replace`, checks every message against the rules (`check_request`, `check_response`), passes through more layers, and makes observer events, each costing one to three microseconds. The Rust SDK was not profiled. Making these paths faster without changing their behavior is open work; protocol 3 measures the SDKs as they are.
+- **The same integrity check at every size.** In Rust, the fastest NCP 2 arm was faster than every other system with the check at each N, also at 1 MiB (895.1 µs against 1154.2 µs for Zenoh). In Python it was not: with the check, ZeroMQ over ipc took 58.5 and 60.0 µs at N = 0 and 127, against 65.6 and 75.0 µs, and Zenoh over TCP 86.7 µs at N = 1788, against 99.8 µs; at 1 MiB, NCP 2 was the fastest, 813.8 µs against 862.8 µs for Zenoh.
+
 ## Correction to the protocol
 
 Section 3 of the protocol says that the NCP 1.0.1 harness is the one of `benchmarks/pipelined-ack` at commit `99e9adc`.

@@ -1,0 +1,772 @@
+{
+ "rust_tests": {
+  "returncode": 0,
+  "tail": [
+   "running 0 tests",
+   "",
+   "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+  ]
+ },
+ "python_tests": {
+  "returncode": 0,
+  "tail": [
+   "Ran 122 tests in 3.207s",
+   "",
+   "OK"
+  ]
+ },
+ "python_conformance_vectors": {
+  "returncode": 0,
+  "tail": [
+   "Ran 9 tests in 0.024s",
+   "",
+   "OK"
+  ]
+ },
+ "model_conformance_python_owner": {
+  "returncode": 0,
+  "tail": [
+   "conformance: 20000 traces, 160584 requests; the Python owner answer like the Python owner; no request executed twice; 21 outcomes and codes reached"
+  ]
+ },
+ "model_conformance_rust_owner": {
+  "returncode": 0,
+  "tail": [
+   "conformance: 20000 traces, 160584 requests; the Python owner and model_owner answer like the Python owner; no request executed twice; 21 outcomes and codes reached"
+  ]
+ },
+ "differential_fuzzing": {
+  "returncode": 0,
+  "tail": [
+   "fuzz: 200000 frames, 73068 accepted by Python (3809 requests, 3026 responses, 3832 stream messages, 235 requests of another protocol version), 0 differences"
+  ]
+ },
+ "smoke_runs": {
+  "returncode": 0,
+  "runs": {
+   "grpc-python-tcp-n0": {
+    "returncode": 0,
+    "median_us": 156.709,
+    "tail": []
+   },
+   "grpc-python-tcp-n127": {
+    "returncode": 0,
+    "median_us": 170.625,
+    "tail": []
+   },
+   "grpc-python-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 182.458,
+    "tail": []
+   },
+   "grpc-python-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 370.667,
+    "tail": []
+   },
+   "grpc-python-tcp-sha256-n0": {
+    "returncode": 0,
+    "median_us": 150.5,
+    "tail": []
+   },
+   "grpc-python-tcp-sha256-n127": {
+    "returncode": 0,
+    "median_us": 178.25,
+    "tail": []
+   },
+   "grpc-python-tcp-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 211.625,
+    "tail": []
+   },
+   "grpc-python-tcp-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1202.666,
+    "tail": []
+   },
+   "grpc-python-unix-n0": {
+    "returncode": 0,
+    "median_us": 142.958,
+    "tail": []
+   },
+   "grpc-python-unix-n127": {
+    "returncode": 0,
+    "median_us": 147.417,
+    "tail": []
+   },
+   "grpc-python-unix-n1788": {
+    "returncode": 0,
+    "median_us": 225.25,
+    "tail": []
+   },
+   "grpc-python-unix-n87381": {
+    "returncode": 0,
+    "median_us": 4845.333,
+    "tail": []
+   },
+   "grpc-python-unix-sha256-n0": {
+    "returncode": 0,
+    "median_us": 140.125,
+    "tail": []
+   },
+   "grpc-python-unix-sha256-n127": {
+    "returncode": 0,
+    "median_us": 150.334,
+    "tail": []
+   },
+   "grpc-python-unix-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 222.792,
+    "tail": []
+   },
+   "grpc-python-unix-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 4979.541,
+    "tail": []
+   },
+   "grpc-rust-tcp-n0": {
+    "returncode": 0,
+    "median_us": 74.25,
+    "tail": []
+   },
+   "grpc-rust-tcp-n127": {
+    "returncode": 0,
+    "median_us": 63.125,
+    "tail": []
+   },
+   "grpc-rust-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 84.583,
+    "tail": []
+   },
+   "grpc-rust-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 251.75000000000003,
+    "tail": []
+   },
+   "grpc-rust-tcp-sha256-n0": {
+    "returncode": 0,
+    "median_us": 51.583999999999996,
+    "tail": []
+   },
+   "grpc-rust-tcp-sha256-n127": {
+    "returncode": 0,
+    "median_us": 52.792,
+    "tail": []
+   },
+   "grpc-rust-tcp-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 77.209,
+    "tail": []
+   },
+   "grpc-rust-tcp-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1113.125,
+    "tail": []
+   },
+   "grpc-rust-unix-n0": {
+    "returncode": 0,
+    "median_us": 41.291000000000004,
+    "tail": []
+   },
+   "grpc-rust-unix-n127": {
+    "returncode": 0,
+    "median_us": 36.541000000000004,
+    "tail": []
+   },
+   "grpc-rust-unix-n1788": {
+    "returncode": 0,
+    "median_us": 56.666999999999994,
+    "tail": []
+   },
+   "grpc-rust-unix-n87381": {
+    "returncode": 0,
+    "median_us": 1276.5,
+    "tail": []
+   },
+   "grpc-rust-unix-sha256-n0": {
+    "returncode": 0,
+    "median_us": 31.25,
+    "tail": []
+   },
+   "grpc-rust-unix-sha256-n127": {
+    "returncode": 0,
+    "median_us": 29.959,
+    "tail": []
+   },
+   "grpc-rust-unix-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 75.292,
+    "tail": []
+   },
+   "grpc-rust-unix-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1784.7920000000001,
+    "tail": []
+   },
+   "http-python-tcp-n0": {
+    "returncode": 0,
+    "median_us": 99.834,
+    "tail": []
+   },
+   "http-python-tcp-n127": {
+    "returncode": 0,
+    "median_us": 105.041,
+    "tail": []
+   },
+   "http-python-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 104.916,
+    "tail": []
+   },
+   "http-python-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 250.292,
+    "tail": []
+   },
+   "http-python-tcp-sha256-n0": {
+    "returncode": 0,
+    "median_us": 106.5,
+    "tail": []
+   },
+   "http-python-tcp-sha256-n127": {
+    "returncode": 0,
+    "median_us": 108.5,
+    "tail": []
+   },
+   "http-python-tcp-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 123.167,
+    "tail": []
+   },
+   "http-python-tcp-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1040.375,
+    "tail": []
+   },
+   "ncp1-python-python-pipe-n0": {
+    "returncode": 0,
+    "median_us": 514.0409921295941,
+    "tail": []
+   },
+   "ncp1-python-python-pipe-n127": {
+    "returncode": 0,
+    "median_us": 1425.1249958761036,
+    "tail": []
+   },
+   "ncp1-python-python-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 11991.707986453548,
+    "tail": []
+   },
+   "ncp1-python-rust-pipe-n0": {
+    "returncode": 0,
+    "median_us": 265.79201221466064,
+    "tail": []
+   },
+   "ncp1-python-rust-pipe-n127": {
+    "returncode": 0,
+    "median_us": 682.333018630743,
+    "tail": []
+   },
+   "ncp1-python-rust-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 5754.332989454269,
+    "tail": []
+   },
+   "ncp1-rust-python-pipe-n0": {
+    "returncode": 0,
+    "median_us": 232.125,
+    "tail": []
+   },
+   "ncp1-rust-python-pipe-n127": {
+    "returncode": 0,
+    "median_us": 734.084,
+    "tail": []
+   },
+   "ncp1-rust-python-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 6890.708,
+    "tail": []
+   },
+   "ncp1-rust-rust-pipe-n0": {
+    "returncode": 0,
+    "median_us": 39.083,
+    "tail": []
+   },
+   "ncp1-rust-rust-pipe-n127": {
+    "returncode": 0,
+    "median_us": 70.083,
+    "tail": []
+   },
+   "ncp1-rust-rust-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 451.875,
+    "tail": []
+   },
+   "ncp2-python-python-pipe-n0": {
+    "returncode": 0,
+    "median_us": 48.542,
+    "tail": []
+   },
+   "ncp2-python-python-pipe-n127": {
+    "returncode": 0,
+    "median_us": 84.0,
+    "tail": []
+   },
+   "ncp2-python-python-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 80.25,
+    "tail": []
+   },
+   "ncp2-python-python-pipe-n87381": {
+    "returncode": 0,
+    "median_us": 993.667,
+    "tail": []
+   },
+   "ncp2-python-python-pipe-nocheck-n0": {
+    "returncode": 0,
+    "median_us": 51.25,
+    "tail": []
+   },
+   "ncp2-python-python-pipe-nocheck-n127": {
+    "returncode": 0,
+    "median_us": 55.917,
+    "tail": []
+   },
+   "ncp2-python-python-pipe-nocheck-n1788": {
+    "returncode": 0,
+    "median_us": 72.375,
+    "tail": []
+   },
+   "ncp2-python-python-pipe-nocheck-n87381": {
+    "returncode": 0,
+    "median_us": 619.584,
+    "tail": []
+   },
+   "ncp2-python-python-tcp-n0": {
+    "returncode": 0,
+    "median_us": 121.916,
+    "tail": []
+   },
+   "ncp2-python-python-tcp-n127": {
+    "returncode": 0,
+    "median_us": 114.0,
+    "tail": []
+   },
+   "ncp2-python-python-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 133.167,
+    "tail": []
+   },
+   "ncp2-python-python-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 1060.792,
+    "tail": []
+   },
+   "ncp2-python-python-unix-n0": {
+    "returncode": 0,
+    "median_us": 52.583,
+    "tail": []
+   },
+   "ncp2-python-python-unix-n127": {
+    "returncode": 0,
+    "median_us": 59.042,
+    "tail": []
+   },
+   "ncp2-python-python-unix-n1788": {
+    "returncode": 0,
+    "median_us": 84.709,
+    "tail": []
+   },
+   "ncp2-python-python-unix-n87381": {
+    "returncode": 0,
+    "median_us": 882.5,
+    "tail": []
+   },
+   "ncp2-python-rust-pipe-n0": {
+    "returncode": 0,
+    "median_us": 27.083,
+    "tail": []
+   },
+   "ncp2-python-rust-pipe-n127": {
+    "returncode": 0,
+    "median_us": 36.334,
+    "tail": []
+   },
+   "ncp2-python-rust-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 61.042,
+    "tail": []
+   },
+   "ncp2-python-rust-pipe-n87381": {
+    "returncode": 0,
+    "median_us": 999.583,
+    "tail": []
+   },
+   "ncp2-rust-python-pipe-n0": {
+    "returncode": 0,
+    "median_us": 44.583000000000006,
+    "tail": []
+   },
+   "ncp2-rust-python-pipe-n127": {
+    "returncode": 0,
+    "median_us": 34.792,
+    "tail": []
+   },
+   "ncp2-rust-python-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 53.291999999999994,
+    "tail": []
+   },
+   "ncp2-rust-python-pipe-n87381": {
+    "returncode": 0,
+    "median_us": 992.917,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-n0": {
+    "returncode": 0,
+    "median_us": 12.916,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-n127": {
+    "returncode": 0,
+    "median_us": 25.625,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 43.25,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-n87381": {
+    "returncode": 0,
+    "median_us": 1049.2920000000001,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-nocheck-n0": {
+    "returncode": 0,
+    "median_us": 10.709,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-nocheck-n127": {
+    "returncode": 0,
+    "median_us": 15.665999999999999,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-nocheck-n1788": {
+    "returncode": 0,
+    "median_us": 26.125,
+    "tail": []
+   },
+   "ncp2-rust-rust-pipe-nocheck-n87381": {
+    "returncode": 0,
+    "median_us": 593.0,
+    "tail": []
+   },
+   "ncp2-rust-rust-tcp-n0": {
+    "returncode": 0,
+    "median_us": 53.708999999999996,
+    "tail": []
+   },
+   "ncp2-rust-rust-tcp-n127": {
+    "returncode": 0,
+    "median_us": 56.791,
+    "tail": []
+   },
+   "ncp2-rust-rust-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 77.791,
+    "tail": []
+   },
+   "ncp2-rust-rust-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 1101.042,
+    "tail": []
+   },
+   "ncp2-rust-rust-unix-n0": {
+    "returncode": 0,
+    "median_us": 12.707999999999998,
+    "tail": []
+   },
+   "ncp2-rust-rust-unix-n127": {
+    "returncode": 0,
+    "median_us": 18.708000000000002,
+    "tail": []
+   },
+   "ncp2-rust-rust-unix-n1788": {
+    "returncode": 0,
+    "median_us": 37.208,
+    "tail": []
+   },
+   "ncp2-rust-rust-unix-n87381": {
+    "returncode": 0,
+    "median_us": 953.625,
+    "tail": []
+   },
+   "raw-python-pipe-n0": {
+    "returncode": 0,
+    "median_us": 6.875,
+    "tail": []
+   },
+   "raw-python-pipe-n127": {
+    "returncode": 0,
+    "median_us": 6.625,
+    "tail": []
+   },
+   "raw-python-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 8.666,
+    "tail": []
+   },
+   "raw-python-pipe-n87381": {
+    "returncode": 0,
+    "median_us": 178.166,
+    "tail": []
+   },
+   "raw-python-pipe-sha256-n0": {
+    "returncode": 0,
+    "median_us": 8.0,
+    "tail": []
+   },
+   "raw-python-pipe-sha256-n127": {
+    "returncode": 0,
+    "median_us": 9.334,
+    "tail": []
+   },
+   "raw-python-pipe-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 25.625,
+    "tail": []
+   },
+   "raw-python-pipe-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 894.625,
+    "tail": []
+   },
+   "raw-rust-pipe-n0": {
+    "returncode": 0,
+    "median_us": 5.375,
+    "tail": []
+   },
+   "raw-rust-pipe-n127": {
+    "returncode": 0,
+    "median_us": 5.0,
+    "tail": []
+   },
+   "raw-rust-pipe-n1788": {
+    "returncode": 0,
+    "median_us": 6.042,
+    "tail": []
+   },
+   "raw-rust-pipe-n87381": {
+    "returncode": 0,
+    "median_us": 134.416,
+    "tail": []
+   },
+   "raw-rust-pipe-sha256-n0": {
+    "returncode": 0,
+    "median_us": 5.75,
+    "tail": []
+   },
+   "raw-rust-pipe-sha256-n127": {
+    "returncode": 0,
+    "median_us": 6.584,
+    "tail": []
+   },
+   "raw-rust-pipe-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 26.041999999999998,
+    "tail": []
+   },
+   "raw-rust-pipe-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 965.625,
+    "tail": []
+   },
+   "zenoh-python-tcp-n0": {
+    "returncode": 0,
+    "median_us": 81.292,
+    "tail": []
+   },
+   "zenoh-python-tcp-n127": {
+    "returncode": 0,
+    "median_us": 104.541,
+    "tail": []
+   },
+   "zenoh-python-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 80.917,
+    "tail": []
+   },
+   "zenoh-python-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 143.458,
+    "tail": []
+   },
+   "zenoh-python-tcp-sha256-n0": {
+    "returncode": 0,
+    "median_us": 71.958,
+    "tail": []
+   },
+   "zenoh-python-tcp-sha256-n127": {
+    "returncode": 0,
+    "median_us": 77.583,
+    "tail": []
+   },
+   "zenoh-python-tcp-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 110.917,
+    "tail": []
+   },
+   "zenoh-python-tcp-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 885.125,
+    "tail": []
+   },
+   "zenoh-rust-tcp-n0": {
+    "returncode": 0,
+    "median_us": 75.79100000000001,
+    "tail": []
+   },
+   "zenoh-rust-tcp-n127": {
+    "returncode": 0,
+    "median_us": 70.875,
+    "tail": []
+   },
+   "zenoh-rust-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 70.375,
+    "tail": []
+   },
+   "zenoh-rust-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 312.25,
+    "tail": []
+   },
+   "zenoh-rust-tcp-sha256-n0": {
+    "returncode": 0,
+    "median_us": 76.25,
+    "tail": []
+   },
+   "zenoh-rust-tcp-sha256-n127": {
+    "returncode": 0,
+    "median_us": 64.334,
+    "tail": []
+   },
+   "zenoh-rust-tcp-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 86.375,
+    "tail": []
+   },
+   "zenoh-rust-tcp-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1167.084,
+    "tail": []
+   },
+   "zmq-python-ipc-n0": {
+    "returncode": 0,
+    "median_us": 48.75,
+    "tail": []
+   },
+   "zmq-python-ipc-n127": {
+    "returncode": 0,
+    "median_us": 53.333,
+    "tail": []
+   },
+   "zmq-python-ipc-n1788": {
+    "returncode": 0,
+    "median_us": 71.042,
+    "tail": []
+   },
+   "zmq-python-ipc-n87381": {
+    "returncode": 0,
+    "median_us": 927.792,
+    "tail": []
+   },
+   "zmq-python-ipc-sha256-n0": {
+    "returncode": 0,
+    "median_us": 53.833,
+    "tail": []
+   },
+   "zmq-python-ipc-sha256-n127": {
+    "returncode": 0,
+    "median_us": 55.791,
+    "tail": []
+   },
+   "zmq-python-ipc-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 93.416,
+    "tail": []
+   },
+   "zmq-python-ipc-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1525.25,
+    "tail": []
+   },
+   "zmq-python-tcp-n0": {
+    "returncode": 0,
+    "median_us": 115.666,
+    "tail": []
+   },
+   "zmq-python-tcp-n127": {
+    "returncode": 0,
+    "median_us": 107.583,
+    "tail": []
+   },
+   "zmq-python-tcp-n1788": {
+    "returncode": 0,
+    "median_us": 118.958,
+    "tail": []
+   },
+   "zmq-python-tcp-n87381": {
+    "returncode": 0,
+    "median_us": 301.625,
+    "tail": []
+   },
+   "zmq-python-tcp-sha256-n0": {
+    "returncode": 0,
+    "median_us": 99.792,
+    "tail": []
+   },
+   "zmq-python-tcp-sha256-n127": {
+    "returncode": 0,
+    "median_us": 102.125,
+    "tail": []
+   },
+   "zmq-python-tcp-sha256-n1788": {
+    "returncode": 0,
+    "median_us": 136.25,
+    "tail": []
+   },
+   "zmq-python-tcp-sha256-n87381": {
+    "returncode": 0,
+    "median_us": 1001.042,
+    "tail": []
+   }
+  }
+ },
+ "environment": {
+  "computer": "Mac16,5",
+  "chip": "Apple M4 Max",
+  "cores": "16",
+  "memory_bytes": "137438953472",
+  "os": "26.5.1",
+  "kernel": "25.5.0",
+  "power": "Now drawing from 'Battery Power'",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+  "python": "3.15.0",
+  "python_packages": [
+   "unavailable"
+  ],
+  "ncp2_commit": "36ddbd2fbad61f24767e1d6a67ace746f569fc21",
+  "ncp2_worktree_clean": true,
+  "ncp1_commit": "99e9adce147fe5bc770d2dcfe5f21cbd2274efeb",
+  "cargo_lock_sha256": {
+   "ncp2": "42944ecf6e8e2aecd02c3f150930c2cc337e1a390b491f8140b51dba07a77de0",
+   "harness": "8226dd6488e6464b49727b6336f4277b98dcd0656105e8ee5bce958254c94af4",
+   "ncp1_harness": "a3ba8bec39dfe1285d1b598b5c03d19f91b02eebb2366ecc4f59a470485f18a2"
+  }
+ }
+}

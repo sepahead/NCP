@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2: checks after revision 7 (no wire change)
 
+- Comparison protocol 3 (fixed before its runs) timed revision 7 against the systems of protocol 2:
+  420 runs, none disturbed or failed. R2 and R3 hold: with the same integrity check and the same
+  kind of connection, NCP 2 is faster than gRPC and Zenoh in Rust and than gRPC in Python. R1 does
+  not: in Python, HTTP/1.1 was faster than NCP 2 over a pipe at 127 spikes in one block and at 1788.
+  Revision 7 is 1.2 times slower in Rust and 1.5 times slower in Python than the SDKs before
+  revision 3 (11.0 against 9.0 µs, and 65.6 against 38.8 µs, with no spikes), while every other
+  system kept its time within 3 percent. A profile of the Python SDK attributes the difference to
+  the pure state machines of revision 3 and the checks of every message; making them faster is
+  open work. The README, the guide, the comparison document, the release record, and the known
+  limitations now give both results.
 - NEST content protocol 3 (fixed before its trials) checked revision 7 with eight networks of
   seven NEST neuron models, Hodgkin-Huxley, Izhikevich, generalized integrate-and-fire with escape
   noise, precise spike times, and the Brunel network with STDP among them, at 1 to 8 threads and

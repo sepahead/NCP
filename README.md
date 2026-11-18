@@ -30,8 +30,8 @@ The [specification](spec/NCP-2.md) is the exact definition, and the [design reco
 
 | Measured on one laptop | NCP 2 | NCP 1.0.1 | Record |
 | --- | --- | --- | --- |
-| One call with a small result, Rust to Rust | 9.0 µs | 36.1 µs | [Comparison benchmark](benchmarks/comparison/README.md#results-of-protocol-2) |
-| One call with a small result, Python to Python | 38.8 µs | 469 µs | [Comparison benchmark](benchmarks/comparison/README.md#results-of-protocol-2) |
+| One call with a small result, Rust to Rust | 11.0 µs with SDK revision 7; 9.0 µs before revision 3 | 36.1 µs | [Comparison benchmark, protocols 3 and 2](benchmarks/comparison/README.md#results-of-protocol-3) |
+| One call with a small result, Python to Python | 65.6 µs with SDK revision 7; 38.8 µs before revision 3 | 469 µs | [Comparison benchmark, protocols 3 and 2](benchmarks/comparison/README.md#results-of-protocol-3) |
 | Time added to each 1 ms step of a NEST network, Rust client | 23 to 32 µs | 228 to 248 µs | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-protocol-5) |
 | Spikes compared with NEST's recorder | All 42,026,126 exact, in 96 trials with up to 10,000 neurons | All exact in 72 trials with 1000 neurons | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-content-protocol-2) |
 | Spikes, precise spike times, and membrane potentials compared with NEST, eight networks of seven neuron models (SDK revision 7) | All exact, bit for bit, in 216 trials: 66,165,804 spikes and 172,713,600 float64 samples over two hosts | not run | [NEST campaign](benchmarks/nest-campaign/README.md#results-of-content-protocol-3) |
@@ -39,12 +39,12 @@ The [specification](spec/NCP-2.md) is the exact definition, and the [design reco
 | One round over 256 programs from one host (`call_all`) | 0.92 ms (Rust), 2.8 ms (Python) | not measured | [Multi-agent benchmark](benchmarks/multi-agent/README.md#results) |
 | 64 agents sharing one world in rounds, Python owner | 2.6 ms per round; the same final state in every run | no rounds profile | [Multi-agent benchmark](benchmarks/multi-agent/README.md#results) |
 
-Up to 1,788 spikes per call, NCP 2 was also faster than gRPC and Zenoh in Rust, and than gRPC and HTTP in Python; with 1 MiB per call, the systems without an integrity check were faster, by about the time of NCP 2's SHA-256 check.
-When every other system made the same SHA-256 check as NCP 2, NCP 2 was the fastest at every size, 1 MiB included, in both languages ([comparison protocol 2](benchmarks/comparison/README.md#results-of-protocol-2)).
+With the SDKs before revision 3, NCP 2 was faster than gRPC and Zenoh in Rust and than gRPC and HTTP in Python up to 1,788 spikes per call, and, when every other system made the same SHA-256 check, the fastest at every size in both languages ([comparison protocol 2](benchmarks/comparison/README.md#results-of-protocol-2)).
+Revision 7 made each small call 1.2 times slower in Rust and 1.5 times slower in Python, while every other system kept its time ([comparison protocol 3](benchmarks/comparison/README.md#results-of-protocol-3)). With the same check, NCP 2 is still the fastest at every size in Rust; in Python, ZeroMQ over ipc is faster at 0 and 127 spikes and Zenoh at 1,788, and HTTP/1.1 without a check was faster at 1,788 spikes. With 1 MiB per call, the systems without an integrity check are faster, by about the time of NCP 2's SHA-256 check.
 
 - The SDKs: [Python](python/README.md), which uses only the standard library, and [Rust](rust/README.md). The optional [Zenoh binding](bindings/zenoh/README.md), for both languages, carries the same frames between computers, with mutual TLS and access control.
 - Nineteen claims about the owner and the client are proved in Lean for every sequence of inputs ([`formal/`](formal/README.md)). The SDKs are not proved: the Python and Rust owners give the same answers as the compiled Lean model on 20,000 random traces, and an exhaustive check drives the real Python client and owner through about 5.2 million states with faults, and the lockstep profile through about 565,000 ([`model/`](model/README.md)).
-- The times in this section were measured with the SDKs before revision 3 (23 October to 3 November 2026). Revisions 3 to 7 changed the session rules and the code of the owner and the client, not the frame format; the benchmarks have not run again. The fault trials ran with those SDKs (8,730 trials over pipes, Unix domain sockets, and TCP) and again with revision 7 (4,560 trials over Unix domain sockets and TCP).
+- The NEST and multi-agent times in this section were measured with the SDKs before revision 3 (23 October to 3 November 2026), and have not run again. The comparison benchmark ran again with revision 7 (protocol 3). The fault trials ran with those SDKs (8,730 trials over pipes, Unix domain sockets, and TCP) and again with revision 7 (4,560 trials over Unix domain sockets and TCP).
 - [What NCP 2 changes from NCP 1](docs/design/NCP-1-SHORTCOMINGS.md) maps each known shortcoming of NCP 1 to its fix and its check, and lists the work that is still open.
 - [NCP 2 compared with other tools](docs/design/NCP-2-COMPARISON.md) lists what NCP 2 adds, what it lacks, and when another tool fits better, with a source for each statement.
 - The projects that use NCP move to NCP 2 one at a time, in the order of the [migration plan](docs/design/NCP-2-MIGRATION.md). NCP 1 stays available until the last one has moved.
@@ -84,11 +84,12 @@ In Rust, NCP 2 was the fastest protocol up to 1,788 spikes, at the median and at
 In Python, NCP 2 had the lowest 99th percentile up to 1,788 spikes and the lowest median with no spikes. With 127 and 1,788 spikes, its median was close to that of the fastest other system (ZeroMQ, then Zenoh): lower in this protocol, and higher in [protocol 1](benchmarks/comparison/README.md#exploratory-results), which ran on battery.
 At 1 MiB, the other systems make no integrity check of the message, while NCP 2 computes and checks a SHA-256 fingerprint of every message. That check takes most of NCP 2's time there: on a raw pipe in Rust, the same check costs 722 µs.
 With the same check added to every system, NCP 2 was the fastest at every size, 1 MiB included: in Rust, 872 µs over a Unix socket against 1,104 µs for Zenoh and 1,137 µs for gRPC over TCP; in Python, 759 µs against 801 µs for Zenoh and 830 µs for HTTP/1.1.
+The table and these values are those of the SDKs before revision 3. With revision 7 ([comparison protocol 3](benchmarks/comparison/README.md#results-of-protocol-3), the figure below), NCP 2 took 11.0 µs in Rust and 65.6 µs in Python with no spikes; with the same check, it is still the fastest at every size in Rust, while in Python ZeroMQ over ipc is faster up to 127 spikes and Zenoh at 1,788.
 
-<a href="benchmarks/comparison/results-2/figures/integrity_light.svg">
+<a href="benchmarks/comparison/results-3/figures/integrity_light.svg">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="benchmarks/comparison/results-2/figures/integrity_dark.svg">
-  <img src="benchmarks/comparison/results-2/figures/integrity_light.svg" alt="Time of one call when every system checks a SHA-256 fingerprint of each message as NCP 2 does, for Rust and Python and for 0, 127, 1788, and 87381 spikes, on log scales: NCP 2 is the fastest at every size.">
+  <source media="(prefers-color-scheme: dark)" srcset="benchmarks/comparison/results-3/figures/integrity_dark.svg">
+  <img src="benchmarks/comparison/results-3/figures/integrity_light.svg" alt="Time of one call with revision 7 when every system checks a SHA-256 fingerprint of each message as NCP 2 does, for Rust and Python and for 0, 127, 1788, and 87381 spikes, on log scales: in Rust, NCP 2 is the fastest at every size; in Python, ZeroMQ over ipc is faster at 0 and 127 spikes and Zenoh at 1788.">
 </picture>
 </a>
 

@@ -197,12 +197,13 @@ In both, the protocol of each measurement was fixed, with its fingerprint, befor
 The [comparison document](design/NCP-2-COMPARISON.md) also lists what NCP 2 lacks, such as typed interfaces with code generation and peer authentication without a shared key, with a source for each statement.
 
 These numbers come from one laptop. With 1 MiB of data in each call, the tools without a fingerprint check were faster than NCP 2, by about the time that the check takes.
-A second run gave every other tool the same fingerprint check as NCP 2, added by the benchmark. Then NCP 2 was the fastest in every case, from an empty result to 1 MiB, in Rust and in Python.
+A second run gave every other tool the same fingerprint check as NCP 2, added by the benchmark. Then NCP 2 was the fastest in every case, from an empty result to 1 MiB, in Rust and in Python. The times in the table and these runs used the SDKs before revision 3.
+A third run, with revision 7, found each small call 1.2 times slower in Rust and 1.5 times slower in Python, while the other tools kept their times: revisions 3 to 7 added checks and copies on every call ([comparison protocol 3](../benchmarks/comparison/README.md#results-of-protocol-3)). With the same check, NCP 2 is still the fastest in every case in Rust; in Python, ZeroMQ is now faster with small results, and Zenoh with 1,788 spikes.
 
-<a href="../benchmarks/comparison/results-2/figures/integrity_light.svg">
+<a href="../benchmarks/comparison/results-3/figures/integrity_light.svg">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/comparison/results-2/figures/integrity_dark.svg">
-  <img src="../benchmarks/comparison/results-2/figures/integrity_light.svg" alt="Call time of NCP 2 against gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe that each add a SHA-256 fingerprint to every message, for Rust and Python and four message sizes, on log scales. In every panel, the fastest NCP 2 arm is the fastest system.">
+  <source media="(prefers-color-scheme: dark)" srcset="../benchmarks/comparison/results-3/figures/integrity_dark.svg">
+  <img src="../benchmarks/comparison/results-3/figures/integrity_light.svg" alt="Call time of NCP 2 revision 7 against gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe that each add a SHA-256 fingerprint to every message, for Rust and Python and four message sizes, on log scales. In Rust, NCP 2 is the fastest in every panel; in Python, ZeroMQ over ipc is faster with up to 127 spikes and Zenoh with 1788.">
 </picture>
 </a>
 

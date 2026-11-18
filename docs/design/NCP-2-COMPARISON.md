@@ -47,6 +47,7 @@ NCP 2 builds in all six. The other tools can give them when an application adds 
 The [comparison benchmark](../../benchmarks/comparison/README.md) measured one call between two processes on one laptop, with the SDKs before revision 3 (2 November 2026).
 With a small result, NCP 2 took 9.0 µs in Rust over a pipe and 38.8 µs in Python; gRPC took 35.9 µs in Rust over a Unix domain socket.
 With 1 MiB in each call, the tools without an integrity check were faster than NCP 2, by about the time of its SHA-256 check. When every tool made the same check, NCP 2 was the fastest at every size, in both languages.
+With revision 7 (protocol 3, 18 November 2026), a small call took 11.0 µs in Rust and 65.6 µs in Python: 1.2 and 1.5 times as long, while the other tools kept their times. With the same check, NCP 2 is still the fastest at every size in Rust; in Python, ZeroMQ over ipc is faster with up to 127 spikes and Zenoh with 1,788.
 These values come from one computer, and they do not show behavior across a network.
 
 ## When to use another tool
