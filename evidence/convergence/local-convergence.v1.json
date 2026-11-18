@@ -54,7 +54,7 @@
     },
     {
       "auxiliary_non_peer_importers": [
-        "phd_thesis/formal/ncp-v080-counterexamples"
+        "external/formal/ncp-v080-counterexamples"
       ],
       "evidence_required": "native installed-artifact qualification for each exact required role subject against the same NCP source and artifacts",
       "historical_handoff_surface_inventory": [

@@ -10,7 +10,7 @@
 > agent protocols, and neuroscience co-simulation. It credits substrate functions
 > to the substrate and states the composition alternative and NCP ownership cost.
 
-## Thesis (and an honest caveat about it)
+## Central claim (and an honest caveat about it)
 
 NCP targets a specific design point: a **versioned, transport-agnostic,
 project-agnostic wire contract for simulation providers and external robot, UAV,

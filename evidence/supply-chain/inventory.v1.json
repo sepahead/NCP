@@ -2667,7 +2667,7 @@
         "evidence/convergence/local-convergence.v1.json"
       ],
       "path": "scripts/generate_convergence_manifest.py",
-      "sha256": "28f049fabad56621d95e9bc4ecd3b717bf65a073eb4e3cf1c0bdcdb547c5a9b6"
+      "sha256": "408f2c32a01080c988f05c5ea0c6ee781dee5a7fedfeeef0b81d1dcb57084a23"
     },
     {
       "outputs": [

@@ -52,7 +52,7 @@ one artifact set. The candidate registry's historical six-surface inventory is
 not a qualification result; it spans five
 canonical consumer repositories. Release authorization also requires the nine
 exact role subjects in [`RELEASE_READINESS.md`](RELEASE_READINESS.md). `pid-rs`
-is not an NCP peer and receives no role receipt. The PhD thesis wire-0.8
+is not an NCP peer and receives no role receipt. The external wire-0.8
 counterexample harness is an auxiliary pinned importer, not an installed peer or
 role subject. A candidate version bump or local test run is insufficient.
 Release artifacts, reports, signatures, SBOM/provenance, compatibility matrix,

@@ -78,7 +78,7 @@ REQUIRED_ROLE_SUBJECTS = (
     "Prisoma NCP observer",
 )
 REQUIRED_ROLE_SUBJECT_COUNT = 11
-AUXILIARY_NON_PEER_IMPORTERS = ("phd_thesis/formal/ncp-v080-counterexamples",)
+AUXILIARY_NON_PEER_IMPORTERS = ("external/formal/ncp-v080-counterexamples",)
 REPOSITORY_PREREQUISITE_IDS = (
     "zenoh-production-secure-peer-principal-binding",
     "zenoh-self-contained-package-resolution",
@@ -890,7 +890,7 @@ def self_test(value: dict[str, Any]) -> None:
     inserted_auxiliary = copy.deepcopy(value)
     inserted_auxiliary["external_pre_release_handoff"][consumer_index][
         "required_role_subjects"
-    ].append("phd_thesis/formal/ncp-v080-counterexamples")
+    ].append("external/formal/ncp-v080-counterexamples")
     inserted_auxiliary["external_pre_release_handoff"][consumer_index][
         "required_role_subject_count"
     ] += 1

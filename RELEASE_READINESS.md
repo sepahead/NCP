@@ -218,7 +218,7 @@ remains historical migration input. It does not describe the mutable migration
 worktree. `ncp-gateway` is a same-wire 1.0 Rust/Python edge. It cannot make an
 unmigrated 0.8 Python backend compatible. The separate migration translator is a
 labeled terminating gateway. It is ineligible for native 1.0 qualification.
-The PhD thesis counterexample harness is an auxiliary pinned wire-0.8 importer,
+The external counterexample harness is an auxiliary pinned wire-0.8 importer,
 not an installed peer or role subject.
 
 ## Release authorization

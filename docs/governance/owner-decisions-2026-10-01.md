@@ -64,7 +64,7 @@ are published and never rewritten as pre-release passes.
 ## 4. Migration
 
 Every consumer moves to native NCP 1.0 and retires its wire-0.8 surface: Engram,
-Crebain, Galadriel, Haldir, Prisoma, and the thesis counterexample harness. Until
+Crebain, Galadriel, Haldir, Prisoma, and the external counterexample harness. Until
 the contract rebaseline that implements ADR-006, ADR-007 and ADR-008 lands,
 consumers target the `1.0.0-rc.1` wire, in which a commander acquires its own
 lease and the receiver enforces it. After the rebaseline they move to body-issued

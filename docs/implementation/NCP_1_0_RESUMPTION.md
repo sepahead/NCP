@@ -87,7 +87,7 @@ boundary is proposed design input, not accepted protocol or implementation evide
 
 ## Current coordination state
 
-Blueprint SHA-256: `31285348202990c691f980ff3676448e4132fcf33c424c130ef661cd0d0aa8e7`.
+Blueprint SHA-256: `4992dfa105edd818fad9cfa340b4ad20b65a8f6719864763352f01fd3a5fe189`.
 
 Can this ledger grant release authorization? **false**.
 
@@ -150,7 +150,7 @@ Current residual risks:
 - The local ActionBuffer latches ESTOP before complete wire validation. ActionBuffer and the stream fence also adopt the first admitted epoch instead of comparing with a prepared declaration. The fence hashes variable route, kind, and generation strings for every frame instead of using a prepared fixed slot.
 - LinkMonitor copies and replaces the caller-supplied epoch on every valid sample instead of owning one prepared immutable epoch. It also permits a CUSUM threshold above its 256-sample work bound, normalizes invalid parameters, and exposes no counter-saturation state.
 - The C ABI discovers a NUL-terminated JSON length before applying the frame bound. The Python binding accepts an allocated string and builds a generic JSON value before the typed value. Installed ingress needs explicit bounded bytes and one typed decode. B02, B03, N01, N03, N05, N06, and N07 remain open.
-- Descriptor scans establish pin coherence only. They do not define the canonical historical handoff-surface inventory, discover role subjects, or issue a role receipt. The current eleven-role inventory contains absent and legacy-wire implementations, the thesis descriptor is auxiliary non-peer audit tooling, trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 remains open.
+- Descriptor scans establish pin coherence only. They do not define the canonical historical handoff-surface inventory, discover role subjects, or issue a role receipt. The current eleven-role inventory contains absent and legacy-wire implementations, the counterexample-harness descriptor is auxiliary non-peer audit tooling, trusted repository/build/deployment scans and independent scope adjudication are NOT RUN, and N07 remains open.
 - The local Ed25519 probe uses a fixed-sample p95 computational tripwire for thread CPU and process CPU at 100,000 microseconds. Maximum CPU and wall time remain observational. The probe records clock metadata, exact PyNaCl project and `uv.lock` identities, and the uv runner digest and version. The probe runs actual result-validator mutations. End-to-end latency, shared-resource behavior, and performance qualification remain NOT RUN.
 - Five usable exact Fable 5 consultations bind earlier decision bytes and are historical non-normative challenge input only. Five failed or incomplete attempts returned no complete usable answer, and no model response counts as review, proof, interoperability, or evidence.
 - The current 1.0.0-rc.1 normative digest and compact hash are unchanged; external security, plant, consumer, performance, supply-chain, and release gates remain NOT RUN or blocked.

@@ -60,8 +60,8 @@ extraction whose copied descriptor can appear in a filesystem scan. `NCP copy` i
 an old provider checkout. `Paper2Brain copy`, `pid_vla copy`, and `crebain copy`
 are legacy wire-0.2/0.2.5 consumer-lineage checkouts, while `Paper2Brain` is a
 placeholder-only directory. `pid-rs` copies remain protocol-neutral libraries.
-None is a canonical current consumer, installed peer, or role subject. The PhD
-thesis harness is instead an intentionally pinned auxiliary wire-0.8 importer,
+None is a canonical current consumer, installed peer, or role subject. The
+external harness is instead an intentionally pinned auxiliary wire-0.8 importer,
 but it is still not a peer and receives no role receipt.
 
 “Final” cannot honestly mean that no future defect, cryptographic transition,

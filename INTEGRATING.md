@@ -194,7 +194,7 @@ exact subject below. Every qualification remains **NOT RUN**.
 | Crebain Galadriel-producer surface | off-by-default, environment-gated wire-0.8 producer exists; native qualification absent |
 | Prisoma NCP observer | read-only wire-0.8 implementation exists; native qualification absent |
 
-The PhD thesis counterexample harness is a descriptor-pinned auxiliary wire-0.8
+The external counterexample harness is a descriptor-pinned auxiliary wire-0.8
 importer. It is not an installed peer, is not part of either inventory above,
 and receives no role receipt. Ephemeral extractions and legacy local copies that
 a filesystem scan encounters are also not canonical inventory entries.
