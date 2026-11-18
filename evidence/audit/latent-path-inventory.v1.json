@@ -11733,9 +11733,9 @@
       },
       {
         "path": "scripts/check_ncp2_advisories.sh",
-        "bytes": 4548,
-        "sha256": "3e00cf956637621d3b1194e7778a28e357bc4f8b74e3c14a7a656c8bbb854bf2",
-        "git_blob_oid": "a8f7c3ce8a33d1ec30b1847e4467117f5a5f9d55",
+        "bytes": 4695,
+        "sha256": "837b0cabbd8e532a3093f1dbf4d55c13a7f4c36151a6a6a8d90849219dc7c16f",
+        "git_blob_oid": "5026988eebd35e329a14326a3c61c4af4a76bc98",
         "indexed": true
       },
       {

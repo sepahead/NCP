@@ -40,7 +40,7 @@ deny() {
     database_flag="--disable-fetch"
     [ "${4:-}" = fetch ] && [ -z "$offline" ] && database_flag=""
     # shellcheck disable=SC2086 # $offline and $database_flag are single flags or empty
-    cargo deny --manifest-path "$1" --locked $offline --all-features \
+    cargo deny --color never --manifest-path "$1" --locked $offline --all-features \
         check --config "$root/$2" $database_flag >"$3" 2>&1
 }
 
@@ -62,7 +62,11 @@ for crate in core zenoh; do
         echo "an exception of scripts/ncp2-deny-$crate.toml matches no package of the lockfile: remove it" >&2
         exit 1
     fi
-    grep "advisories ok" "$work/$crate.txt"
+    if ! grep "advisories ok" "$work/$crate.txt"; then
+        cat "$work/$crate.txt" >&2
+        echo "cargo-deny gave no summary line for $manifest" >&2
+        exit 1
+    fi
 done
 
 database=$(find "$HOME/.cargo/advisory-dbs" -mindepth 1 -maxdepth 1 -type d -name 'advisory-db-*' 2>/dev/null | head -n 1)
