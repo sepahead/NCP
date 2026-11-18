@@ -36,7 +36,7 @@ import conditions  # noqa: E402
 
 SEED = 20261024
 # Protocol: its file and the seed of the order of its blocks.
-PROTOCOLS = {"1": ("PROTOCOL.md", SEED), "2": ("PROTOCOL-2.md", 20261102)}
+PROTOCOLS = {"1": ("PROTOCOL.md", SEED), "2": ("PROTOCOL-2.md", 20261102), "3": ("PROTOCOL-3.md", 20261118)}
 BLOCKS = 3
 SPIKES = (0, 127, 1788, 87381)
 NCP1_SPIKES = (0, 127, 1788)
@@ -59,9 +59,10 @@ def cargo_build(manifest: Path, target: Path, examples: bool = False) -> None:
     subprocess.run(command, check=True, env=dict(os.environ, CARGO_TARGET_DIR=str(target)))
 
 
-def build(work: Path, ncp1: Path, probe: bool = False) -> dict[str, Path]:
+def build(work: Path, ncp1: Path, probe: bool = False, protocol: str = "1") -> dict[str, Path]:
     """Build the NCP 2 examples, the Rust comparison arms, the NCP 1.0.1 harness, and, for
-    protocol 2, the clock probe of the NEST campaign."""
+    protocols 2 and 3, the clock probe of the NEST campaign: protocol 3 builds it from the crate of
+    revision 7, ncp2-rust7, because the crate of ncp2-rust no longer builds against the SDK."""
     cargo_build(ROOT / "rust" / "Cargo.toml", work / "ncp2-target", examples=True)
     cargo_build(HERE / "harness" / "rust" / "Cargo.toml", work / "harness-target")
     v1 = work / "ncp1-harness"
@@ -80,7 +81,8 @@ def build(work: Path, ncp1: Path, probe: bool = False) -> dict[str, Path]:
         "ncp1": work / "ncp1-target" / "release" / "ncp-local-exchange-bench",
     }
     if probe:
-        cargo_build(ROOT / "benchmarks" / "nest-campaign" / "harness" / "ncp2-rust" / "Cargo.toml", work / "probe-target")
+        crate = "ncp2-rust7" if protocol == "3" else "ncp2-rust"
+        cargo_build(ROOT / "benchmarks" / "nest-campaign" / "harness" / crate / "Cargo.toml", work / "probe-target")
         binaries["clock_probe"] = work / "probe-target" / "release" / "clock-probe"
     return binaries
 
@@ -93,7 +95,8 @@ def configurations(python: str, binaries: dict[str, Path], protocol: str = "1") 
     py_owner = py + [str(ROOT / "python" / "tests" / "echo_owner.py")]
     rust_owner = [str(binaries["echo_owner"])]
     rust_client = [str(binaries["bench_client"])]
-    py_client = py + [str(harness / "ncp2_client.py")]
+    # Protocol 3 runs revision 7 of the SDKs, whose Python client interface changed.
+    py_client = py + [str(harness / ("ncp2_client7.py" if protocol == "3" else "ncp2_client.py"))]
     bench = str(binaries["harness"])
     v1_python = py + [str(HERE / "harness" / "ncp1" / "python" / "client.py"), "sdk"]
     v1_py_owner = py + [str(HERE / "harness" / "ncp1" / "python" / "owner.py")]
@@ -186,7 +189,7 @@ def configurations(python: str, binaries: dict[str, Path], protocol: str = "1") 
             add(f"zmq-python-{kind}", n, py + [str(harness / "zmq_echo.py"), "client", kind] + args, family="other")
         add("http-python-tcp", n, py + [str(harness / "http_echo.py"), "client"] + args, family="other")
         add("zenoh-python-tcp", n, py + [str(harness / "zenoh_echo.py"), "client"] + args, family="other")
-    if protocol == "2":
+    if protocol in ("2", "3"):
         sealed = {"BENCH_SHA256": "1"}
         for n in SPIKES:
             args = ["{calls}", "{warmup}", str(n)]
@@ -257,7 +260,10 @@ def run_one(config: dict, calls: int, warmup: int, env: dict) -> tuple[int, dict
     try:
         if config["server"]:
             command = [replacements.get(part, part) for part in config["server"]]
-            server = subprocess.Popen(command, stdout=subprocess.PIPE, text=True, env=env)
+            # A pipe as standard input that stays open until the server stops: the Rust echo owner
+            # serves until its standard input closes, and a runner without a terminal would give it
+            # a closed one (PROTOCOL-3.md, section 8).
+            server = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env)
             line = server.stdout.readline().split(maxsplit=1)
             if len(line) != 2 or line[0] != "ready":
                 return 1, {}, [f"server did not start: {line!r}"]
@@ -282,6 +288,7 @@ def run_one(config: dict, calls: int, warmup: int, env: dict) -> tuple[int, dict
                 server.kill()
                 server.wait()
             server.stdout.close()
+            server.stdin.close()
         shutil.rmtree(socket_directory, ignore_errors=True)
 
 
@@ -389,11 +396,14 @@ def main() -> None:
     parser.add_argument("--smoke", action="store_true", help="one short block, for testing the runner")
     args = parser.parse_args()
     protocol_file, order_seed = PROTOCOLS[args.protocol]
-    gate = args.protocol == "2"  # protocol 2 controls the conditions of each run
+    # Protocols 2 and 3 control the conditions of each run; a smoke run is not a result. Protocol 3,
+    # fixed after 3 November 2026, may run on battery (conditions.py).
+    gate = args.protocol in ("2", "3") and not args.smoke
+    require_ac = args.protocol == "2"
     args.results.mkdir(parents=True, exist_ok=True)
     work = args.results / ".work"
     work.mkdir(exist_ok=True)
-    binaries = build(work, args.ncp1, probe=gate)
+    binaries = build(work, args.ncp1, probe=gate, protocol=args.protocol)
     configs = configurations(args.python, binaries, args.protocol)
     env = environment(args.ncp1)
     schedule_path = args.results / "schedule.json"
@@ -430,6 +440,8 @@ def main() -> None:
                 "end_clock_min_ghz": conditions.END_CLOCK_MIN_GHZ,
                 "max_attempts": conditions.MAX_ATTEMPTS,
                 "sleep_limit_s": conditions.SLEEP_LIMIT_S,
+                "require_ac": require_ac,
+                "battery_min_percent": conditions.BATTERY_MIN_PERCENT,
             }
         schedule_path.write_text(json.dumps(schedule, indent=1) + "\n")
     schedule = json.loads(schedule_path.read_text())
@@ -464,7 +476,7 @@ def main() -> None:
         config = configs[entry["config"]]
         calls, warmup = SMOKE_CALLS if schedule["smoke"] else CALLS[config["spikes"]]
         while True:
-            before, waited = conditions.wait(binaries["clock_probe"]) if gate else (None, 0.0)
+            before, waited = conditions.wait(binaries["clock_probe"], require_ac) if gate else (None, 0.0)
             load = os.getloadavg()
             power = power_source()
             started = now()
@@ -490,7 +502,7 @@ def main() -> None:
             disturbed = False
             if gate:
                 after = conditions.read(binaries["clock_probe"])
-                disturbed, slept = conditions.disturbed(clocks_before, clocks_after, after)
+                disturbed, slept = conditions.disturbed(clocks_before, clocks_after, after, require_ac)
                 if code == 0:
                     attempts[key] = attempts.get(key, 0) + 1
                 row.update(

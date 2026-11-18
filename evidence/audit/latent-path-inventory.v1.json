@@ -728,6 +728,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/comparison/PROTOCOL-3.md",
+        "bytes": 5428,
+        "sha256": "d1ddda6bdb6cc278d1223b222bd9d9a1a3b519cabba87c8791198f6605aba3db",
+        "git_blob_oid": "c8a4dc61d1a8c76a11d87bf6e5522252d2224e03",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/PROTOCOL-3.sha256",
+        "bytes": 80,
+        "sha256": "49504043ab4b83f87d9a74fa4285392d3c1388ea6d21ed89be9aae0d2db2afad",
+        "git_blob_oid": "0db9452f0346d978d32f57c836630c2549a57b2e",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/comparison/PROTOCOL.md",
         "bytes": 10384,
         "sha256": "e711a417841de8ef100dbc0a274f1e290d22c9da8295f0ce1cb794f21eb4f7a7",
@@ -750,9 +764,16 @@
       },
       {
         "path": "benchmarks/comparison/analyze.py",
-        "bytes": 39689,
-        "sha256": "dd94881852e3b4788c7a1956a0ab698e4fdecb402e82cb36a46da89a431a9449",
-        "git_blob_oid": "1e3764e683976064f6c629c062d9a960947a39b9",
+        "bytes": 40048,
+        "sha256": "76f28b035e654f4ccfd83f13d7b45085d0fe87485c39155eb5eeee2c35e68911",
+        "git_blob_oid": "886d80f4ba6634b2ca8e55b780391729cb228ef6",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/compare_revisions.py",
+        "bytes": 1955,
+        "sha256": "d0c155718c9aec6c8ce01cfc67e23f74157b8beadcdc444e6876e18bc24185dd",
+        "git_blob_oid": "2ffae5c195deb6bb290015b690dd5fd16e871927",
         "indexed": true
       },
       {
@@ -823,6 +844,13 @@
         "bytes": 2126,
         "sha256": "93c2cf047c2751a43fadb52c0a40ea0fa9b1c0984984373564cb555656033869",
         "git_blob_oid": "f6e18b5670c830a491aac09582262dae97706520",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/harness/python/ncp2_client7.py",
+        "bytes": 2329,
+        "sha256": "f10adc443fcf07c7133c18c492a350786b060b5da6777933cb6c932b71f4d239",
+        "git_blob_oid": "82def8287f138cf378deb1658892c8ac2d54d4e8",
         "indexed": true
       },
       {
@@ -1072,9 +1100,9 @@
       },
       {
         "path": "benchmarks/comparison/run.py",
-        "bytes": 24066,
-        "sha256": "1a3c6481d92f941731acd4c8a6cf5007281f99dc15f652382053924a5614b317",
-        "git_blob_oid": "d3c7d1b361c7688bdfd06699e3bc633058926542",
+        "bytes": 25112,
+        "sha256": "4ed753c77cbd4684fabbc4fa7ddd2da1bd35a5643baa5ea5602e8f95fdab200b",
+        "git_blob_oid": "ba84925b761cbbab39df930488e7d35a8adba0c6",
         "indexed": true
       },
       {
@@ -2139,6 +2167,13 @@
         "bytes": 334,
         "sha256": "6afd01457a181ffde9b6781cd6e42f77c813917efa6b11eb9eba1439314e13a6",
         "git_blob_oid": "e5be947c63193aa1ff3d02d66ded793fc2cdb7dd",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/harness/ncp2-rust7/src/bin/clock-probe.rs",
+        "bytes": 1291,
+        "sha256": "adeb3d1567682906f719f1cc51208483471c282a4073af6a9b06e465d16febed",
+        "git_blob_oid": "4cd1dbec766081440056818f2306e866e363597e",
         "indexed": true
       },
       {
@@ -12605,7 +12640,7 @@
     ]
   },
   "counts": {
-    "text_files": 1761,
+    "text_files": 1766,
     "binary_or_non_utf8_files": 29,
     "occurrences": 384,
     "by_token_id": {
@@ -12638,7 +12673,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "64dfec55188d64bd1c59bedb63cd46f7dc4d3b6fd7d2020ac6951b0996e0e2c3",
+  "scanned_path_set_sha256": "b565b1f678e81334b2935e778f01208a62101b4cedf7793c5e554b17b381c839",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",

@@ -646,7 +646,8 @@ def figure_tails(stats: dict, theme: dict, path: Path) -> None:
 def summary(stats: dict, result: dict, parts: list[dict], context: dict, integrity: list[dict] | None = None) -> str:
     two = integrity is not None
     lines = [
-        "# Comparison benchmark: results" + (" of protocol 2" if two else ""),
+        "# Comparison benchmark: results"
+        + (f" of protocol {context['protocol'].removeprefix('PROTOCOL-').removesuffix('.md')}" if two else ""),
         "",
         f"Protocol SHA-256 `{context['protocol_sha256']}`; {context['runs']} runs in {context['blocks']} blocks, "
         f"{context['started']} to {context['finished']} UTC; failed runs that counted: {context['failed']}.",
@@ -765,7 +766,9 @@ def main() -> None:
     parser.add_argument("--figures", type=Path)
     args = parser.parse_args()
     rows, schedule, validity = load(args.results)
-    two = schedule.get("protocol", "PROTOCOL.md") == "PROTOCOL-2.md"
+    protocol = schedule.get("protocol", "PROTOCOL.md")
+    # Protocol 3 runs the arms of protocol 2 with revision 7 of the SDKs, and is analysed in the same way.
+    two = protocol in ("PROTOCOL-2.md", "PROTOCOL-3.md")
     final = final_rows(rows)
     stats = statistics_by_config(final, schedule["blocks"])
     result = (hypotheses_2 if two else hypotheses)(stats, schedule["blocks"])
@@ -808,9 +811,11 @@ def main() -> None:
     (args.results / "summary.md").write_text(summary(stats, result, parts, context, integrity))
     global SOURCE
     code = f"commit {schedule['commit'][:7]}" if "commit" in schedule else context["started"][:10]
+    number = {"PROTOCOL.md": 1, "PROTOCOL-2.md": 2, "PROTOCOL-3.md": 3}[protocol]
+    revision = "revision 7" if number == 3 else "before revision 3"
     SOURCE = (
-        f"Comparison benchmark, protocol {2 if two else 1}, {context['started'][:10]}, one laptop. NCP 2 SDKs of "
-        f"{code}, before revision 3. Values: {args.results.name}/summary.md."
+        f"Comparison benchmark, protocol {number}, {context['started'][:10]}, one laptop. NCP 2 SDKs of "
+        f"{code}, {revision}. Values: {args.results.name}/summary.md."
     )
     figures = args.figures or args.results / "figures"
     figures.mkdir(parents=True, exist_ok=True)
