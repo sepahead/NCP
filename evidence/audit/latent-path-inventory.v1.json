@@ -4978,16 +4978,16 @@
       },
       {
         "path": "docs/design/NCP-2-DESIGN.md",
-        "bytes": 57847,
-        "sha256": "9acc9d4cd193bc07edfad899ee993f3948947b62dda5390150e2d51fc1d82b65",
-        "git_blob_oid": "e2866b76de04f7daaca77ea2f46147468c0009be",
+        "bytes": 58931,
+        "sha256": "1f74c647c37e78c0dcf648272b481feae1ceff0ce19cb6f5d1183ba274936b3b",
+        "git_blob_oid": "c1af0f67fc27c4d031abba19186bfb56c517d2d9",
         "indexed": true
       },
       {
         "path": "docs/design/NCP-2-MIGRATION.md",
-        "bytes": 32086,
-        "sha256": "278dfbed70671c1e1498b17f608f1b78172752b4d73b69a7aa856bb1c8c6b407",
-        "git_blob_oid": "3e84a5280f4f02c3e8e68c343abf5932cc7690ea",
+        "bytes": 32283,
+        "sha256": "c12055bc74672196f7f20ff23c60f11b5084bfed37c46391623c56f0de535f7a",
+        "git_blob_oid": "5ef74baf5bfd27c4da8344f8b6fd49ecaf93f2e1",
         "indexed": true
       },
       {
@@ -13974,13 +13974,13 @@
       ]
     },
     {
-      "id": "NCP-LATENT-207F17370357766F2D39",
+      "id": "NCP-LATENT-8C7A5C098740F1ED6F9C",
       "path": "docs/design/NCP-2-DESIGN.md",
-      "line": 281,
+      "line": 283,
       "column": 487,
       "token_id": "M008",
       "line_sha256": "1e5f1ebf60f8fb5f09a726820401d3514702ec92f848f007e4b7ab0bc95d19d2",
-      "file_sha256": "9acc9d4cd193bc07edfad899ee993f3948947b62dda5390150e2d51fc1d82b65",
+      "file_sha256": "1f74c647c37e78c0dcf648272b481feae1ceff0ce19cb6f5d1183ba274936b3b",
       "disposition": "NEGATIVE_POLICY_GUARD",
       "claim_effect": "FAIL_CLOSED_REQUIREMENT",
       "evidence_paths": [

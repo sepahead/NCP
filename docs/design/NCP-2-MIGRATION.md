@@ -288,7 +288,7 @@ Revision 7 (17 November 2026) closes the findings of the design record, [section
 These items remain, in the order of the advisory design review of revision 6:
 
 1. Before the tag, the owner decides which parts it freezes. Then the status line of each part that stays provisional names its own revision, and the READMEs and the API documentation of both SDKs say which modules are provisional, so that no consumer learns it from a broken build. The text that the review asked to add before a freeze is in revision 7.
-2. The fault campaign and one benchmark block on the tagged revision, both gates in hosted CI at the tagged commit, and a decoder, owner, and client by another author for the frozen parts.
+2. Both gates in hosted CI at the tagged commit, and a decoder, owner, and client by another author for the frozen parts. Revision 7 has run fault-campaign protocols 6 (sockets and TCP) and 7 (Zenoh), NEST content protocol 3, and comparison protocols 3 and 4; these runs must be repeated if the SDKs change before the tag. The NEST and multi-agent timings have not run with revision 7.
 3. CREBAIN's world as the first consumer of lockstep revision 5: it already checks a tick and a state digest in its own contract, without a holder or a recovery.
 4. A stream profile for sensors and advisories, first for Galadriel and CREBAIN's world.
 5. An authority profile for commands, with a lease and a term; first users CREBAIN's application and Haldir with its epoch 22, which is the owner's action.
