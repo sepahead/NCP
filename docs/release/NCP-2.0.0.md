@@ -46,7 +46,8 @@ The packages require ranges, such as `serde` 1.0.229 or a later 1.x release, not
 - `sepahead-ncp-zenoh` (Python) requires `sepahead-ncp` 2.0.0rc7 or a later 2.x release and `eclipse-zenoh` 1.10.2 or a later 1.x release (EPL-2.0 OR Apache-2.0); its tests use 1.10.2.
 - `sepahead-ncp-core` uses `getrandom` 0.3.4, `serde` 1.0.229, `serde_json` 1.0.154, `sha2` 0.11.1, and `socket2` 0.6.5, or later compatible releases; with their own dependencies, 29 packages. Each is under terms that include MIT or Apache-2.0, and `unicode-ident` also under Unicode-3.0 terms. Of these, `r-efi`, `wasip2`, and `wit-bindgen` are built only for UEFI and WASI targets.
 - `sepahead-ncp-zenoh` (Rust) resolves 312 packages with Zenoh 1.10.2. The Zenoh packages are under EPL-2.0 OR Apache-2.0, `webpki-roots` under CDLA-Permissive-2.0, and `option-ext` 0.2.0, which Zenoh reaches through `dirs`, under MPL-2.0, which requires that its own files, when changed and distributed, stay available as source; all others are under permissive terms such as MIT, Apache-2.0, BSD, ISC, and Zlib.
-- The binding's lockfile holds `lz4_flex` 0.10.0, which `zenoh-transport` requires; the advisory GHSA-vvp9-7p8x-rfvv concerns its decompression, which Zenoh uses only with the `transport_compression` feature, and the binding does not enable it.
+- The binding's lockfile holds `lz4_flex` 0.10.0, which `zenoh-transport` requires; the advisory GHSA-vvp9-7p8x-rfvv (RUSTSEC-2026-0041) concerns its decompression, which Zenoh uses only with the `transport_compression` feature, and the binding does not enable it.
+- `scripts/check_ncp2_advisories.sh` checks both Rust lockfiles against the RustSec database, with their licenses, sources, and banned features. The core has no exception. The binding has five, each without a fix that it can select, because Zenoh 1.10.2 is the latest 1.x release: the advisory above, which holds only while its policy refuses `transport_compression`, and the maintenance notices of `paste`, `unsafe-libyaml`, `rustls-pemfile`, and `humantime`, which are not vulnerabilities.
 
 ## Checks
 
@@ -61,6 +62,7 @@ Each gate is PASS, with its evidence, NOT RUN, or OPEN, which is a decision of t
 | Both NCP 2 gates on this computer (macOS) | PASS at the commit that holds this record (section "Checks") |
 | Both NCP 2 gates on Linux and macOS in hosted CI | The workflows `NCP 2` and `NCP 2 Zenoh binding` run them on each push; the run of the tagged commit is the evidence |
 | Reproducible release build | PASS at the commit that holds this record: two identical builds (section "Artifacts") |
+| Advisories, licenses, and sources of both Rust lockfiles | PASS on this computer on 18 November 2026 with the RustSec database at `472a4c9a` (`scripts/check_ncp2_advisories.sh`, section "Dependencies"); the workflow `NCP 2 advisories` repeats the check on each change and every week, and its run at the tagged commit is the evidence for the tag |
 | Benchmarks and fault campaign on the revision that the tag names | NOT RUN: they ran with revision 2 of the SDKs; revision 7 changed the owner, the client, and both profiles |
 | Fault campaign on the Zenoh binding, with owner restarts, session expiry, delayed and repeated `open`, and replayed frames | NOT RUN |
 | Benchmark of the Zenoh binding | NOT RUN |

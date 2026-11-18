@@ -1,7 +1,7 @@
 {
   "schema": "sepahead.agent-index.v1",
   "repository": "sepahead/NCP",
-  "summary": "Neuro-Cybernetic Protocol: NCP 2 (release candidate, revision 6 of spec/NCP-2.md; Python and Rust SDKs, optional Zenoh binding, Lean models, model checks, and vectors) and the NCP 1 surfaces that stay until their consumers move: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
+  "summary": "Neuro-Cybernetic Protocol: NCP 2 (release candidate, revision 7 of spec/NCP-2.md; Python and Rust SDKs, optional Zenoh binding, Lean models, model checks, and vectors) and the NCP 1 surfaces that stay until their consumers move: the wire contract, Rust, Python, C, C++ and TypeScript surfaces, conformance vectors and evidence for the untagged NCP 1.0 candidate. AGENTS.md is the operating contract; this index restates its operational facts for tools.",
   "entry_documents": [
     {"path": "AGENTS.md", "role": "operating contract for agents"},
     {"path": "README.md", "role": "overview"},
@@ -35,6 +35,7 @@
     {"id": "frozen-baselines", "when": "a protocol, schema or vector changes", "command": "python3 scripts/check_wire_baseline.py && python3 scripts/check_released_baselines.py", "cost": "medium"},
     {"id": "ncp2", "when": "python/, rust/, model/, formal/, conformance/, spec/NCP-2*.md, spec/ncp2-rules.json, or the tests of bindings/zenoh change; scripts/check_ncp2.sh --quick while editing", "command": "scripts/check_ncp2.sh", "cost": "medium"},
     {"id": "ncp2-zenoh", "when": "bindings/zenoh/, python/, rust/, or spec/NCP-2*.md changes", "command": "scripts/check_ncp2_zenoh.sh", "cost": "medium"},
+    {"id": "ncp2-advisories", "when": "rust/Cargo.toml, rust/Cargo.lock, bindings/zenoh/rust/Cargo.toml or Cargo.lock, or scripts/ncp2-deny-*.toml changes; needs cargo-deny 0.19.9 and fetches the current RustSec database", "command": "scripts/check_ncp2_advisories.sh", "cost": "fast"},
     {"id": "complete-local-gate", "when": "before a release-candidate handoff", "command": "scripts/check.sh", "cost": "full"}
   ],
   "generated": [

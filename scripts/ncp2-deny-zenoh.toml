@@ -1,0 +1,49 @@
+# cargo-deny policy of the NCP 2 Zenoh binding, sepahead-ncp-zenoh for Rust
+# (bindings/zenoh/rust/Cargo.lock). scripts/check_ncp2_advisories.sh applies it.
+#
+# Each exception is an advisory that Zenoh 1.10.2, the latest 1.x release, brings with no
+# fix that the binding can select. The script fails when an exception no longer matches a
+# package of the lockfile, so that the list stays exact: remove the entry then.
+
+[advisories]
+db-path = "${HOME}/.cargo/advisory-dbs"
+yanked = "deny"
+ignore = [
+  { id = "RUSTSEC-2026-0041", reason = "lz4_flex 0.10.0, which zenoh-transport 1.10.2 requires: the affected block decompression is compiled only with the feature transport_compression, which [bans] denies below" },
+  { id = "RUSTSEC-2024-0436", reason = "paste: unmaintained, no vulnerability; a procedural macro of token-cell in zenoh-keyexpr" },
+  { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml: unmaintained, no vulnerability; through serde_yaml in zenoh-config" },
+  { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile: unmaintained, no vulnerability; through zenoh-link-tls" },
+  { id = "RUSTSEC-2026-0542", reason = "humantime: unmaintained, no vulnerability; through uhlc, and every uhlc release depends on it" },
+]
+
+[licenses]
+# The licenses of the release record for the binding's packages. Zenoh is under
+# EPL-2.0 OR Apache-2.0, webpki-roots under CDLA-Permissive-2.0, and option-ext under
+# MPL-2.0. A dependency that needs another license is a review step.
+confidence-threshold = 0.9
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+  "MPL-2.0",
+  "CDLA-Permissive-2.0",
+]
+
+[bans]
+# Zenoh's graph holds two versions of several packages; that is not a finding here.
+multiple-versions = "allow"
+wildcards = "deny"
+# The exception for RUSTSEC-2026-0041 holds only while no package of the graph enables
+# Zenoh's compression. The script's self-test enables it and requires this denial.
+features = [
+  { crate = "zenoh-transport", deny = ["transport_compression"] },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

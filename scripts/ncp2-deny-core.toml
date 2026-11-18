@@ -1,0 +1,25 @@
+# cargo-deny policy of the NCP 2 Rust core crate, sepahead-ncp-core (rust/Cargo.lock).
+# scripts/check_ncp2_advisories.sh applies it. The core has no exception: any advisory,
+# including a maintenance notice, fails the gate.
+
+[advisories]
+db-path = "${HOME}/.cargo/advisory-dbs"
+yanked = "deny"
+
+[licenses]
+# Every package that a build of the core uses is under MIT or Apache-2.0 terms. The
+# lockfile also holds serde_derive with proc-macro2, quote, syn, and unicode-ident (also
+# under Unicode-3.0 terms): serde_core names serde_derive for the target cfg(any()), which
+# no build matches, to keep the two versions equal. A dependency that needs another
+# license is a review step.
+confidence-threshold = 0.9
+allow = ["MIT", "Apache-2.0"]
+
+[bans]
+# The core resolves one version of each package; a second version is a review step.
+multiple-versions = "deny"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

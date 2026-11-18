@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NCP 2: an advisory gate for the Rust lockfiles (no wire change)
+
+- `scripts/check_ncp2_advisories.sh` checks the lockfiles of `sepahead-ncp-core` and of the Rust
+  Zenoh binding against the RustSec database with cargo-deny 0.19.9: advisories, licenses,
+  sources, and banned features. Until now no workflow scanned these two lockfiles. The workflow
+  `NCP 2 advisories` runs the gate on each change of a manifest, a lockfile, or a policy, and every
+  Monday, because a new advisory can apply to a lockfile that did not change.
+- The core's policy, `scripts/ncp2-deny-core.toml`, has no exception and refuses a second version
+  of any package. The binding's policy, `scripts/ncp2-deny-zenoh.toml`, has five exceptions, none
+  of which has a fix that the binding can select under Zenoh 1.10.2, the latest 1.x release:
+  RUSTSEC-2026-0041 for `lz4_flex` 0.10.0, whose affected decompression Zenoh compiles only with
+  `transport_compression`, and the maintenance notices of `paste`, `unsafe-libyaml`,
+  `rustls-pemfile`, and `humantime`. The policy refuses `transport_compression`, and a self-test
+  enables it in a copy of the manifest and requires the refusal. The gate fails when an exception
+  no longer matches a package, so the list stays exact.
+
 ### NCP 2.0 release candidate, revision 7 (17 November 2026; tag and publication follow)
 
 An advisory design review of revision 6 (read-only, not certification evidence) found no defect in

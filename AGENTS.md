@@ -110,7 +110,8 @@ Change an NCP 2 rule in one change that updates all of these together:
 
 `scripts/check_ncp2.sh` fails when these disagree. Run it with `--quick` while
 you edit and without it before a commit. Run `scripts/check_ncp2_zenoh.sh` after a
-change to the bindings or to the SDKs.
+change to the bindings or to the SDKs, and `scripts/check_ncp2_advisories.sh` after a
+change to a Rust manifest or lockfile of NCP 2 or to its policies `scripts/ncp2-deny-*.toml`.
 
 Do not edit `conformance/vectors.json`, `python/ncp/vectors.json`, or the mutant
 table of `formal/README.md`: run `conformance/generate.py` and
