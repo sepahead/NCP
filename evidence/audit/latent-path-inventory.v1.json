@@ -1309,6 +1309,27 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/comparison/speed-by-revision/README.md",
+        "bytes": 5031,
+        "sha256": "40b8889202a843a10458f8863e5e1b7583596ae0db39caa3139d27005aa4e83f",
+        "git_blob_oid": "02982aff2954679b2055a9a1589fb50df5f82e47",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/speed-by-revision/py_client.py",
+        "bytes": 3818,
+        "sha256": "9514eaffab098f77340b971f3cadc150948fa83c17baf42a7eabb4a769bbafe7",
+        "git_blob_oid": "b16f54eac98b14282855a33be5f3b2bc0325adab",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/speed-by-revision/run_bisection.py",
+        "bytes": 17017,
+        "sha256": "ad33b9fad96e6068e05cf7682f28f7654c69d6f0364075dd54a64e3692c39582",
+        "git_blob_oid": "eaff297bb059f0a803210506e3f2a7c58f1bb41e",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/conditions.py",
         "bytes": 4655,
         "sha256": "d9a9789e4fa6ddf4ce0bc65a5286df85ddee9689ec87197ec7feb1735f199d8f",
@@ -12920,7 +12941,7 @@
     ]
   },
   "counts": {
-    "text_files": 1806,
+    "text_files": 1809,
     "binary_or_non_utf8_files": 29,
     "occurrences": 384,
     "by_token_id": {
@@ -12953,7 +12974,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "be2749c8945302d6b6c71aba5b214fd1ef766165e856f17262593aaf2c3a5b80",
+  "scanned_path_set_sha256": "2afb76c00e7d19f0b79d1ef91cd0d9ad6c8fecab3220c4315f8f2453a860e7c7",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
