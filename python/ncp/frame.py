@@ -48,7 +48,10 @@ DTYPES = {
 _PADDING = tuple(b" " * ((8 - n) % 8) for n in range(8))
 _ZEROS = bytes(8)
 _SURROGATE_ESCAPE = re.compile(r"\\u[dD][89a-fA-F]")  # may also match after an escaped backslash
-_NEGATIVE_ZERO = re.compile(r"-0(?![.eE0-9])")  # may also match inside a string
+# -0 where a JSON value can start: at the start, or after ":", ",", or "[" and JSON whitespace.
+# It can still match inside a string, rarely; the second parse in _parse then decides. It no
+# longer matches a hyphen inside an identifier, such as a UUID group that starts with 0.
+_NEGATIVE_ZERO = re.compile(r"(?:^|[:,\[])[ \t\n\r]*-0(?![.eE0-9])")
 _SURROGATE = re.compile("[\ud800-\udfff]")
 
 

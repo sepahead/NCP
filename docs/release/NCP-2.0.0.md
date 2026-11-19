@@ -1,6 +1,6 @@
 # NCP 2.0.0 release record
 
-Status: prepared on 11 November 2026, and rebuilt on 17 November 2026 for revision 7 of the specification, as the release candidate `2.0.0rc7` (Python) and `2.0.0-rc.7` (Rust). The tag and the publication of the packages are owner actions; this record lists what they publish. The commit that the tag names changes the versions to `2.0.0`, and the owner rebuilds from it (section "Owner steps").
+Status: prepared on 11 November 2026, rebuilt on 17 November 2026 for revision 7 of the specification, and rebuilt on 19 November 2026 for the speed changes of both SDKs, which change no rule, as the release candidate `2.0.0rc7` (Python) and `2.0.0-rc.7` (Rust). The tag and the publication of the packages are owner actions; this record lists what they publish. The commit that the tag names changes the versions to `2.0.0`, and the owner rebuilds from it (section "Owner steps").
 
 ## What 2.0.0 is
 
@@ -18,9 +18,9 @@ The [README](../../README.md#ncp-2-benchmarks-speed-lag-and-correctness) summari
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `sepahead-ncp-core-2.0.0-rc.7.crate` | 76,952 | `68728d6b893d9b002b50d18f03f7dfbf6bf70cd05e4757bc20d1ebc69dcf730d` |
-| `sepahead_ncp-2.0.0rc7-py3-none-any.whl` | 115,081 | `4afb91376d1a4c8dbada1e7aded0d6d98774f28ee72e69aa5e5327bbd77535d0` |
-| `sepahead_ncp-2.0.0rc7.tar.gz` | 111,709 | `2f5aef02b200d5a06152806182bb560e82c558e034260b66348c15f02e2b0c52` |
+| `sepahead-ncp-core-2.0.0-rc.7.crate` | 77,340 | `2b6cb09c4291caaabe72f26f9b6dd44fb7974619a97290b1e9b8194e59be6555` |
+| `sepahead_ncp-2.0.0rc7-py3-none-any.whl` | 115,772 | `108ecd63640ccf173ace98e5130ff3d917046e49ec93e6a52f8c278f69f6aed7` |
+| `sepahead_ncp-2.0.0rc7.tar.gz` | 112,336 | `2ed48d7989b8c6968ce3f49803700d17daa3620656b1885fdbb840db1a08f3cd` |
 | `sepahead_ncp_zenoh-2.0.0rc7-py3-none-any.whl` | 13,674 | `98db219d72bd8555c6554eddc3832fff36d7dc2b203e6937d3964a9ff5a4a1d2` |
 | `sepahead_ncp_zenoh-2.0.0rc7.tar.gz` | 12,526 | `6817d4fb4bba78cb08dbfdd568f3fab50cde9d0e00326dd926374444457e0ad5` |
 

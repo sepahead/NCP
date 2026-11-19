@@ -10,7 +10,7 @@ over a channel; tests, the model check, and other drivers use the same functions
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field, fields, replace
 from typing import Any
 
 from . import events as E
@@ -126,6 +126,13 @@ class ClientState:
     ended: bool = False
 
 
+# The transitions of every call build the next state with the constructor, which is several
+# times faster than dataclasses.replace. The constructor takes the fields in this order.
+assert [f.name for f in fields(ClientState)] == [
+    "session", "application", "contract", "requested_bound", "bound", "seq", "ack", "pending", "opened", "ended"
+]
+
+
 def new_state(contract: Contract, *, session: str | None = None, bound: int = F.DEFAULT_BOUND) -> ClientState:
     """The state of a new client of `contract`."""
     if not F.HANDSHAKE_BOUND <= bound <= F.MAX_BOUND:
@@ -178,7 +185,22 @@ def request(
         raise UsageError(f"the request cannot be sent: {error}") from error
     if len(frame) > state.bound:
         raise UsageError(f"a request of {len(frame)} bytes exceeds the session bound {state.bound}")
-    return replace(state, pending=Pending(seq, op, frame, F.identity(frame))), frame
+    pending = Pending(seq, op, frame, F.identity(frame))
+    return (
+        ClientState(
+            state.session,
+            state.application,
+            state.contract,
+            state.requested_bound,
+            state.bound,
+            state.seq,
+            state.ack,
+            pending,
+            state.opened,
+            state.ended,
+        ),
+        frame,
+    )
 
 
 LOST_SESSION = "the owner rejected a request other than open: it holds another opening of the session (rule 7.6.4)"
@@ -256,10 +278,32 @@ def receive(
                 return _end(state, "local.protocol", Executed.UNKNOWN, body, "the open response breaks section 7.1")
             new = replace(state, pending=None, opened=True, bound=body["bound"], seq=0, ack=decoded.identity)
         else:
-            new = replace(state, pending=None, seq=pending.seq, ack=decoded.identity, ended=pending.op == "close")
+            new = ClientState(
+                state.session,
+                state.application,
+                state.contract,
+                state.requested_bound,
+                state.bound,
+                pending.seq,
+                decoded.identity,
+                None,
+                state.opened,
+                pending.op == "close",
+            )
         return new, Result(body, decoded.identity, decoded.arrays, message["request"], pending.seq)
     if outcome == "declined":
-        new = replace(state, pending=None, seq=pending.seq, ack=decoded.identity)
+        new = ClientState(
+            state.session,
+            state.application,
+            state.contract,
+            state.requested_bound,
+            state.bound,
+            pending.seq,
+            decoded.identity,
+            None,
+            state.opened,
+            state.ended,
+        )
         text = body.get("detail", "") if type(body.get("detail")) is str else ""
         return new, Declined(text, code=code, body=body)
     if outcome == "rejected":
@@ -415,6 +459,8 @@ class Client:
 
     # ------------------------------------------------------------------ the driver
     def _event(self, kind: str, op: str | None, outcome: Any = None) -> None:
+        if self.observer is E.DEFAULT:
+            return  # the default observer reports only E.REPORTED_BY_DEFAULT, which a client never emits
         code = getattr(outcome, "code", None)
         name = "ok" if isinstance(outcome, Result) else type(outcome).__name__.lower() if outcome else None
         self.observer.event(E.Event(kind, "client", self.state.session, self.state.seq, op, name, code))

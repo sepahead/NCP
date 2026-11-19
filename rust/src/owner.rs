@@ -510,8 +510,20 @@ pub fn step<H: Handler + ?Sized>(
             (response, n, ends)
         }
     };
-    let mut next = state.clone();
-    next.high = seq;
+    // The next state, without a copy of the old kept response, which the new one replaces.
+    let mut next = OwnerState {
+        session: state.session.clone(),
+        bound: state.bound,
+        high: seq,
+        kept: None,
+        ended: state.ended,
+        closed: state.closed,
+        stopping: state.stopping,
+        contract: state.contract,
+        run: state.run.clone(),
+        nonce: state.nonce.clone(),
+        features: state.features.clone(),
+    };
     next.kept = Some(Kept {
         request: request_id.to_owned(),
         identity: frame::identity(&response),
@@ -1027,6 +1039,9 @@ impl<H: Handler> Owner<H> {
     pub fn handle_decoded(&mut self, decoded: &Decoded) -> Result<Arc<Vec<u8>>, FrameError> {
         let (next, response, n) = step(&self.config, &self.state, decoded, &mut self.handler)?;
         self.state = next;
+        if !self.observer.wants(n.kind) {
+            return Ok(response);
+        }
         let message = &decoded.message;
         self.observer.event(&Event {
             kind: n.kind,

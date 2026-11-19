@@ -33,6 +33,14 @@ pub struct Event {
 
 /// Receives events.
 pub trait Observer: Send + Sync {
+    /// Whether this observer uses events of `kind`. Owners and clients build an event only when
+    /// it does, so that an observer that ignores most events costs nothing on each call. The
+    /// default is `true`: every event.
+    fn wants(&self, kind: &'static str) -> bool {
+        let _ = kind;
+        true
+    }
+
     /// One event.
     fn event(&self, event: &Event);
 }
@@ -49,6 +57,10 @@ impl fmt::Debug for dyn Observer {
 pub struct ErrorsToStderr;
 
 impl Observer for ErrorsToStderr {
+    fn wants(&self, kind: &'static str) -> bool {
+        matches!(kind, "application_error" | "server_error")
+    }
+
     fn event(&self, event: &Event) {
         if matches!(event.kind, "application_error" | "server_error") {
             eprintln!(
@@ -73,6 +85,10 @@ impl Observer for ErrorsToStderr {
 pub struct Silent;
 
 impl Observer for Silent {
+    fn wants(&self, _kind: &'static str) -> bool {
+        false
+    }
+
     fn event(&self, _event: &Event) {}
 }
 

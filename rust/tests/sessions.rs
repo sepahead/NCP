@@ -3,6 +3,7 @@
 //! available.
 
 use ncp::frame::{self, Array, Key, HANDSHAKE_BOUND, MAX_BOUND};
+use ncp::Observer;
 use ncp::{
     conflict, declined, events, transcript, AppError, Channel, ChannelError, Client, Contract,
     Delivery, Error, Executed, Handler, Invalid, Limits, Lockstep, LockstepClient, OpenInfo, Owner,
@@ -2979,4 +2980,37 @@ fn a_step_waits_for_a_checked_take() {
     assert!(detail.starts_with("holder:"), "{detail}");
     assert_eq!(members[ncp::lockstep::FEATURE], json!({"term": 2}));
     assert_eq!(lockstep.clock().tick, 0);
+}
+
+/// Records the kinds of the events that it receives.
+struct Recorder(Mutex<Vec<&'static str>>);
+
+impl Observer for Recorder {
+    fn event(&self, event: &ncp::Event) {
+        self.0.lock().unwrap().push(event.kind);
+    }
+}
+
+#[test]
+fn an_observer_gets_every_event_and_the_default_wants_only_errors() {
+    let owner_events = Arc::new(Recorder(Mutex::new(Vec::new())));
+    let client_events = Arc::new(Recorder(Mutex::new(Vec::new())));
+    let owner = Owner::new(contract(), Echo::default()).with_observer(owner_events.clone());
+    let mut client = memory_of(owner, false, 0).with_observer(client_events.clone());
+    client.open().unwrap();
+    client.call("echo", json!({"n": 1}), &[]).unwrap();
+    client.close().unwrap();
+    assert_eq!(
+        *owner_events.0.lock().unwrap(),
+        ["opened", "admitted", "admitted"]
+    );
+    assert_eq!(
+        *client_events.0.lock().unwrap(),
+        ["verdict", "verdict", "verdict"]
+    );
+    let default = events::default_observer();
+    assert!(default.wants("application_error") && default.wants("server_error"));
+    assert!(!default.wants("admitted") && !default.wants("verdict"));
+    assert!(!events::Silent.wants("application_error"));
+    assert!(owner_events.wants("verdict"));
 }

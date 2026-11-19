@@ -305,6 +305,43 @@ class FrameTests(unittest.TestCase):
                     F.encode(message)
 
 
+class NegativeZeroCheckTests(unittest.TestCase):
+    """The decoder parses a frame a second time only when -0 can be a JSON number."""
+
+    def test_the_check_finds_every_integer_negative_zero(self) -> None:
+        for text in ("-0", " -0", "[-0]", "[1,-0]", "[1, \t-0]", '{"a":-0}', '{"a": -0}', '{"a":[{"b":\n-0}]}'):
+            self.assertIsNotNone(F._NEGATIVE_ZERO.search(text), text)
+            with self.assertRaises(F.FrameError):
+                F.loads(text)
+
+    def test_identifiers_do_not_trigger_the_second_parse(self) -> None:
+        for text in ('{"session":"6c5a1fad-0cf3-4953-87d8-0ab303100000"}', '{"s":"a-0b"}', '{"n":-0.5}', '{"n":-0e1}'):
+            self.assertIsNone(F._NEGATIVE_ZERO.search(text), text)
+        self.assertEqual(F.loads('{"session":"6c5a1fad-0cf3"}'), {"session": "6c5a1fad-0cf3"})
+
+
+class _Recorder:
+    def __init__(self) -> None:
+        self.kinds: list[tuple[str, str]] = []
+
+    def event(self, event: ncp.Event) -> None:
+        self.kinds.append((event.role, event.kind))
+
+
+class ObserverTests(unittest.TestCase):
+    """The SDK skips events that the default observer drops; another observer gets every one."""
+
+    def test_an_observer_gets_every_event_of_a_call(self) -> None:
+        owner_events, client_events = _Recorder(), _Recorder()
+        owner = ncp.Owner(CONTRACT, Echo(), observer=owner_events)
+        client = ncp.Client(_Lossless(owner), CONTRACT, observer=client_events)
+        client.open()
+        client.call("echo", {"n": 1})
+        client.close()
+        self.assertEqual([kind for _, kind in owner_events.kinds], ["opened", "admitted", "admitted"])
+        self.assertEqual([kind for _, kind in client_events.kinds], ["verdict", "verdict", "verdict"])
+
+
 class _Inflater(Echo):
     def execute(self, request):
         if "json" in request.body:

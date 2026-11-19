@@ -70,11 +70,15 @@ class LogObserver:
             )
 
 
+REPORTED_BY_DEFAULT = frozenset({"application_error", "server_error"})
+
+
 class _Default:
-    """Reports application and server errors only, so that a failure never passes silently."""
+    """Reports application and server errors only, so that a failure never passes silently.
+    Owners and clients skip building the other events for this observer."""
 
     def event(self, event: Event) -> None:
-        if event.kind in ("application_error", "server_error"):
+        if event.kind in REPORTED_BY_DEFAULT:
             LogObserver().event(event)
 
 

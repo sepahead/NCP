@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2: checks after revision 7 (no wire change)
 
+- Faster SDKs without a change of the frame format, of a rule, or of a verdict. The speed
+  bisection found the cost of revision 3 in work that each call did and did not need:
+  - Python: the client and the owner build the next state with its constructor instead of
+    `dataclasses.replace`. A check at import keeps the order of the fields.
+  - Python and Rust: an owner and a client build an event only for an observer that uses it. The
+    default observer uses only `application_error` and `server_error`. Rust observers gain the
+    provided method `Observer::wants`, which is `true` unless an observer overrides it.
+  - Rust: the client copies the body of a response only for an outcome other than `ok`, and the
+    client and the owner make the next state without a copy of the outstanding request or of the
+    old kept response.
+  - Python: the frame decoder parses a frame a second time only when `-0` can be a JSON number,
+    at the start or after `:`, `,`, or `[`. Before, a session identifier with a UUID group that
+    starts with `0` caused a second parse of every frame in about 4 percent of sessions.
+
+  In one process, a Python exchange of client and owner took 24.3 µs instead of 29.0 µs (revision
+  2: 18.5 µs). Over a pipe, in ten alternating rounds, a small call took 52.8 µs instead of
+  60.6 µs in Python and 9.2 µs instead of 9.6 µs in Rust. New tests check the -0 rule and that an
+  observer still gets every event. Both NCP 2 gates pass.
+- The release artifacts are rebuilt for the speed changes. Two builds gave the same files. The
+  Python core packages and the Rust core crate changed, and the Zenoh packages did not.
 - New document [`docs/NCP-2-STATUS.md`](docs/NCP-2-STATUS.md): the state of NCP 2 in plain words.
   NCP 2 is a release candidate, not final and not ready for production use. It lists the
   evidence and its limits, what blocks the tag, what production use needs after the tag, and

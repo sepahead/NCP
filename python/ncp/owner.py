@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import secrets
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field, fields, replace
 from typing import Any, Protocol
 
 from . import events as E
@@ -97,6 +97,12 @@ class OwnerState:
     run: str | None = None
     nonce: str | None = None
     features: Mapping[str, Any] = field(default_factory=dict, compare=False, hash=False)
+
+
+# step builds the next state with the constructor, which takes the fields in this order.
+assert [f.name for f in fields(OwnerState)] == [
+    "session", "bound", "high", "kept", "ended", "closed", "stopping", "contract", "run", "nonce", "features"
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -286,12 +292,18 @@ def step(
     else:
         response, note = _call(config, state, decoded, op, reply, handler)
         ends = note.outcome == "ended"
-    new_state = replace(
-        state,
-        high=seq,
-        kept=Kept(request_id, response, F.identity(response)),
-        ended=ends,
-        closed=op == "close",
+    new_state = OwnerState(
+        state.session,
+        state.bound,
+        seq,
+        Kept(request_id, response, F.identity(response)),
+        ends,
+        op == "close",
+        state.stopping,
+        state.contract,
+        state.run,
+        state.nonce,
+        state.features,
     )
     return new_state, response, note
 
@@ -583,6 +595,8 @@ class Owner:
         """Handle one decoded request frame and return the response frame."""
         before = self.state
         self.state, response, note = step(self.config, before, decoded, self.handler)
+        if self.observer is E.DEFAULT and note.kind not in E.REPORTED_BY_DEFAULT:
+            return response  # the default observer would drop this event
         message = decoded.message
         self.observer.event(
             E.Event(

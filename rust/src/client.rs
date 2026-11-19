@@ -302,12 +302,27 @@ pub fn request(
     Ok((next, frame))
 }
 
+/// The state without its outstanding request: a copy that does not clone the request.
+fn without_pending(state: &ClientState) -> ClientState {
+    ClientState {
+        session: state.session.clone(),
+        application: state.application.clone(),
+        contract: state.contract.clone(),
+        requested_bound: state.requested_bound,
+        bound: state.bound,
+        seq: state.seq,
+        ack: state.ack.clone(),
+        pending: None,
+        opened: state.opened,
+        ended: state.ended,
+    }
+}
+
 fn end(state: &ClientState, mut error: Error) -> (ClientState, Option<Result<Decoded, Error>>) {
     if let Error::Ended { request, .. } = &mut error {
         *request = state.pending.as_ref().map(|p| p.identity.clone());
     }
-    let mut next = state.clone();
-    next.pending = None;
+    let mut next = without_pending(state);
     next.ended = true;
     (next, Some(Err(error)))
 }
@@ -395,38 +410,40 @@ pub fn receive(
             ),
         );
     }
+    let mut next = without_pending(state);
+    let outcome = message["outcome"].as_str().unwrap_or_default();
+    if outcome == "ok" {
+        // The result stays in `decoded`: an `ok` response needs no copy of its body.
+        if pending.op == "open" {
+            let body = &message["body"];
+            let bound = body["bound"].as_u64().map(|b| b as usize);
+            let valid = bound
+                .is_some_and(|b| (HANDSHAKE_BOUND..=state.requested_bound).contains(&b))
+                && is_nonce(&body["nonce"])
+                && body.get("features").is_none_or(Value::is_object);
+            if !valid {
+                return end(
+                    state,
+                    Error::ended(
+                        "local.protocol",
+                        Executed::Unknown,
+                        "the open response breaks section 7.1",
+                    ),
+                );
+            }
+            next.opened = true;
+            next.bound = bound.unwrap_or(HANDSHAKE_BOUND);
+            next.seq = 0;
+        } else {
+            next.seq = pending.seq;
+            next.ended = pending.op == "close";
+        }
+        next.ack = Some(decoded.identity.clone());
+        return (next, Some(Ok(decoded)));
+    }
     let code = message["code"].as_str().unwrap_or_default().to_owned();
     let body = message["body"].clone();
-    let mut next = state.clone();
-    next.pending = None;
-    match message["outcome"].as_str().unwrap_or_default() {
-        "ok" => {
-            if pending.op == "open" {
-                let bound = body["bound"].as_u64().map(|b| b as usize);
-                let valid = bound
-                    .is_some_and(|b| (HANDSHAKE_BOUND..=state.requested_bound).contains(&b))
-                    && is_nonce(&body["nonce"])
-                    && body.get("features").is_none_or(Value::is_object);
-                if !valid {
-                    return end(
-                        state,
-                        Error::ended(
-                            "local.protocol",
-                            Executed::Unknown,
-                            "the open response breaks section 7.1",
-                        ),
-                    );
-                }
-                next.opened = true;
-                next.bound = bound.unwrap_or(HANDSHAKE_BOUND);
-                next.seq = 0;
-            } else {
-                next.seq = pending.seq;
-                next.ended = pending.op == "close";
-            }
-            next.ack = Some(decoded.identity.clone());
-            (next, Some(Ok(decoded)))
-        }
+    match outcome {
         "declined" => {
             next.seq = pending.seq;
             next.ack = Some(decoded.identity.clone());
@@ -814,6 +831,9 @@ impl<C: Channel> Client<C> {
                 }
             }
         };
+        if !self.observer.wants("verdict") {
+            return verdict;
+        }
         self.observer.event(&Event {
             kind: "verdict",
             role: "client",
@@ -837,6 +857,9 @@ impl<C: Channel> Client<C> {
     }
 
     fn event(&self, kind: &'static str, op: &str) {
+        if !self.observer.wants(kind) {
+            return;
+        }
         self.observer.event(&Event {
             kind,
             role: "client",
