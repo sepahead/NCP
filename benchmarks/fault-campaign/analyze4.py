@@ -20,6 +20,7 @@ STALL_VIEW = {
     "PROTOCOL-4.md": "ended:timeout:unknown",
     "PROTOCOL-5.md": "ended:timeout:unknown",
     "PROTOCOL-6.md": "ended:local.timeout:unknown",
+    "PROTOCOL-8.md": "ended:local.timeout:unknown",
 }
 
 HYPOTHESES = {

@@ -768,7 +768,7 @@ def main() -> None:
     rows, schedule, validity = load(args.results)
     protocol = schedule.get("protocol", "PROTOCOL.md")
     # Protocol 3 runs the arms of protocol 2 with revision 7 of the SDKs, and is analysed in the same way.
-    two = protocol in ("PROTOCOL-2.md", "PROTOCOL-3.md")
+    two = protocol in ("PROTOCOL-2.md", "PROTOCOL-3.md", "PROTOCOL-5.md")
     final = final_rows(rows)
     stats = statistics_by_config(final, schedule["blocks"])
     result = (hypotheses_2 if two else hypotheses)(stats, schedule["blocks"])
@@ -811,7 +811,7 @@ def main() -> None:
     (args.results / "summary.md").write_text(summary(stats, result, parts, context, integrity))
     global SOURCE
     code = f"commit {schedule['commit'][:7]}" if "commit" in schedule else context["started"][:10]
-    number = {"PROTOCOL.md": 1, "PROTOCOL-2.md": 2, "PROTOCOL-3.md": 3}[protocol]
+    number = {"PROTOCOL.md": 1, "PROTOCOL-2.md": 2, "PROTOCOL-3.md": 3, "PROTOCOL-5.md": 5}[protocol]
     revision = "revision 7" if number == 3 else "before revision 3"
     SOURCE = (
         f"Comparison benchmark, protocol {number}, {context['started'][:10]}, one laptop. NCP 2 SDKs of "

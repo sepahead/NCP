@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run protocol 4, 5, or 6 of the fault campaign, for NCP 2 over sockets and with the Rust client
-(see PROTOCOL-4.md, PROTOCOL-5.md, and PROTOCOL-6.md). Resumable and safe to interrupt.
+(see PROTOCOL-4.md, PROTOCOL-5.md, PROTOCOL-6.md, and PROTOCOL-8.md). Resumable and safe to interrupt.
 
-Usage: run4.py RESULTS_DIR [--protocol 4|5|6] [--smoke]
+Usage: run4.py RESULTS_DIR [--protocol 4|5|6|8] [--smoke]
 Protocol 5 is protocol 4 with the corrected cleanup of harness/fault_client4.py and its own seed.
 Protocol 6 is protocol 5 with revision 7 of the SDKs: the trial program harness/fault_client6.py,
 the Python owner harness/fault_owner6.py, the ported Rust client, and its own seed.
@@ -34,6 +34,7 @@ PROTOCOLS = {
     "4": ("PROTOCOL-4.md", 20261105, "fault_client4.py"),
     "5": ("PROTOCOL-5.md", 20261109, "fault_client4.py"),
     "6": ("PROTOCOL-6.md", 20261118, "fault_client6.py"),
+    "8": ("PROTOCOL-8.md", 20261121, "fault_client6.py"),
 }
 BLOCKS = 3
 BINDINGS = ("unix", "tcp")

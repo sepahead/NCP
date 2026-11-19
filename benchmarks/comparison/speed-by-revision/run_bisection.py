@@ -49,6 +49,7 @@ COMMITS = [
     ("7edc3f9", "revision 5", "2026-11-14"),
     ("28fb8cc", "revision 6", "2026-11-15"),
     ("727289e", "revision 7", "2026-11-17"),
+    ("9df6b71", "speed changes", "2026-11-19"),
 ]
 RUST_CALLS, RUST_WARMUP = 20_000, 2_000
 PYTHON_CALLS, PYTHON_WARMUP = 3_000, 300

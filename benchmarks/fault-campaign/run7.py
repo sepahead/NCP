@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run fault-campaign protocol 7, NCP 2 revision 7 over the Zenoh binding (see PROTOCOL-7.md).
+"""Run fault-campaign protocol 7 or 9, NCP 2 revision 7 over the Zenoh binding (see PROTOCOL-7.md).
 Resumable and safe to interrupt.
 
 Usage: run7.py RESULTS_DIR [--smoke]
@@ -26,8 +26,9 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE / "harness"))
 from zenoh_fault7 import NETWORK  # noqa: E402
 
-PROTOCOL = "PROTOCOL-7.md"
-SEED = 20261119
+# Protocol: its file and the seed of the order of each block. Protocol 9 repeats protocol 7.
+PROTOCOLS = {"7": ("PROTOCOL-7.md", 20261119), "9": ("PROTOCOL-9.md", 20261121)}
+PROTOCOL, SEED = PROTOCOLS["7"]
 BLOCKS = 3
 OWNERS = ("python", "rust")
 # (scenario, trials per block for each owner)
@@ -47,7 +48,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("results", type=Path)
     parser.add_argument("--smoke", action="store_true", help="one trial of each scenario and owner")
+    parser.add_argument("--protocol", choices=sorted(PROTOCOLS), default="7")
     args = parser.parse_args()
+    protocol_file, seed = PROTOCOLS[args.protocol]
     args.results.mkdir(parents=True, exist_ok=True)
     target = args.results / ".work" / "target"
     subprocess.run(["cargo", "build", "--release", "--locked", "--quiet", "--examples", "--manifest-path",
@@ -56,7 +59,7 @@ def main() -> None:
     owner = target / "release" / "examples" / "zenoh_echo_owner"
     schedule_path = args.results / "schedule.json"
     if not schedule_path.exists():
-        rng = random.Random(SEED)
+        rng = random.Random(seed)
         order = []
         for block in range(1 if args.smoke else BLOCKS):
             entries = [{"scenario": scenario, "owner": who}
@@ -64,9 +67,9 @@ def main() -> None:
             rng.shuffle(entries)
             order += [dict(entry, block=block, index=i, seed=rng.randrange(2**31)) for i, entry in enumerate(entries)]
         schedule_path.write_text(json.dumps({
-            "protocol": PROTOCOL,
-            "protocol_sha256": hashlib.sha256((HERE / PROTOCOL).read_bytes()).hexdigest(),
-            "seed": SEED,
+            "protocol": protocol_file,
+            "protocol_sha256": hashlib.sha256((HERE / protocol_file).read_bytes()).hexdigest(),
+            "seed": seed,
             "smoke": args.smoke,
             "commit": out(["git", "-C", str(ROOT), "rev-parse", "HEAD"]),
             "worktree_clean": out(["git", "-C", str(ROOT), "status", "--porcelain"]) == "",
@@ -77,6 +80,8 @@ def main() -> None:
             "order": order,
         }, indent=1) + "\n")
     schedule = json.loads(schedule_path.read_text())
+    if schedule["protocol"] != protocol_file:
+        sys.exit(f"{args.results} holds {schedule['protocol']}, not {protocol_file}")
     trials_path = args.results / "trials.jsonl"
     done = set()
     if trials_path.exists():

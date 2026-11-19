@@ -23,8 +23,14 @@ The diagnostic times eight commits:
 | `7edc3f9` | Revision 5 | 14 November 2026 |
 | `28fb8cc` | Revision 6 | 15 November 2026 |
 | `727289e` | Revision 7 | 17 November 2026 |
+| `9df6b71` | Revision 7 with the speed changes | 19 November 2026 (second run only) |
 
 The SDK code did not change between `727289e` and the commit of comparison protocol 3.
+
+The first run, in the directory `results`, timed the first eight commits. The speed changes of
+`9df6b71` came from its findings. A second run, in the directory `results-2`, times all nine
+commits with the same method, so that the effect of the speed changes is measured with
+alternating runs. The runner of the second run was committed before that run.
 
 For each commit, [`run_bisection.py`](run_bisection.py) exports `python/` and `rust/` with
 `git archive`. Each run uses the client and the echo owner of the same commit:
@@ -42,7 +48,7 @@ Each call sends the request `spikes` with `n` equal to 0 over a pipe to a child 
 
 The runs alternate:
 
-- In each of 20 rounds, the 16 runs (eight commits, two languages) start in a random order,
+- In each of 20 rounds, the runs of all commits in both languages start in a random order,
   with the seed 20261119. A slow period of the computer thus falls on all commits alike.
 - The conditions are those of comparison protocols 3 and 4 ([`conditions.py`](../../conditions.py)).
   Before each run, the one-minute load average is below 8 and a core runs at 4.0 GHz or more.

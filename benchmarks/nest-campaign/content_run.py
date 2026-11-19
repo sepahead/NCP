@@ -31,16 +31,17 @@ PROTOCOLS = {
     "1": ("PROTOCOL-CONTENT.md", "content.py", SEED),
     "2": ("PROTOCOL-CONTENT-2.md", "content2.py", 20261102),
     "3": ("PROTOCOL-CONTENT-3.md", "content3.py", 20261118),
+    "4": ("PROTOCOL-CONTENT-4.md", "content3.py", 20261121),
 }
 NETWORKS_3 = ("alpha", "brunel", "aeif", "hh", "izhikevich", "gif", "precise", "brunel_stdp")
 
 
 def configurations(protocol: str = "1") -> list[dict]:
-    networks = NETWORKS_3 if protocol == "3" else ("alpha", "brunel", "aeif")
+    networks = NETWORKS_3 if protocol in ("3", "4") else ("alpha", "brunel", "aeif")
     configs = [{"network": network, "n": 1000, "threads": threads, "delta_ms": delta,
                 "name": f"{network}-t{threads}-d{delta:g}"}
                for network in networks for threads in (1, 2, 4, 8) for delta in (1.0, 5.0)]
-    if protocol in ("2", "3"):
+    if protocol in ("2", "3", "4"):
         configs += [{"network": "brunel", "n": 10000, "threads": threads, "delta_ms": delta,
                      "name": f"brunel-n10000-t{threads}-d{delta:g}"}
                     for threads in (1, 2, 4, 8) for delta in (1.0, 5.0)]
@@ -99,7 +100,7 @@ def main() -> None:
                PYTHONPATH=f"{HERE / 'harness'}{os.pathsep}{ROOT / 'local/python'}", PYTHONDONTWRITEBYTECODE="1")
     if args.protocol == "2":
         env.update(NCP2_PYTHON=str(ROOT / "python"), NCP2_HOST=str(build_ncp2_host(args.results / ".work")))
-    if args.protocol == "3":
+    if args.protocol in ("3", "4"):
         env.update(NCP2_PYTHON=str(ROOT / "python"),
                    NCP2_HOST7=str(build_ncp2_host(args.results / ".work", "ncp2-rust7", "ncp2-nest-host7")))
         subprocess.run([sys.executable, str(HERE / "harness" / "content3.py"), "--self-test"], check=True)

@@ -169,9 +169,9 @@
       },
       {
         "path": "CITATION.cff",
-        "bytes": 952,
-        "sha256": "cc41628dc91d1154ec7c3fb447b338b75b19352cdbe2ccbda7a879f8aee07aae",
-        "git_blob_oid": "ebe2487cd81ddecbcf21f22bc804a105954b7ec6",
+        "bytes": 1255,
+        "sha256": "55802e84f9514f734055780695b14be7e72588a3f87717770ef9491269516419",
+        "git_blob_oid": "ad564c17fa2e0b1a970747dfa758ffe9ac13ec90",
         "indexed": true
       },
       {
@@ -756,6 +756,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/comparison/PROTOCOL-5.md",
+        "bytes": 3762,
+        "sha256": "50e735269a295242fbb812895484c0e4ca85f3b84ab5d5ac3719d5405d952047",
+        "git_blob_oid": "63938d7a5c91a7523a40b80e9374f58046c4e09d",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/comparison/PROTOCOL-5.sha256",
+        "bytes": 80,
+        "sha256": "8088cb33d599c9f15acb9b870295509467e384b75fdadcca131f972c4cae4d3b",
+        "git_blob_oid": "bdf53dc084fdae1127f335ab57f00ca524f82f39",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/comparison/PROTOCOL.md",
         "bytes": 10384,
         "sha256": "e711a417841de8ef100dbc0a274f1e290d22c9da8295f0ce1cb794f21eb4f7a7",
@@ -778,9 +792,9 @@
       },
       {
         "path": "benchmarks/comparison/analyze.py",
-        "bytes": 40048,
-        "sha256": "76f28b035e654f4ccfd83f13d7b45085d0fe87485c39155eb5eeee2c35e68911",
-        "git_blob_oid": "886d80f4ba6634b2ca8e55b780391729cb228ef6",
+        "bytes": 40085,
+        "sha256": "8aebee62b105d3e2407e9cb8fc9de14c67ec8cc1dd8654973c18f8ca51b12964",
+        "git_blob_oid": "6b230a9c7cd0434ac7403258a56f79224197af81",
         "indexed": true
       },
       {
@@ -1303,16 +1317,16 @@
       },
       {
         "path": "benchmarks/comparison/run.py",
-        "bytes": 26177,
-        "sha256": "a686c32b510d6fc0654a1dde3f4390b40c06c092cb0407d1a3d57218bc301e6b",
-        "git_blob_oid": "8fdedd4b70443f37293123857c9ccfea782512ae",
+        "bytes": 26234,
+        "sha256": "1aa3457dc9eff4f810db8affa7920d0437c6c8c70ac859a6717c1cc8635b9dbc",
+        "git_blob_oid": "6564423cc721b12798bf6ec9b0dab95f83e397e5",
         "indexed": true
       },
       {
         "path": "benchmarks/comparison/speed-by-revision/README.md",
-        "bytes": 8017,
-        "sha256": "e628bb8df71c2e771eaad0a9cf4715178ca334ae35d518fd8df8ba1eeaf5c6aa",
-        "git_blob_oid": "71e439410843ae031b85840325a632c8fe3e6301",
+        "bytes": 8457,
+        "sha256": "bf893704a569dfcfcdd25998176a6c5c535bef69f5002c4756a54bf5ffbfbc34",
+        "git_blob_oid": "5a3189d767c0f2da9236f76a0c57d0a6b7772fdb",
         "indexed": true
       },
       {
@@ -1359,9 +1373,9 @@
       },
       {
         "path": "benchmarks/comparison/speed-by-revision/run_bisection.py",
-        "bytes": 17017,
-        "sha256": "ad33b9fad96e6068e05cf7682f28f7654c69d6f0364075dd54a64e3692c39582",
-        "git_blob_oid": "eaff297bb059f0a803210506e3f2a7c58f1bb41e",
+        "bytes": 17065,
+        "sha256": "809b89231226e61844631ac8bc29d81fb9b64dd9ff6402a92f9ae2db000908aa",
+        "git_blob_oid": "fc0aa4f03fa99b4913287867cc3956e45029d4cb",
         "indexed": true
       },
       {
@@ -1456,6 +1470,34 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/fault-campaign/PROTOCOL-8.md",
+        "bytes": 1572,
+        "sha256": "489e59dd85ae432c503cf2a8f5531c950a047688251fb277adea50c22185c9d4",
+        "git_blob_oid": "8cfb8e02d1c702f26f3e0ab76a5e94d684850ebf",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/PROTOCOL-8.sha256",
+        "bytes": 80,
+        "sha256": "537bca58e64770e0ae6506008998557b81495462b5f72452726ef772ed41baed",
+        "git_blob_oid": "7d09abf632a1313b70c9667115345d472660cd11",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/PROTOCOL-9.md",
+        "bytes": 1270,
+        "sha256": "75e8f5d4167875a9a994a10b8c36899d591d2ed64783f53fd03a8d2cda84cbda",
+        "git_blob_oid": "5205a0bf293c6120a1c68f48a84cd763a8cb87a7",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/fault-campaign/PROTOCOL-9.sha256",
+        "bytes": 80,
+        "sha256": "2f0d8b545b1daf3952bf7511cc8c969823e3a96635db92efc4c4ee58bb347c77",
+        "git_blob_oid": "5253ca109cb6c6eef8cf461986cb5b8ff0897600",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/fault-campaign/PROTOCOL-SOAK.md",
         "bytes": 1271,
         "sha256": "34e209894e8d3ba10b352691adf01684ad6d4fc4c39ef59b6c3bfffef8c35e73",
@@ -1506,9 +1548,9 @@
       },
       {
         "path": "benchmarks/fault-campaign/analyze4.py",
-        "bytes": 6289,
-        "sha256": "b4b26ef2432d10d74e1c970587fa23dfef2fc806eb395d9ce213d9c0b6769705",
-        "git_blob_oid": "a15299dfda53caeed879fa028b919580984e778c",
+        "bytes": 6341,
+        "sha256": "a0c09c79def1105fbd708ab6ffacf65f5200d4f5275c1416b57899ebeafa6d4a",
+        "git_blob_oid": "d82f75fd8c33c18bfaf951e35fd10874337cf765",
         "indexed": true
       },
       {
@@ -1849,16 +1891,16 @@
       },
       {
         "path": "benchmarks/fault-campaign/run4.py",
-        "bytes": 7987,
-        "sha256": "d733071447a8d5273c8564a2b2fbbb5019209be25ebffdbd00319e481d632e01",
-        "git_blob_oid": "9aaf0b2414b7afee9262b7f0fcbb8f8afa4895f7",
+        "bytes": 8062,
+        "sha256": "310ad9d49ba51db29308ec4576b55fea3bb67dc9a186a70f0b7a1ae7b0ac1d15",
+        "git_blob_oid": "256423a6a972dce781f3c5e6e906305312294dcf",
         "indexed": true
       },
       {
         "path": "benchmarks/fault-campaign/run7.py",
-        "bytes": 5071,
-        "sha256": "4e3cadc546041ea4160aad74e2300fd7ec92c5f0f0d52e93573a1f90d5e62968",
-        "git_blob_oid": "523838eb6c50b1a8fe5ec96c152d2a0596a669e0",
+        "bytes": 5510,
+        "sha256": "495e953bd06f5eec811a49ebdc20ffd9a301accc075535df6f7a1ac1d2ead760",
+        "git_blob_oid": "71e3a25e973f879105763767756c04159d3971d8",
         "indexed": true
       },
       {
@@ -2268,6 +2310,20 @@
         "indexed": true
       },
       {
+        "path": "benchmarks/nest-campaign/PROTOCOL-CONTENT-4.md",
+        "bytes": 1445,
+        "sha256": "012214d14d04abd8a21b58f900dd3e28833eda60abf729c65040f99259fe0c3c",
+        "git_blob_oid": "23b217b566d29c79a6ba52c831de8ff0ea573af0",
+        "indexed": true
+      },
+      {
+        "path": "benchmarks/nest-campaign/PROTOCOL-CONTENT-4.sha256",
+        "bytes": 88,
+        "sha256": "d05aaeb7b66ea9d24043febaaaeb3b9c917a8e11922d2f38364bc9b876f7dd8b",
+        "git_blob_oid": "5fd9477668632be6f1aa0e2aa576b5c447d1382a",
+        "indexed": true
+      },
+      {
         "path": "benchmarks/nest-campaign/PROTOCOL-CONTENT.md",
         "bytes": 2146,
         "sha256": "f2920fc12c144d18b2b0f948723807fa1ef8f2127ed95a8f8375ed0a60d9c0ff",
@@ -2346,9 +2402,9 @@
       },
       {
         "path": "benchmarks/nest-campaign/content_run.py",
-        "bytes": 6810,
-        "sha256": "168f90946690aa69a2cacda5f96c1ca3d8110187fe04d325de8cc98113e316d7",
-        "git_blob_oid": "dbe3d615b88539b655520fc396a67a68a3e5030e",
+        "bytes": 6890,
+        "sha256": "764266720e6bebac136f2137c20c13be0d13c54c0ec5894f2cca355988439836",
+        "git_blob_oid": "48619daabce769d845908d936d434a40d2a1ade5",
         "indexed": true
       },
       {
@@ -12983,7 +13039,7 @@
     ]
   },
   "counts": {
-    "text_files": 1815,
+    "text_files": 1823,
     "binary_or_non_utf8_files": 29,
     "occurrences": 384,
     "by_token_id": {
@@ -13016,7 +13072,7 @@
       "VALIDATED_CANONICAL_DEFAULT": 3
     }
   },
-  "scanned_path_set_sha256": "4bae7a804643ad752eab64300f401a85901ce027b62ad9aebfef76f5d8afbd1a",
+  "scanned_path_set_sha256": "4157a9c32ebb27092aacaf8b22ff307bea35b13661405c39faa5a35283dbe5df",
   "occurrences": [
     {
       "id": "NCP-LATENT-05F479E829ACBE3A83E8",
