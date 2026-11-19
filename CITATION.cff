@@ -11,10 +11,14 @@ authors:
 repository-code: 'https://github.com/sepahead/NCP'
 url: 'https://github.com/sepahead/NCP'
 abstract: >-
-  A versioned, transport-agnostic, project-agnostic wire contract that lets a
-  spiking neural simulation serve external robot, UAV, and analysis systems for
-  perception and action, with explicit provenance and a safety-gated action
-  plane. Outputs are control artifacts, never validated reproductions.
+  NCP couples programs that different people write, such as a spiking neural
+  simulation, a simulated body or robot, and recorders, so that they work
+  together in steps. NCP 2, a release candidate, makes each step run at most
+  once, gives the client a true verdict after every failure, checks each
+  message with a digest, and keeps a session record that a verifier can check.
+  It has Python and Rust SDKs, an optional Zenoh binding, and claims proved in
+  Lean. NCP 1 holds the released local SDK and the earlier wire contracts.
+  Outputs are control artifacts, never validated reproductions.
 keywords:
   - spiking-neural-network
   - neurorobotics
@@ -24,7 +28,7 @@ keywords:
   - nest-simulator
   - zenoh
   - closed-loop-control
-  - real-time
+  - formal-verification
   - provenance
   - pyo3
   - typescript
