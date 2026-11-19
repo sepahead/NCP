@@ -2625,7 +2625,7 @@
         "scripts/diagram_font_metrics.v1.json"
       ],
       "path": "scripts/gen_diagrams.py",
-      "sha256": "61027f1b9006befb7ace32ecb2c00824cef359fb7966c3a05d09347f2ff33b3d"
+      "sha256": "43c2d049f01f78950816de9e90124926c1cd373d16c8a4607dbda63f57ac4e8f"
     },
     {
       "outputs": [

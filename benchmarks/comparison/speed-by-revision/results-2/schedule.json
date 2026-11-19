@@ -1,0 +1,78 @@
+{
+ "commits": [
+  {
+   "commit": "c701f568cdaf5fd9f97d36bd13108eb9f0e573d2",
+   "label": "protocol 2",
+   "date": "2026-11-02"
+  },
+  {
+   "commit": "5300f70",
+   "label": "revision 1",
+   "date": "2026-11-11"
+  },
+  {
+   "commit": "8940721",
+   "label": "revision 2",
+   "date": "2026-11-13"
+  },
+  {
+   "commit": "9f58e7a",
+   "label": "revision 3",
+   "date": "2026-11-13"
+  },
+  {
+   "commit": "2e24ef5",
+   "label": "revision 4",
+   "date": "2026-11-13"
+  },
+  {
+   "commit": "7edc3f9",
+   "label": "revision 5",
+   "date": "2026-11-14"
+  },
+  {
+   "commit": "28fb8cc",
+   "label": "revision 6",
+   "date": "2026-11-15"
+  },
+  {
+   "commit": "727289e",
+   "label": "revision 7",
+   "date": "2026-11-17"
+  },
+  {
+   "commit": "9df6b71",
+   "label": "speed changes",
+   "date": "2026-11-19"
+  }
+ ],
+ "rounds": 20,
+ "seed": 20261119,
+ "rust": {
+  "calls": 20000,
+  "warmup": 2000,
+  "client": "rust/examples/bench_client.rs",
+  "owner": "rust/examples/echo_owner.rs",
+  "build": "cargo build --release --locked --examples"
+ },
+ "python": {
+  "calls": 3000,
+  "warmup": 300,
+  "version": "3.15.0",
+  "client": "benchmarks/comparison/speed-by-revision/py_client.py",
+  "owner": "python/tests/echo_owner.py"
+ },
+ "request": "spikes {\"step\": i, \"n\": 0}, over a pipe to a child owner",
+ "runner_commit": "47a61a41b5b0f321230d6f0dae73b5c3b2f20bd7",
+ "runner_clean": true,
+ "machine": "arm64",
+ "system": "Darwin 25.5.0",
+ "conditions": {
+  "load_limit": 8.0,
+  "clock_min_ghz": 4.0,
+  "end_clock_min_ghz": 3.8,
+  "max_attempts": 3,
+  "require_ac": false
+ },
+ "created_utc": "2026-11-19T01:03:41.556733+00:00"
+}

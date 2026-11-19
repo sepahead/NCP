@@ -143,6 +143,14 @@ Each trial also compared 399,800 samples of the membrane potential in each host.
 
 The records are in [`results-content-3/`](results-content-3), and `analyze_content3.py` writes the analysis.
 
+## Results of content protocol 4
+
+[`PROTOCOL-CONTENT-4.md`](PROTOCOL-CONTENT-4.md) repeats content protocol 3 with the speed changes of both SDKs (commit `9df6b71`), which change no rule and no verdict. It was fixed and pushed in commit `7a9d7a9` before its trials (SHA-256 in [`PROTOCOL-CONTENT-4.sha256`](PROTOCOL-CONTENT-4.sha256)).
+
+The 216 trials ran on 19 November 2026 from 02:02 to 03:02 UTC, from the clean commit `47a61a4`. Other programs on the computer made the one-minute load average 2.4 to 45.4 before a trial. None failed.
+**Both hosts received exactly the reference in every trial, and every hypothesis holds**: 66,165,804 spikes and 172,713,600 samples of the membrane potential, counted over both hosts, with every float64 equal bit for bit. These totals equal those of content protocol 3, as NEST gives the same events for the same seed.
+For each configuration of content protocol 2, the reference spike total of each block equals that of protocol 2 (K3, 96 of 96). [`results-content-4/`](results-content-4/analysis.json) holds every trial and the analysis.
+
 ## Protocol 3, run 1
 
 All 774 runs of 23 October 2026 (19:00 to 20:48 UTC) were valid. At every NCP host, the number of received spikes equalled NEST's recorder total, the recorded counts agreed across arms within each configuration and block (G4), and they equal protocol 2's totals (G5). NCP 2 delivered steps of Brunel with 10,000 neurons at Δ = 5 ms, which NCP 1.0.x refuses. Protocol 3 compares numbers of spikes, not the spikes themselves; [content protocol 2](PROTOCOL-CONTENT-2.md) compares every spike and found them exact.

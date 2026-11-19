@@ -1,0 +1,531 @@
+{
+ "runs": 360,
+ "kept": 360,
+ "disturbed": 0,
+ "languages": {
+  "rust": {
+   "ratio_last_to_first": 1.078,
+   "total_step_us": 0.71,
+   "steps": [
+    {
+     "to": "5300f70",
+     "label": "revision 1",
+     "step_us": 0.0
+    },
+    {
+     "to": "8940721",
+     "label": "revision 2",
+     "step_us": -0.04
+    },
+    {
+     "to": "9f58e7a",
+     "label": "revision 3",
+     "step_us": 0.67
+    },
+    {
+     "to": "2e24ef5",
+     "label": "revision 4",
+     "step_us": -0.02
+    },
+    {
+     "to": "7edc3f9",
+     "label": "revision 5",
+     "step_us": 0.0
+    },
+    {
+     "to": "28fb8cc",
+     "label": "revision 6",
+     "step_us": 0.08
+    },
+    {
+     "to": "727289e",
+     "label": "revision 7",
+     "step_us": 0.04
+    },
+    {
+     "to": "9df6b71",
+     "label": "speed changes",
+     "step_us": -0.02
+    }
+   ]
+  },
+  "python": {
+   "ratio_last_to_first": 1.519,
+   "total_step_us": 18.32,
+   "steps": [
+    {
+     "to": "5300f70",
+     "label": "revision 1",
+     "step_us": 0.51
+    },
+    {
+     "to": "8940721",
+     "label": "revision 2",
+     "step_us": 1.22
+    },
+    {
+     "to": "9f58e7a",
+     "label": "revision 3",
+     "step_us": 23.42
+    },
+    {
+     "to": "2e24ef5",
+     "label": "revision 4",
+     "step_us": -1.02
+    },
+    {
+     "to": "7edc3f9",
+     "label": "revision 5",
+     "step_us": -0.04
+    },
+    {
+     "to": "28fb8cc",
+     "label": "revision 6",
+     "step_us": 1.7
+    },
+    {
+     "to": "727289e",
+     "label": "revision 7",
+     "step_us": -1.1
+    },
+    {
+     "to": "9df6b71",
+     "label": "speed changes",
+     "step_us": -6.37
+    }
+   ]
+  }
+ },
+ "rows": {
+  "c701f56": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.06,
+    "q1_us": 8.96,
+    "q3_us": 9.12,
+    "p99_median_us": 12.69
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 3,
+    "median_us": 35.33,
+    "q1_us": 34.19,
+    "q3_us": 39.69,
+    "p99_median_us": 51.42,
+    "second_parse_median_us": 46.25
+   }
+  },
+  "5300f70": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.06,
+    "q1_us": 8.93,
+    "q3_us": 9.24,
+    "p99_median_us": 13.21
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 35.84,
+    "q1_us": 33.97,
+    "q3_us": 39.72,
+    "p99_median_us": 51.75,
+    "second_parse_median_us": null
+   }
+  },
+  "8940721": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.02,
+    "q1_us": 8.85,
+    "q3_us": 9.1,
+    "p99_median_us": 12.9
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 37.06,
+    "q1_us": 34.57,
+    "q3_us": 39.96,
+    "p99_median_us": 50.69,
+    "second_parse_median_us": null
+   }
+  },
+  "9f58e7a": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.69,
+    "q1_us": 9.59,
+    "q3_us": 9.81,
+    "p99_median_us": 13.12
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 2,
+    "median_us": 60.48,
+    "q1_us": 58.63,
+    "q3_us": 63.83,
+    "p99_median_us": 74.67,
+    "second_parse_median_us": 64.1
+   }
+  },
+  "2e24ef5": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.67,
+    "q1_us": 9.55,
+    "q3_us": 9.74,
+    "p99_median_us": 13.52
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 1,
+    "median_us": 59.46,
+    "q1_us": 58.73,
+    "q3_us": 64.58,
+    "p99_median_us": 71.67,
+    "second_parse_median_us": 63.67
+   }
+  },
+  "7edc3f9": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.67,
+    "q1_us": 9.64,
+    "q3_us": 9.85,
+    "p99_median_us": 13.4
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 3,
+    "median_us": 59.42,
+    "q1_us": 58.5,
+    "q3_us": 63.9,
+    "p99_median_us": 71.04,
+    "second_parse_median_us": 71.0
+   }
+  },
+  "28fb8cc": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.75,
+    "q1_us": 9.68,
+    "q3_us": 9.85,
+    "p99_median_us": 13.5
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 1,
+    "median_us": 61.12,
+    "q1_us": 58.46,
+    "q3_us": 64.75,
+    "p99_median_us": 75.88,
+    "second_parse_median_us": 64.67
+   }
+  },
+  "727289e": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.79,
+    "q1_us": 9.62,
+    "q3_us": 9.82,
+    "p99_median_us": 13.44
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 60.02,
+    "q1_us": 59.0,
+    "q3_us": 65.31,
+    "p99_median_us": 74.27,
+    "second_parse_median_us": null
+   }
+  },
+  "9df6b71": {
+   "rust": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 9.77,
+    "q1_us": 9.67,
+    "q3_us": 9.83,
+    "p99_median_us": 13.23
+   },
+   "python": {
+    "runs": 20,
+    "second_parse_runs": 0,
+    "median_us": 53.65,
+    "q1_us": 50.76,
+    "q3_us": 57.39,
+    "p99_median_us": 66.02,
+    "second_parse_median_us": null
+   }
+  }
+ },
+ "counts": {
+  "c701f56": {
+   "label": "protocol 2",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "json": 18.0,
+    "ncp/binding.py": 13.0,
+    "ncp/exchange.py": 9.0,
+    "ncp/frame.py": 51.0,
+    "other": 4.0
+   },
+   "client_total": 95.0,
+   "owner": {
+    "json": 18.0,
+    "ncp/binding.py": 13.0,
+    "ncp/exchange.py": 9.0,
+    "ncp/frame.py": 51.0,
+    "other": 4.0
+   },
+   "owner_total": 95.0
+  },
+  "5300f70": {
+   "label": "revision 1",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "json": 18.0,
+    "ncp/binding.py": 13.0,
+    "ncp/exchange.py": 12.0,
+    "ncp/frame.py": 51.0,
+    "other": 4.0
+   },
+   "client_total": 98.0,
+   "owner": {
+    "json": 18.0,
+    "ncp/binding.py": 13.0,
+    "ncp/exchange.py": 9.0,
+    "ncp/frame.py": 51.0,
+    "other": 4.0
+   },
+   "owner_total": 95.0
+  },
+  "8940721": {
+   "label": "revision 2",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "json": 18.0,
+    "ncp/binding.py": 13.0,
+    "ncp/exchange.py": 12.0,
+    "ncp/frame.py": 51.0,
+    "other": 4.0
+   },
+   "client_total": 98.0,
+   "owner": {
+    "json": 18.0,
+    "ncp/binding.py": 13.0,
+    "ncp/exchange.py": 9.0,
+    "ncp/frame.py": 51.0,
+    "other": 4.0
+   },
+   "owner_total": 95.0
+  },
+  "9f58e7a": {
+   "label": "revision 3",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "dataclasses": 27.0,
+    "generated __init__": 2.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/client.py": 13.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 10.0,
+    "other": 4.0
+   },
+   "client_total": 149.0,
+   "owner": {
+    "dataclasses": 13.0,
+    "generated __init__": 1.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/contract.py": 5.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 10.0,
+    "ncp/owner.py": 11.0,
+    "other": 4.0
+   },
+   "owner_total": 137.0
+  },
+  "2e24ef5": {
+   "label": "revision 4",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "dataclasses": 27.0,
+    "generated __init__": 2.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/client.py": 13.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 10.0,
+    "other": 4.0
+   },
+   "client_total": 149.0,
+   "owner": {
+    "dataclasses": 13.0,
+    "generated __init__": 1.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/contract.py": 5.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 13.0,
+    "ncp/owner.py": 12.0,
+    "other": 4.0
+   },
+   "owner_total": 141.0
+  },
+  "7edc3f9": {
+   "label": "revision 5",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "dataclasses": 27.0,
+    "generated __init__": 0.5,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/client.py": 13.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 10.0,
+    "other": 4.0
+   },
+   "client_total": 147.5,
+   "owner": {
+    "dataclasses": 13.0,
+    "generated __init__": 1.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/contract.py": 5.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 13.0,
+    "ncp/owner.py": 12.0,
+    "other": 4.0
+   },
+   "owner_total": 141.0
+  },
+  "28fb8cc": {
+   "label": "revision 6",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "dataclasses": 27.0,
+    "generated __init__": 2.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/client.py": 13.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 10.0,
+    "other": 4.0
+   },
+   "client_total": 149.0,
+   "owner": {
+    "dataclasses": 13.0,
+    "generated __init__": 1.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/contract.py": 5.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 15.0,
+    "ncp/owner.py": 12.0,
+    "other": 4.0
+   },
+   "owner_total": 143.0
+  },
+  "727289e": {
+   "label": "revision 7",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "dataclasses": 27.0,
+    "generated __init__": 2.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/client.py": 13.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 10.0,
+    "other": 4.0
+   },
+   "client_total": 149.0,
+   "owner": {
+    "dataclasses": 13.0,
+    "generated __init__": 1.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/contract.py": 5.0,
+    "ncp/events.py": 1.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 15.0,
+    "ncp/owner.py": 12.0,
+    "other": 4.0
+   },
+   "owner_total": 143.0
+  },
+  "9df6b71": {
+   "label": "speed changes",
+   "draws": [
+    1,
+    1
+   ],
+   "client": {
+    "generated __init__": 2.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/client.py": 11.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 10.0,
+    "other": 4.0
+   },
+   "client_total": 119.0,
+   "owner": {
+    "generated __init__": 1.0,
+    "json": 18.0,
+    "ncp/binding.py": 10.0,
+    "ncp/contract.py": 5.0,
+    "ncp/frame.py": 64.0,
+    "ncp/messages.py": 15.0,
+    "ncp/owner.py": 9.0,
+    "other": 4.0
+   },
+   "owner_total": 126.0
+  }
+ }
+}

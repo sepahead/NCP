@@ -369,3 +369,32 @@ The 960 trials ran on 18 November 2026 from 19:52 to 20:13 UTC, from the clean c
 
 A session completed after a restart when the owner died before the `open` or after the last step. Of the steps whose verdict was "possibly executed", 38 followed a restart and 46 a kill; the execution log agreed with every verdict of the client.
 This is the first fault campaign of NCP 2 over a link that loses, repeats, delays, and replays messages. It covers the Python client on one computer, over the loopback interface, without a router; the Rust client of the binding is covered by the binding's tests.
+
+## Protocols 8 and 9: protocols 6 and 7 with the speed changes of the SDKs
+
+On 19 November 2026, commit `9df6b71` made both SDKs faster without a change of the frame format, of a rule, or of a verdict ([comparison protocol 5](../comparison/PROTOCOL-5.md), section 2). The change touches the client, the owner, and the Python frame decoder.
+[`PROTOCOL-8.md`](PROTOCOL-8.md) repeats protocol 6, and [`PROTOCOL-9.md`](PROTOCOL-9.md) repeats protocol 7, with the changed SDKs and the seed 20261121. Both were fixed and pushed in commit `7a9d7a9` before their trials (SHA-256 in [`PROTOCOL-8.sha256`](PROTOCOL-8.sha256) and [`PROTOCOL-9.sha256`](PROTOCOL-9.sha256)).
+`run4.py --protocol 8` and `run7.py --protocol 9` ran them, and `analyze4.py` and `analyze7.py` applied the criteria of protocols 6 and 7.
+
+### Results of protocols 8 and 9
+
+Both ran on 19 November 2026 from the clean commit `47a61a4`, on the power adapter: protocol 8 from 01:27 to 01:40 UTC, and protocol 9 from 01:40 to 02:02 UTC. The one-minute load averages before a trial were 2.8 to 12.1 and 2.6 to 13.4.
+[`results-8/`](results-8/analysis.json) and [`results-9/`](results-9/analysis.json) hold every trial and the analyses.
+**Every scheduled trial ran, and every hypothesis holds: E1 to E8 in all 4,560 trials of protocol 8, and E1 to E4, Z1, and Z2 in all 960 trials of protocol 9.**
+
+| Scenario of protocol 8 | Owner | Trials | Completed | Ended early | Wrong results |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Bit flip, client to owner, and owner to client | Python, Rust | 960 each | 0 | 960 each | 0 |
+| Truncated frame, both directions | Python, Rust | 360 each | 0 | 360 each | 0 |
+| Repeated frame, client to owner | Python / Rust | 120 each | 17 / 15 | 103 / 105 | 0 |
+| Repeated frame, owner to client | Python / Rust | 120 each | 11 / 16 | 109 / 104 | 0 |
+| Owner killed at a random time | Python / Rust | 240 each | 41 / 209 | 199 / 31 | 0 |
+| Client killed at a random time | Python, Rust | 120 each | The owner served a new session in all 240 | | |
+| Step stalls, result larger than the bound | Python | 120 each | 0 | 120 each | 0 |
+| Request larger than the session bound | Python, Rust | 120 each | 120 each | 0 | 0 |
+| Handler raises | Python, Rust | 120 each | 0 | 120 each | 0 |
+
+Of the 1,920 flipped bits, 1,309 were in the JSON region, 313 in the attachments, 207 in the digest, and 91 in the header.
+In protocol 9, every trial with faults of the network only completed (840 of 840). Every trial with an owner killed and not started again ended early with `local.timeout`, possibly executed (60 of 60). After a restart of the owner, 6 of 60 sessions completed, and 44 steps ended with `session_expired`, possibly executed. The execution log agreed with every verdict of the client.
+The changed SDKs thus meet every fault scenario of protocols 6 and 7 again, with 5,520 trials and no wrong result.
+

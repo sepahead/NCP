@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### NCP 2: checks after revision 7 (no wire change)
 
+- The evidence ran again with the speed changes of `9df6b71`, from the clean commit `47a61a4`, by
+  protocols fixed and pushed before their runs (`7a9d7a9`). Every correctness result held:
+  fault-campaign protocol 8 (4,560 trials over Unix domain sockets and TCP, E1 to E8), protocol 9
+  (960 trials over Zenoh, E1 to E4, Z1, Z2), and NEST content protocol 4 (216 trials, 66,165,804
+  spikes and 172,713,600 samples bit for bit, the same totals as content protocol 3).
+- Comparison protocol 5 (420 runs, none disturbed): R2, R3, S1, and S2 hold. R1 does not, because
+  in Python HTTP/1.1 was faster than NCP 2 over a pipe at 1788 spikes. A small call took 9.9 µs in
+  Rust and 52.4 µs in Python (protocol 3: 11.0 and 65.6 µs). The ratios to protocol 3 include a
+  change of the power source: protocol 3 ran on battery and protocol 5 on the adapter.
+- A second run of the speed bisection, with all nine commits in alternating rounds: the speed
+  changes take Python from 60.0 to 53.6 µs (revision 2: 37.1 µs) and remove 47 of the 99 function
+  calls that revisions 3 to 7 added. In Rust, they have no measurable effect (9.8 µs, revision 2:
+  9.0 µs). Correction: the commit message of `9df6b71` says that the Rust time returned to that of
+  revision 2. That was a quick test of ten rounds. The bisection does not confirm it.
+- The README gains a section "Why NCP 2 exists", which states the four failures that NCP 2
+  prevents with their evidence and its cost, and a section "Further work" at its end, which lists
+  all work that remains. Its call-time tables now give protocol 5. The `ncp2-why` diagram gives
+  the times of protocol 5, and no longer says that NCP 2 has the fastest small call in Python: it
+  is as fast as ZeroMQ there. The status document, the guide, the comparison document, the design
+  record, the migration plan, the release record, the known limitations, and AGENTS.md follow.
+- `analyze.py` names the SDKs of protocol 5 in the source line of its figures.
 - Faster SDKs without a change of the frame format, of a rule, or of a verdict. The speed
   bisection found the cost of revision 3 in work that each call did and did not need:
   - Python: the client and the owner build the next state with its constructor instead of

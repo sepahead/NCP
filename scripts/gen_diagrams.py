@@ -3807,16 +3807,16 @@ def ncp2_why() -> Canvas:
         WIDTH,
         1500,
         "Why NCP 2 exists: built-in guarantees and fast calls",
-        "A table compares NCP 2 with gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 builds in four guarantees that the others do not, and has the fastest small call in Rust and Python. "
+        "A table compares NCP 2 with gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 builds in four guarantees that the others do not. Its small call is the fastest in Rust and as fast as the fastest other tool in Python. "
         f"NCP 2 is UNRELEASED. {NOT_CERTIFICATION}",
     )
-    y = header(c, "WHY NCP 2", "Guarantees built in, and the fastest small call")
+    y = header(c, "WHY NCP 2", "Guarantees built in, at the speed of the fast tools")
     intro_bottom = lines_at(
         c,
         MARGIN,
         y + 20,
-        "A closed loop needs each step to run once, a clear answer after a failure, checked "
-        "messages, and a record that can be checked. Other tools can add these on top; NCP 2 has "
+        "A closed loop needs each step to run once, a true answer after a failure, checked "
+        "messages, and a record that can be checked. Other tools can add these on top. NCP 2 has "
         "them built in.",
         BODY,
         WIDTH - 2 * MARGIN,
@@ -3824,17 +3824,17 @@ def ncp2_why() -> Canvas:
     columns = [
         ("System", 196),
         ("A request sent again runs once", 250),
-        ("Says after a failure whether it ran", 250),
+        ("Gives a true answer after a failure", 250),
         ("Detects a damaged message without TLS", 250),
         ("Session record a verifier checks", 250),
         ("Small call, Rust\u00a0·\u00a0Python", 300),
     ]
     rows = [
-        ("NCP 2", True, "9.0 µs · 38.8 µs"),
-        ("gRPC", False, "35.9 µs · 114.5 µs"),
-        ("ZeroMQ", False, "not measured · 54.6 µs"),
-        ("Zenoh", False, "59.5 µs · 65.2 µs"),
-        ("HTTP/1.1", False, "not measured · 80.3 µs"),
+        ("NCP 2", True, "9.9 µs · 52.4 µs"),
+        ("gRPC", False, "34.7 µs · 112.1 µs"),
+        ("ZeroMQ", False, "not measured · 52.9 µs"),
+        ("Zenoh", False, "56.7 µs · 62.8 µs"),
+        ("HTTP/1.1", False, "not measured · 75.2 µs"),
     ]
     top = intro_bottom + 24
     head_h, row_h = 116, 64
@@ -3871,14 +3871,15 @@ def ncp2_why() -> Canvas:
         table_bottom + 28,
         "HOW TO READ IT",
         [
-            "Medians of the comparison benchmark on one laptop, with no spikes: NCP 2 over a pipe, "
-            "gRPC over a Unix socket, ZeroMQ over ipc, Zenoh and HTTP/1.1 over TCP. With the same "
-            "SHA-256 check added to every system, NCP 2 was the fastest at every size up to 1\u00a0MiB.",
+            "Medians of comparison protocol 5 on one laptop, 19 November 2026, with no spikes: NCP 2 "
+            "over a pipe, gRPC over a Unix socket, ZeroMQ over ipc, Zenoh and HTTP/1.1 over TCP. With "
+            "the same SHA-256 check added to every system, NCP 2 was the fastest at every size in Rust, "
+            "and in Python at 0 and 1788 spikes and at 1\u00a0MiB.",
             "The others have what NCP 2 lacks: gRPC has typed interfaces with code generation, "
-            "streaming calls, and deadlines; gRPC, ZeroMQ, and Zenoh authenticate peers without a "
+            "streaming calls, and deadlines. gRPC, ZeroMQ, and Zenoh authenticate peers without a "
             "shared key. The comparison document lists each difference with its source.",
             "MUSIC, with which NEST exchanges spikes with other simulators, needs all of them in "
-            "one MPI job; in this NEST build it delivered exact spikes only with one NEST thread.",
+            "one MPI job. In this NEST build, it delivered exact spikes only with one NEST thread.",
         ],
     ).bottom
     return _finish(c, bottom)

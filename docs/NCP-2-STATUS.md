@@ -19,19 +19,23 @@ NCP 2 is a release candidate. It is not final, and it is not ready for productio
   author.
 - Revision 3 made one small call slower, in both SDKs. The cost was not measured until five days
   later. Section [Why revision 7 is slower](#why-revision-7-is-slower) gives the cause.
+- On 19 November 2026, a change of both SDKs recovered a part of the cost without a change of a
+  rule. In Python, a small call takes 53.6 µs instead of 60.0 µs (revision 2: 37.1 µs). In Rust,
+  it takes 9.8 µs (revision 2: 9.0 µs). The fault campaigns, the NEST content check, and the
+  comparison benchmark ran again with the changed SDKs, and every result held.
 
 ## What the evidence shows
 
-| Evidence | Result for revision 7 | Where |
+| Evidence | Result for revision 7, with the speed changes of 19 November 2026 | Where |
 | --- | --- | --- |
 | Proofs | Nineteen claims about the owner and a client that obeys the rules, in Lean, with the three standard axioms only. Eleven injected defects each break the claim that forbids them. | [`formal/`](../formal/README.md) |
 | Model check of the exchange | The Python client and owner, with up to two faults: 5,150,954 states, every property holds. | [`model/`](../model/README.md) |
 | Model check of the lockstep profile | 565,424 worlds with one fault in the gate. 13,621,815 worlds with two faults, outside the gate. | [`model/`](../model/README.md) |
-| Fault campaigns | 4,560 trials over Unix domain sockets and TCP (protocol 6) and 960 trials over Zenoh (protocol 7): no wrong result, and every verdict true against the owner's execution log. | [Fault campaign](../benchmarks/fault-campaign/README.md) |
-| Exact content with NEST | 216 trials of eight networks of seven NEST neuron models: every spike, offset, and membrane-potential sample arrived bit for bit. | [NEST campaign](../benchmarks/nest-campaign/README.md#results-of-content-protocol-3) |
-| Speed | Comparison protocols 3 (420 runs) and 4 (84 runs, against iceoryx2). | [Comparison benchmark](../benchmarks/comparison/README.md) |
+| Fault campaigns | 4,560 trials over Unix domain sockets and TCP and 960 trials over Zenoh, first with revision 7 (protocols 6 and 7) and again with the speed changes (protocols 8 and 9): no wrong result, and every verdict true against the owner's execution log. | [Fault campaign](../benchmarks/fault-campaign/README.md#results-of-protocols-8-and-9) |
+| Exact content with NEST | 216 trials of eight networks of seven NEST neuron models, before and after the speed changes (content protocols 3 and 4): every spike, offset, and membrane-potential sample arrived bit for bit. | [NEST campaign](../benchmarks/nest-campaign/README.md#results-of-content-protocol-4) |
+| Speed | Comparison protocols 3, 4 (against iceoryx2), and 5 (with the speed changes), and the speed bisection by revision. | [Comparison benchmark](../benchmarks/comparison/README.md#results-of-protocol-5) |
 | Tests | Both NCP 2 gates run on Linux and macOS in hosted CI on each push. | [`check_ncp2.sh`](../scripts/check_ncp2.sh) |
-| Release build | Two builds give the same files. A build at commit `1e08ee6` gave the recorded `SHA256SUMS` again. | [Release record](release/NCP-2.0.0.md#artifacts) |
+| Release build | Two builds at commit `9df6b71` gave the same files, which the release record lists. | [Release record](release/NCP-2.0.0.md#artifacts) |
 
 Limits of this evidence:
 
@@ -47,8 +51,8 @@ Limits of this evidence:
    is OPEN. The advisory design review of revision 6 recommends to freeze the exercised core
    and to keep streams, the Zenoh binding, schemas, the key and TLS guidance, and both profiles
    provisional.
-2. **Speed.** Fix the cost of revision 3, or accept it on purpose. Then run the comparison
-   benchmark again.
+2. **Speed.** The speed changes recovered 6.4 µs of the 22.9 µs that revision 3 added in Python,
+   and nothing measurable in Rust. Make Python faster still, or accept the rest on purpose.
 3. **Evidence that is NOT RUN for revision 7:**
    - the NEST and multi-agent timings,
    - a benchmark of the Zenoh binding,
@@ -67,8 +71,8 @@ to 7 came from advisory reviews:
 - Revisions 5 and 6 changed the lockstep profile and added feature operations.
 - Revision 7 added decline reasons and the code `conflict`.
 
-If the SDKs change before the tag, the fault campaigns, the NEST content runs, and the
-comparison benchmark must run again ([migration plan](design/NCP-2-MIGRATION.md#open-work-after-revision-7), item 2).
+If the SDKs change again before the tag, the fault campaigns, the NEST content runs, the
+comparison benchmark, and the speed bisection must run again ([migration plan](design/NCP-2-MIGRATION.md#open-work-after-revision-7), item 2).
 
 ## What production use needs after the tag
 
@@ -91,8 +95,9 @@ certified emergency stop ([known limitations](../KNOWN_LIMITATIONS.md)).
 ## Path to the tag
 
 1. The owner decides the scope of the freeze.
-2. Fix the cost of revision 3 or accept it, and run the comparison benchmark again.
-3. If the SDKs changed, run fault-campaign protocols 6 and 7 and NEST content protocol 3 again.
+2. Make the Python SDK faster still, or accept its cost on purpose.
+3. If the SDKs change again, run the fault campaigns, the NEST content check, the comparison
+   benchmark, and the speed bisection again.
 4. Run the NEST timings with the final revision.
 5. Get both gates in hosted CI at the commit that the tag names.
 6. The owner tags and publishes ([owner steps](release/NCP-2.0.0.md#owner-steps)).
@@ -187,7 +192,7 @@ The gap is in the process, not in the design. A change of the SDKs had no speed 
 
 ### The second parse of the Python decoder
 
-The bisection also found a cost that is older than revision 1. Since 23 October 2026, the Python
+The first run of the bisection also found a cost that is older than revision 1. Since 23 October 2026, the Python
 frame decoder parses a frame a second time when its text contains `-0` that a regular
 expression matches. The check is for the integer `-0`, which the specification forbids. The
 expression also matches characters in a string. The session identifier is a random UUID, and
@@ -195,19 +200,55 @@ when a group of it starts with `0` and a letter other than `e`, every frame of t
 the second parse. This occurs in about 4 percent of sessions.
 
 Four runs of the bisection had such a session. Their medians were 2.4 to 3.6 µs above the
-median of their commit. This cost is small, but it makes some Python runs slower at random.
+median of their commit. This cost is small, but it made some Python runs slower at random.
+Since commit `9df6b71`, the expression matches only where a JSON number can start, and a UUID no
+longer causes a second parse.
 
-### What can recover the time
+### What the speed changes recovered
 
-These changes can make a call faster without a change of the wire or of a verdict. Each is a
-hypothesis until a measurement confirms it:
+On 19 November 2026, commit `9df6b71` changed both SDKs. The frame format, the rules, and every
+verdict stay the same:
 
-- In Python, change the state in place in the blocking driver, or copy it without
-  `dataclasses.replace`. Keep the pure functions for the model check.
-- Build an event only when the observer wants events.
-- In Rust, borrow the request frame for a resend, or share it, and do not clone the state.
-- In Python, make the check for `-0` ignore the characters inside strings.
+- In Python, the client and the owner build the next state with its constructor, not with
+  `dataclasses.replace`.
+- Both SDKs build an event only for an observer that uses it.
+- The Rust client copies the body of a response only when it needs it, and the Rust client and
+  owner do not copy the old outstanding request or kept response.
+- The Python decoder parses a frame twice only when `-0` can be a JSON number.
 
-A change of the SDKs needs the evidence again: the fault campaigns, the NEST content runs, and
-the comparison benchmark. The speed bisection can then run as a check for each change of the
-SDKs.
+A second run of the [speed bisection](../benchmarks/comparison/speed-by-revision/README.md#second-run)
+timed all nine commits in alternating rounds:
+
+| SDKs | Rust median (µs) | Python median (µs) | Python calls for each exchange |
+| --- | ---: | ---: | ---: |
+| Revision 2 | 9.0 | 37.1 | 193 |
+| Revision 7 | 9.8 | 60.0 | 292 |
+| Revision 7 with the speed changes | 9.8 | 53.6 | 245 |
+
+In Python, the changes remove 6.4 µs of the 22.9 µs that revision 3 added, and 47 of the 99
+function calls. In Rust, they have no effect that the runs can measure.
+[Comparison protocol 5](../benchmarks/comparison/README.md#results-of-protocol-5) gave 9.9 µs in
+Rust and 52.4 µs in Python. In Python, NCP 2 over a pipe was then as fast as ZeroMQ over ipc
+(52.9 µs) and faster than Zenoh, HTTP/1.1, and gRPC.
+
+The changed SDKs passed both gates, the model check with two faults, and the conformance check.
+They ran the evidence again with every result held:
+
+- 4,560 fault trials over Unix domain sockets and TCP, and 960 over Zenoh (protocols 8 and 9),
+- 216 trials of exact content with NEST (content protocol 4),
+- 420 runs of the comparison benchmark (protocol 5).
+
+### What remains
+
+The rest of the Python cost is in the work that revision 3 added to every call:
+
+- the frozen dataclasses of each call (`Request`, `Note`, `Kept`, `Pending`, and the two states),
+  which the model check uses as hashable values,
+- the form check of each message and the schema check of each request body.
+
+A faster path must keep the model check, the vectors, and the conformance check passing. A
+change that makes these types mutable changes the public interface of the SDK.
+
+The process gap is closed in part: the speed bisection can run for each change of the SDKs
+(`run_bisection.py`), and a change of the SDKs needs the fault campaigns, the NEST content check,
+and the comparison benchmark again.

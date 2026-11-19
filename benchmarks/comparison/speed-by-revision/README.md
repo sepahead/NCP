@@ -140,6 +140,27 @@ Revision 3 adds these Python calls to each exchange (client, owner):
 | `ncp/events.py` | +1 | +1 | One observer event for each call |
 | `ncp/client.py`, `ncp/owner.py`, `ncp/exchange.py`, `ncp/binding.py` | −2 | −1 | The drivers moved from `exchange.py` to the state machines |
 
+### Second run
+
+The second run took place on 19 November 2026, with the runner at commit `47a61a4`, on the power adapter. All 360 runs completed, and none was disturbed. The directory [`results-2`](results-2/summary.md) holds every run.
+
+| Commit | SDKs | Rust median (µs) | Step | Python median (µs) | Step | Python calls for each exchange |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `c701f56` | Protocol 2 | 9.1 | | 35.3 | | 190 |
+| `5300f70` | Revision 1 | 9.1 | +0.0 | 35.8 | +0.5 | 193 |
+| `8940721` | Revision 2 | 9.0 | −0.0 | 37.1 | +1.2 | 193 |
+| `9f58e7a` | **Revision 3** | **9.7** | **+0.7** | **60.5** | **+23.4** | **286** |
+| `2e24ef5` | Revision 4 | 9.7 | −0.0 | 59.5 | −1.0 | 290 |
+| `7edc3f9` | Revision 5 | 9.7 | +0.0 | 59.4 | −0.0 | 288 |
+| `28fb8cc` | Revision 6 | 9.8 | +0.1 | 61.1 | +1.7 | 292 |
+| `727289e` | Revision 7 | 9.8 | +0.0 | 60.0 | −1.1 | 292 |
+| `9df6b71` | **Speed changes** | **9.8** | **−0.0** | **53.6** | **−6.4** | **245** |
+
+- **The first run holds again.** Revision 3 is again the one large step: 0.7 µs in Rust and 23.4 µs in Python.
+- **The speed changes recover a part of the Python cost.** They remove 6.4 µs of the 22.9 µs that revisions 3 to 7 added in Python, and 47 of the 99 function calls that they added to each exchange.
+- **The Rust changes have no measurable effect on one call.** The Rust changes remove copies of strings and of the response body, and the events that the default observer drops. Over a pipe, their effect is below the spread of the runs.
+- The absolute times are lower than in the first run in both languages. Both runs were on the power adapter. The median one-minute load average before a run was 3.8, against 4.9 in the first run. The steps between commits agree.
+
 ### Ratios against the comparison benchmark
 
 This diagnostic finds revision 7 1.11 times slower in Rust and 1.60 times slower in Python than

@@ -1,0 +1,259 @@
+{
+ "c701f56": {
+  "label": "protocol 2",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "json": 18.0,
+   "ncp/binding.py": 13.0,
+   "ncp/exchange.py": 9.0,
+   "ncp/frame.py": 51.0,
+   "other": 4.0
+  },
+  "client_total": 95.0,
+  "owner": {
+   "json": 18.0,
+   "ncp/binding.py": 13.0,
+   "ncp/exchange.py": 9.0,
+   "ncp/frame.py": 51.0,
+   "other": 4.0
+  },
+  "owner_total": 95.0
+ },
+ "5300f70": {
+  "label": "revision 1",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "json": 18.0,
+   "ncp/binding.py": 13.0,
+   "ncp/exchange.py": 12.0,
+   "ncp/frame.py": 51.0,
+   "other": 4.0
+  },
+  "client_total": 98.0,
+  "owner": {
+   "json": 18.0,
+   "ncp/binding.py": 13.0,
+   "ncp/exchange.py": 9.0,
+   "ncp/frame.py": 51.0,
+   "other": 4.0
+  },
+  "owner_total": 95.0
+ },
+ "8940721": {
+  "label": "revision 2",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "json": 18.0,
+   "ncp/binding.py": 13.0,
+   "ncp/exchange.py": 12.0,
+   "ncp/frame.py": 51.0,
+   "other": 4.0
+  },
+  "client_total": 98.0,
+  "owner": {
+   "json": 18.0,
+   "ncp/binding.py": 13.0,
+   "ncp/exchange.py": 9.0,
+   "ncp/frame.py": 51.0,
+   "other": 4.0
+  },
+  "owner_total": 95.0
+ },
+ "9f58e7a": {
+  "label": "revision 3",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "dataclasses": 27.0,
+   "generated __init__": 2.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/client.py": 13.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 10.0,
+   "other": 4.0
+  },
+  "client_total": 149.0,
+  "owner": {
+   "dataclasses": 13.0,
+   "generated __init__": 1.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/contract.py": 5.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 10.0,
+   "ncp/owner.py": 11.0,
+   "other": 4.0
+  },
+  "owner_total": 137.0
+ },
+ "2e24ef5": {
+  "label": "revision 4",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "dataclasses": 27.0,
+   "generated __init__": 2.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/client.py": 13.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 10.0,
+   "other": 4.0
+  },
+  "client_total": 149.0,
+  "owner": {
+   "dataclasses": 13.0,
+   "generated __init__": 1.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/contract.py": 5.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 13.0,
+   "ncp/owner.py": 12.0,
+   "other": 4.0
+  },
+  "owner_total": 141.0
+ },
+ "7edc3f9": {
+  "label": "revision 5",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "dataclasses": 27.0,
+   "generated __init__": 0.5,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/client.py": 13.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 10.0,
+   "other": 4.0
+  },
+  "client_total": 147.5,
+  "owner": {
+   "dataclasses": 13.0,
+   "generated __init__": 1.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/contract.py": 5.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 13.0,
+   "ncp/owner.py": 12.0,
+   "other": 4.0
+  },
+  "owner_total": 141.0
+ },
+ "28fb8cc": {
+  "label": "revision 6",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "dataclasses": 27.0,
+   "generated __init__": 2.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/client.py": 13.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 10.0,
+   "other": 4.0
+  },
+  "client_total": 149.0,
+  "owner": {
+   "dataclasses": 13.0,
+   "generated __init__": 1.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/contract.py": 5.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 15.0,
+   "ncp/owner.py": 12.0,
+   "other": 4.0
+  },
+  "owner_total": 143.0
+ },
+ "727289e": {
+  "label": "revision 7",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "dataclasses": 27.0,
+   "generated __init__": 2.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/client.py": 13.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 10.0,
+   "other": 4.0
+  },
+  "client_total": 149.0,
+  "owner": {
+   "dataclasses": 13.0,
+   "generated __init__": 1.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/contract.py": 5.0,
+   "ncp/events.py": 1.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 15.0,
+   "ncp/owner.py": 12.0,
+   "other": 4.0
+  },
+  "owner_total": 143.0
+ },
+ "9df6b71": {
+  "label": "speed changes",
+  "draws": [
+   1,
+   1
+  ],
+  "client": {
+   "generated __init__": 2.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/client.py": 11.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 10.0,
+   "other": 4.0
+  },
+  "client_total": 119.0,
+  "owner": {
+   "generated __init__": 1.0,
+   "json": 18.0,
+   "ncp/binding.py": 10.0,
+   "ncp/contract.py": 5.0,
+   "ncp/frame.py": 64.0,
+   "ncp/messages.py": 15.0,
+   "ncp/owner.py": 9.0,
+   "other": 4.0
+  },
+  "owner_total": 126.0
+ }
+}

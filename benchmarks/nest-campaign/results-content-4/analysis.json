@@ -1,0 +1,129 @@
+{
+ "protocol": "PROTOCOL-CONTENT-4.md",
+ "protocol_sha256": "012214d14d04abd8a21b58f900dd3e28833eda60abf729c65040f99259fe0c3c",
+ "commit": "47a61a41b5b0f321230d6f0dae73b5c3b2f20bd7",
+ "worktree_clean": true,
+ "rows": 216,
+ "scheduled": 216,
+ "failed_to_run": [],
+ "started": "2026-11-19T02:02:55.766258Z",
+ "finished": "2026-11-19T03:02:10.517998Z",
+ "load1_before": [
+  2.39,
+  45.4
+ ],
+ "k3_compared": 96,
+ "totals": {
+  "spikes_compared": 66165804,
+  "vm_compared": 172713600,
+  "reference_spikes": 33082902,
+  "reference_vm": 86356800,
+  "off_grid_spikes": 5071542
+ },
+ "by_network": {
+  "aeif, 1000 neurons": {
+   "trials": 24,
+   "spikes_min": 18165,
+   "spikes_max": 18278,
+   "vm_samples": 9595200,
+   "off_grid": 0,
+   "exact_trials": 24
+  },
+  "alpha, 1000 neurons": {
+   "trials": 24,
+   "spikes_min": 25370,
+   "spikes_max": 26262,
+   "vm_samples": 9595200,
+   "off_grid": 0,
+   "exact_trials": 24
+  },
+  "brunel, 1000 neurons": {
+   "trials": 24,
+   "spikes_min": 116551,
+   "spikes_max": 116962,
+   "vm_samples": 9595200,
+   "off_grid": 0,
+   "exact_trials": 24
+  },
+  "brunel, 10000 neurons": {
+   "trials": 24,
+   "spikes_min": 712176,
+   "spikes_max": 716976,
+   "vm_samples": 9595200,
+   "off_grid": 0,
+   "exact_trials": 24
+  },
+  "brunel_stdp, 1000 neurons": {
+   "trials": 24,
+   "spikes_min": 129737,
+   "spikes_max": 130699,
+   "vm_samples": 9595200,
+   "off_grid": 0,
+   "exact_trials": 24
+  },
+  "gif, 1000 neurons": {
+   "trials": 24,
+   "spikes_min": 102310,
+   "spikes_max": 102797,
+   "vm_samples": 9595200,
+   "off_grid": 0,
+   "exact_trials": 24
+  },
+  "hh, 1000 neurons": {
+   "trials": 24,
+   "spikes_min": 8038,
+   "spikes_max": 9600,
+   "vm_samples": 9595200,
+   "off_grid": 0,
+   "exact_trials": 24
+  },
+  "izhikevich, 1000 neurons": {
+   "trials": 24,
+   "spikes_min": 50055,
+   "spikes_max": 50283,
+   "vm_samples": 9595200,
+   "off_grid": 0,
+   "exact_trials": 24
+  },
+  "precise, 1000 neurons": {
+   "trials": 24,
+   "spikes_min": 211033,
+   "spikes_max": 211636,
+   "vm_samples": 9595200,
+   "off_grid": 5071542,
+   "exact_trials": 24
+  }
+ },
+ "hypotheses": {
+  "K1": {
+   "criterion": "In every trial, the NCP 2 Python host receives exactly the reference multiset of spikes, offsets bit for bit.",
+   "violations": [],
+   "holds": true
+  },
+  "K2": {
+   "criterion": "In every trial, the NCP 2 Rust host receives exactly the reference multiset of spikes, offsets bit for bit.",
+   "violations": [],
+   "holds": true
+  },
+  "V1": {
+   "criterion": "In every trial, the NCP 2 Python host receives exactly the reference multiset of membrane potential samples, bit for bit.",
+   "violations": [],
+   "holds": true
+  },
+  "V2": {
+   "criterion": "In every trial, the NCP 2 Rust host receives exactly the reference multiset of membrane potential samples, bit for bit.",
+   "violations": [],
+   "holds": true
+  },
+  "S1": {
+   "criterion": "In every trial, each owner sent what its host received, and each owner exited with status 0.",
+   "violations": [],
+   "holds": true
+  },
+  "K3": {
+   "criterion": "For each configuration of content protocol 2, the reference spike total of each block equals that of protocol 2.",
+   "violations": [],
+   "holds": true
+  }
+ }
+}

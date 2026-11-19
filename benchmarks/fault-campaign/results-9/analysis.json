@@ -1,0 +1,166 @@
+{
+ "protocol": "PROTOCOL-9.md",
+ "protocol_sha256": "75e8f5d4167875a9a994a10b8c36899d591d2ed64783f53fd03a8d2cda84cbda",
+ "commit": "47a61a41b5b0f321230d6f0dae73b5c3b2f20bd7",
+ "worktree_clean": true,
+ "power": "Now drawing from 'AC Power'",
+ "rows": 960,
+ "scheduled": 960,
+ "failed_to_run": [],
+ "started": "2026-11-19T01:40:56.231798Z",
+ "finished": "2026-11-19T02:02:46.360147Z",
+ "load1_before": [
+  2.64,
+  13.38
+ ],
+ "by_scenario": {
+  "delay-reply | python owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "delay-reply | rust owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "drop-query | python owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "drop-query | rust owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "drop-reply | python owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "drop-reply | rust owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "duplicate-query | python owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "duplicate-query | rust owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "kill-owner | python owner": {
+   "trials": 30,
+   "completed": 0,
+   "ended_early": 30,
+   "restarted": 0
+  },
+  "kill-owner | rust owner": {
+   "trials": 30,
+   "completed": 0,
+   "ended_early": 30,
+   "restarted": 0
+  },
+  "replay-open | python owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "replay-open | rust owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "replay-request | python owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "replay-request | rust owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "restart-owner | python owner": {
+   "trials": 30,
+   "completed": 1,
+   "ended_early": 29,
+   "restarted": 30
+  },
+  "restart-owner | rust owner": {
+   "trials": 30,
+   "completed": 5,
+   "ended_early": 25,
+   "restarted": 30
+  },
+  "two-faults | python owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  },
+  "two-faults | rust owner": {
+   "trials": 60,
+   "completed": 60,
+   "ended_early": 0,
+   "restarted": 0
+  }
+ },
+ "views_other_than_ok": {
+  "kill-owner": {
+   "ended:local.timeout:unknown": 51
+  },
+  "restart-owner": {
+   "ended:session_expired:unknown": 44
+  }
+ },
+ "hypotheses": {
+  "E1": {
+   "criterion": "No trial accepts a wrong result.",
+   "violations": [],
+   "holds": true
+  },
+  "E2": {
+   "criterion": "In every trial, the owner executes each step at most once, in order.",
+   "violations": [],
+   "holds": true
+  },
+  "E3": {
+   "criterion": "In every trial, what the client learned about each step is true, and at most one step is uncertain.",
+   "violations": [],
+   "holds": true
+  },
+  "E4": {
+   "criterion": "Every failure reaches the application as an error that the client's SDK documents for a call.",
+   "violations": [],
+   "holds": true
+  },
+  "Z1": {
+   "criterion": "Every trial with faults of the network only (loss, repetition, delay, replay) completes, with every fault applied.",
+   "violations": [],
+   "holds": true
+  },
+  "Z2": {
+   "criterion": "Every trial with a killed owner that is not started again ends early.",
+   "violations": [],
+   "holds": true
+  }
+ }
+}

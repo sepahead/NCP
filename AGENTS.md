@@ -121,8 +121,11 @@ table of `formal/README.md`: run `conformance/generate.py` and
 The NEST and multi-agent benchmarks ran with the SDKs before revision 3 (23 October to
 3 November 2026). The comparison benchmark ran with those SDKs (protocols 1 and 2) and with
 revision 7 (protocols 3 and 4), and the fault campaign with those SDKs (protocols 2 to 5) and
-with revision 7 (protocol 6 over sockets and TCP, protocol 7 over Zenoh). Keep their records, and state the
-revision of the SDKs with each new measurement.
+with revision 7 (protocol 6 over sockets and TCP, protocol 7 over Zenoh). After the speed changes
+of commit `9df6b71` (no rule changes), comparison protocol 5, fault protocols 8 and 9, and NEST
+content protocol 4 ran again. Keep their records, and state the revision of the SDKs with each new
+measurement. Run `benchmarks/comparison/speed-by-revision/run_bisection.py` after each change of
+the SDKs.
 
 ## Task coordination
 

@@ -166,6 +166,34 @@ Exploratory results:
 
 The arms give iceoryx2 none of the guarantees of NCP 2, and polling keeps one core busy at each end (section 5 of [protocol 4](PROTOCOL-4.md)).
 
+## Protocol 5
+
+[`PROTOCOL-5.md`](PROTOCOL-5.md) repeats protocol 3 with the speed changes of both SDKs (commit `9df6b71`), which change no rule and no verdict. It adds two hypotheses about speed, S1 and S2. It was fixed and pushed in commit `7a9d7a9` before its runs (SHA-256 in [`PROTOCOL-5.sha256`](PROTOCOL-5.sha256)).
+
+### Results of protocol 5
+
+The 420 runs ran on 19 November 2026 from 01:11 to 01:26 UTC, from the clean commit `47a61a4`, on the power adapter, with one-minute load averages of 3.3 to 5.5. None was disturbed or failed. [`results-5/summary.md`](results-5/summary.md) gives every value.
+
+| # | Hypothesis | Result |
+| --- | --- | --- |
+| R1 | The results of protocol 1 hold again. | Not supported: H1 to H4 hold. H5 holds in 8 of 9 comparisons: in Python, HTTP/1.1 over TCP (74.2 µs) was faster than NCP 2 over a pipe (84.1 µs) at N = 1788. |
+| R2 | In Rust, with the same check and link, NCP 2 is faster than gRPC and Zenoh. | Supported: 9 of 9 |
+| R3 | In Python, with the same check and link, NCP 2 is faster than gRPC. | Supported: 6 of 6 |
+| S1 | The speed changes make a Python call faster. | Supported: median ratio to protocol 3 of 0.86 (0.80 to 0.99), limit 0.95 |
+| S2 | The speed changes do not make a Rust call slower. | Supported: median ratio to protocol 3 of 0.91 (0.88 to 1.04), limit 1.00 |
+
+<a href="results-5/figures/integrity_light.svg">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results-5/figures/integrity_dark.svg">
+  <img src="results-5/figures/integrity_light.svg" alt="Call time of NCP 2 with the speed changes over a pipe, a Unix socket, and TCP against gRPC, ZeroMQ, HTTP/1.1, Zenoh, and a raw pipe that each add a SHA-256 check to every message, for Rust and Python and four sizes, on log scales. In Rust, NCP 2 is the fastest in every panel. In Python, NCP 2 is the fastest at 0 spikes, 1788 spikes, and 1 MiB, and ZeroMQ over ipc is faster at 127 spikes." width="860">
+</picture>
+</a>
+
+- **A small call.** With no spikes, a call took 9.9 µs in Rust and 52.4 µs in Python over a pipe: 11.0 µs and 65.6 µs in protocol 3, 9.0 µs and 38.8 µs in protocol 2. In Python, NCP 2 over a pipe was now as fast as ZeroMQ over ipc (52.9 µs) and faster than Zenoh (62.8 µs), HTTP/1.1 (75.2 µs), and gRPC (112.1 µs over a Unix socket).
+- **The same check on every system.** In Rust, the fastest NCP 2 arm was faster than every other system with the check at each N. In Python, it was the fastest at N = 0 (52.4 against 57.4 µs for ZeroMQ over ipc), at N = 1788 (84.1 against 85.2 µs for Zenoh, inside the spread of the runs), and at 1 MiB (740.2 against 780.4 µs). ZeroMQ over ipc was faster at N = 127 (58.4 against 66.5 µs).
+- **The ratios to protocol 3 include a change of the conditions.** Protocol 3 ran all 420 runs on battery, and protocol 5 all 420 on the power adapter. The other systems were faster by a median of 3 % in Python and 1 % in Rust, and NCP 1.0.1 over a pipe by 6 % in Rust. The [speed bisection](speed-by-revision/README.md#second-run), with alternating runs on one day, measures the change of the SDKs alone: 6.4 µs less in Python (60.0 to 53.6 µs) and no measurable change in Rust.
+- [`results-5/revisions.md`](results-5/revisions.md) gives the ratio of each NCP 2 configuration to protocol 3.
+
 ## Correction to the protocol
 
 Section 3 of the protocol says that the NCP 1.0.1 harness is the one of `benchmarks/pipelined-ack` at commit `99e9adc`.

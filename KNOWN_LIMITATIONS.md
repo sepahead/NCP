@@ -23,14 +23,17 @@ of [`spec/NCP-2.md`](spec/NCP-2.md)), has these limits:
 - **One author.** The same author wrote the specification, both SDKs, the vectors, the Lean models,
   and the model check. The two SDKs are two implementations by one author; no independent
   implementation exists.
-- **Speed of revision 7.** The comparison benchmark ran again with revision 7 (protocol 3): each
-  small call is 1.2 times slower in Rust and 1.5 times slower in Python than with the SDKs before
-  revision 3. A [bisection by revision](benchmarks/comparison/speed-by-revision/README.md) finds nearly all of the cost in revision 3: the copies of the state and the checks that its pure state machines added to every call ([status of NCP 2](docs/NCP-2-STATUS.md#why-revision-7-is-slower)). In Python, with
-  the same integrity check, ZeroMQ and Zenoh are now faster up to 1,788 spikes.
+- **Speed since revision 3.** The comparison benchmark ran again with revision 7 (protocol 3): each
+  small call was 1.2 times slower in Rust and 1.5 times slower in Python than with the SDKs before
+  revision 3. A [bisection by revision](benchmarks/comparison/speed-by-revision/README.md) finds nearly all of the cost in revision 3: the copies of the state and the checks that its pure state machines added to every call ([status of NCP 2](docs/NCP-2-STATUS.md#why-revision-7-is-slower)). A speed change of 19
+  November 2026 removed 6.4 µs of the 22.9 µs in Python and nothing measurable in Rust: a small
+  Python call takes 53.6 µs, against 37.1 µs before revision 3. In Python, with the same integrity
+  check, ZeroMQ over ipc is faster at 127 spikes.
 - **Evidence before revision 3.** The NEST and multi-agent benchmarks ran with the SDKs before
-  revision 3 on one macOS laptop, and have not run again for revisions 3 to 7. The fault campaign ran with them and again
+  revision 3 on one macOS laptop, and have not run again for revisions 3 to 7. The fault campaign ran with them, again
   with revision 7 (protocol 6, over Unix domain sockets and TCP, and protocol 7, over the Zenoh
-  binding with the Python client), on the same laptop. Neither ran on Linux, and the benchmarks did
+  binding with the Python client), and again with the speed changes (protocols 8 and 9), on the
+  same laptop. Neither ran on Linux, and the benchmarks did
   not run with the Zenoh binding.
 - **Surfaces.** No TypeScript SDK. The Rust SDK has no TLS for TCP and no rounds profile. The
   supported platforms are Linux and macOS; Windows is not tested. The Rust SDK takes nonces and session identifiers from the generator of the

@@ -184,7 +184,7 @@ In both, the protocol of each measurement was fixed, with its fingerprint, befor
 <a href="diagrams/ncp2-why-light.svg">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="diagrams/ncp2-why-dark.svg">
-  <img src="diagrams/ncp2-why-light.svg" alt="A table of NCP 2, gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 has four guarantees built in: each request runs at most once, the client learns after a failure whether it ran, each message has a SHA-256 fingerprint, and a verifier can check the session record. The others have none of them built in. The last column gives the time of a small call: 9.0 and 38.8 microseconds for NCP 2 in Rust and Python.">
+  <img src="diagrams/ncp2-why-light.svg" alt="A table of NCP 2, gRPC, ZeroMQ, Zenoh, and HTTP/1.1. NCP 2 has four guarantees built in: a request sent again runs once, the client gets a true answer after a failure, each message has a SHA-256 fingerprint, and a verifier can check the session record. The others have none of them built in. The last column gives the time of a small call: 9.9 microseconds in Rust and 52.4 in Python for NCP 2, and 52.9 for ZeroMQ, the fastest other tool in Python.">
 </picture>
 </a>
 
@@ -198,7 +198,7 @@ The [comparison document](design/NCP-2-COMPARISON.md) also lists what NCP 2 lack
 
 These numbers come from one laptop. With 1 MiB of data in each call, the tools without a fingerprint check were faster than NCP 2, by about the time that the check takes.
 A second run gave every other tool the same fingerprint check as NCP 2, added by the benchmark. Then NCP 2 was the fastest in every case, from an empty result to 1 MiB, in Rust and in Python. The times in the table and these runs used the SDKs before revision 3.
-A third run, with revision 7, found each small call 1.2 times slower in Rust and 1.5 times slower in Python, while the other tools kept their times ([comparison protocol 3](../benchmarks/comparison/README.md#results-of-protocol-3)). Nearly all of the cost comes from revision 3, which added state copies and checks to every call ([status of NCP 2](NCP-2-STATUS.md#why-revision-7-is-slower)). With the same check, NCP 2 is still the fastest in every case in Rust; in Python, ZeroMQ is now faster with small results, and Zenoh with 1,788 spikes.
+A third run, with revision 7, found each small call 1.2 times slower in Rust and 1.5 times slower in Python, while the other tools kept their times ([comparison protocol 3](../benchmarks/comparison/README.md#results-of-protocol-3)). Nearly all of the cost comes from revision 3, which added state copies and checks to every call ([status of NCP 2](NCP-2-STATUS.md#why-revision-7-is-slower)). A speed change of 19 November 2026 removed a part of it: a small call then took 9.9 µs in Rust and 52.4 µs in Python, as fast as ZeroMQ, the fastest other tool in Python ([comparison protocol 5](../benchmarks/comparison/README.md#results-of-protocol-5)). With the same check, NCP 2 is the fastest in every case in Rust. In Python, it is the fastest with no spikes, with 1,788 spikes, and with 1 MiB, and ZeroMQ is faster with 127 spikes.
 
 <a href="../benchmarks/comparison/results-3/figures/integrity_light.svg">
 <picture>
